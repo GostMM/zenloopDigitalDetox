@@ -11,6 +11,7 @@ import FamilyControls
 struct HomeView: View {
     @EnvironmentObject var zenloopManager: ZenloopManager
     @StateObject private var badgeManager = BadgeManager.shared
+    @StateObject private var categoryManager = CategoryManager.shared
     @State private var showContent = false
     @State private var backgroundOffset: CGFloat = 0
     
@@ -32,7 +33,7 @@ struct HomeView: View {
                 
                 // Contenu principal avec espacement amélioré
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 40) { // Espacement plus généreux entre sections
+                    LazyVStack(spacing: 32) { // Espacement optimisé entre sections
                         // Logique d'affichage selon l'état
                         if zenloopManager.currentState == .idle {
                             // État IDLE : Afficher apps sélectionnées + actions OU HeroSection
@@ -67,6 +68,20 @@ struct HomeView: View {
                             .padding(.top, 30)
                         }
                         
+                        // Timer Card - priorité principale (uniquement si idle)
+                        if zenloopManager.currentState == .idle {
+                            TimerCard(zenloopManager: zenloopManager, showContent: showContent)
+                        }
+                        
+                        // Défis par catégorie - juste après TimerCard (uniquement si IDLE)
+                        if zenloopManager.currentState == .idle {
+                            CategoryChallengesRow(
+                                zenloopManager: zenloopManager,
+                                showContent: showContent
+                            )
+                            .padding(.top, -16) // Rapprocher du TimerCard
+                        }
+                        
                         // Section active challenge - priorité quand actif
                         if zenloopManager.currentState != .idle {
                             ActiveChallengeSection(
@@ -74,11 +89,6 @@ struct HomeView: View {
                                 showContent: showContent
                             )
                             .padding(.top, 30)
-                        }
-                        
-                        // Timer Card - entre hero et stats (uniquement si idle)
-                        if zenloopManager.currentState == .idle {
-                            TimerCard(zenloopManager: zenloopManager, showContent: showContent)
                         }
                         
                         // Section stats compacte - toujours visible mais plus discrète

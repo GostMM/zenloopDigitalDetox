@@ -830,36 +830,55 @@ class ZenloopManager: ObservableObject {
     }
     
     private func persistAppsSelection() {
-        // Sauvegarder le nombre d'apps sélectionnées
-        UserDefaults.standard.set(selectedAppsCount, forKey: "zenloop_selected_apps_count")
+        // Sauvegarder la FamilyActivitySelection complète (maintenant possible car Codable)
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(blockedAppsSelection)
+            UserDefaults.standard.set(data, forKey: "zenloop_apps_selection")
+            
+            // Sauvegarder aussi le count pour compatibilité
+            UserDefaults.standard.set(selectedAppsCount, forKey: "zenloop_selected_apps_count")
+            
+            print("✅ [ZENLOOP] Sélection d'apps persistée: \(selectedAppsCount) éléments")
+        } catch {
+            print("❌ [ZENLOOP] Erreur persistance sélection: \(error)")
+            // Fallback sur l'ancien système
+            UserDefaults.standard.set(selectedAppsCount, forKey: "zenloop_selected_apps_count")
+        }
         
-        // Note: Les tokens FamilyActivitySelection ne peuvent pas être persistés directement
-        // car ils sont liés à la session utilisateur actuelle et ne sont pas sérialisables.
-        // La sélection doit être refaite par l'utilisateur à chaque lancement.
-        // On garde seulement le count pour l'affichage dans l'interface.
-        
-        print("📱 [ZENLOOP] Sélection d'apps sauvegardée: \(selectedAppsCount) éléments")
         UserDefaults.standard.synchronize()
     }
     
     private func loadPersistedAppsSelection() {
-        selectedAppsCount = UserDefaults.standard.integer(forKey: "zenloop_selected_apps_count")
-        
-        // Réinitialiser la sélection - l'utilisateur devra re-sélectionner les apps
-        // car les tokens ne persistent pas entre les sessions
-        if selectedAppsCount > 0 {
-            print("⚠️ [ZENLOOP] \(selectedAppsCount) apps étaient sélectionnées précédemment")
-            print("🔄 [ZENLOOP] Les applications devront être re-sélectionnées car les tokens ne persistent pas")
-            
-            // Reset le count car la sélection n'est plus valide
-            selectedAppsCount = 0
+        // Essayer de charger la sélection persistée
+        if let data = UserDefaults.standard.data(forKey: "zenloop_apps_selection") {
+            do {
+                let decoder = JSONDecoder()
+                blockedAppsSelection = try decoder.decode(FamilyActivitySelection.self, from: data)
+                selectedAppsCount = blockedAppsSelection.applicationTokens.count + blockedAppsSelection.categoryTokens.count
+                print("✅ [ZENLOOP] Sélection d'apps restaurée: \(selectedAppsCount) éléments")
+            } catch {
+                print("❌ [ZENLOOP] Erreur lors du chargement de la sélection: \(error)")
+                selectedAppsCount = 0
+                blockedAppsSelection = FamilyActivitySelection()
+            }
+        } else {
+            // Fallback vers l'ancien système de count
+            selectedAppsCount = UserDefaults.standard.integer(forKey: "zenloop_selected_apps_count")
+            if selectedAppsCount > 0 {
+                print("⚠️ [ZENLOOP] \(selectedAppsCount) apps étaient sélectionnées (ancien système)")
+                print("🔄 [ZENLOOP] Migration vers le nouveau système de persistance")
+                selectedAppsCount = 0 // Reset car pas de tokens valides
             UserDefaults.standard.set(0, forKey: "zenloop_selected_apps_count")
+            }
         }
         
-        // Initialiser une sélection vide
-        blockedAppsSelection = FamilyActivitySelection()
-        
         print("📱 [ZENLOOP] Apps sélectionnées initialisées: \(selectedAppsCount) éléments")
+        
+        // Debug: afficher l'état final
+        let hasApps = !blockedAppsSelection.applicationTokens.isEmpty
+        let hasCategories = !blockedAppsSelection.categoryTokens.isEmpty
+        print("🔍 [ZENLOOP] État final - HasApps: \(hasApps), HasCategories: \(hasCategories), Count: \(selectedAppsCount)")
     }
     
     // MARK: - Détails des applications sélectionnées
