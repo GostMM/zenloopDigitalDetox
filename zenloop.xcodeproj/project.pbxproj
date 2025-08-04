@@ -6,14 +6,178 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DE4F56A12E3D19CC0014A5D1 /* zenloopmonitor.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = DE4F56982E3D19CC0014A5D1 /* zenloopmonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DE4F56AE2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE4F56AD2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework */; };
+		DE4F56BA2E3D1B560014A5D1 /* zenloopaction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DE4F56AB2E3D1B560014A5D1 /* zenloopaction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DE4F56D02E3D1B7B0014A5D1 /* zenloopactivity.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = DE4F56C42E3D1B7B0014A5D1 /* zenloopactivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DEAC3E9B2E3E162400007D9D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */; };
+		DEAC3EA32E3E162400007D9D /* zenloopshieldaction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEAC3E992E3E162400007D9D /* zenloopshieldaction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DEAC3EAD2E3E167500007D9D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */; };
+		DEAC3EAF2E3E167500007D9D /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */; };
+		DEAC3EB72E3E167500007D9D /* zenloopshieldconfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DE4F569F2E3D19CC0014A5D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DE4F56972E3D19CC0014A5D1;
+			remoteInfo = zenloopmonitor;
+		};
+		DE4F56B82E3D1B560014A5D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DE4F56AA2E3D1B560014A5D1;
+			remoteInfo = zenloopaction;
+		};
+		DE4F56CE2E3D1B7B0014A5D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DE4F56C32E3D1B7B0014A5D1;
+			remoteInfo = zenloopactivity;
+		};
+		DEAC3EA12E3E162400007D9D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DEAC3E982E3E162400007D9D;
+			remoteInfo = zenloopshieldaction;
+		};
+		DEAC3EB52E3E167500007D9D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DEAC3EAB2E3E167500007D9D;
+			remoteInfo = zenloopshieldconfig;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DE4F56A62E3D19CC0014A5D1 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				DE4F56A12E3D19CC0014A5D1 /* zenloopmonitor.appex in Embed ExtensionKit Extensions */,
+				DE4F56D02E3D1B7B0014A5D1 /* zenloopactivity.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56BF2E3D1B560014A5D1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DEAC3EB72E3E167500007D9D /* zenloopshieldconfig.appex in Embed Foundation Extensions */,
+				DE4F56BA2E3D1B560014A5D1 /* zenloopaction.appex in Embed Foundation Extensions */,
+				DEAC3EA32E3E162400007D9D /* zenloopshieldaction.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		DE4F56802E3D18EC0014A5D1 /* zenloop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = zenloop.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE4F56982E3D19CC0014A5D1 /* zenloopmonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = zenloopmonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE4F56AB2E3D1B560014A5D1 /* zenloopaction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopaction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE4F56AD2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
+		DE4F56C42E3D1B7B0014A5D1 /* zenloopactivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = zenloopactivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEAC3E992E3E162400007D9D /* zenloopshieldaction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopshieldaction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopshieldconfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = Library/Frameworks/ManagedSettingsUI.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DE4F56A22E3D19CC0014A5D1 /* Exceptions for "zenloopmonitor" folder in "zenloopmonitor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DE4F56972E3D19CC0014A5D1 /* zenloopmonitor */;
+		};
+		DE4F56BB2E3D1B560014A5D1 /* Exceptions for "zenloopaction" folder in "zenloopaction" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DE4F56AA2E3D1B560014A5D1 /* zenloopaction */;
+		};
+		DE4F56D12E3D1B7B0014A5D1 /* Exceptions for "zenloopactivity" folder in "zenloopactivity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DE4F56C32E3D1B7B0014A5D1 /* zenloopactivity */;
+		};
+		DEAC3EA42E3E162400007D9D /* Exceptions for "zenloopshieldaction" folder in "zenloopshieldaction" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DEAC3E982E3E162400007D9D /* zenloopshieldaction */;
+		};
+		DEAC3EB82E3E167500007D9D /* Exceptions for "zenloopshieldconfig" folder in "zenloopshieldconfig" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		DE4F56822E3D18EC0014A5D1 /* zenloop */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = zenloop;
+			sourceTree = "<group>";
+		};
+		DE4F56992E3D19CC0014A5D1 /* zenloopmonitor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DE4F56A22E3D19CC0014A5D1 /* Exceptions for "zenloopmonitor" folder in "zenloopmonitor" target */,
+			);
+			path = zenloopmonitor;
+			sourceTree = "<group>";
+		};
+		DE4F56AF2E3D1B560014A5D1 /* zenloopaction */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DE4F56BB2E3D1B560014A5D1 /* Exceptions for "zenloopaction" folder in "zenloopaction" target */,
+			);
+			path = zenloopaction;
+			sourceTree = "<group>";
+		};
+		DE4F56C52E3D1B7B0014A5D1 /* zenloopactivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DE4F56D12E3D1B7B0014A5D1 /* Exceptions for "zenloopactivity" folder in "zenloopactivity" target */,
+			);
+			path = zenloopactivity;
+			sourceTree = "<group>";
+		};
+		DEAC3E9C2E3E162400007D9D /* zenloopshieldaction */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DEAC3EA42E3E162400007D9D /* Exceptions for "zenloopshieldaction" folder in "zenloopshieldaction" target */,
+			);
+			path = zenloopshieldaction;
+			sourceTree = "<group>";
+		};
+		DEAC3EB02E3E167500007D9D /* zenloopshieldconfig */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DEAC3EB82E3E167500007D9D /* Exceptions for "zenloopshieldconfig" folder in "zenloopshieldconfig" target */,
+			);
+			path = zenloopshieldconfig;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,6 +190,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DE4F56952E3D19CC0014A5D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56A82E3D1B560014A5D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE4F56AE2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56C12E3D1B7B0014A5D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3E962E3E162400007D9D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEAC3E9B2E3E162400007D9D /* ManagedSettings.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3EA92E3E167500007D9D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEAC3EAD2E3E167500007D9D /* ManagedSettings.framework in Frameworks */,
+				DEAC3EAF2E3E167500007D9D /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -33,6 +236,12 @@
 			isa = PBXGroup;
 			children = (
 				DE4F56822E3D18EC0014A5D1 /* zenloop */,
+				DE4F56992E3D19CC0014A5D1 /* zenloopmonitor */,
+				DE4F56AF2E3D1B560014A5D1 /* zenloopaction */,
+				DE4F56C52E3D1B7B0014A5D1 /* zenloopactivity */,
+				DEAC3E9C2E3E162400007D9D /* zenloopshieldaction */,
+				DEAC3EB02E3E167500007D9D /* zenloopshieldconfig */,
+				DE4F56AC2E3D1B560014A5D1 /* Frameworks */,
 				DE4F56812E3D18EC0014A5D1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +250,23 @@
 			isa = PBXGroup;
 			children = (
 				DE4F56802E3D18EC0014A5D1 /* zenloop.app */,
+				DE4F56982E3D19CC0014A5D1 /* zenloopmonitor.appex */,
+				DE4F56AB2E3D1B560014A5D1 /* zenloopaction.appex */,
+				DE4F56C42E3D1B7B0014A5D1 /* zenloopactivity.appex */,
+				DEAC3E992E3E162400007D9D /* zenloopshieldaction.appex */,
+				DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DE4F56AC2E3D1B560014A5D1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DE4F56AD2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework */,
+				DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */,
+				DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -55,10 +279,17 @@
 				DE4F567C2E3D18EC0014A5D1 /* Sources */,
 				DE4F567D2E3D18EC0014A5D1 /* Frameworks */,
 				DE4F567E2E3D18EC0014A5D1 /* Resources */,
+				DE4F56A62E3D19CC0014A5D1 /* Embed ExtensionKit Extensions */,
+				DE4F56BF2E3D1B560014A5D1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DE4F56A02E3D19CC0014A5D1 /* PBXTargetDependency */,
+				DE4F56B92E3D1B560014A5D1 /* PBXTargetDependency */,
+				DE4F56CF2E3D1B7B0014A5D1 /* PBXTargetDependency */,
+				DEAC3EA22E3E162400007D9D /* PBXTargetDependency */,
+				DEAC3EB62E3E167500007D9D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DE4F56822E3D18EC0014A5D1 /* zenloop */,
@@ -69,6 +300,116 @@
 			productName = zenloop;
 			productReference = DE4F56802E3D18EC0014A5D1 /* zenloop.app */;
 			productType = "com.apple.product-type.application";
+		};
+		DE4F56972E3D19CC0014A5D1 /* zenloopmonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE4F56A32E3D19CC0014A5D1 /* Build configuration list for PBXNativeTarget "zenloopmonitor" */;
+			buildPhases = (
+				DE4F56942E3D19CC0014A5D1 /* Sources */,
+				DE4F56952E3D19CC0014A5D1 /* Frameworks */,
+				DE4F56962E3D19CC0014A5D1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DE4F56992E3D19CC0014A5D1 /* zenloopmonitor */,
+			);
+			name = zenloopmonitor;
+			packageProductDependencies = (
+			);
+			productName = zenloopmonitor;
+			productReference = DE4F56982E3D19CC0014A5D1 /* zenloopmonitor.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		DE4F56AA2E3D1B560014A5D1 /* zenloopaction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE4F56BC2E3D1B560014A5D1 /* Build configuration list for PBXNativeTarget "zenloopaction" */;
+			buildPhases = (
+				DE4F56A72E3D1B560014A5D1 /* Sources */,
+				DE4F56A82E3D1B560014A5D1 /* Frameworks */,
+				DE4F56A92E3D1B560014A5D1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DE4F56AF2E3D1B560014A5D1 /* zenloopaction */,
+			);
+			name = zenloopaction;
+			packageProductDependencies = (
+			);
+			productName = zenloopaction;
+			productReference = DE4F56AB2E3D1B560014A5D1 /* zenloopaction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DE4F56C32E3D1B7B0014A5D1 /* zenloopactivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DE4F56D22E3D1B7B0014A5D1 /* Build configuration list for PBXNativeTarget "zenloopactivity" */;
+			buildPhases = (
+				DE4F56C02E3D1B7B0014A5D1 /* Sources */,
+				DE4F56C12E3D1B7B0014A5D1 /* Frameworks */,
+				DE4F56C22E3D1B7B0014A5D1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DE4F56C52E3D1B7B0014A5D1 /* zenloopactivity */,
+			);
+			name = zenloopactivity;
+			packageProductDependencies = (
+			);
+			productName = zenloopactivity;
+			productReference = DE4F56C42E3D1B7B0014A5D1 /* zenloopactivity.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		DEAC3E982E3E162400007D9D /* zenloopshieldaction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DEAC3EA52E3E162400007D9D /* Build configuration list for PBXNativeTarget "zenloopshieldaction" */;
+			buildPhases = (
+				DEAC3E952E3E162400007D9D /* Sources */,
+				DEAC3E962E3E162400007D9D /* Frameworks */,
+				DEAC3E972E3E162400007D9D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DEAC3E9C2E3E162400007D9D /* zenloopshieldaction */,
+			);
+			name = zenloopshieldaction;
+			packageProductDependencies = (
+			);
+			productName = zenloopshieldaction;
+			productReference = DEAC3E992E3E162400007D9D /* zenloopshieldaction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DEAC3EB92E3E167500007D9D /* Build configuration list for PBXNativeTarget "zenloopshieldconfig" */;
+			buildPhases = (
+				DEAC3EA82E3E167500007D9D /* Sources */,
+				DEAC3EA92E3E167500007D9D /* Frameworks */,
+				DEAC3EAA2E3E167500007D9D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DEAC3EB02E3E167500007D9D /* zenloopshieldconfig */,
+			);
+			name = zenloopshieldconfig;
+			packageProductDependencies = (
+			);
+			productName = zenloopshieldconfig;
+			productReference = DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +422,21 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					DE4F567F2E3D18EC0014A5D1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DE4F56972E3D19CC0014A5D1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DE4F56AA2E3D1B560014A5D1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DE4F56C32E3D1B7B0014A5D1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DEAC3E982E3E162400007D9D = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DEAC3EAB2E3E167500007D9D = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -100,12 +456,52 @@
 			projectRoot = "";
 			targets = (
 				DE4F567F2E3D18EC0014A5D1 /* zenloop */,
+				DE4F56972E3D19CC0014A5D1 /* zenloopmonitor */,
+				DE4F56AA2E3D1B560014A5D1 /* zenloopaction */,
+				DE4F56C32E3D1B7B0014A5D1 /* zenloopactivity */,
+				DEAC3E982E3E162400007D9D /* zenloopshieldaction */,
+				DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		DE4F567E2E3D18EC0014A5D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56962E3D19CC0014A5D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56A92E3D1B560014A5D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56C22E3D1B7B0014A5D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3E972E3E162400007D9D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3EAA2E3E167500007D9D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +518,70 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DE4F56942E3D19CC0014A5D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56A72E3D1B560014A5D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE4F56C02E3D1B7B0014A5D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3E952E3E162400007D9D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEAC3EA82E3E167500007D9D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DE4F56A02E3D19CC0014A5D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DE4F56972E3D19CC0014A5D1 /* zenloopmonitor */;
+			targetProxy = DE4F569F2E3D19CC0014A5D1 /* PBXContainerItemProxy */;
+		};
+		DE4F56B92E3D1B560014A5D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DE4F56AA2E3D1B560014A5D1 /* zenloopaction */;
+			targetProxy = DE4F56B82E3D1B560014A5D1 /* PBXContainerItemProxy */;
+		};
+		DE4F56CF2E3D1B7B0014A5D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DE4F56C32E3D1B7B0014A5D1 /* zenloopactivity */;
+			targetProxy = DE4F56CE2E3D1B7B0014A5D1 /* PBXContainerItemProxy */;
+		};
+		DEAC3EA22E3E162400007D9D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DEAC3E982E3E162400007D9D /* zenloopshieldaction */;
+			targetProxy = DEAC3EA12E3E162400007D9D /* PBXContainerItemProxy */;
+		};
+		DEAC3EB62E3E167500007D9D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */;
+			targetProxy = DEAC3EB52E3E167500007D9D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		DE4F568D2E3D18ED0014A5D1 /* Debug */ = {
@@ -317,6 +776,287 @@
 			};
 			name = Release;
 		};
+		DE4F56A42E3D19CC0014A5D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopmonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopmonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopmonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DE4F56A52E3D19CC0014A5D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopmonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopmonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopmonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DE4F56BD2E3D1B560014A5D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopaction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopaction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopaction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DE4F56BE2E3D1B560014A5D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopaction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopaction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopaction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DE4F56D32E3D1B7B0014A5D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopactivity/zenloopactivity.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopactivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopactivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DE4F56D42E3D1B7B0014A5D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopactivity/zenloopactivity.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopactivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopactivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DEAC3EA62E3E162400007D9D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopshieldaction/zenloopshieldaction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopshieldaction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopshieldaction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopshieldaction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DEAC3EA72E3E162400007D9D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopshieldaction/zenloopshieldaction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopshieldaction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopshieldaction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopshieldaction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DEAC3EBA2E3E167500007D9D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopshieldconfig/zenloopshieldconfig.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopshieldconfig/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopshieldconfig;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopshieldconfig;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DEAC3EBB2E3E167500007D9D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopshieldconfig/zenloopshieldconfig.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopshieldconfig/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopshieldconfig;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopshieldconfig;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -334,6 +1074,51 @@
 			buildConfigurations = (
 				DE4F56902E3D18ED0014A5D1 /* Debug */,
 				DE4F56912E3D18ED0014A5D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DE4F56A32E3D19CC0014A5D1 /* Build configuration list for PBXNativeTarget "zenloopmonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE4F56A42E3D19CC0014A5D1 /* Debug */,
+				DE4F56A52E3D19CC0014A5D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DE4F56BC2E3D1B560014A5D1 /* Build configuration list for PBXNativeTarget "zenloopaction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE4F56BD2E3D1B560014A5D1 /* Debug */,
+				DE4F56BE2E3D1B560014A5D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DE4F56D22E3D1B7B0014A5D1 /* Build configuration list for PBXNativeTarget "zenloopactivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DE4F56D32E3D1B7B0014A5D1 /* Debug */,
+				DE4F56D42E3D1B7B0014A5D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DEAC3EA52E3E162400007D9D /* Build configuration list for PBXNativeTarget "zenloopshieldaction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DEAC3EA62E3E162400007D9D /* Debug */,
+				DEAC3EA72E3E162400007D9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DEAC3EB92E3E167500007D9D /* Build configuration list for PBXNativeTarget "zenloopshieldconfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DEAC3EBA2E3E167500007D9D /* Debug */,
+				DEAC3EBB2E3E167500007D9D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
