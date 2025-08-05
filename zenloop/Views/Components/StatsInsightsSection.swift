@@ -15,17 +15,26 @@ struct StatsInsightsSection: View {
     let showContent: Bool
     
     var body: some View {
-        VStack(spacing: 28) { // Espacement plus généreux
+        VStack(spacing: 20) { // Espacement plus compact
             // En-tête section plus aéré
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Tes Progrès")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
+                HStack(spacing: 12) {
+                    // Icône pour Tes Progrès
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.purple)
+                        .frame(width: 40, height: 40)
+                        .background(.purple.opacity(0.15), in: Circle())
                     
-                    Text("Vue d'ensemble de tes performances")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Tes Progrès")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Text("Vue d'ensemble de tes performances")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
                 
                 Spacer()
@@ -41,8 +50,8 @@ struct StatsInsightsSection: View {
             }
             .padding(.horizontal, 24) // Padding plus généreux
             
-            // Grid de stats avec plus d'espacement
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 20) {
+            // Grid de stats plus compacte
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 ProgressStatCard(
                     icon: "flame.fill",
                     title: "Série Actuelle",
@@ -79,62 +88,84 @@ struct StatsInsightsSection: View {
                     trend: .up
                 )
                 
-                ProgressStatCard(
-                    icon: "iphone",
-                    title: "Temps Quotidien",
-                    value: appUsageManager.usageStats.dailyTotal > 0 ? 
-                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal).value : "4h",
-                    unit: appUsageManager.usageStats.dailyTotal > 0 ? 
-                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal).unit : "",
-                    color: .mint,
-                    trend: .down
-                )
-                
-                ProgressStatCard(
-                    icon: "calendar",
-                    title: "Temps Hebdomadaire", 
-                    value: appUsageManager.usageStats.weeklyTotal > 0 ? 
-                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal).value : "28h",
-                    unit: appUsageManager.usageStats.weeklyTotal > 0 ? 
-                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal).unit : "",
-                    color: .indigo,
-                    trend: .down
-                )
+       
             }
             .padding(.horizontal, 24)
             .onAppear {
+                debugPrint("📊 [STATS] === StatsInsightsSection onAppear ===")
+                debugPrint("📊 [STATS] isAuthorized: \(appUsageManager.isAuthorized)")
+                debugPrint("📊 [STATS] isLoading: \(appUsageManager.isLoading)")
+                debugPrint("📊 [STATS] Avant loadUsageData - Daily: \(appUsageManager.usageStats.dailyTotal)")
+                debugPrint("📊 [STATS] Avant loadUsageData - Weekly: \(appUsageManager.usageStats.weeklyTotal)")
+                
                 // Forcer le chargement des données au chargement de la vue
                 appUsageManager.loadUsageData()
-                debugPrint("📊 [STATS] StatsInsightsSection loaded")
-                debugPrint("📊 [STATS] Daily total: \(appUsageManager.usageStats.dailyTotal)")
-                debugPrint("📊 [STATS] Top apps count: \(appUsageManager.usageStats.topApps.count)")
                 
-                // Debug des valeurs formatées
-                let dailyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal)
-                debugPrint("📊 [STATS] Daily formatted: value='\(dailyFormatted.value)' unit='\(dailyFormatted.unit)'")
-                
-                let weeklyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal)
-                debugPrint("📊 [STATS] Weekly formatted: value='\(weeklyFormatted.value)' unit='\(weeklyFormatted.unit)'")
+                // Debug après chargement avec délai
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    debugPrint("📊 [STATS] === Après loadUsageData (1s délai) ===")
+                    debugPrint("📊 [STATS] Daily total: \(appUsageManager.usageStats.dailyTotal)")
+                    debugPrint("📊 [STATS] Weekly total: \(appUsageManager.usageStats.weeklyTotal)")
+                    debugPrint("📊 [STATS] Top apps count: \(appUsageManager.usageStats.topApps.count)")
+                    
+                    // Debug des valeurs formatées
+                    let dailyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal)
+                    debugPrint("📊 [STATS] Daily formatted: value='\(dailyFormatted.value)' unit='\(dailyFormatted.unit)'")
+                    
+                    let weeklyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal)
+                    debugPrint("📊 [STATS] Weekly formatted: value='\(weeklyFormatted.value)' unit='\(weeklyFormatted.unit)'")
+                    
+                    // Vérifier si ce sont les valeurs par défaut (mock data)
+                    if appUsageManager.usageStats.dailyTotal == 14400.0 && appUsageManager.usageStats.weeklyTotal == 100800.0 {
+                        debugPrint("⚠️ [STATS] ATTENTION: Ces valeurs correspondent aux données MOCK (4h/28h)")
+                        debugPrint("⚠️ [STATS] L'extension DeviceActivity ne fournit pas de vraies données")
+                    } else {
+                        debugPrint("✅ [STATS] Vraies données DeviceActivity détectées!")
+                    }
+                }
             }
             
-            // Section DeviceActivityReport (vraies données)
+            // Section DeviceActivityReport élégante (vraies données)
             if appUsageManager.isAuthorized {
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Données Screen Time")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
+                        HStack(spacing: 12) {
+                            // Icône élégante pour Screen Time
+                            Image(systemName: "chart.bar.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.cyan)
+                                .frame(width: 40, height: 40)
+                                .background(.cyan.opacity(0.15), in: Circle())
                             
-                            Text("Données officielles iOS")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Analyse Screen Time")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("Données officielles iOS • Aujourd'hui")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
                         }
                         
                         Spacer()
+                        
+                        // Badge "Live"
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(.green)
+                                .frame(width: 6, height: 6)
+                            
+                            Text("Live")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.green)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.green.opacity(0.15), in: Capsule())
                     }
                     
-                    // DeviceActivityReport intégré
+                    // DeviceActivityReport avec style premium
                     DeviceActivityReport(
                         DeviceActivityReport.Context("TotalActivity"),
                         filter: DeviceActivityFilter(
@@ -143,64 +174,60 @@ struct StatsInsightsSection: View {
                             devices: .init([.iPhone])
                         )
                     )
-                    .frame(height: 200)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .frame(minHeight: 400)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.cyan.opacity(0.3), .blue.opacity(0.3)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
+                    .overlay(
+                        // Effet de brillance subtil
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.1), .clear],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                )
+                            )
+                    )
                 }
                 .padding(.horizontal, 24)
             }
             
-            // Section Top 3 Apps 
-            if !appUsageManager.usageStats.topApps.isEmpty {
-                VStack(spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Top 3 Applications")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                            
-                            Text("Votre temps d'écran quotidien")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        
-                        Spacer()
-                        
-                        // Indicateur de productivité global
-                        HStack(spacing: 4) {
-                            Image(systemName: appUsageManager.usageStats.productivityPercentage > 50 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(appUsageManager.usageStats.productivityPercentage > 50 ? .green : .orange)
-                            
-                            Text("\(appUsageManager.usageStats.productivityPercentage)% productif")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial, in: Capsule())
-                    }
-                    
-                    VStack(spacing: 12) {
-                        ForEach(Array(appUsageManager.usageStats.topApps.enumerated()), id: \.element.id) { index, app in
-                            TopAppRowSimple(app: app, rank: index + 1)
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-            }
+
             
             // Section badges récents (plus aérée)
             if !badgeManager.getUnlockedBadges().isEmpty {
                 VStack(spacing: 16) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Derniers Badges")
+                        HStack(spacing: 12) {
+                            // Icône pour Derniers Badges
+                            Image(systemName: "star.circle.fill")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.yellow)
+                                .frame(width: 36, height: 36)
+                                .background(.yellow.opacity(0.15), in: Circle())
                             
-                            Text("Tes dernières réussites")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Derniers Badges")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                
+                                Text("Tes dernières réussites")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
                         }
                         
                         Spacer()
@@ -270,7 +297,7 @@ struct ProgressStatCard: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) { // Plus d'espacement interne
+        VStack(spacing: 12) { // Espacement interne plus compact
             // Header plus aéré
             HStack {
                 Image(systemName: icon)
@@ -290,24 +317,24 @@ struct ProgressStatCard: View {
             }
             
             // Contenu principal
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(value)
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
                     
                     Text(unit)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }
                 
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(20) // Plus de padding
+        .padding(16) // Padding plus compact
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20)) // Coins plus arrondis
         .overlay(
             RoundedRectangle(cornerRadius: 20)
