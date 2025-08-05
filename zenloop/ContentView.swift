@@ -90,6 +90,9 @@ struct ContentView: View {
                 selectedTab = 0
             }
         }
+        .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation) {
+            BreathingMeditationView(zenloopManager: zenloopManager)
+        }
     }
 }
 

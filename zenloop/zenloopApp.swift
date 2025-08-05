@@ -12,6 +12,12 @@ struct zenloopApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    // Demander autorisation Screen Time et charger données
+                    Task {
+                        await AppUsageManager.shared.requestAuthorization()
+                    }
+                }
         }
     }
 }

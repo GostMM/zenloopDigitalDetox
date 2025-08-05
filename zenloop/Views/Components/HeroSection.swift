@@ -555,7 +555,7 @@ struct ModernActiveChallengeActions: View {
                     icon: "stop.fill",
                     title: "Arrêter",
                     color: .red,
-                    action: { zenloopManager.stopCurrentChallenge() }
+                    action: { zenloopManager.initiateStopWithBreathing() }
                 )
             }
         }
@@ -596,7 +596,7 @@ struct ModernPausedActions: View {
                     icon: "stop.fill",
                     title: "Terminer",
                     color: .red,
-                    action: { zenloopManager.stopCurrentChallenge() }
+                    action: { zenloopManager.initiateStopWithBreathing() }
                 )
             }
         }

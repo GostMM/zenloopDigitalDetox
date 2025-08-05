@@ -75,7 +75,7 @@ struct FuturisticActiveView: View {
                         icon: "stop.fill",
                         color: .red
                     ) {
-                        zenloopManager.stopCurrentChallenge()
+                        zenloopManager.initiateStopWithBreathing()
                     }
                 }
             }

@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import DeviceActivity
 
 struct StatsInsightsSection: View {
     let badgeManager: BadgeManager
     @ObservedObject var zenloopManager: ZenloopManager
+    @StateObject private var appUsageManager = AppUsageManager.shared
     let showContent: Bool
     
     var body: some View {
@@ -44,7 +46,7 @@ struct StatsInsightsSection: View {
                 ProgressStatCard(
                     icon: "flame.fill",
                     title: "Série Actuelle",
-                    value: "\(zenloopManager.currentStreak)",
+                    value: "\(zenloopManager.currentStreakCount)",
                     unit: "jours",
                     color: .orange,
                     trend: .up
@@ -52,17 +54,17 @@ struct StatsInsightsSection: View {
                 
                 ProgressStatCard(
                     icon: "clock.fill",
-                    title: "Temps Total",
-                    value: formatTotalTime(zenloopManager.totalFocusTime),
-                    unit: "heures",
+                    title: "Temps Économisé",
+                    value: formatTotalTime(zenloopManager.totalSavedTime).value,
+                    unit: formatTotalTime(zenloopManager.totalSavedTime).unit,
                     color: .blue,
-                    trend: .stable
+                    trend: .up
                 )
                 
                 ProgressStatCard(
                     icon: "trophy.fill",
                     title: "Défis Complétés",
-                    value: "\(zenloopManager.completedChallengesCount)",
+                    value: "\(zenloopManager.completedChallengesTotal)",
                     unit: "sessions",
                     color: .yellow,
                     trend: .up
@@ -76,8 +78,116 @@ struct StatsInsightsSection: View {
                     color: .purple,
                     trend: .up
                 )
+                
+                ProgressStatCard(
+                    icon: "iphone",
+                    title: "Temps Quotidien",
+                    value: appUsageManager.usageStats.dailyTotal > 0 ? 
+                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal).value : "4h",
+                    unit: appUsageManager.usageStats.dailyTotal > 0 ? 
+                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal).unit : "",
+                    color: .mint,
+                    trend: .down
+                )
+                
+                ProgressStatCard(
+                    icon: "calendar",
+                    title: "Temps Hebdomadaire", 
+                    value: appUsageManager.usageStats.weeklyTotal > 0 ? 
+                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal).value : "28h",
+                    unit: appUsageManager.usageStats.weeklyTotal > 0 ? 
+                        appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal).unit : "",
+                    color: .indigo,
+                    trend: .down
+                )
             }
             .padding(.horizontal, 24)
+            .onAppear {
+                // Forcer le chargement des données au chargement de la vue
+                appUsageManager.loadUsageData()
+                debugPrint("📊 [STATS] StatsInsightsSection loaded")
+                debugPrint("📊 [STATS] Daily total: \(appUsageManager.usageStats.dailyTotal)")
+                debugPrint("📊 [STATS] Top apps count: \(appUsageManager.usageStats.topApps.count)")
+                
+                // Debug des valeurs formatées
+                let dailyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.dailyTotal)
+                debugPrint("📊 [STATS] Daily formatted: value='\(dailyFormatted.value)' unit='\(dailyFormatted.unit)'")
+                
+                let weeklyFormatted = appUsageManager.formatTimeForStats(appUsageManager.usageStats.weeklyTotal)
+                debugPrint("📊 [STATS] Weekly formatted: value='\(weeklyFormatted.value)' unit='\(weeklyFormatted.unit)'")
+            }
+            
+            // Section DeviceActivityReport (vraies données)
+            if appUsageManager.isAuthorized {
+                VStack(spacing: 16) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Données Screen Time")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            Text("Données officielles iOS")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    // DeviceActivityReport intégré
+                    DeviceActivityReport(
+                        DeviceActivityReport.Context("TotalActivity"),
+                        filter: DeviceActivityFilter(
+                            segment: .daily(during: Calendar.current.dateInterval(of: .day, for: .now)!),
+                            users: .all,
+                            devices: .init([.iPhone])
+                        )
+                    )
+                    .frame(height: 200)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+                .padding(.horizontal, 24)
+            }
+            
+            // Section Top 3 Apps 
+            if !appUsageManager.usageStats.topApps.isEmpty {
+                VStack(spacing: 16) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Top 3 Applications")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            Text("Votre temps d'écran quotidien")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        
+                        Spacer()
+                        
+                        // Indicateur de productivité global
+                        HStack(spacing: 4) {
+                            Image(systemName: appUsageManager.usageStats.productivityPercentage > 50 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(appUsageManager.usageStats.productivityPercentage > 50 ? .green : .orange)
+                            
+                            Text("\(appUsageManager.usageStats.productivityPercentage)% productif")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    
+                    VStack(spacing: 12) {
+                        ForEach(Array(appUsageManager.usageStats.topApps.enumerated()), id: \.element.id) { index, app in
+                            TopAppRowSimple(app: app, rank: index + 1)
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
             
             // Section badges récents (plus aérée)
             if !badgeManager.getUnlockedBadges().isEmpty {
@@ -123,10 +233,12 @@ struct StatsInsightsSection: View {
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3), value: showContent)
     }
     
-    private func formatTotalTime(_ seconds: TimeInterval) -> String {
+    private func formatTotalTime(_ seconds: TimeInterval) -> (value: String, unit: String) {
         let hours = Int(seconds) / 3600
-        return hours < 100 ? "\(hours)" : "99+"
+        let value = hours < 100 ? "\(hours)" : "99+"
+        return (value: value, unit: "heures")
     }
+    
 }
 
 struct ProgressStatCard: View {
@@ -231,6 +343,67 @@ struct CompactBadgeCard: View {
         }
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Top App Row
+
+struct TopAppRowSimple: View {
+    let app: AppUsageInfo
+    let rank: Int
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Rang avec couleur
+            Text("\(rank)")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(rankColor)
+                .frame(width: 24, height: 24)
+                .background(rankColor.opacity(0.2), in: Circle())
+            
+            // Nom de l'app
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Text(app.bundleId)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Durée et indicateur productivité
+            HStack(spacing: 8) {
+                Text(app.formattedTime)
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white)
+                
+                // Indicateur productivité
+                Image(systemName: app.isProductive ? "checkmark.circle.fill" : "minus.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(app.isProductive ? .green : .orange)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+        )
+    }
+    
+    private var rankColor: Color {
+        switch rank {
+        case 1: return .yellow
+        case 2: return .gray
+        case 3: return .orange
+        default: return .white
+        }
     }
 }
 

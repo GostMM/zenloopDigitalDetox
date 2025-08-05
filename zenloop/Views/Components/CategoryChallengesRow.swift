@@ -291,35 +291,117 @@ struct CategoryChallengesModal: View {
     
     var body: some View {
         ZStack {
-            // Background
-            LinearGradient(
-                colors: [
-                    Color(red: 0.02, green: 0.02, blue: 0.08),
-                    Color(red: 0.08, green: 0.02, blue: 0.12)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            // Background moderne avec dégradé IA
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.02, green: 0.02, blue: 0.12),
+                        Color(red: 0.06, green: 0.03, blue: 0.15),
+                        Color(red: 0.08, green: 0.02, blue: 0.18),
+                        Color(red: 0.04, green: 0.08, blue: 0.16)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                
+                // Overlay subtil avec image IA
+                Rectangle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                .purple.opacity(0.1),
+                                .cyan.opacity(0.05),
+                                .clear
+                            ],
+                            center: .topTrailing,
+                            startRadius: 0,
+                            endRadius: 300
+                        )
+                    )
+                
+                Rectangle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                .blue.opacity(0.08),
+                                .clear
+                            ],
+                            center: .bottomLeading,
+                            startRadius: 0,
+                            endRadius: 400
+                        )
+                    )
+            }
             .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 20) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("🎯 Défis par Catégorie")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
+                    // Header avec image IA
+                    VStack(spacing: 16) {
+                        // Image IA moderne
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            .purple.opacity(0.3),
+                                            .cyan.opacity(0.2),
+                                            .blue.opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 80, height: 80)
+                            
+                            Image("image-ia-3")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 70, height: 70)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    .clear,
+                                                    .purple.opacity(0.3)
+                                                ],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                )
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [.purple.opacity(0.5), .cyan.opacity(0.3)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 2
+                                )
+                        )
+                        .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
                         
-                        if categoryManager.configuredCategories.isEmpty {
-                            Text("Configurez vos catégories pour débloquer les défis rapides")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                        } else {
-                            Text("Choisissez un défi ou configurez de nouvelles catégories")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
+                        VStack(spacing: 8) {
+                            Text("Défis par Catégorie")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            if categoryManager.configuredCategories.isEmpty {
+                                Text("Configurez vos catégories pour débloquer les défis rapides")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                            } else {
+                                Text("Choisissez un défi ou configurez de nouvelles catégories")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                     }
                     .opacity(showContent ? 1 : 0)
@@ -364,10 +446,11 @@ struct CategoryChallengesModal: View {
         }
     }
     
-    // MARK: - Available Challenges Section
+    // MARK: - Available Challenges Section (Organized by Category)
     
     private var availableChallengesSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
+            // Header général
             HStack {
                 Text("Défis Disponibles")
                     .font(.system(size: 18, weight: .semibold))
@@ -380,18 +463,17 @@ struct CategoryChallengesModal: View {
                     .foregroundColor(.white.opacity(0.6))
             }
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-                ForEach(categoryManager.availableChallenges.prefix(8), id: \.id) { challenge in
-                    if let category = categoryManager.getCategoryById(challenge.categoryId) {
-                        CompactChallengeButton(
-                            challenge: challenge,
-                            category: category,
-                            onTap: {
-                                categoryManager.startCategoryChallenge(challenge, zenloopManager: zenloopManager)
-                                dismiss()
-                            }
-                        )
-                    }
+            // Défis organisés par catégorie
+            LazyVStack(spacing: 16) {
+                ForEach(categoryManager.configuredCategories, id: \.id) { category in
+                    CategoryChallengeSection(
+                        category: category,
+                        challenges: categoryManager.getChallengesForCategory(category.id),
+                        onChallengeStart: { challenge in
+                            categoryManager.startCategoryChallenge(challenge, zenloopManager: zenloopManager)
+                            dismiss()
+                        }
+                    )
                 }
             }
         }
@@ -447,9 +529,136 @@ struct CategoryChallengesModal: View {
     }
 }
 
-// MARK: - Compact Challenge Button
+// MARK: - Category Challenge Section
 
-struct CompactChallengeButton: View {
+struct CategoryChallengeSection: View {
+    let category: AppCategory
+    let challenges: [CategoryChallenge]
+    let onChallengeStart: (CategoryChallenge) -> Void
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Header de la catégorie
+            HStack(spacing: 12) {
+                // Image IA pour la catégorie
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    category.color.color.opacity(0.3),
+                                    category.color.color.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+                    
+                    Image(getImageForCategory())
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 32, height: 32)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(category.color.color.opacity(0.1))
+                        )
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(category.color.color.opacity(0.4), lineWidth: 1.5)
+                )
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(category.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text("\(challenges.count) défis • \(category.selectedAppsCount) apps")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(category.color.color)
+                }
+                
+                Spacer()
+                
+                // Badge de catégorie
+                HStack(spacing: 4) {
+                    Image(systemName: category.icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(category.color.color)
+                    
+                    Text(categoryShortName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(category.color.color)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(category.color.color.opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(category.color.color.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
+            
+            // Défis de cette catégorie en grille
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                ForEach(challenges.sorted(by: { $0.duration < $1.duration }), id: \.id) { challenge in
+                    CompactCategoryDefyButton(
+                        challenge: challenge,
+                        category: category,
+                        onTap: { onChallengeStart(challenge) }
+                    )
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    category.color.color.opacity(0.4),
+                                    category.color.color.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .shadow(color: category.color.color.opacity(0.1), radius: 6, x: 0, y: 3)
+    }
+    
+    private var categoryShortName: String {
+        switch category.id {
+        case "ai_productivity": return "IA"
+        case "social_media": return "Social"
+        case "games_entertainment": return "Games"
+        default: return String(category.name.prefix(5))
+        }
+    }
+    
+    private func getImageForCategory() -> String {
+        switch category.id {
+        case "ai_productivity": return "image-ia-1"
+        case "social_media": return "imafe-ia-2"
+        case "games_entertainment": return "image-ia-3"
+        default: return "image-ia-1"
+        }
+    }
+}
+
+// MARK: - Compact Category Defy Button
+
+struct CompactCategoryDefyButton: View {
     let challenge: CategoryChallenge
     let category: AppCategory
     let onTap: () -> Void
@@ -458,36 +667,47 @@ struct CompactChallengeButton: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 8) {
-                // Badge et icône
-                HStack(spacing: 6) {
-                    Text(challenge.badge)
-                        .font(.system(size: 16))
-                    
-                    Image(systemName: category.icon)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(category.color.color)
+                // Indicateur de difficulté
+                HStack(spacing: 2) {
+                    ForEach(0..<getDifficultyLevel(), id: \.self) { _ in
+                        Circle()
+                            .fill(category.color.color)
+                            .frame(width: 3, height: 3)
+                    }
+                    ForEach(0..<(3-getDifficultyLevel()), id: \.self) { _ in
+                        Circle()
+                            .fill(category.color.color.opacity(0.3))
+                            .frame(width: 3, height: 3)
+                    }
                 }
                 
-                // Titre
-                Text(challenge.title)
-                    .font(.system(size: 12, weight: .semibold))
+                // Titre compact
+                Text(challenge.title.replacingOccurrences(of: "0 ", with: ""))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.8)
                 
                 // Durée
                 Text(challenge.formattedDuration)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(category.color.color)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(category.color.color.opacity(0.15))
+                    )
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, minHeight: 80)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 6)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(category.color.color.opacity(0.1))
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(category.color.color.opacity(0.05))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 10)
                             .stroke(category.color.color.opacity(0.3), lineWidth: 1)
                     )
             )
@@ -500,6 +720,130 @@ struct CompactChallengeButton: View {
             }
         }, perform: {})
     }
+    
+    private func getDifficultyLevel() -> Int {
+        switch challenge.difficulty {
+        case .easy: return 1
+        case .medium: return 2
+        case .hard: return 3
+        }
+    }
+}
+
+// MARK: - Compact Challenge Button
+
+struct CompactChallengeButton: View {
+    let challenge: CategoryChallenge
+    let category: AppCategory
+    let onTap: () -> Void
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 12) {
+                // Header avec icône de catégorie moderne
+                HStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        category.color.color.opacity(0.3),
+                                        category.color.color.opacity(0.1)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Image(systemName: category.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(category.color.color)
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(category.color.color.opacity(0.4), lineWidth: 1)
+                    )
+                    
+                    // Indicateur de difficulté
+                    HStack(spacing: 2) {
+                        ForEach(0..<getDifficultyLevel(), id: \.self) { _ in
+                            Circle()
+                                .fill(category.color.color)
+                                .frame(width: 4, height: 4)
+                        }
+                        ForEach(0..<(3-getDifficultyLevel()), id: \.self) { _ in
+                            Circle()
+                                .fill(category.color.color.opacity(0.3))
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                }
+                
+                // Titre du défi
+                Text(challenge.title)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                
+                // Durée avec style moderne
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 8))
+                        .foregroundColor(category.color.color)
+                    
+                    Text(challenge.formattedDuration)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(category.color.color)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(category.color.color.opacity(0.15))
+                )
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        category.color.color.opacity(0.5),
+                                        category.color.color.opacity(0.2)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                    )
+            )
+            .shadow(color: category.color.color.opacity(0.2), radius: 8, x: 0, y: 4)
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .opacity(isPressed ? 0.8 : 1.0)
+        }
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+    
+    private func getDifficultyLevel() -> Int {
+        switch challenge.difficulty {
+        case .easy: return 1
+        case .medium: return 2
+        case .hard: return 3
+        }
+    }
 }
 
 // MARK: - Compact Category Config Card
@@ -511,60 +855,131 @@ struct CompactCategoryConfigCard: View {
     
     var body: some View {
         Button(action: onConfigure) {
-            HStack(spacing: 12) {
-                // Icône
+            HStack(spacing: 16) {
+                // Image IA pour la catégorie
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(category.color.color.opacity(0.2))
-                        .frame(width: 40, height: 40)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    category.color.color.opacity(0.3),
+                                    category.color.color.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
                     
-                    Image(systemName: category.icon)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(category.color.color)
+                    // Utiliser différentes images selon la catégorie
+                    Image(getImageForCategory())
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(category.color.color.opacity(0.2))
+                        )
                 }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    category.color.color.opacity(0.6),
+                                    category.color.color.opacity(0.3)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
+                )
+                .shadow(color: category.color.color.opacity(0.3), radius: 8, x: 0, y: 4)
                 
-                // Contenu
-                VStack(alignment: .leading, spacing: 2) {
+                // Contenu amélioré
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(category.name)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(category.name)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text(category.description)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                                .lineLimit(2)
+                        }
                         
                         Spacer()
                         
-                        if category.isConfigured {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.green)
+                        // Status indicator
+                        VStack(spacing: 4) {
+                            if category.isConfigured {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.green)
+                            } else {
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(category.color.color)
+                            }
+                            
+                            Text(category.isConfigured ? "OK" : "Config")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(category.isConfigured ? .green : category.color.color)
                         }
                     }
                     
-                    if category.isConfigured {
-                        Text("\(category.selectedAppsCount) apps configurées")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(category.color.color)
-                    } else {
-                        Text("Tap pour configurer")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
+                    // Statistiques
+                    HStack(spacing: 12) {
+                        if category.isConfigured {
+                            HStack(spacing: 4) {
+                                Image(systemName: "app.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(category.color.color)
+                                
+                                Text("\(category.selectedAppsCount) apps")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(category.color.color)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(category.color.color.opacity(0.15))
+                            )
+                        } else {
+                            Text("Tap pour configurer")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.4))
                     }
                 }
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
             }
-            .padding(12)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .stroke(
-                        category.isConfigured ? 
-                        category.color.color.opacity(0.4) : 
-                        .white.opacity(0.1),
-                        lineWidth: 1
+                        LinearGradient(
+                            colors: category.isConfigured ? 
+                                [category.color.color.opacity(0.5), category.color.color.opacity(0.2)] :
+                                [.white.opacity(0.2), .white.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
                     )
             )
+            .shadow(color: category.isConfigured ? category.color.color.opacity(0.2) : .clear, radius: 8, x: 0, y: 4)
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .brightness(isPressed ? -0.05 : 0.0)
         }
@@ -574,6 +989,15 @@ struct CompactCategoryConfigCard: View {
                 isPressed = pressing
             }
         }, perform: {})
+    }
+    
+    private func getImageForCategory() -> String {
+        switch category.id {
+        case "ai_productivity": return "image-ia-1"
+        case "social_media": return "imafe-ia-2" // Note: il y a une faute dans le nom du dossier
+        case "games_entertainment": return "image-ia-3"
+        default: return "image-ia-1"
+        }
     }
 }
 
