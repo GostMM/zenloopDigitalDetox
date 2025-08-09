@@ -31,7 +31,7 @@ struct StatsInsightsSection: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Vue d'ensemble de tes performances")
+                        Text("Vue d'ensemble")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
@@ -124,88 +124,6 @@ struct StatsInsightsSection: View {
                     }
                 }
             }
-            
-            // Section DeviceActivityReport élégante (vraies données)
-            if appUsageManager.isAuthorized {
-                VStack(spacing: 20) {
-                    HStack {
-                        HStack(spacing: 12) {
-                            // Icône élégante pour Screen Time
-                            Image(systemName: "chart.bar.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.cyan)
-                                .frame(width: 40, height: 40)
-                                .background(.cyan.opacity(0.15), in: Circle())
-                            
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Analyse Screen Time")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.white)
-                                
-                                Text("Données officielles iOS • Aujourd'hui")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.6))
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Badge "Live"
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(.green)
-                                .frame(width: 6, height: 6)
-                            
-                            Text("Live")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.green)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.green.opacity(0.15), in: Capsule())
-                    }
-                    
-                    // DeviceActivityReport avec style premium
-                    DeviceActivityReport(
-                        DeviceActivityReport.Context("TotalActivity"),
-                        filter: DeviceActivityFilter(
-                            segment: .daily(during: Calendar.current.dateInterval(of: .day, for: .now)!),
-                            users: .all,
-                            devices: .init([.iPhone])
-                        )
-                    )
-                    .frame(minHeight: 400)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [.cyan.opacity(0.3), .blue.opacity(0.3)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 1
-                                    )
-                            )
-                    )
-                    .overlay(
-                        // Effet de brillance subtil
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.1), .clear],
-                                    startPoint: .top,
-                                    endPoint: .center
-                                )
-                            )
-                    )
-                }
-                .padding(.horizontal, 24)
-            }
-            
-
             
             // Section badges récents (plus aérée)
             if !badgeManager.getUnlockedBadges().isEmpty {

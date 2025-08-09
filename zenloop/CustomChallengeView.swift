@@ -12,11 +12,12 @@ struct CustomChallengeView: View {
     @Binding var isPresented: Bool
     @EnvironmentObject var screenTimeManager: ScreenTimeManager
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var communityManager: CommunityManager
     
     @State private var challengeTitle = ""
     @State private var challengeDescription = ""
     @State private var selectedDuration: TimeInterval = 30 * 60 // 30 minutes par défaut
-    @State private var selectedDifficulty: DifficultyLevel = .medium
+    @State private var selectedDifficulty: CommunityDifficulty = .medium
     @State private var appSelection = FamilyActivitySelection()
     @State private var showingAppPicker = false
     @State private var isCreatingChallenge = false
@@ -141,7 +142,7 @@ struct CustomChallengeView: View {
                 .foregroundColor(.primary)
             
             HStack(spacing: 12) {
-                ForEach(DifficultyLevel.allCases, id: \.self) { level in
+                ForEach(CommunityDifficulty.allCases, id: \.self) { level in
                     Button(action: {
                         selectedDifficulty = level
                         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -151,7 +152,7 @@ struct CustomChallengeView: View {
                             Image(systemName: level.icon)
                                 .font(.subheadline)
                             
-                            Text(level.rawValue)
+                            Text(level.displayName)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -227,20 +228,39 @@ struct CustomChallengeView: View {
         
         isCreatingChallenge = true
         
-        let customChallenge = screenTimeManager.createCustomChallenge(
+        // Créer un nouveau défi communautaire personnalisé
+        let startDate = Date()
+        let endDate = startDate.addingTimeInterval(selectedDuration)
+        
+        let customChallenge = CommunityChallenge(
+            id: UUID().uuidString,
             title: challengeTitle,
             description: challengeDescription.isEmpty ? "Défi personnalisé" : challengeDescription,
-            duration: selectedDuration,
+            startDate: startDate,
+            endDate: endDate,
+            participantCount: 0,
+
+            
+            maxParticipants: 10, // Défaut pour défis personnalisés
+            suggestedApps: extractAppNames(from: appSelection),
+            category: .focus, // Défaut pour défis personnalisés
             difficulty: selectedDifficulty,
-            selectedApps: appSelection
+            reward: CommunityReward(
+                points: calculateRewardPoints(difficulty: selectedDifficulty, duration: selectedDuration),
+                badge: getBadgeForDifficulty(selectedDifficulty),
+                title: "Créateur de Défi"
+            )
         )
         
         Task {
             do {
-                try await screenTimeManager.startChallenge(customChallenge)
+                // Participer automatiquement au défi créé
+                communityManager.joinChallenge(customChallenge, selectedApps: appSelection)
                 
-                // Ajouter aux défis disponibles
-                dataManager.availableChallenges.append(customChallenge)
+                // Ajouter aux défis disponibles localement pour compatibilité
+                await MainActor.run {
+                    dataManager.availableChallenges.append(customChallenge)
+                }
                 
                 await MainActor.run {
                     isCreatingChallenge = false
@@ -263,10 +283,49 @@ struct CustomChallengeView: View {
             }
         }
     }
+    
+    // MARK: - Utility Functions
+    
+    private func extractAppNames(from selection: FamilyActivitySelection) -> [String] {
+        // En production, on utiliserait l'API pour récupérer les noms d'apps
+        // Pour l'instant, on simule avec des noms génériques
+        var appNames: [String] = []
+        
+        for _ in selection.applicationTokens {
+            appNames.append("App Sélectionnée")
+        }
+        
+        for _ in selection.categoryTokens {
+            appNames.append("Catégorie Sélectionnée")
+        }
+        
+        return appNames
+    }
+    
+    private func calculateRewardPoints(difficulty: CommunityDifficulty, duration: TimeInterval) -> Int {
+        let basePoints = Int(duration / 60) // 1 point par minute
+        
+        let multiplier: Double = switch difficulty {
+        case .easy: 1.0
+        case .medium: 1.5
+        case .hard: 2.0
+        }
+        
+        return Int(Double(basePoints) * multiplier)
+    }
+    
+    private func getBadgeForDifficulty(_ difficulty: CommunityDifficulty) -> String {
+        switch difficulty {
+        case .easy: return "🌟"
+        case .medium: return "⚡"
+        case .hard: return "🏆"
+        }
+    }
 }
 
 #Preview {
     CustomChallengeView(isPresented: .constant(true))
         .environmentObject(ScreenTimeManager.shared)
         .environmentObject(DataManager.shared)
+        .environmentObject(CommunityManager.shared)
 }

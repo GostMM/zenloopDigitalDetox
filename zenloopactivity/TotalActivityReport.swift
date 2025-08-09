@@ -1,187 +1,326 @@
 //
 //  TotalActivityReport.swift
-//  zenloopactivity
-//
-//  Created by MROIVILI MOUSTOIFA on 01/08/2025.
+//  zenloopactivity (Extension)
 //
 
-import DeviceActivity
 import SwiftUI
-import os.log
+import DeviceActivity
 import ManagedSettings
 import FamilyControls
+import os.log
+import Foundation
 
-// MARK: - Data Models
+struct SharedReportPayload: Codable {
+    let intervalStart: TimeInterval
+    let intervalEnd: TimeInterval
+    let totalSeconds: Double
+    let averageDailySeconds: Double
+    let updatedAt: TimeInterval
+    let topCategories: [SharedReportCategory]
+    let days: [SharedReportDayPoint]
+}
+
+struct SharedReportCategory: Codable {
+    let name: String
+    let seconds: Double
+    let appCount: Int
+}
+
+struct SharedReportDayPoint: Codable {
+    let dayStart: TimeInterval
+    let seconds: Double
+}
+
+
+// MARK: - Modèles UI (propres à l’extension)
 
 struct ActivityReport {
     let totalDuration: TimeInterval
     let averageDaily: TimeInterval
-    let averageWeekly: TimeInterval
-    let top3Apps: [AppUsage]
+    let averageWeekly: TimeInterval   // durée de la période
+    let allApps: [AppUsage]
+    let categories: [CategoryUsage]   // Top 4
 }
 
-struct AppUsage {
+struct AppUsage: Identifiable, Hashable {
+    let id = UUID()
     let name: String
     let duration: TimeInterval
     let token: ApplicationToken
+}
+
+struct CategoryUsage: Identifiable, Hashable {
+    let id = UUID()
+    let categoryName: String
+    let duration: TimeInterval
+    let appCount: Int
+    
+    var systemImage: String {
+        let n = categoryName.lowercased()
+        if n.contains("social") { return "person.2.fill" }
+        if n.contains("productivity") || n.contains("business") { return "briefcase.fill" }
+        if n.contains("finance") { return "creditcard.fill" }
+        if n.contains("entertainment") || n.contains("games") { return "tv.fill" }
+        if n.contains("education") { return "book.fill" }
+        if n.contains("health") || n.contains("fitness") { return "heart.fill" }
+        if n.contains("photo") || n.contains("video") { return "photo.on.rectangle.angled" }
+        if n.contains("music") || n.contains("audio") { return "music.note" }
+        if n.contains("navigation") || n.contains("travel") { return "location.fill" }
+        if n.contains("shopping") { return "bag.fill" }
+        if n.contains("news") || n.contains("reading") { return "newspaper.fill" }
+        return "app.fill"
+    }
+    
+    var color: Color {
+        let n = categoryName.lowercased()
+        if n.contains("social") { return .blue }
+        if n.contains("productivity") || n.contains("business") { return .green }
+        if n.contains("finance") { return .orange }
+        if n.contains("entertainment") || n.contains("games") { return .purple }
+        if n.contains("education") { return .teal }
+        if n.contains("health") || n.contains("fitness") { return .pink }
+        if n.contains("photo") || n.contains("video") { return .indigo }
+        if n.contains("music") || n.contains("audio") { return .red }
+        if n.contains("navigation") || n.contains("travel") { return .yellow }
+        if n.contains("shopping") { return .mint }
+        if n.contains("news") || n.contains("reading") { return .cyan }
+        return .gray
+    }
 }
 
 extension DeviceActivityReport.Context {
     static let totalActivity = Self("TotalActivity")
 }
 
+// MARK: - Report Scene
+
 struct TotalActivityReport: DeviceActivityReportScene {
     let context: DeviceActivityReport.Context = .totalActivity
     let content: (ActivityReport) -> TotalActivityView
     
     private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
+    private let appGroupSuite = "group.com.app.zenloop" // ← adapte si besoin
     
     func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ActivityReport {
         var totalDuration: TimeInterval = 0
-        var appUsages: [AppUsage] = []
-        var segmentCount = 0
         
-        logger.info("🔍 [ACTIVITY_REPORT] Début traitement données DeviceActivity...")
-        print("🔍 [ACTIVITY_REPORT] Début traitement données DeviceActivity...")
-        NSLog("🔍 [ACTIVITY_REPORT] Début traitement données DeviceActivity...")
+        // Agrégations
+        var appDurations: [ApplicationToken: (name: String, duration: TimeInterval)] = [:]
+        var categoryDurationsByID: [String: TimeInterval] = [:]
+        var categoryDisplayNameByID: [String: String] = [:]
+        var categoryAppTokensByID: [String: Set<ApplicationToken>] = [:]
         
-        // Test immédiat: sauvegarder des données de test pour confirmer que l'extension s'exécute
-        saveTestDataToAppGroup()
+        // Série journalière découpée finement
+        var dailyDurations: [Date: TimeInterval] = [:]
         
-        // Traiter les données pour tous les segments
+        // Intervalle global
+        var globalStart: Date?
+        var globalEnd: Date?
+        
+        let cal = Calendar.current
+        logger.info("🔍 [REPORT] Start processing DeviceActivity…")
+        
         for await datum in data {
-            logger.info("📱 [ACTIVITY_REPORT] Device: \(datum.device.name ?? "Unknown")")
-            logger.info("📱 [ACTIVITY_REPORT] Device type: \(String(describing: type(of: datum.device)))")
-            
             for await segment in datum.activitySegments {
-                totalDuration += segment.totalActivityDuration
-                segmentCount += 1
+                let seg = segment.dateInterval
+                let segDur = segment.totalActivityDuration
+                guard segDur > 0 else { continue }
                 
-                logger.info("⏱️ [ACTIVITY_REPORT] Segment: \(segment.totalActivityDuration)s")
-                logger.info("⏱️ [ACTIVITY_REPORT] Segment type: \(String(describing: type(of: segment)))")
-                logger.info("⏱️ [ACTIVITY_REPORT] Segment dateInterval: \(segment.dateInterval)")
+                totalDuration += segDur
+                if globalStart == nil || seg.start < globalStart! { globalStart = seg.start }
+                if globalEnd == nil || seg.end > globalEnd! { globalEnd = seg.end }
                 
-                // Récupérer les applications via les catégories
-                logger.info("📂 [ACTIVITY_REPORT] Categories found - Type: \(String(describing: type(of: segment.categories)))")
-                var categoryIndex = 0
-                for await category in segment.categories {
-                    categoryIndex += 1
-                    logger.info("📂 [ACTIVITY_REPORT] Catégorie \(categoryIndex) - Type: \(String(describing: type(of: category)))")
-                    logger.info("📂 [ACTIVITY_REPORT] Catégorie duration: \(category.totalActivityDuration)s")
-                    logger.info("📂 [ACTIVITY_REPORT] Applications found - Type: \(String(describing: type(of: category.applications)))")
+                // Répartition par jour
+                distribute(segment: seg, duration: segDur, calendar: cal) { dayStart, secs in
+                    dailyDurations[dayStart, default: 0] += secs
+                }
+                
+                // Catégories & apps
+                for await catActivity in segment.categories {
+                    let cat: ActivityCategory = catActivity.category
+                    let catID = stableCategoryID(cat)
+                    let catName = displayName(for: cat)
                     
-                    var appIndex = 0
-                    for await app in category.applications {
-                        appIndex += 1
-                        logger.info("🔍 [ACTIVITY_REPORT] App \(appIndex) - Type: \(String(describing: type(of: app)))")
-                        logger.info("🔍 [ACTIVITY_REPORT] App duration: \(app.totalActivityDuration)s")
-                        
-                        // Accéder aux vraies propriétés d'application
-                        let duration = app.totalActivityDuration
-                        let numberOfPickups = app.numberOfPickups
-                        
-                        // Dans une Device Activity Report Extension, on DEVRAIT avoir accès aux noms
-                        let displayName = app.application.localizedDisplayName
-                        let bundleId = app.application.bundleIdentifier
-                        
-                        logger.info("🔍 [ACTIVITY_REPORT] App \(appIndex) details:")
-                        logger.info("  - Display Name: \(displayName ?? "nil")")
-                        logger.info("  - Bundle ID: \(bundleId ?? "nil")")
-                        logger.info("  - Duration: \(duration)s")
-                        logger.info("  - Pickups: \(numberOfPickups)")
-                        
-                        let appName = displayName ?? bundleId ?? "Application \(appUsages.count + 1)"
-                        
-                        // Vérifier si le token existe
-                        if let appToken = app.application.token {
-                            logger.info("📱 [ACTIVITY_REPORT] App final: \(appName) - \(duration)s")
-                            appUsages.append(AppUsage(name: appName, duration: duration, token: appToken))
-                        } else {
-                            logger.info("⚠️ [ACTIVITY_REPORT] App token is nil for: \(appName) - skipping")
+                    categoryDisplayNameByID[catID] = catName
+                    categoryDurationsByID[catID, default: 0] += catActivity.totalActivityDuration
+                    
+                    for await app in catActivity.applications {
+                        let dur = app.totalActivityDuration
+                        guard dur > 0 else { continue }
+                        let name = app.application.localizedDisplayName
+                            ?? app.application.bundleIdentifier
+                            ?? "Application"
+                        if let token = app.application.token {
+                            var cur = appDurations[token] ?? (name: name, duration: 0)
+                            if cur.name.isEmpty, !name.isEmpty { cur.name = name }
+                            cur.duration += dur
+                            appDurations[token] = cur
+                            
+                            var set = categoryAppTokensByID[catID] ?? []
+                            set.insert(token)
+                            categoryAppTokensByID[catID] = set
                         }
                     }
                 }
             }
         }
         
-        // Trier les apps par durée descendante et prendre les top 3
-        let top3Apps = appUsages.sorted { $0.duration > $1.duration }.prefix(3)
+        // Apps triées
+        let allApps: [AppUsage] = appDurations
+            .map { (token, v) in AppUsage(name: v.name, duration: v.duration, token: token) }
+            .sorted { $0.duration > $1.duration }
         
-        // Calculer moyennes selon votre guide
-        let averageDaily: TimeInterval = segmentCount > 0 ? totalDuration / Double(segmentCount) : totalDuration
-        let averageWeekly: TimeInterval = totalDuration * 7 // Estimation hebdomadaire
+        // Catégories triées
+        var allCategories: [CategoryUsage] = categoryDurationsByID.map { (catID, secs) in
+            let name = categoryDisplayNameByID[catID] ?? catID
+            let appCount = categoryAppTokensByID[catID]?.count ?? 0
+            return CategoryUsage(categoryName: name, duration: secs, appCount: appCount)
+        }
+        .sorted { $0.duration > $1.duration }
         
-        logger.info("✅ [ACTIVITY_REPORT] Configuration créée:")
-        logger.info("⏱️ [ACTIVITY_REPORT] Temps total: \(totalDuration)s")
-        logger.info("📊 [ACTIVITY_REPORT] Moyenne quotidienne: \(averageDaily)s")
-        logger.info("📈 [ACTIVITY_REPORT] Estimation hebdomadaire: \(averageWeekly)s")
-        logger.info("🏆 [ACTIVITY_REPORT] Apps trouvées: \(appUsages.count)")
-        logger.info("🥇 [ACTIVITY_REPORT] Top 3: \(top3Apps.map(\.name).joined(separator: ", "))")
+        // Top 4
+        let top4 = Array(allCategories.prefix(4))
         
-        // Sauvegarder les données dans App Group pour l'app principale
-        saveDataToAppGroup(totalDuration: totalDuration, averageDaily: averageDaily, averageWeekly: averageWeekly, topApps: Array(top3Apps))
+        // Jours uniques (après répartition)
+        let daysSorted = dailyDurations
+            .map { (cal.startOfDay(for: $0.key), $0.value) }
+            .reduce(into: [Date: TimeInterval]()) { acc, pair in
+                acc[pair.0, default: 0] += pair.1
+            }
+            .sorted { $0.key < $1.key }
+        
+        let dayCount = max(1, daysSorted.count)
+        let averageDaily = totalDuration / Double(dayCount)
+        
+        let start = globalStart ?? Date()
+        let end = globalEnd ?? start
+        
+        // — App Group JSON partagé —
+        let payload = SharedReportPayload(
+            intervalStart: start.timeIntervalSince1970,
+            intervalEnd: end.timeIntervalSince1970,
+            totalSeconds: totalDuration,
+            averageDailySeconds: averageDaily,
+            updatedAt: Date().timeIntervalSince1970,
+            topCategories: top4.map {
+                SharedReportCategory(name: $0.categoryName, seconds: $0.duration, appCount: $0.appCount)
+            },
+            days: daysSorted.map {
+                SharedReportDayPoint(dayStart: $0.key.timeIntervalSince1970, seconds: $0.value)
+            }
+        )
+        persistSharedReport(payload)
+        
+        // Legacy miroir simple (si tu l’utilisais côté app)
+        persistLegacyMirror(total: totalDuration,
+                            averageDaily: averageDaily,
+                            periodTotal: end.timeIntervalSince(start),
+                            topApps: allApps)
+        
+        logger.info("✅ [REPORT] total=\(totalDuration, privacy: .public)s avgDaily=\(averageDaily, privacy: .public)s days=\(dayCount, privacy: .public)")
+        logger.info("📊 [REPORT] apps=\(allApps.count, privacy: .public) topCats=\(top4.count, privacy: .public)")
         
         return ActivityReport(
             totalDuration: totalDuration,
             averageDaily: averageDaily,
-            averageWeekly: averageWeekly,
-            top3Apps: Array(top3Apps)
+            averageWeekly: end.timeIntervalSince(start),
+            allApps: allApps,
+            categories: top4
         )
     }
-    
-    private func saveDataToAppGroup(totalDuration: TimeInterval, averageDaily: TimeInterval, averageWeekly: TimeInterval, topApps: [AppUsage]) {
-        // Utiliser App Group pour partager les données avec l'app principale
-        guard let sharedDefaults = UserDefaults(suiteName: "group.com.app.zenloop") else {
-            logger.error("❌ [ACTIVITY_REPORT] Impossible d'accéder à App Group")
-            return
+}
+
+// MARK: - Catégories & libellés
+
+private func stableCategoryID(_ category: ActivityCategory) -> String {
+    String(reflecting: category) // ex: "ManagedSettings.ActivityCategory.socialNetworking"
+}
+
+private func displayName(for category: ActivityCategory) -> String {
+    if #available(iOS 17.0, *) {
+        if let native = category.localizedDisplayName,
+           !native.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return native
         }
-        
-        // Pour debug : utilisons des valeurs distinctes pour confirmer le bridge
-        let testDaily = totalDuration > 0 ? averageDaily : 7200 // 2h au lieu de 4h
-        let testWeekly = totalDuration > 0 ? averageWeekly : 50400 // 14h au lieu de 28h
-        
-        let activityData: [String: Any] = [
-            "totalDuration": totalDuration,
-            "averageDaily": testDaily,
-            "averageWeekly": testWeekly,
-            "lastUpdated": Date().timeIntervalSince1970,
-            "topAppsCount": topApps.count,
-            "topAppsNames": topApps.map(\.name)
-        ]
-        
-        logger.info("💾 [ACTIVITY_REPORT] Sauvegarde test - Daily: \(testDaily)s, Weekly: \(testWeekly)s")
-        
-        sharedDefaults.set(activityData, forKey: "DeviceActivityData")
-        sharedDefaults.synchronize()
-        
-        logger.info("💾 [ACTIVITY_REPORT] Données sauvegardées dans App Group")
-        logger.info("💾 [ACTIVITY_REPORT] Daily: \(averageDaily)s, Weekly: \(averageWeekly)s")
     }
-    
-    private func saveTestDataToAppGroup() {
-        guard let sharedDefaults = UserDefaults(suiteName: "group.com.app.zenloop") else {
-            logger.error("❌ [ACTIVITY_REPORT] TEST: Impossible d'accéder à App Group")
-            print("❌ [ACTIVITY_REPORT] TEST: Impossible d'accéder à App Group")
-            NSLog("❌ [ACTIVITY_REPORT] TEST: Impossible d'accéder à App Group")
-            return
+    let qualified = String(reflecting: category) // "...ActivityCategory.socialNetworking"
+    let rawCase = qualified.split(separator: ".").last.map(String.init) ?? qualified
+    return humanizeEnumCase(rawCase)
+}
+
+private func humanizeEnumCase(_ s: String) -> String {
+    let base = s.replacingOccurrences(of: "_", with: " ")
+    let spaced = base.replacingOccurrences(of: "([a-z])([A-Z])",
+                                           with: "$1 $2",
+                                           options: .regularExpression)
+    let words = spaced.split(separator: " ").map { $0.lowercased().capitalized }
+    let result = words.joined(separator: " ")
+    switch result {
+    case "Socialnetworking": return "Social Networking"
+    case "Photovideo":       return "Photo & Video"
+    case "Healthfitness":    return "Health & Fitness"
+    default:                 return result
+    }
+}
+
+// MARK: - Répartition par jour
+
+private func distribute(segment: DateInterval,
+                        duration: TimeInterval,
+                        calendar: Calendar,
+                        sink: (Date, TimeInterval) -> Void) {
+    guard duration > 0, segment.duration > 0 else { return }
+    var cursor = segment.start
+    let end = segment.end
+    while cursor < end {
+        let dayStart = calendar.startOfDay(for: cursor)
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { break }
+        let intervalEnd = min(dayEnd, end)
+        let overlap = intervalEnd.timeIntervalSince(cursor)
+        if overlap > 0 {
+            let proportion = overlap / segment.duration
+            sink(dayStart, duration * proportion)
         }
-        
-        // Sauvegarder des données de test distinctes (3h daily, 21h weekly)
-        let testData: [String: Any] = [
-            "totalDuration": 10800, // 3h
-            "averageDaily": 10800,  // 3h (différent de 4h mock)
-            "averageWeekly": 75600, // 21h (différent de 28h mock)
-            "lastUpdated": Date().timeIntervalSince1970,
-            "topAppsCount": 3,
-            "topAppsNames": ["Safari", "Messages", "Instagram"],
-            "testMarker": "EXTENSION_EXECUTED_\(Date().timeIntervalSince1970)"
-        ]
-        
-        sharedDefaults.set(testData, forKey: "DeviceActivityData")
-        sharedDefaults.synchronize()
-        
-        logger.info("💾 [ACTIVITY_REPORT] TEST: Données test sauvegardées (3h daily, 21h weekly)")
-        print("💾 [ACTIVITY_REPORT] TEST: Données test sauvegardées (3h daily, 21h weekly)")
-        NSLog("💾 [ACTIVITY_REPORT] TEST: Données test sauvegardées (3h daily, 21h weekly)")
+        cursor = intervalEnd
     }
+}
+
+// MARK: - Persistance App Group
+
+private func persistSharedReport(_ payload: SharedReportPayload) {
+    let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
+    guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
+        logger.error("❌ [REPORT] App Group indisponible")
+        return
+    }
+    do {
+        let data = try JSONEncoder().encode(payload)
+        shared.set(data, forKey: "DAReportLatest")
+        shared.synchronize()
+        logger.info("💾 [REPORT] JSON écrit (DAReportLatest)")
+    } catch {
+        logger.error("❌ [REPORT] Encodage JSON: \(error.localizedDescription, privacy: .public)")
+    }
+}
+
+private func persistLegacyMirror(total: TimeInterval,
+                                 averageDaily: TimeInterval,
+                                 periodTotal: TimeInterval,
+                                 topApps: [AppUsage]) {
+    let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
+    guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
+        logger.error("❌ [REPORT] Legacy: App Group indisponible")
+        return
+    }
+    let dict: [String: Any] = [
+        "totalDuration": total,
+        "averageDaily": averageDaily,
+        "averageWeekly": periodTotal,
+        "lastUpdated": Date().timeIntervalSince1970,
+        "topAppsCount": topApps.count,
+        "topAppsNames": topApps.map(\.name)
+    ]
+    shared.set(dict, forKey: "DeviceActivityData")
+    shared.synchronize()
+    logger.info("💾 [REPORT] Legacy mirror écrit (DeviceActivityData)")
 }

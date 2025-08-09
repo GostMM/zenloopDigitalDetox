@@ -15,205 +15,129 @@ struct CategoryChallengesRow: View {
     @State private var showingConfiguration = false
     
     var body: some View {
-        // Interface aérée avec layout multi-lignes
-        Button(action: {
-            showingConfiguration = true
-        }) {
-            VStack(spacing: 16) {
-                // Première ligne : Titre et Status
-                HStack(spacing: 12) {
-                    // Icône avec indicateur de statut
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        .cyan.opacity(0.3),
-                                        .cyan.opacity(0.1)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+        Group {
+            if categoryManager.configuredCategories.isEmpty {
+                // État vide : Bouton de configuration uniquement
+                Button(action: {
+                    showingConfiguration = true
+                }) {
+                    VStack(spacing: 16) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.cyan.opacity(0.3), .cyan.opacity(0.1)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 48, height: 48)
+                                
+                                Image(systemName: "target")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundColor(.cyan)
+                            }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(.cyan.opacity(0.3), lineWidth: 1)
                             )
-                            .frame(width: 48, height: 48)
-                        
-                        Image(systemName: categoryManager.configuredCategories.isEmpty ? "target" : "checkmark.circle.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(categoryManager.configuredCategories.isEmpty ? .cyan : .green)
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Défis sur-mesure")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.cyan)
+                                    
+                                    Text("Touche pour configurer")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.cyan)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(spacing: 2) {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                
+                                Text("Config")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
                     }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 18)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 16)
                             .stroke(.cyan.opacity(0.3), lineWidth: 1)
                     )
-                    
-                    // Titre et status
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Défis Catégories")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                        
-                        // Status badge
-                        HStack(spacing: 4) {
-                            if categoryManager.configuredCategories.isEmpty {
-                                Image(systemName: "exclamationmark.circle")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.cyan)
-                                
-                                Text("Tap pour configurer")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.cyan)
-                            } else {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.green)
-                                
-                                Text("Prêt à utiliser")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.green)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // Bouton d'action
-                    VStack(spacing: 2) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        
-                        Text("Config")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
                 }
-                
-                // Deuxième ligne : Statistiques et aperçu
-                if !categoryManager.configuredCategories.isEmpty {
-                    HStack(spacing: 20) {
-                        // Nombre de catégories
-                        HStack(spacing: 6) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.cyan)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Catégories")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.6))
-                                
-                                Text("\(categoryManager.configuredCategories.count)")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        
-                        // Nombre de défis
-                        HStack(spacing: 6) {
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                // État configuré : Affichage des défis
+                VStack(spacing: 16) {
+                    // Header avec bouton de config discrète
+                    HStack {
+                        HStack(spacing: 12) {
                             Image(systemName: "target")
-                                .font(.system(size: 14))
+                                .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.purple)
+                                .frame(width: 40, height: 40)
+                                .background(.purple.opacity(0.15), in: Circle())
                             
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Défis")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.6))
-                                
-                                Text("\(categoryManager.availableChallenges.count)")
-                                    .font(.system(size: 13, weight: .semibold))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Défis 8h")
+                                    .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
-                            }
-                        }
-                        
-                        // Apps totales
-                        HStack(spacing: 6) {
-                            Image(systemName: "app.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.orange)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Apps")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.6))
                                 
-                                Text("\(categoryManager.totalConfiguredApps)")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.white)
+                                Text("Choisir ton défi du jour")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
                             }
                         }
                         
                         Spacer()
+                        
+                        // Bouton config discret
+                        Button(action: {
+                            showingConfiguration = true
+                        }) {
+                            Image(systemName: "gear")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.6))
+                                .frame(width: 32, height: 32)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
                     }
-                }
-                
-                // Troisième ligne : Aperçu des catégories (si configurées)
-                if !categoryManager.configuredCategories.isEmpty {
-                    HStack(spacing: 0) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "circle.grid.2x2")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                            
-                            Text("Catégories configurées:")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        
-                        Spacer()
-                        
-                        // Mini aperçu des catégories
-                        HStack(spacing: 6) {
-                            ForEach(categoryManager.configuredCategories.prefix(4), id: \.id) { category in
-                                ZStack {
-                                    Circle()
-                                        .fill(category.color.color.opacity(0.3))
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Image(systemName: category.icon)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(category.color.color)
-                                }
-                                .overlay(
-                                    Circle()
-                                        .stroke(category.color.color.opacity(0.5), lineWidth: 1)
+                    .padding(.horizontal, 12)
+                    
+                    // Défis disponibles - 8h uniquement
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(eightHourChallenges, id: \.challenge.id) { challengeData in
+                                ModernChallengeCard(
+                                    challenge: challengeData.challenge,
+                                    category: challengeData.category,
+                                    onTap: {
+                                        categoryManager.startCategoryChallenge(challengeData.challenge, zenloopManager: zenloopManager)
+                                    }
                                 )
                             }
-                            
-                            if categoryManager.configuredCategories.count > 4 {
-                                ZStack {
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text("+\(categoryManager.configuredCategories.count - 4)")
-                                        .font(.system(size: 8, weight: .bold))
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                            }
                         }
+                        .padding(.horizontal, 12)
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(.cyan.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.cyan.opacity(0.2), lineWidth: 1)
-                            )
-                    )
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 18)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(.cyan.opacity(0.3), lineWidth: 1)
-            )
         }
-        .buttonStyle(PlainButtonStyle())
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 12)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 20)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.5), value: showContent)
@@ -231,49 +155,154 @@ struct CategoryChallengesRow: View {
         }
     }
     
-    // MARK: - Empty State
+    // MARK: - Computed Properties
     
-    private var emptyStateView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "gear")
-                .font(.system(size: 24))
-                .foregroundColor(.white.opacity(0.5))
-            
-            Text("Configurez vos catégories pour débloquer les défis rapides")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-            
-            Button(action: {
-                showingConfiguration = true
-            }) {
-                Text("Configurer")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(.cyan, in: RoundedRectangle(cornerRadius: 12))
-            }
+    private var eightHourChallenges: [(challenge: CategoryChallenge, category: AppCategory)] {
+        return categoryManager.configuredCategories.compactMap { category in
+            // Créer le défi 8h pour chaque catégorie
+            let challenge = CategoryChallenge(
+                categoryId: category.id,
+                title: "Journée Focus \(getCategoryShortName(category))",
+                duration: 8 * 60 * 60, // 8 heures
+                difficulty: .hard,
+                badge: "🏆",
+                description: "8 heures de concentration pure"
+            )
+            return (challenge: challenge, category: category)
         }
-        .padding(.vertical, 20)
     }
     
-    // MARK: - Challenges Scroll View
+    private func getCategoryShortName(_ category: AppCategory) -> String {
+        switch category.id {
+        case "ai_productivity": return "IA"
+        case "social_media": return "Social"
+        case "games_entertainment": return "Gaming"
+        default: return String(category.name.prefix(6))
+        }
+    }
+}
+
+// MARK: - Modern Challenge Card
+
+struct ModernChallengeCard: View {
+    let challenge: CategoryChallenge
+    let category: AppCategory
+    let onTap: () -> Void
+    @State private var isPressed = false
     
-    private var challengesScrollView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(categoryManager.configuredCategories) { category in
-                    CategoryChallengeGroup(
-                        category: category,
-                        challenges: categoryManager.getChallengesForCategory(category.id),
-                        onChallengeStart: { challenge in
-                            categoryManager.startCategoryChallenge(challenge, zenloopManager: zenloopManager)
-                        }
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Image de background
+                Image(getImageForCategory())
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 140, height: 100)
+                    .clipped()
+                    .overlay(
+                        // Overlay dégradé pour lisibilité
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.2),
+                                Color.black.opacity(0.6),
+                                category.color.color.opacity(0.8)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
+                
+                // Contenu au-dessus
+                VStack {
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Badge catégorie
+                        HStack(spacing: 4) {
+                            Image(systemName: category.icon)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(category.color.color)
+                            
+                            Text(getCategoryShortName())
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(category.color.color)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(category.color.color.opacity(0.2))
+                        )
+                        
+                        // Titre du défi avec restriction claire
+                        Text("PAS DE \(getCategoryRestrictionName())")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        
+                        // Apps count
+                        Text("\(category.selectedAppsCount) apps")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(12)
             }
-            .padding(.horizontal, 4)
+            .frame(width: 140, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [category.color.color.opacity(0.6), category.color.color.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isPressed ? 2 : 1
+                    )
+            )
+            .shadow(
+                color: category.color.color.opacity(0.3),
+                radius: isPressed ? 12 : 8,
+                x: 0,
+                y: isPressed ? 8 : 4
+            )
+            .scaleEffect(isPressed ? 0.96 : 1.0)
+            .brightness(isPressed ? -0.1 : 0.0)
+        }
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+    
+    private func getCategoryShortName() -> String {
+        switch category.id {
+        case "ai_productivity": return "IA"
+        case "social_media": return "Social"
+        case "games_entertainment": return "Gaming"
+        default: return String(category.name.prefix(6))
+        }
+    }
+    
+    private func getCategoryRestrictionName() -> String {
+        switch category.id {
+        case "ai_productivity": return "IA"
+        case "social_media": return "SOCIAL"
+        case "games_entertainment": return "JEUX"
+        default: return getCategoryShortName().uppercased()
+        }
+    }
+    
+    private func getImageForCategory() -> String {
+        switch category.id {
+        case "ai_productivity": return "image-ia-3"
+        case "social_media": return "social"
+        case "games_entertainment": return "game"
+        default: return "image-ia-3"
         }
     }
 }
@@ -392,12 +421,12 @@ struct CategoryChallengesModal: View {
                                 .foregroundColor(.white)
                             
                             if categoryManager.configuredCategories.isEmpty {
-                                Text("Configurez vos catégories pour débloquer les défis rapides")
+                                Text("Personnalise tes catégories pour découvrir des défis qui te ressemblent")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white.opacity(0.7))
                                     .multilineTextAlignment(.center)
                             } else {
-                                Text("Choisissez un défi ou configurez de nouvelles catégories")
+                                Text("Lance un défi ou ajoute de nouveaux univers à explorer")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white.opacity(0.7))
                                     .multilineTextAlignment(.center)
@@ -408,10 +437,6 @@ struct CategoryChallengesModal: View {
                     .offset(y: showContent ? 0 : -20)
                     .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1), value: showContent)
                     
-                    // Défis disponibles (si configurés)
-                    if !categoryManager.configuredCategories.isEmpty {
-                        availableChallengesSection
-                    }
                     
                     // Configuration des catégories
                     categoriesConfigurationSection
@@ -446,47 +471,6 @@ struct CategoryChallengesModal: View {
         }
     }
     
-    // MARK: - Available Challenges Section (Organized by Category)
-    
-    private var availableChallengesSection: some View {
-        VStack(spacing: 20) {
-            // Header général
-            HStack {
-                Text("Défis Disponibles")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("\(categoryManager.availableChallenges.count) défis")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            
-            // Défis organisés par catégorie
-            LazyVStack(spacing: 16) {
-                ForEach(categoryManager.configuredCategories, id: \.id) { category in
-                    CategoryChallengeSection(
-                        category: category,
-                        challenges: categoryManager.getChallengesForCategory(category.id),
-                        onChallengeStart: { challenge in
-                            categoryManager.startCategoryChallenge(challenge, zenloopManager: zenloopManager)
-                            dismiss()
-                        }
-                    )
-                }
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.green.opacity(0.3), lineWidth: 1)
-        )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
-    }
     
     // MARK: - Categories Configuration Section
     
@@ -648,10 +632,10 @@ struct CategoryChallengeSection: View {
     
     private func getImageForCategory() -> String {
         switch category.id {
-        case "ai_productivity": return "image-ia-1"
-        case "social_media": return "imafe-ia-2"
-        case "games_entertainment": return "image-ia-3"
-        default: return "image-ia-1"
+        case "ai_productivity": return "image-ia-3"
+        case "social_media": return "social"
+        case "games_entertainment": return "game"
+        default: return "image-ia-3"
         }
     }
 }
@@ -951,7 +935,7 @@ struct CompactCategoryConfigCard: View {
                                     .fill(category.color.color.opacity(0.15))
                             )
                         } else {
-                            Text("Tap pour configurer")
+                            Text("Touche pour personnaliser")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                         }
@@ -993,10 +977,10 @@ struct CompactCategoryConfigCard: View {
     
     private func getImageForCategory() -> String {
         switch category.id {
-        case "ai_productivity": return "image-ia-1"
-        case "social_media": return "imafe-ia-2" // Note: il y a une faute dans le nom du dossier
-        case "games_entertainment": return "image-ia-3"
-        default: return "image-ia-1"
+        case "ai_productivity": return "image-ia-3"
+        case "social_media": return "social"
+        case "games_entertainment": return "game"
+        default: return "image-ia-3"
         }
     }
 }

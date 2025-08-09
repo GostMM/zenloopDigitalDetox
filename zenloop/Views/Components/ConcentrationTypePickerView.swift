@@ -94,18 +94,12 @@ struct ConcentrationTypeCard: View {
     var body: some View {
         Button(action: onTap) {
             ZStack {
-                // Background image
-                AsyncImage(url: Bundle.main.url(forResource: type.backgroundImage, withExtension: "jpg")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 120)
-                        .clipped()
-                } placeholder: {
-                    Rectangle()
-                        .fill(type.primaryColor.opacity(0.3))
-                        .frame(height: 120)
-                }
+                // Background image depuis les assets
+                Image(getBackgroundImageForType())
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 80)
+                    .clipped()
                 
                 // Overlay gradient
                 LinearGradient(
@@ -164,6 +158,21 @@ struct ConcentrationTypeCard: View {
             .animation(.spring(response: 0.3), value: isSelected)
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+    
+    private func getBackgroundImageForType() -> String {
+        switch type {
+        case .deep:
+            return "focus"
+        case .creative:
+            return "creativite"  
+        case .study:
+            return "study"
+        case .meditation:
+            return "meditation"
+        case .work:
+            return "focus"
+        }
     }
 }
 

@@ -16,13 +16,17 @@ extension Notification.Name {
 
 struct ContentView: View {
     @StateObject private var zenloopManager = ZenloopManager.shared
-    @State private var showOnboarding = true
-    @State private var isOnboardingComplete = false
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "has_completed_onboarding")
+    @State private var isOnboardingComplete = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var selectedTab = 0
+    @State private var isAppLoaded = false
     
     var body: some View {
         ZStack {
-            if showOnboarding && !isOnboardingComplete {
+            if !isAppLoaded {
+                // Écran de chargement discret
+                SplashScreen()
+            } else if showOnboarding && !isOnboardingComplete {
                 OnboardingView(isOnboardingComplete: $isOnboardingComplete)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.9)),
@@ -39,11 +43,10 @@ struct ContentView: View {
         .animation(.spring(response: 0.8, dampingFraction: 0.8), value: showOnboarding)
         .onAppear {
             zenloopManager.initialize()
-            
-            // Vérifier si c'est le premier lancement
-            if UserDefaults.standard.bool(forKey: "has_completed_onboarding") {
-                showOnboarding = false
-                isOnboardingComplete = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SplashCompleted"))) { _ in
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.8)) {
+                isAppLoaded = true
             }
         }
         .onChange(of: isOnboardingComplete) { _, isComplete in
@@ -100,300 +103,576 @@ struct ContentView: View {
 // HomeView est maintenant dans Views/HomeView.swift
 
 // MARK: - Vue Stats
+// StatsView est maintenant dans Views/StatsView.swift
 
-struct StatsView: View {
-    @EnvironmentObject var zenloopManager: ZenloopManager
+// MARK: - Ultra Premium Splash Screen
+
+struct SplashScreen: View {
+    @State private var animationStep: Int = 0
+    @State private var infinityProgress: CGFloat = 0
+    @State private var slashProgress: CGFloat = 0
+    @State private var showText = false
+    @State private var showMotivation = false
+    @State private var glowIntensity: Double = 0.3
+    @State private var particleAnimation = false
+    @State private var logoScale: CGFloat = 0.5
+    @State private var logoRotation: Double = -180
+    @State private var textShimmer: CGFloat = -1
+    @State private var backgroundRotation: Double = 0
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var energyFieldOpacity: Double = 0
+    @Environment(\.dismiss) private var dismiss
+    
+    // Couleurs premium
+    let premiumGradient = [
+        Color(red: 0.4, green: 0.2, blue: 1.0),
+        Color(red: 0.6, green: 0.1, blue: 0.9),
+        Color(red: 0.8, green: 0.3, blue: 0.8),
+        Color(red: 0.3, green: 0.5, blue: 1.0)
+    ]
     
     var body: some View {
-        NavigationView {
+        ZStack {
+            // Ultra Premium Background
             ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
+                // Base gradient
+                RadialGradient(
+                    colors: [
+                        Color.black,
+                        Color(red: 0.05, green: 0.0, blue: 0.15),
+                        Color.black
+                    ],
+                    center: .center,
+                    startRadius: 10,
+                    endRadius: 400
+                )
+                .ignoresSafeArea()
                 
-                ScrollView {
-                    LazyVStack(spacing: 20) {
-                        // Stats principales
-                        statsOverview
-                            .padding(.horizontal)
-                            .padding(.top)
-                        
-                        // Historique complet
-                        fullActivityHistory
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
+                // Animated gradient overlay
+                LinearGradient(
+                    colors: [
+                        Color.purple.opacity(0.3),
+                        Color.blue.opacity(0.2),
+                        Color.cyan.opacity(0.1),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .rotationEffect(.degrees(backgroundRotation))
+                .ignoresSafeArea()
+                .blur(radius: 30)
+                .animation(.linear(duration: 20).repeatForever(autoreverses: false), value: backgroundRotation)
+                
+                // Energy field effect
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    premiumGradient[index].opacity(0.3),
+                                    Color.clear
+                                ],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 150
+                            )
+                        )
+                        .frame(width: 300, height: 300)
+                        .offset(
+                            x: index == 0 ? -100 : (index == 1 ? 100 : 0),
+                            y: index == 2 ? -150 : 50
+                        )
+                        .blur(radius: 40)
+                        .opacity(energyFieldOpacity)
+                        .scaleEffect(pulseScale)
+                        .animation(
+                            .easeInOut(duration: 3)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.5),
+                            value: pulseScale
+                        )
+                }
+                
+                // Premium particles
+                GeometryReader { geometry in
+                    ForEach(0..<50, id: \.self) { index in
+                        ParticleView(
+                            color: premiumGradient.randomElement() ?? .white,
+                            animating: particleAnimation,
+                            delay: Double.random(in: 0...2),
+                            size: geometry.size
+                        )
                     }
                 }
+                .ignoresSafeArea()
             }
-            .navigationTitle("Statistiques")
-            .navigationBarTitleDisplayMode(.large)
-        }
-    }
-    
-    private var statsOverview: some View {
-        VStack(spacing: 16) {
-            Text("Vue d'ensemble")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity, alignment: .leading)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                LegacyStatCard(
-                    title: "Défis terminés",
-                    value: "\(completedChallengesCount)",
-                    icon: "checkmark.circle.fill",
-                    color: .green
-                )
+            VStack(spacing: 50) {
+                Spacer()
                 
-                LegacyStatCard(
-                    title: "Temps total",
-                    value: totalFocusTime,
-                    icon: "clock.fill",
-                    color: .blue
-                )
-                
-                LegacyStatCard(
-                    title: "Série actuelle",
-                    value: "\(currentStreak) jours",
-                    icon: "flame.fill",
-                    color: .orange
-                )
-                
-                LegacyStatCard(
-                    title: "Cette semaine",
-                    value: "\(weeklyCount) défis",
-                    icon: "calendar",
-                    color: .purple
-                )
-            }
-        }
-    }
-    
-    private var fullActivityHistory: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Historique complet")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            if zenloopManager.recentActivity.isEmpty {
-                EmptyActivityView()
-                    .padding(.vertical, 40)
-            } else {
-                ForEach(zenloopManager.recentActivity) { activity in
-                    LegacyActivityRow(activity: activity)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Material.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                // Ultra Premium Logo Animation
+                ZStack {
+                    // Outer glow rings
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.1),
+                                        Color.cyan.opacity(0.05),
+                                        Color.clear
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
+                            .frame(width: 200 + CGFloat(index * 40), height: 200 + CGFloat(index * 40))
+                            .scaleEffect(animationStep >= 2 ? 1.2 : 0.8)
+                            .opacity(animationStep >= 2 ? 0.0 : 0.8)
+                            .animation(
+                                .easeOut(duration: 2)
+                                .delay(Double(index) * 0.1),
+                                value: animationStep
+                            )
+                    }
+                    
+                    // Main logo container with effects
+                    ZStack {
+                        // Background pulse effect
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        Color.white.opacity(0.2),
+                                        Color.cyan.opacity(0.1),
+                                        Color.clear
+                                    ],
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: 100
+                                )
+                            )
+                            .frame(width: 250, height: 250)
+                            .scaleEffect(pulseScale * 1.2)
+                            .blur(radius: 20)
+                            .opacity(0.6)
+                        
+                        // Infinity sign
+                        InfinityLogoShape()
+                            .trim(from: 0, to: infinityProgress)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white,
+                                        Color.white.opacity(0.95),
+                                        Color.cyan.opacity(0.9)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 18, lineCap: .round, lineJoin: .round)
+                            )
+                            .frame(width: 160, height: 80)
+                            .shadow(color: .white, radius: 0, x: 0, y: 0)
+                            .shadow(color: .cyan.opacity(0.8), radius: 10, x: 0, y: 0)
+                            .shadow(color: .blue.opacity(0.6), radius: 20, x: 0, y: 0)
+                        
+                        // Slash with premium effect
+                        SlashShape()
+                            .trim(from: 0, to: slashProgress)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white,
+                                        Color.white.opacity(0.95),
+                                        Color.cyan.opacity(0.9)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                            )
+                            .frame(width: 160, height: 80)
+                            .shadow(color: .white, radius: 0, x: 0, y: 0)
+                            .shadow(color: .cyan.opacity(0.8), radius: 10, x: 0, y: 0)
+                        
+                        // Multiple glow layers
+                        InfinityLogoShape()
+                            .trim(from: 0, to: infinityProgress)
+                            .stroke(Color.white, lineWidth: 3)
+                            .frame(width: 160, height: 80)
+                            .blur(radius: 8)
+                            .opacity(glowIntensity * 0.8)
+                        
+                        InfinityLogoShape()
+                            .trim(from: 0, to: infinityProgress)
+                            .stroke(Color.cyan, lineWidth: 5)
+                            .frame(width: 160, height: 80)
+                            .blur(radius: 20)
+                            .opacity(glowIntensity * 0.6)
+                        
+                        SlashShape()
+                            .trim(from: 0, to: slashProgress)
+                            .stroke(Color.white, lineWidth: 3)
+                            .frame(width: 160, height: 80)
+                            .blur(radius: 8)
+                            .opacity(glowIntensity * 0.8)
+                        
+                        // Particle explosion on completion
+                        if animationStep >= 4 {
+                            ForEach(0..<12, id: \.self) { index in
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 4, height: 4)
+                                    .offset(x: animationStep >= 4 ? CGFloat.random(in: -100...100) : 0,
+                                           y: animationStep >= 4 ? CGFloat.random(in: -100...100) : 0)
+                                    .opacity(animationStep >= 4 ? 0 : 1)
+                                    .animation(
+                                        .easeOut(duration: 1.5)
+                                        .delay(Double(index) * 0.05),
+                                        value: animationStep
+                                    )
+                            }
+                        }
+                    }
+                    .scaleEffect(logoScale)
+                    .rotationEffect(.degrees(logoRotation))
+                    .animation(.spring(response: 1.2, dampingFraction: 0.6, blendDuration: 0), value: logoScale)
+                    .animation(.spring(response: 1.2, dampingFraction: 0.6, blendDuration: 0), value: logoRotation)
                 }
-            }
-        }
-    }
-    
-    private var completedChallengesCount: Int {
-        zenloopManager.recentActivity.filter { $0.type == .challengeCompleted }.count
-    }
-    
-    private var totalFocusTime: String {
-        let totalSeconds = zenloopManager.recentActivity
-            .compactMap { $0.duration }
-            .reduce(0, +)
-        
-        let hours = Int(totalSeconds) / 3600
-        let minutes = Int(totalSeconds) % 3600 / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
-    
-    private var currentStreak: Int {
-        // Calcul simplifié du streak
-        var streak = 0
-        let calendar = Calendar.current
-        var currentDate = Date()
-        
-        for activity in zenloopManager.recentActivity.reversed() {
-            if activity.type == .challengeCompleted {
-                if calendar.isDate(activity.timestamp, inSameDayAs: currentDate) {
-                    streak += 1
-                    currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
-                } else {
-                    break
-                }
-            }
-        }
-        
-        return streak
-    }
-    
-    private var weeklyCount: Int {
-        let calendar = Calendar.current
-        let weekAgo = calendar.date(byAdding: .weekOfYear, value: -1, to: Date()) ?? Date()
-        
-        return zenloopManager.recentActivity.filter { activity in
-            activity.type == .challengeCompleted && activity.timestamp >= weekAgo
-        }.count
-    }
-}
-
-// MARK: - Supporting Views
-
-struct EmptyActivityView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 50))
-                .foregroundColor(.secondary)
-            
-            VStack(spacing: 8) {
-                Text("Aucune activité")
-                    .font(.headline)
-                    .foregroundColor(.primary)
                 
-                Text("Lance ton premier défi pour voir ton activité ici")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                // Premium Text with Shimmer Effect
+                if showText {
+                    ZStack {
+                        // Background glow for text
+                        Text("Zenloop")
+                            .font(.system(size: 42, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .blur(radius: 20)
+                            .opacity(0.5)
+                        
+                        // Main text with shimmer
+                        Text("Zenloop")
+                            .font(.system(size: 42, weight: .black, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.6),
+                                        Color.white,
+                                        Color.cyan.opacity(0.9),
+                                        Color.white,
+                                        Color.white.opacity(0.6)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .overlay(
+                                LinearGradient(
+                                    colors: [
+                                        Color.clear,
+                                        Color.white.opacity(0.8),
+                                        Color.clear
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                                .frame(width: 60)
+                                .offset(x: textShimmer * 200)
+                                .mask(
+                                    Text("Zenloop")
+                                        .font(.system(size: 42, weight: .black, design: .rounded))
+                                )
+                            )
+                            .shadow(color: .cyan.opacity(0.5), radius: 10, x: 0, y: 5)
+                    }
+                    .scaleEffect(showText ? 1.0 : 0.5)
+                    .opacity(showText ? 1.0 : 0.0)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showText)
+                }
+                
+                Spacer()
+                
+                // Premium Motivation Text
+                if showMotivation {
+                    VStack(spacing: 12) {
+                        Text("Reprends le contrôle")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.white, Color.cyan.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .shadow(color: .cyan.opacity(0.3), radius: 5)
+                        
+                        Text("Une session à la fois")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.8))
+                            .shadow(color: .black.opacity(0.3), radius: 2)
+                        
+                        // Premium loading indicator
+                        HStack(spacing: 8) {
+                            ForEach(0..<3, id: \.self) { index in
+                                Circle()
+                                    .fill(Color.cyan)
+                                    .frame(width: 6, height: 6)
+                                    .scaleEffect(animationStep >= 5 ? 1.2 : 0.8)
+                                    .opacity(animationStep >= 5 ? 1.0 : 0.3)
+                                    .animation(
+                                        .easeInOut(duration: 0.6)
+                                        .repeatForever(autoreverses: true)
+                                        .delay(Double(index) * 0.2),
+                                        value: animationStep
+                                    )
+                            }
+                        }
+                        .padding(.top, 20)
+                    }
                     .multilineTextAlignment(.center)
-            }
-        }
-        .padding(.vertical, 40)
-        .frame(maxWidth: .infinity)
-    }
-}
-
-struct LegacyStatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
+                    .opacity(showMotivation ? 1.0 : 0.0)
+                    .offset(y: showMotivation ? 0 : 30)
+                    .animation(.easeOut(duration: 0.8).delay(0.3), value: showMotivation)
+                }
+                
                 Spacer()
             }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
-        .background(Material.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .onAppear {
+            startPremiumAnimation()
+        }
+    }
+    
+    private func startPremiumAnimation() {
+        // Initial setup
+        withAnimation(.linear(duration: 20)) {
+            backgroundRotation = 360
+        }
+        
+        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+            pulseScale = 1.3
+        }
+        
+        // Phase 1: Energy field activation
+        withAnimation(.easeIn(duration: 0.8)) {
+            energyFieldOpacity = 1.0
+        }
+        
+        // Phase 2: Logo entrance with scale and rotation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            logoScale = 1.0
+            logoRotation = 0
+            
+            // Start drawing infinity
+            withAnimation(.easeInOut(duration: 1.8)) {
+                infinityProgress = 1.0
+            }
+            
+            // Activate particles
+            particleAnimation = true
+        }
+        
+        // Phase 3: Add slash with dramatic effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeOut(duration: 0.6)) {
+                slashProgress = 1.0
+            }
+            
+            // Trigger explosion effect
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                animationStep = 4
+                
+                // Enhanced glow
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                    glowIntensity = 1.0
+                }
+            }
+        }
+        
+        // Phase 4: Text appearance with shimmer
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
+            showText = true
+            
+            // Shimmer animation
+            withAnimation(.linear(duration: 2).delay(0.5)) {
+                textShimmer = 1
+            }
+        }
+        
+        // Phase 5: Motivation text and loading
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.8) {
+            showMotivation = true
+            animationStep = 5
+        }
+        
+        // Phase 6: Transition
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+            NotificationCenter.default.post(name: Notification.Name("SplashCompleted"), object: nil)
+        }
     }
 }
 
-struct LegacyActivityRow: View {
-    let activity: ActivityRecord
+// MARK: - Premium Particle View
+
+struct ParticleView: View {
+    let color: Color
+    let animating: Bool
+    let delay: Double
+    let size: CGSize
+    
+    @State private var offset = CGSize.zero
+    @State private var opacity: Double = 0
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: activityIcon)
-                .font(.system(size: 14))
-                .foregroundColor(activityColor)
-                .frame(width: 30, height: 30)
-                .background(activityColor.opacity(0.1), in: Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(activity.title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                HStack {
-                    Text(formatTime(activity.timestamp))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if let duration = activity.duration {
-                        Text("•")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(formatDuration(duration))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [color, color.opacity(0)],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 3
+                )
+            )
+            .frame(width: 6, height: 6)
+            .shadow(color: color, radius: 3)
+            .offset(offset)
+            .opacity(opacity)
+            .onAppear {
+                if animating {
+                    animateParticle()
                 }
             }
-            
-            Spacer()
-            
-            Text(activityTypeText)
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .foregroundColor(activityColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(activityColor.opacity(0.1), in: Capsule())
-        }
+            .onChange(of: animating) { newValue in
+                if newValue {
+                    animateParticle()
+                }
+            }
     }
     
-    private var activityIcon: String {
-        switch activity.type {
-        case .challengeStarted: return "play.circle"
-        case .challengeCompleted: return "checkmark.circle"
-        case .challengePaused: return "pause.circle"
-        case .challengeResumed: return "arrow.clockwise.circle"
-        case .challengeStopped: return "stop.circle"
-        }
-    }
-    
-    private var activityColor: Color {
-        switch activity.type {
-        case .challengeStarted: return .blue
-        case .challengeCompleted: return .green
-        case .challengePaused: return .orange
-        case .challengeResumed: return .cyan
-        case .challengeStopped: return .red
-        }
-    }
-    
-    private var activityTypeText: String {
-        switch activity.type {
-        case .challengeStarted: return "DÉBUT"
-        case .challengeCompleted: return "FINI"
-        case .challengePaused: return "PAUSE"
-        case .challengeResumed: return "REPRISE"
-        case .challengeStopped: return "ARRÊT"
-        }
-    }
-    
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        let calendar = Calendar.current
+    private func animateParticle() {
+        let startX = CGFloat.random(in: -size.width/2...size.width/2)
+        let startY = size.height/2 + 50
+        let endX = CGFloat.random(in: -100...100)
+        let endY = -size.height/2 - 50
         
-        if calendar.isDate(date, inSameDayAs: Date()) {
-            formatter.dateFormat = "HH:mm"
-            return "Aujourd'hui \(formatter.string(from: date))"
-        } else if calendar.isDate(date, inSameDayAs: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) {
-            formatter.dateFormat = "HH:mm"
-            return "Hier \(formatter.string(from: date))"
-        } else {
-            formatter.dateFormat = "dd/MM HH:mm"
-            return formatter.string(from: date)
+        offset = CGSize(width: startX, height: startY)
+        opacity = 0
+        
+        withAnimation(.easeOut(duration: Double.random(in: 3...5)).delay(delay)) {
+            offset = CGSize(width: endX, height: endY)
+            opacity = 0.8
+        }
+        
+        withAnimation(.easeIn(duration: 1).delay(delay + 2)) {
+            opacity = 0
+        }
+        
+        // Loop
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay + 5) {
+            if animating {
+                animateParticle()
+            }
         }
     }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        if minutes < 60 {
-            return "\(minutes)min"
-        } else {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            return "\(hours)h\(remainingMinutes > 0 ? "\(remainingMinutes)m" : "")"
-        }
+}
+
+// MARK: - Infinity Logo Shape
+
+struct InfinityLogoShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        let width = rect.width
+        let height = rect.height
+        let centerY = rect.midY
+        let centerX = rect.midX
+        
+        let loopRadius = height * 0.35
+        let leftCenter = CGPoint(x: centerX - width * 0.25, y: centerY)
+        let rightCenter = CGPoint(x: centerX + width * 0.25, y: centerY)
+        let startPoint = CGPoint(x: centerX, y: centerY)
+        
+        path.move(to: startPoint)
+        
+        // Left loop - top
+        path.addCurve(
+            to: CGPoint(x: leftCenter.x, y: leftCenter.y - loopRadius),
+            control1: CGPoint(x: centerX - width * 0.1, y: centerY - loopRadius * 0.5),
+            control2: CGPoint(x: leftCenter.x + loopRadius * 0.5, y: leftCenter.y - loopRadius)
+        )
+        
+        // Left loop - left curve
+        path.addCurve(
+            to: CGPoint(x: leftCenter.x - loopRadius, y: leftCenter.y),
+            control1: CGPoint(x: leftCenter.x - loopRadius * 0.5, y: leftCenter.y - loopRadius),
+            control2: CGPoint(x: leftCenter.x - loopRadius, y: leftCenter.y - loopRadius * 0.5)
+        )
+        
+        // Left loop - bottom
+        path.addCurve(
+            to: CGPoint(x: leftCenter.x, y: leftCenter.y + loopRadius),
+            control1: CGPoint(x: leftCenter.x - loopRadius, y: leftCenter.y + loopRadius * 0.5),
+            control2: CGPoint(x: leftCenter.x - loopRadius * 0.5, y: leftCenter.y + loopRadius)
+        )
+        
+        // Back to center
+        path.addCurve(
+            to: startPoint,
+            control1: CGPoint(x: leftCenter.x + loopRadius * 0.5, y: leftCenter.y + loopRadius),
+            control2: CGPoint(x: centerX - width * 0.1, y: centerY + loopRadius * 0.5)
+        )
+        
+        // Right loop - bottom
+        path.addCurve(
+            to: CGPoint(x: rightCenter.x, y: rightCenter.y + loopRadius),
+            control1: CGPoint(x: centerX + width * 0.1, y: centerY + loopRadius * 0.5),
+            control2: CGPoint(x: rightCenter.x - loopRadius * 0.5, y: rightCenter.y + loopRadius)
+        )
+        
+        // Right loop - right curve
+        path.addCurve(
+            to: CGPoint(x: rightCenter.x + loopRadius, y: rightCenter.y),
+            control1: CGPoint(x: rightCenter.x + loopRadius * 0.5, y: rightCenter.y + loopRadius),
+            control2: CGPoint(x: rightCenter.x + loopRadius, y: rightCenter.y + loopRadius * 0.5)
+        )
+        
+        // Right loop - top
+        path.addCurve(
+            to: CGPoint(x: rightCenter.x, y: rightCenter.y - loopRadius),
+            control1: CGPoint(x: rightCenter.x + loopRadius, y: rightCenter.y - loopRadius * 0.5),
+            control2: CGPoint(x: rightCenter.x + loopRadius * 0.5, y: rightCenter.y - loopRadius)
+        )
+        
+        // Back to center
+        path.addCurve(
+            to: startPoint,
+            control1: CGPoint(x: rightCenter.x - loopRadius * 0.5, y: rightCenter.y - loopRadius),
+            control2: CGPoint(x: centerX + width * 0.1, y: centerY - loopRadius * 0.5)
+        )
+        
+        return path
+    }
+}
+
+// MARK: - Slash Shape
+
+struct SlashShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        let width = rect.width
+        let height = rect.height
+        
+        let startPoint = CGPoint(x: width * 0.25, y: height * 0.75)
+        let endPoint = CGPoint(x: width * 0.75, y: height * 0.25)
+        
+        path.move(to: startPoint)
+        path.addLine(to: endPoint)
+        
+        return path
     }
 }
 

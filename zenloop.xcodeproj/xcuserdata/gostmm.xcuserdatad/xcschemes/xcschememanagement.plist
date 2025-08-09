@@ -4,35 +4,73 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>zenloop.xcscheme_^#shared#^_</key>
+		<key>Promises (Playground).xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>5</integer>
 		</dict>
+		<key>zenloop.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>6</integer>
+		</dict>
 		<key>zenloopaction.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>4</integer>
 		</dict>
 		<key>zenloopactivity.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>3</integer>
+			<integer>1</integer>
 		</dict>
 		<key>zenloopmonitor.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>2</integer>
 		</dict>
 		<key>zenloopshieldaction.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>2</integer>
+			<integer>3</integer>
 		</dict>
 		<key>zenloopshieldconfig.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>4</integer>
+			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>DE4F567F2E3D18EC0014A5D1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DE4F56972E3D19CC0014A5D1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DE4F56AA2E3D1B560014A5D1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DE4F56C32E3D1B7B0014A5D1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DEAC3E982E3E162400007D9D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DEAC3EAB2E3E167500007D9D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

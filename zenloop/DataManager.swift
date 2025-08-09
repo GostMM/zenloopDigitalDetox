@@ -13,8 +13,8 @@ class DataManager: ObservableObject {
     static let shared = DataManager()
     
     @Published var userStats = UserStats()
-    @Published var completedChallenges: [Challenge] = []
-    @Published var availableChallenges: [Challenge] = []
+    @Published var completedChallenges: [CommunityChallenge] = []
+    @Published var availableChallenges: [CommunityChallenge] = []
     @Published var achievements: [Achievement] = []
     
     private let userDefaults = UserDefaults.standard
@@ -53,7 +53,7 @@ class DataManager: ObservableObject {
         
         // Charger les défis complétés
         if let challengesData = userDefaults.data(forKey: "completedChallenges"),
-           let challenges = try? JSONDecoder().decode([Challenge].self, from: challengesData) {
+           let challenges = try? JSONDecoder().decode([CommunityChallenge].self, from: challengesData) {
             completedChallenges = challenges
         }
         
@@ -66,16 +66,16 @@ class DataManager: ObservableObject {
     
     // MARK: - Challenge Management
     
-    func completeChallenge(_ challenge: Challenge) {
+    func completeChallenge(_ challenge: CommunityChallenge) {
         completedChallenges.append(challenge)
         updateUserStats(for: challenge)
         checkForNewAchievements()
         saveData()
     }
     
-    func updateUserStats(for challenge: Challenge) {
+    func updateUserStats(for challenge: CommunityChallenge) {
         userStats.totalChallengesCompleted += 1
-        userStats.totalTimeSaved += challenge.duration
+        userStats.totalTimeSaved += challenge.endDate.timeIntervalSince(challenge.startDate)
         
         // Mettre à jour la série
         let today = Calendar.current.startOfDay(for: Date())
@@ -120,47 +120,35 @@ class DataManager: ObservableObject {
     // MARK: - Default Data Setup
     
     func setupDefaultChallenges() {
+        // Les défis sont maintenant générés automatiquement par ChallengeEngine
+        // Cette méthode est conservée pour compatibilité mais n'est plus utilisée
         if availableChallenges.isEmpty {
             availableChallenges = [
-                Challenge(
+                CommunityChallenge(
                     id: "focus-30min",
                     title: "Focus Mode",
                     description: "Méditation de 30 minutes",
-                    duration: 30 * 60,
-                    blockedApps: [],
-                    blockedCategories: [],
+                    startDate: Date(),
+                    endDate: Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date(),
+                    participantCount: 0,
+                    maxParticipants: 10,
+                    suggestedApps: [],
+                    category: .focus,
                     difficulty: .easy,
-                    isActive: false
+                    reward: CommunityReward(points: 50, badge: "🧘", title: "Méditateur")
                 ),
-                Challenge(
+                CommunityChallenge(
                     id: "productivity-2h",
                     title: "Mode Productivité",
                     description: "Bloquer les réseaux sociaux pendant 2h",
-                    duration: 2 * 60 * 60,
-                    blockedApps: [],
-                    blockedCategories: [],
+                    startDate: Date(),
+                    endDate: Calendar.current.date(byAdding: .hour, value: 2, to: Date()) ?? Date(),
+                    participantCount: 0,
+                    maxParticipants: 15,
+                    suggestedApps: ["Instagram", "Facebook", "TikTok"],
+                    category: .productivity,
                     difficulty: .medium,
-                    isActive: false
-                ),
-                Challenge(
-                    id: "digital-detox-24h",
-                    title: "Détox Digitale",
-                    description: "Limiter l'usage du téléphone à 1h/jour",
-                    duration: 24 * 60 * 60,
-                    blockedApps: [],
-                    blockedCategories: [],
-                    difficulty: .hard,
-                    isActive: false
-                ),
-                Challenge(
-                    id: "reading-focus-30min",
-                    title: "Lecture Focus",
-                    description: "30 min de lecture sans distraction",
-                    duration: 30 * 60,
-                    blockedApps: [],
-                    blockedCategories: [],
-                    difficulty: .easy,
-                    isActive: false
+                    reward: CommunityReward(points: 100, badge: "⚡", title: "Producteur")
                 )
             ]
         }

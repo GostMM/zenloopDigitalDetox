@@ -43,13 +43,13 @@ struct CompactStateIndicator: View {
     @State private var showDetails = false
     
     var body: some View {
-        Button(action: { showDetails.toggle() }) {
-            HStack(spacing: 8) {
-                // Indicateur visuel minimal
+        if currentState != .idle {
+            Button(action: { showDetails.toggle() }) {
+                // Juste l'icône sans texte
                 ZStack {
                     Circle()
                         .fill(stateColor.opacity(0.2))
-                        .frame(width: 24, height: 24)
+                        .frame(width: 32, height: 32)
                         .overlay(
                             Circle()
                                 .stroke(stateColor, lineWidth: 2)
@@ -58,36 +58,19 @@ struct CompactStateIndicator: View {
                         .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: currentState == .active)
                     
                     Image(systemName: stateIcon)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(stateColor)
                 }
-                
-                // Texte d'état compact
-                Text(stateTitle)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                // Progress si session active
-                if currentState == .active && zenloopManager.currentProgress > 0 {
-                    Text("\(Int(zenloopManager.currentProgress * 100))%")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(stateColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(stateColor.opacity(0.2), in: Capsule())
-                }
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(stateColor.opacity(0.3), lineWidth: 1)
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(stateColor.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
-        .sheet(isPresented: $showDetails) {
-            StateDetailsSheet(currentState: currentState, zenloopManager: zenloopManager)
+            .buttonStyle(ScaleButtonStyle())
+            .sheet(isPresented: $showDetails) {
+                StateDetailsSheet(currentState: currentState, zenloopManager: zenloopManager)
+            }
         }
     }
     
@@ -111,10 +94,10 @@ struct CompactStateIndicator: View {
     
     private var stateTitle: String {
         switch currentState {
-        case .idle: return "Prêt"
-        case .active: return "Actif"
-        case .paused: return "Pause"
-        case .completed: return "Terminé"
+        case .idle: return "Tu peux y arriver"
+        case .active: return "Tu es focus !"
+        case .paused: return "Petite pause"
+        case .completed: return "Bravo toi !"
         }
     }
 }
@@ -220,11 +203,13 @@ struct StateVisualIndicator: View {
                 .scaleEffect(currentState == .active ? 1.05 : 1.0)
                 .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: currentState == .active)
             
-            // Icône d'état avec shadow amélioré
-            Image(systemName: stateIcon)
-                .font(.system(size: 28, weight: .medium))
-                .foregroundColor(stateColor)
-                .shadow(color: stateColor.opacity(0.4), radius: 8, x: 0, y: 2)
+            // Icône d'état avec shadow amélioré (sauf pour idle)
+            if currentState != .idle {
+                Image(systemName: stateIcon)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(stateColor)
+                    .shadow(color: stateColor.opacity(0.4), radius: 8, x: 0, y: 2)
+            }
         }
     }
     
@@ -381,70 +366,158 @@ struct ContextualActionsSection: View {
 
 struct ModernQuickActionsRow: View {
     @ObservedObject var zenloopManager: ZenloopManager
+    @State private var showingAppSelection = false
+    @State private var pendingAction: (() -> Void)? = nil
     
     var body: some View {
-        VStack(spacing: 16) {
-            // En-tête de section plus proéminent
+        VStack(spacing: 12) {
+            // Header homogénéisé avec les autres sections
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Commencer une Session")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
+                HStack(spacing: 12) {
+                    // Icône pour Sessions
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.blue)
+                        .frame(width: 40, height: 40)
+                        .background(.blue.opacity(0.15), in: Circle())
                     
-                    Text("Choisis ton type de concentration")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Sessions")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        
+                        Text("Choisis ton type de concentration")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
                 
                 Spacer()
+                
+                // Badge streak
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.orange)
+                    
+                    Text("3")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(.orange.opacity(0.3), lineWidth: 1)
+                )
             }
+            .padding(.horizontal, 12)
             
-            // Actions en grid (espacement réduit)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+            // Actions en grid avec dimensions fixes
+            let screenWidth = UIScreen.main.bounds.width
+            let cardWidth = (screenWidth - 64) / 2 // 64 = padding + spacing (12*2 + 16 spacing)
+            
+            LazyVGrid(
+                columns: [
+                    GridItem(.fixed(cardWidth)),
+                    GridItem(.fixed(cardWidth))
+                ], 
+                spacing: 16
+            ) {
                 ModernQuickActionButton(
-                    icon: "brain.head.profile",
+                    imageAsset: "focus",
                     title: "Focus Profond",
                     subtitle: "Concentration maximale",
                     color: .indigo,
                     action: { 
-                        print("🧠 [HERO] Démarrage Focus Profond - 60min")
-                        zenloopManager.startQuickChallenge(duration: 60 * 60)
+                        handleQuickAction {
+                            print("🧠 [HERO] Démarrage Focus Profond - 60min")
+                            zenloopManager.startQuickChallenge(duration: 60 * 60)
+                        }
                     }
                 )
                 
                 ModernQuickActionButton(
-                    icon: "book.fill",
+                    imageAsset: "study",
                     title: "Étude",
                     subtitle: "Apprentissage efficace",
                     color: .blue,
                     action: { 
-                        print("📚 [HERO] Démarrage Étude - 45min")
-                        zenloopManager.startQuickChallenge(duration: 45 * 60)
+                        handleQuickAction {
+                            print("📚 [HERO] Démarrage Étude - 45min")
+                            zenloopManager.startQuickChallenge(duration: 45 * 60)
+                        }
                     }
                 )
                 
                 ModernQuickActionButton(
-                    icon: "paintbrush.fill",
+                    imageAsset: "creativite",
                     title: "Créativité",
                     subtitle: "Expression artistique",
                     color: .purple,
                     action: { 
-                        print("🎨 [HERO] Démarrage Créativité - 90min")
-                        zenloopManager.startQuickChallenge(duration: 90 * 60)
+                        handleQuickAction {
+                            print("🎨 [HERO] Démarrage Créativité - 90min")
+                            zenloopManager.startQuickChallenge(duration: 90 * 60)
+                        }
                     }
                 )
                 
                 ModernQuickActionButton(
-                    icon: "leaf.fill",
+                    imageAsset: "meditation",
                     title: "Méditation",
                     subtitle: "Pleine conscience",
                     color: .green,
                     action: { 
-                        print("🧘 [HERO] Démarrage Méditation - 20min")
-                        zenloopManager.startQuickChallenge(duration: 20 * 60)
+                        handleQuickAction {
+                            print("🧘 [HERO] Démarrage Méditation - 20min")
+                            zenloopManager.startQuickChallenge(duration: 20 * 60)
+                        }
                     }
                 )
             }
+            .padding(.horizontal, 12)
+        }
+        .padding(.vertical, 4)
+        .familyActivityPicker(isPresented: $showingAppSelection, selection: Binding(
+            get: { zenloopManager.getAppsSelection() },
+            set: { selection in
+                print("📱 [HERO] FamilyActivityPicker selection changed - appTokens: \(selection.applicationTokens.count), categoryTokens: \(selection.categoryTokens.count)")
+                
+                zenloopManager.updateAppsSelectionWithDetails(selection)
+                
+                // Exécuter l'action en attente seulement si des apps ont été sélectionnées
+                let hasAppsSelected = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+                
+                if hasAppsSelected, let action = pendingAction {
+                    print("🚀 [HERO] Exécution de l'action en attente avec apps sélectionnées")
+                    action()
+                    pendingAction = nil
+                } else if !hasAppsSelected {
+                    print("❌ [HERO] Aucune app sélectionnée, action en attente annulée")
+                    pendingAction = nil
+                }
+            }
+        ))
+    }
+    
+    private func handleQuickAction(_ action: @escaping () -> Void) {
+        // Vérifier si des apps sont réellement sélectionnées
+        let selection = zenloopManager.getAppsSelection()
+        let hasApps = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+        
+        print("🔍 [HERO] handleQuickAction - hasApps: \(hasApps), appTokens: \(selection.applicationTokens.count), categoryTokens: \(selection.categoryTokens.count)")
+        
+        if hasApps {
+            // Apps déjà sélectionnées, lancer directement la session
+            print("✅ [HERO] Apps sélectionnées, lancement direct de la session")
+            action()
+        } else {
+            // Aucune app sélectionnée, ouvrir la sélection d'apps
+            print("⚠️ [HERO] Aucune app sélectionnée, ouverture du sélecteur")
+            pendingAction = action
+            showingAppSelection = true
         }
     }
 }
@@ -452,7 +525,7 @@ struct ModernQuickActionsRow: View {
 // MARK: - Modern Quick Action Button
 
 struct ModernQuickActionButton: View {
-    let icon: String
+    let imageAsset: String
     let title: String
     let subtitle: String
     let color: Color
@@ -466,50 +539,72 @@ struct ModernQuickActionButton: View {
             impactFeedback.impactOccurred()
             action()
         }) {
-            VStack(spacing: 6) {
-                // Icône avec dégradé (plus petite)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(color)
-                    .frame(width: 32, height: 32)
-                    .background(
+            ZStack {
+                // Image de background avec overlay
+                Image(imageAsset)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 100)
+                    .clipped()
+                    .overlay(
+                        // Overlay dégradé pour lisibilité du texte
                         LinearGradient(
-                            colors: [color.opacity(0.3), color.opacity(0.1)],
+                            colors: [
+                                Color.black.opacity(0.3),
+                                Color.black.opacity(0.6),
+                                color.opacity(0.8)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                
+                // Contenu au-dessus
+                VStack {
+                    Spacer()
+                    
+                    // Titre et sous-titre avec meilleure lisibilité
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(title)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 1)
+                        
+                        Text(subtitle)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.85))
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                            .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .frame(width: (UIScreen.main.bounds.width - 64) / 2, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [color.opacity(0.6), color.opacity(0.2)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        in: Circle()
+                        lineWidth: isPressed ? 2 : 1
                     )
-                    .overlay(
-                        Circle()
-                            .stroke(color.opacity(0.4), lineWidth: 1)
-                    )
-                
-                // Texte hiérarchisé (plus compact)
-                VStack(spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text(subtitle)
-                        .font(.system(size: 8, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                        .lineLimit(1)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .frame(height: 70) // Hauteur réduite
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 10)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(.white.opacity(isPressed ? 0.3 : 0.1), lineWidth: isPressed ? 2 : 1)
             )
-            .scaleEffect(isPressed ? 0.95 : 1.0)
-            .brightness(isPressed ? 0.1 : 0.0)
+            .shadow(
+                color: color.opacity(0.3),
+                radius: isPressed ? 12 : 8,
+                x: 0,
+                y: isPressed ? 8 : 4
+            )
+            .scaleEffect(isPressed ? 0.96 : 1.0)
+            .brightness(isPressed ? -0.1 : 0.0)
         }
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             withAnimation(.easeInOut(duration: 0.1)) {

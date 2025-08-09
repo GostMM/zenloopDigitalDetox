@@ -11,125 +11,95 @@ struct MotivationSection: View {
     let showContent: Bool
     @ObservedObject var zenloopManager: ZenloopManager
     @State private var currentTipIndex = 0
+    @State private var timer: Timer?
     
     private let motivationalTips = [
         MotivationalTip(
             icon: "brain.head.profile",
-            title: "Focus Profond",
-            message: "25 minutes de concentration valent mieux que 2 heures de distraction",
+            title: "Marre de scroller sans fin ?",
+            message: "25 minutes de vraie concentration valent mieux que 2 heures perdues",
             color: .blue
         ),
         MotivationalTip(
             icon: "target",
-            title: "Objectif Claire",
-            message: "Définis un objectif précis avant chaque session de focus",
+            title: "Dis-toi pourquoi",
+            message: "Avant de commencer, rappelle-toi pourquoi c'est important pour toi",
             color: .green
         ),
         MotivationalTip(
             icon: "moon.stars",
-            title: "Pause Régulière",
-            message: "Prends des pauses de 5 minutes toutes les 25 minutes",
+            title: "Respire un peu",
+            message: "5 minutes de pause toutes les 25 minutes, ton cerveau te remerciera",
             color: .purple
         ),
         MotivationalTip(
             icon: "leaf.fill",
-            title: "Environnement",
-            message: "Un espace calme et organisé améliore ta concentration",
+            title: "Ton cocon de calme",
+            message: "Range ton bureau, éteins les notifs, crée ton espace de sérénité",
             color: .mint
         ),
         MotivationalTip(
             icon: "heart.fill",
-            title: "Persévérance",
-            message: "Chaque session te rapproche de tes objectifs",
+            title: "Vas-y doucement",
+            message: "Chaque petit pas compte, pas besoin d'être parfait aujourd'hui",
             color: .pink
         )
     ]
     
     var body: some View {
-        VStack(spacing: 32) { // Plus d'espacement entre sections
-            // Tips carousel plus aéré
-            VStack(spacing: 20) {
-                HStack {
+        VStack(spacing: 20) {
+            // Header homogénéisé avec les autres sections
+            HStack {
+                HStack(spacing: 12) {
+                    // Icône pour Motivation
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.pink)
+                        .frame(width: 40, height: 40)
+                        .background(.pink.opacity(0.15), in: Circle())
+                    
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Conseils du Jour")
-                            .font(.system(size: 20, weight: .semibold))
+                        Text("Motivation")
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Pour améliorer ta concentration")
-                            .font(.system(size: 12, weight: .medium))
+                        Text("Un petit mot pour toi")
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
-                    
-                    Spacer()
-                    
-                    // Indicateurs plus visibles
-                    HStack(spacing: 6) {
-                        ForEach(0..<motivationalTips.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == currentTipIndex ? .white : .white.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                                .animation(.easeInOut(duration: 0.3), value: currentTipIndex)
-                        }
-                    }
                 }
-                .padding(.horizontal, 24)
                 
-                // Tip card
-                TabView(selection: $currentTipIndex) {
+                Spacer()
+                
+                // Indicateurs compacts
+                HStack(spacing: 4) {
                     ForEach(0..<motivationalTips.count, id: \.self) { index in
-                        MotivationalTipCard(tip: motivationalTips[index])
-                            .tag(index)
+                        Circle()
+                            .fill(index == currentTipIndex ? .pink : .white.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                            .animation(.easeInOut(duration: 0.3), value: currentTipIndex)
                     }
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .frame(height: 140) // Hauteur légèrement augmentée
-                .onAppear {
-                    startAutoRotation()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
+            .padding(.horizontal, 20)
+            
+            // Tip card
+            TabView(selection: $currentTipIndex) {
+                ForEach(0..<motivationalTips.count, id: \.self) { index in
+                    MotivationalTipCard(tip: motivationalTips[index])
+                        .tag(index)
                 }
             }
-            
-            // Quick start inline buttons
-            VStack(spacing: 16) {
-                HStack {
-                    Text("Démarrage Rapide")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                
-                // Boutons en grille 2x2
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-                    InlineQuickButton(
-                        title: "15min",
-                        icon: "bolt.fill",
-                        color: .yellow,
-                        action: { startQuickSession(minutes: 15) }
-                    )
-                    
-                    InlineQuickButton(
-                        title: "25min",
-                        icon: "timer",
-                        color: .blue,
-                        action: { startQuickSession(minutes: 25) }
-                    )
-                    
-                    InlineQuickButton(
-                        title: "60min",
-                        icon: "brain.head.profile",
-                        color: .purple,
-                        action: { startQuickSession(minutes: 60) }
-                    )
-                    
-                    InlineQuickButton(
-                        title: "90min",
-                        icon: "infinity",
-                        color: .indigo,
-                        action: { startQuickSession(minutes: 90) }
-                    )
-                }
-                .padding(.horizontal, 24)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .frame(height: 120)
+            .onAppear {
+                startAutoRotation()
+            }
+            .onDisappear {
+                stopAutoRotation()
             }
         }
         .opacity(showContent ? 1 : 0)
@@ -138,17 +108,20 @@ struct MotivationSection: View {
     }
     
     private func startAutoRotation() {
-        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.5)) {
+        // Arrêter le timer existant s'il y en a un
+        stopAutoRotation()
+        
+        // Créer un nouveau timer avec une cadence plus lente et stable
+        timer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.8)) {
                 currentTipIndex = (currentTipIndex + 1) % motivationalTips.count
             }
         }
     }
     
-    private func startQuickSession(minutes: Int) {
-        print("🚀 [MOTIVATION] Démarrage session rapide: \(minutes) minutes")
-        let duration = TimeInterval(minutes * 60)
-        zenloopManager.startQuickChallenge(duration: duration)
+    private func stopAutoRotation() {
+        timer?.invalidate()
+        timer = nil
     }
 }
 
@@ -197,13 +170,13 @@ struct MotivationalTipCard: View {
             
             Spacer()
         }
-        .padding(24) // Plus de padding
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .padding(20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 16)
                 .stroke(.white.opacity(0.1), lineWidth: 1)
         )
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
     }
 }
 

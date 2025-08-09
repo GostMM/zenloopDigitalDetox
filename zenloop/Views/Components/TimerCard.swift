@@ -69,14 +69,14 @@ struct TimerCard: View {
     
     private var buttonText: String {
         if isScheduled {
-            return "Programmer la Session"
+            return "Programmer ton moment"
         }
         
         if !hasSelectedApps {
-            return "Sélectionner des apps d'abord"
+            return "D'abord, choisis tes distractions"
         }
         
-        return "Commencer Maintenant"
+        return "C'est parti !"
     }
     
     var body: some View {
@@ -164,7 +164,7 @@ struct TimerCard: View {
                     
                     // Titre et status
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Nouvelle Session")
+                        Text("Reprends ton temps")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
@@ -175,7 +175,7 @@ struct TimerCard: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(.green)
                                 
-                                Text("Prêt à démarrer")
+                                Text("Tout est prêt pour toi")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.green)
                             } else {
@@ -208,14 +208,12 @@ struct TimerCard: View {
                 HStack(spacing: 20) {
                     // Type de concentration
                     HStack(spacing: 6) {
-                        Image(systemName: "brain.head.profile")
+                        Image(systemName: selectedConcentrationType.icon)
                             .font(.system(size: 14))
                             .foregroundColor(selectedConcentrationType.primaryColor)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Type")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
+                          
                             
                             Text(selectedConcentrationType.title)
                                 .font(.system(size: 13, weight: .semibold))
@@ -230,9 +228,7 @@ struct TimerCard: View {
                             .foregroundColor(.white.opacity(0.7))
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Durée")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
+                          
                             
                             Text(formattedDuration)
                                 .font(.system(size: 13, weight: .semibold))
@@ -247,9 +243,7 @@ struct TimerCard: View {
                             .foregroundColor(.cyan)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Apps")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
+                          
                             
                             Text(hasSelectedApps ? "\(zenloopManager.selectedAppsCount)" : "0")
                                 .font(.system(size: 13, weight: .semibold))
