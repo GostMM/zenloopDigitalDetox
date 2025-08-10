@@ -257,7 +257,7 @@ class ScreenTimeManager: ObservableObject {
                 await self?.stopBlocking(challengeId: challengeId)
                 
                 // Notifier CommunityManager que le défi est terminé
-                await CommunityManager.shared.challengeCompleted(challengeId)
+                //await CommunityManager.shared.challengeCompleted(challengeId)
             }
         }
         
@@ -333,7 +333,7 @@ class ScreenTimeManager: ObservableObject {
             let progress = calculateProgress(for: challengeId)
             
             // Notifier CommunityManager des changements de progression
-            await CommunityManager.shared.updateChallengeProgress(challengeId, progress: progress)
+                //await CommunityManager.shared.updateChallengeProgress(challengeId, progress: progress)
             
             // Si terminé, nettoyer la session
             if progress >= 1.0 {
@@ -383,7 +383,7 @@ class ScreenTimeManager: ObservableObject {
                     // Vérifier si la session est encore active
                     if Date() < endTime {
                         // Récupérer les apps sélectionnées depuis CommunityManager
-                        let selectedApps = CommunityManager.shared.getFamilyActivitySelection(for: challengeId) ?? FamilyActivitySelection()
+                        let selectedApps =  FamilyActivitySelection()
                         
                         let session = BlockingSession(
                             challengeId: challengeId,

@@ -659,7 +659,7 @@ private struct ModernAppRow: View {
                 .foregroundColor(rankColor(for: index + 1))
                 .frame(width: 18, alignment: .leading)
             
-            // App icon
+            // App icon avec Label FamilyControls
             Label(app.token)
                 .labelStyle(.iconOnly)
                 .frame(width: 32, height: 32)

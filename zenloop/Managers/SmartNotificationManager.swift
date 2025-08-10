@@ -5,9 +5,9 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
 import UserNotifications
-import FirebaseFirestore
 import Combine
 import UIKit
 
@@ -750,3 +750,5 @@ struct TimeRange: Codable {
     let start: Int // Heure (0-23)
     let end: Int   // Heure (0-23)
 }
+
+*/

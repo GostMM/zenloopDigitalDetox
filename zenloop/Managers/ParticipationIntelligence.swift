@@ -5,8 +5,8 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
-import FirebaseFirestore
 import Combine
 
 // MARK: - AI-Powered Participation Intelligence
@@ -793,3 +793,5 @@ struct SuccessPredictionModel {
     // Modèle ML simulé avec des heuristiques intelligentes
     // En production, utiliser Core ML ou TensorFlow Lite
 }
+
+*/

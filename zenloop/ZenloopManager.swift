@@ -990,7 +990,7 @@ class ZenloopManager: ObservableObject {
         }
         
         // Ajouter les noms des catégories si nécessaire
-        for token in selection.categoryTokens {
+        for _ in selection.categoryTokens {
             // Les catégories n'ont pas de nom facilement accessible, on utilise un nom générique
             names.append("Catégorie")
         }
@@ -1070,12 +1070,8 @@ class ZenloopManager: ObservableObject {
     private func stopDeviceActivityMonitoring(for challenge: ZenloopChallenge) {
         let activityName = DeviceActivityName("zenloop-challenge-\(challenge.id)")
         
-        do {
-            activityCenter.stopMonitoring([activityName])
-            debugPrint("✅ [DeviceActivity] Monitoring arrêté pour: \(activityName)")
-        } catch {
-            debugPrint("❌ [DeviceActivity] Erreur arrêt monitoring: \(error)")
-        }
+        activityCenter.stopMonitoring([activityName])
+        debugPrint("✅ [DeviceActivity] Monitoring arrêté pour: \(activityName)")
     }
     
     func checkDeviceActivityEvents() {

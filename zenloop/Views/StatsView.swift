@@ -43,9 +43,10 @@ final class SharedActivityStore: ObservableObject {
     private let savedKey  = "zenloop.savedSeconds"
     
     func load() {
-        if let shared = UserDefaults(suiteName: appGroup),
-           let data = shared.data(forKey: reportKey) {
-            do {
+        // Utilisation sécurisée de UserDefaults avec gestion d'erreurs
+        do {
+            if let shared = UserDefaults(suiteName: appGroup),
+               let data = shared.data(forKey: reportKey) {
                 let p = try JSONDecoder().decode(SharedReportPayload.self, from: data)
                 interval = .init(start: Date(timeIntervalSince1970: p.intervalStart),
                                  end:   Date(timeIntervalSince1970: p.intervalEnd))
@@ -54,15 +55,25 @@ final class SharedActivityStore: ObservableObject {
                 updatedAt           = Date(timeIntervalSince1970: p.updatedAt)
                 days = p.days.map { .init(date: Date(timeIntervalSince1970: $0.dayStart), seconds: $0.seconds) }
                 topCategories = p.topCategories.map { .init(name: $0.name, seconds: $0.seconds, appCount: $0.appCount) }
-            } catch {
-                interval = .init(start: Date(), end: Date())
-                totalSeconds = 0; averageDailySeconds = 0; days = []; topCategories = []
+            } else {
+                resetToDefaults()
             }
-        } else {
-            interval = .init(start: Date(), end: Date())
-            totalSeconds = 0; averageDailySeconds = 0; days = []; topCategories = []
+        } catch {
+            print("⚠️ [STATS] Erreur chargement App Group: \(error)")
+            resetToDefaults()
         }
+        
+        // Chargement local sécurisé
         savedSeconds = UserDefaults.standard.double(forKey: savedKey)
+    }
+    
+    private func resetToDefaults() {
+        interval = .init(start: Calendar.current.startOfDay(for: Date()), end: Date())
+        totalSeconds = 0
+        averageDailySeconds = 0
+        days = []
+        topCategories = []
+        updatedAt = Date()
     }
     
     func addSaved(seconds: Double) {
@@ -134,7 +145,7 @@ struct StatsView: View {
             screenTimeManager.selectedPeriod  = selectedPeriod
             store.load()
         }
-        .onChange(of: selectedPeriod) { new in
+        .onChange(of: selectedPeriod) { _, new in
             screenTimeManager.selectedPeriod = new
             refreshReport()
         }

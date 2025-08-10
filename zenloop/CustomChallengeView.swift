@@ -5,6 +5,7 @@
 //  Created by MROIVILI MOUSTOIFA on 01/08/2025.
 //
 
+/*
 import SwiftUI
 import FamilyControls
 
@@ -329,3 +330,5 @@ struct CustomChallengeView: View {
         .environmentObject(DataManager.shared)
         .environmentObject(CommunityManager.shared)
 }
+
+*/

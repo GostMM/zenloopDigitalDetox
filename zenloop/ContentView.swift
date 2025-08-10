@@ -40,12 +40,23 @@ struct ContentView: View {
                     ))
             }
         }
-        .animation(.spring(response: 0.8, dampingFraction: 0.8), value: showOnboarding)
+        .animation(.spring(response: 0.6, dampingFraction: 0.9), value: showOnboarding)
+        .animation(.spring(response: 0.6, dampingFraction: 0.9), value: isAppLoaded)
         .onAppear {
-            zenloopManager.initialize()
+            // Préchargement optimisé et asynchrone
+            Task {
+                // Initialisation en background pour éviter les hangs
+                await Task.detached(priority: .userInitiated) {
+                    // Préchargement des données critiques
+                    await MainActor.run {
+                        zenloopManager.initialize()
+                    }
+                }.value
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SplashCompleted"))) { _ in
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8)) {
+            // Transition plus rapide et fluide
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.1)) {
                 isAppLoaded = true
             }
         }
@@ -194,18 +205,19 @@ struct SplashScreen: View {
                         )
                 }
                 
-                // Premium particles
+                // Premium particles (optimisées)
                 GeometryReader { geometry in
-                    ForEach(0..<50, id: \.self) { index in
+                    ForEach(0..<25, id: \.self) { index in
                         ParticleView(
-                            color: premiumGradient.randomElement() ?? .white,
+                            color: premiumGradient[index % premiumGradient.count],
                             animating: particleAnimation,
-                            delay: Double.random(in: 0...2),
+                            delay: Double(index) * 0.1,
                             size: geometry.size
                         )
                     }
                 }
                 .ignoresSafeArea()
+                .drawingGroup() // Optimise le rendu
             }
             
             VStack(spacing: 50) {
@@ -320,18 +332,18 @@ struct SplashScreen: View {
                             .blur(radius: 8)
                             .opacity(glowIntensity * 0.8)
                         
-                        // Particle explosion on completion
+                        // Particle explosion optimisée
                         if animationStep >= 4 {
-                            ForEach(0..<12, id: \.self) { index in
+                            ForEach(0..<8, id: \.self) { index in
                                 Circle()
-                                    .fill(Color.white)
-                                    .frame(width: 4, height: 4)
-                                    .offset(x: animationStep >= 4 ? CGFloat.random(in: -100...100) : 0,
-                                           y: animationStep >= 4 ? CGFloat.random(in: -100...100) : 0)
+                                    .fill(Color.white.opacity(0.8))
+                                    .frame(width: 3, height: 3)
+                                    .offset(x: animationStep >= 4 ? CGFloat(cos(Double(index) * .pi / 4)) * 80 : 0,
+                                           y: animationStep >= 4 ? CGFloat(sin(Double(index) * .pi / 4)) * 80 : 0)
                                     .opacity(animationStep >= 4 ? 0 : 1)
                                     .animation(
-                                        .easeOut(duration: 1.5)
-                                        .delay(Double(index) * 0.05),
+                                        .easeOut(duration: 1.0)
+                                        .delay(Double(index) * 0.03),
                                         value: animationStep
                                     )
                             }
@@ -502,14 +514,14 @@ struct SplashScreen: View {
             }
         }
         
-        // Phase 5: Motivation text and loading
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.8) {
+        // Phase 5: Motivation text et transition rapide (2s au lieu de 3.8s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             showMotivation = true
             animationStep = 5
         }
         
-        // Phase 6: Transition
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+        // Phase 6: Transition ultra-rapide (2.5s au lieu de 3.5s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             NotificationCenter.default.post(name: Notification.Name("SplashCompleted"), object: nil)
         }
     }

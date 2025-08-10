@@ -5,6 +5,7 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
 
 // MARK: - Intelligent Challenge Template System
@@ -433,3 +434,5 @@ struct TemplateStats {
     let avgDuration: TimeInterval
     let difficultyDistribution: [CommunityDifficulty: Int]
 }
+
+*/

@@ -5,6 +5,7 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
 import FirebaseFirestore
 import Combine
@@ -648,3 +649,5 @@ enum UserAction: String, CaseIterable {
     case openApp = "open_app"
     case appBlocked = "app_blocked"
 }
+
+*/

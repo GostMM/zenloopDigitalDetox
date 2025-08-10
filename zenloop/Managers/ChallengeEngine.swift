@@ -5,6 +5,7 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
 import FirebaseFirestore
 import Combine
@@ -623,3 +624,5 @@ struct CommunityMetrics {
     let popularCategories: [CommunityCategory]
     let averageParticipation: Int
 }
+
+*/

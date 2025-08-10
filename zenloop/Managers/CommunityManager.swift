@@ -5,12 +5,12 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
 import SwiftUI
 import FamilyControls
 import Combine
-import FirebaseFirestore
-import FirebaseAuth
+
 
 // MARK: - Challenge Participation State
 
@@ -1368,5 +1368,5 @@ class CommunityManager: ObservableObject {
     
 }
 
-
+*/
 

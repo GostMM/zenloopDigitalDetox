@@ -5,6 +5,7 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import SwiftUI
 
 struct CommunityDiscussionsMainSection: View {
@@ -371,3 +372,5 @@ struct EmptyCommunityDiscussionsView: View {
     )
     .background(Color.black)
 }
+
+*/

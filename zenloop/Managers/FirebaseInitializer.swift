@@ -5,9 +5,9 @@
 //  Created by Claude on 06/08/2025.
 //
 
+/*
 import Foundation
-import FirebaseFirestore
-import FirebaseAuth
+
 
 // MARK: - Intelligent Firebase System Initializer
 
@@ -420,3 +420,5 @@ struct SystemHealth {
         }
     }
 }
+
+*/

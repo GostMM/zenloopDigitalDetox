@@ -171,7 +171,7 @@ struct TotalActivityReport: DeviceActivityReportScene {
             .sorted { $0.duration > $1.duration }
         
         // Catégories triées
-        var allCategories: [CategoryUsage] = categoryDurationsByID.map { (catID, secs) in
+        let allCategories: [CategoryUsage] = categoryDurationsByID.map { (catID, secs) in
             let name = categoryDisplayNameByID[catID] ?? catID
             let appCount = categoryAppTokensByID[catID]?.count ?? 0
             return CategoryUsage(categoryName: name, duration: secs, appCount: appCount)

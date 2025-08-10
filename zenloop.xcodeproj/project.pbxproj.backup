@@ -16,6 +16,11 @@
 		DEAC3EAD2E3E167500007D9D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */; };
 		DEAC3EAF2E3E167500007D9D /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */; };
 		DEAC3EB72E3E167500007D9D /* zenloopshieldconfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DEAC3F312E43804A00007D9D /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = DEAC3F302E43804A00007D9D /* FirebaseAnalytics */; };
+		DEAC3F332E43804A00007D9D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DEAC3F322E43804A00007D9D /* FirebaseAuth */; };
+		DEAC3F352E43804A00007D9D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DEAC3F342E43804A00007D9D /* FirebaseFirestore */; };
+		DEAC3F372E43804A00007D9D /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = DEAC3F362E43804A00007D9D /* FirebaseFunctions */; };
+		DEAC3F392E43804A00007D9D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = DEAC3F382E43804A00007D9D /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -187,6 +192,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEAC3F312E43804A00007D9D /* FirebaseAnalytics in Frameworks */,
+				DEAC3F332E43804A00007D9D /* FirebaseAuth in Frameworks */,
+				DEAC3F392E43804A00007D9D /* FirebaseMessaging in Frameworks */,
+				DEAC3F352E43804A00007D9D /* FirebaseFirestore in Frameworks */,
+				DEAC3F372E43804A00007D9D /* FirebaseFunctions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,6 +306,11 @@
 			);
 			name = zenloop;
 			packageProductDependencies = (
+				DEAC3F302E43804A00007D9D /* FirebaseAnalytics */,
+				DEAC3F322E43804A00007D9D /* FirebaseAuth */,
+				DEAC3F342E43804A00007D9D /* FirebaseFirestore */,
+				DEAC3F362E43804A00007D9D /* FirebaseFunctions */,
+				DEAC3F382E43804A00007D9D /* FirebaseMessaging */,
 			);
 			productName = zenloop;
 			productReference = DE4F56802E3D18EC0014A5D1 /* zenloop.app */;
@@ -451,6 +466,7 @@
 			mainGroup = DE4F56772E3D18EC0014A5D1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE4F56812E3D18EC0014A5D1 /* Products */;
@@ -1130,6 +1146,45 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DEAC3F302E43804A00007D9D /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		DEAC3F322E43804A00007D9D /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		DEAC3F342E43804A00007D9D /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		DEAC3F362E43804A00007D9D /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		DEAC3F382E43804A00007D9D /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEAC3F2F2E43804A00007D9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DE4F56782E3D18EC0014A5D1 /* Project object */;
 }

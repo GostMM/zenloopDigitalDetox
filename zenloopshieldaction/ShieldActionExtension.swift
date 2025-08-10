@@ -2,191 +2,247 @@
 //  ShieldActionExtension.swift
 //  zenloopshieldaction
 //
-//  Created by MROIVILI MOUSTOIFA on 02/08/2025.
+//  Zenloop — Shield Action Extension (iOS 16+)
 //
 
 import Foundation
 import ManagedSettings
 import ManagedSettingsUI
 
-// Pour iOS 16+, nous devons créer une extension qui implémente les bons protocoles
-@main
-struct ShieldActionApp {
-    static func main() {
-        // Point d'entrée de l'extension
-        ShieldActionHandler.shared.start()
-    }
+// IMPORTANT (configuration):
+// - Target: Extension "zenloopshieldaction"
+// - Entitlements: App Group "group.com.app.zenloop" (même que l’app)
+// - Info.plist (extension):
+//     NSExtension -> NSExtensionPointIdentifier = com.apple.ManagedSettings.shield-action-service
+//     NSExtension -> NSExtensionPrincipalClass = $(PRODUCT_MODULE_NAME).ShieldActionExtension
+// - L’icône/texte du Shield est géré par l’autre extension (ShieldConfiguration)
+
+/// Clefs & constantes partagées
+private enum AppGroup {
+    static let id = "group.com.app.zenloop"
+}
+private enum StoreKey {
+    static let pendingAction      = "pendingShieldAction"
+    static let actionHistory      = "shieldActionHistory"
+    static let motivationCount    = "motivationClicksCount"
+    static let pauseRequestsCount = "pauseRequestsCount"
+    static let urgentPause        = "urgentPauseRequest"
+    static let openAttemptsTotal  = "app_open_attempts"
+    static let openAttemptsLog    = "app_attempt_log"
+}
+private enum DarwinNotify {
+    // Utilisé pour réveiller l’app (observer via CFNotificationCenterGetDarwinNotifyCenter dans l’app)
+    static let name = "com.app.zenloop.shieldAction"
 }
 
-class ShieldActionHandler {
-    static let shared = ShieldActionHandler()
-    
-    private init() {}
-    
-    func start() {
-        print("🛡️ [SHIELD ACTION] Extension démarrée")
-        
-        // L'extension restera active pour écouter les événements
-        RunLoop.main.run()
+/// Extension d’actions du Shield.
+/// Le système appelle ces méthodes quand l’utilisateur appuie sur les boutons du Shield.
+final class ShieldActionExtension: ShieldActionDelegate {
+
+    // MARK: - Application
+
+    override func handle(action: ShieldAction,
+                         for application: ApplicationToken,
+                         completionHandler: @escaping (ShieldActionResponse) -> Void) {
+        let ctx = contextString(from: application)
+        route(action: action, context: ctx)
+        completionHandler(response(for: action))
     }
-    
-    // Cette méthode sera appelée par le système quand l'utilisateur tape un bouton
-    @objc func handleShieldButtonPressed(_ notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let action = userInfo["action"] as? String,
-              let context = userInfo["context"] as? String else {
-            print("❌ [SHIELD ACTION] Données manquantes dans la notification")
-            return
-        }
-        
-        print("🛡️ [SHIELD ACTION] Bouton pressé: \(action) - contexte: \(context)")
-        
+
+    // MARK: - WebDomain
+
+    override func handle(action: ShieldAction,
+                         for webDomain: WebDomainToken,
+                         completionHandler: @escaping (ShieldActionResponse) -> Void) {
+        let ctx = contextString(from: webDomain)
+        route(action: action, context: ctx)
+        completionHandler(response(for: action))
+    }
+
+    // MARK: - Category
+
+    override func handle(action: ShieldAction,
+                         for category: ActivityCategoryToken,
+                         completionHandler: @escaping (ShieldActionResponse) -> Void) {
+        let ctx = contextString(from: category)
+        route(action: action, context: ctx)
+        completionHandler(response(for: action))
+    }
+
+    // MARK: - Routing
+
+    private func route(action: ShieldAction, context: String) {
         switch action {
-        case "primary":
+        case .primaryButtonPressed:
             handleContinueChallenge(context: context)
-        case "secondary":
+        case .secondaryButtonPressed:
             handlePauseRequest(context: context)
-        default:
-            print("⚠️ [SHIELD ACTION] Action inconnue: \(action)")
+        @unknown default:
+            // Rien à faire
+            break
         }
     }
-    
+
+    // MARK: - Actions
+
     private func handleContinueChallenge(context: String) {
-        print("💪 [SHIELD ACTION] Utilisateur continue le défi - contexte: \(context)")
-        
-        // IMPORTANT: Enregistrer cette tentative d'ouverture d'app bloquée
-        recordAppOpenAttempt(appName: extractAppNameFromContext(context))
-        
-        // Envoyer l'événement à l'app principale
+        // Comptabiliser la tentative d’ouverture (utile pour stats/UX)
+        recordAppOpenAttempt(appName: extractAppName(from: context))
+
+        // Notifier l’app principale
         notifyMainApp(action: "continue_challenge", context: context)
-        
-        // Incrémenter les stats de motivation
+
+        // Incrémenter compteur motivation
         incrementMotivationStats()
+
+        debugLog("💪 [SHIELD ACTION] Continue challenge — \(context)")
     }
-    
+
     private func handlePauseRequest(context: String) {
-        print("⏸️ [SHIELD ACTION] Demande de pause 5 minutes - contexte: \(context)")
-        
-        // IMPORTANT: Enregistrer cette tentative d'ouverture d'app bloquée
-        recordAppOpenAttempt(appName: extractAppNameFromContext(context))
-        
-        // Envoyer l'événement de pause à l'app principale
+        // Comptabiliser la tentative d’ouverture
+        recordAppOpenAttempt(appName: extractAppName(from: context))
+
+        // Notifier l’app principale (elle décidera d’accorder ou non la pause)
         notifyMainApp(action: "request_pause_5min", context: context)
-        
-        // Sauvegarder la demande de pause
+
+        // Sauvegarder la requête de pause (flag urgent)
         savePauseRequest(context: context)
+
+        debugLog("⏸️ [SHIELD ACTION] Pause 5 min — \(context)")
     }
-    
+
+    // MARK: - Réponse UI du Shield
+
+    private func response(for action: ShieldAction) -> ShieldActionResponse {
+        switch action {
+        case .primaryButtonPressed:
+            // Souvent: on ferme le shield après "continuer"
+            return .close
+        case .secondaryButtonPressed:
+            // Souvent: on laisse le shield, le temps que l’app décide (ou affiche une notif)
+            return .defer
+        @unknown default:
+            return .none
+        }
+    }
+
+    // MARK: - Persistence & Notifications
+
+    private var defaults: UserDefaults? {
+        UserDefaults(suiteName: AppGroup.id)
+    }
+
     private func notifyMainApp(action: String, context: String) {
-        // Utiliser UserDefaults avec App Group pour communication
-        let userDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
-        let timestamp = Date().timeIntervalSince1970
-        
-        let actionData: [String: Any] = [
+        let stamp = Date().timeIntervalSince1970
+        let payload: [String: Any] = [
             "action": action,
             "context": context,
-            "timestamp": timestamp,
-            "source": "shield_extension",
-            "processed": false // Flag pour éviter le double traitement
+            "timestamp": stamp,
+            "source": "shield_action_extension",
+            "processed": false
         ]
-        
-        userDefaults?.set(actionData, forKey: "pendingShieldAction")
-        userDefaults?.synchronize()
-        
-        print("📱 [SHIELD ACTION] Action envoyée à l'app principale: \(action) - \(context)")
-        
-        // Sauvegarder aussi dans l'historique
-        var actionHistory = userDefaults?.array(forKey: "shieldActionHistory") as? [[String: Any]] ?? []
-        actionHistory.append(actionData)
-        
-        // Garder seulement les 20 dernières actions
-        if actionHistory.count > 20 {
-            actionHistory = Array(actionHistory.suffix(20))
-        }
-        
-        userDefaults?.set(actionHistory, forKey: "shieldActionHistory")
-        userDefaults?.synchronize()
+
+        defaults?.set(payload, forKey: StoreKey.pendingAction)
+
+        // Historique limité (20)
+        var history = defaults?.array(forKey: StoreKey.actionHistory) as? [[String: Any]] ?? []
+        history.append(payload)
+        if history.count > 20 { history = Array(history.suffix(20)) }
+        defaults?.set(history, forKey: StoreKey.actionHistory)
+
+        defaults?.synchronize()
+
+        // Ping l’app via Darwin notification (à écouter dans l’app)
+        postDarwinNotification(DarwinNotify.name)
+
+        debugLog("📱 Action envoyée à l’app: \(action) | \(context)")
     }
-    
+
     private func incrementMotivationStats() {
-        let userDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
-        let currentCount = userDefaults?.integer(forKey: "motivationClicksCount") ?? 0
-        userDefaults?.set(currentCount + 1, forKey: "motivationClicksCount")
-        userDefaults?.synchronize()
-        
-        print("📊 [SHIELD ACTION] Stats motivation: \(currentCount + 1) clics")
+        let current = defaults?.integer(forKey: StoreKey.motivationCount) ?? 0
+        defaults?.set(current + 1, forKey: StoreKey.motivationCount)
+        defaults?.synchronize()
+        debugLog("📊 Motivation clicks: \(current + 1)")
     }
-    
+
     private func savePauseRequest(context: String) {
-        let userDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
-        
-        // Incrémenter le compteur de pauses demandées
-        let pauseCount = userDefaults?.integer(forKey: "pauseRequestsCount") ?? 0
-        userDefaults?.set(pauseCount + 1, forKey: "pauseRequestsCount")
-        
-        // Sauvegarder la dernière demande de pause avec flag urgent
-        let pauseData: [String: Any] = [
+        let count = (defaults?.integer(forKey: StoreKey.pauseRequestsCount) ?? 0) + 1
+        defaults?.set(count, forKey: StoreKey.pauseRequestsCount)
+
+        let data: [String: Any] = [
             "context": context,
             "timestamp": Date().timeIntervalSince1970,
             "date": ISO8601DateFormatter().string(from: Date()),
-            "urgent": true // Flag pour traitement prioritaire
+            "urgent": true
         ]
-        
-        userDefaults?.set(pauseData, forKey: "urgentPauseRequest")
-        userDefaults?.synchronize()
-        
-        print("🚨 [SHIELD ACTION] PAUSE URGENTE demandée #\(pauseCount + 1) - contexte: \(context)")
+        defaults?.set(data, forKey: StoreKey.urgentPause)
+
+        defaults?.synchronize()
+        debugLog("🚨 Pause demandée (#\(count)) — \(context)")
     }
-    
-    // MARK: - App Attempt Tracking
-    
+
     private func recordAppOpenAttempt(appName: String?) {
-        let userDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
-        
-        // Incrémenter le compteur total
-        let currentCount = userDefaults?.integer(forKey: "app_open_attempts") ?? 0
-        userDefaults?.set(currentCount + 1, forKey: "app_open_attempts")
-        
-        // Enregistrer la tentative avec timestamp
-        var attempts = userDefaults?.array(forKey: "app_attempt_log") as? [[String: Any]] ?? []
-        let attempt: [String: Any] = [
+        // Total
+        let total = (defaults?.integer(forKey: StoreKey.openAttemptsTotal) ?? 0) + 1
+        defaults?.set(total, forKey: StoreKey.openAttemptsTotal)
+
+        // Log (100 derniers)
+        var log = defaults?.array(forKey: StoreKey.openAttemptsLog) as? [[String: Any]] ?? []
+        log.append([
             "timestamp": Date().timeIntervalSince1970,
-            "appName": appName ?? "app inconnue",
+            "appName": appName ?? "inconnue",
             "source": "shield_action"
-        ]
-        attempts.append(attempt)
-        
-        // Garder seulement les 100 dernières tentatives
-        if attempts.count > 100 {
-            attempts = Array(attempts.suffix(100))
-        }
-        
-        userDefaults?.set(attempts, forKey: "app_attempt_log")
-        userDefaults?.synchronize()
-        
-        print("🚫 [SHIELD ACTION] Tentative d'ouverture #\(currentCount + 1): \(appName ?? "app inconnue")")
-        
-        // Notifier l'app principale de la tentative
-        notifyMainApp(action: "app_open_attempt", context: appName ?? "unknown")
+        ])
+        if log.count > 100 { log = Array(log.suffix(100)) }
+        defaults?.set(log, forKey: StoreKey.openAttemptsLog)
+
+        defaults?.synchronize()
+        debugLog("🚫 Tentative #\(total) — \(appName ?? "inconnue")")
     }
-    
-    private func extractAppNameFromContext(_ context: String) -> String? {
-        // Essayer d'extraire le nom de l'app depuis le contexte
-        // Le contexte peut contenir des infos comme "com.instagram.app" ou "Instagram"
-        
+
+    // MARK: - Helpers: context & nom d’app
+
+    private func contextString(from application: ApplicationToken) -> String {
+        // ApplicationToken ne fournit pas forcément un nom lisible;
+        // on se rabat sur sa description (inclura souvent le bundle id).
+        String(describing: application)
+    }
+
+    private func contextString(from webDomain: WebDomainToken) -> String {
+        String(describing: webDomain)
+    }
+
+    private func contextString(from category: ActivityCategoryToken) -> String {
+        String(describing: category)
+    }
+
+    private func extractAppName(from context: String) -> String? {
+        // Essaye de dériver un nom à partir d’un bundle id ou d’une string simple
         if context.contains(".") {
-            // C'est probablement un bundle identifier
-            let components = context.split(separator: ".")
-            if let lastComponent = components.last {
-                return String(lastComponent).capitalized
+            let parts = context.split(separator: ".")
+            if let last = parts.last, last.count > 1 {
+                return String(last).replacingOccurrences(of: ")", with: "").capitalized
             }
         }
-        
-        // Sinon retourner le contexte tel quel s'il semble être un nom d'app
-        if context.count > 2 && context.count < 50 {
+        if context.count >= 3 && context.count <= 50 {
             return context
         }
-        
         return nil
+    }
+
+    // MARK: - Darwin Notification
+
+    private func postDarwinNotification(_ name: String) {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let cfName = CFNotificationName(name as CFString)
+        CFNotificationCenterPostNotification(center, cfName, nil, nil, true)
+    }
+
+    // MARK: - Debug
+
+    private func debugLog(_ text: String) {
+        #if DEBUG
+        print(text)
+        #endif
     }
 }
