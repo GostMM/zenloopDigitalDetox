@@ -323,6 +323,7 @@ struct SavedChallengeCard: View {
     @State private var isStarted = false
     @State private var showingAppSelection = false
     @State private var selectedApps = FamilyActivitySelection()
+    @State private var hasInitiallyLoaded = false
     
     private var canStart: Bool {
         let result = zenloopManager.isAppsSelectionValid()
@@ -441,6 +442,12 @@ struct SavedChallengeCard: View {
         }, perform: {})
         .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
         .onChange(of: selectedApps) { _, newSelection in
+            // Ne déclencher l'action que si ce n'est pas le chargement initial
+            guard hasInitiallyLoaded else {
+                print("🔄 [CHALLENGE_CARD] Chargement initial - pas de démarrage automatique")
+                return
+            }
+            
             // Apps sélectionnées - mettre à jour et démarrer automatiquement
             if !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty {
                 print("✅ [CHALLENGE_CARD] Apps sélectionnées pour \(challenge.title) - démarrage automatique")
@@ -461,6 +468,10 @@ struct SavedChallengeCard: View {
         }
         .onAppear {
             selectedApps = zenloopManager.getAppsSelection()
+            // Marquer comme chargé après la mise à jour initiale
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                hasInitiallyLoaded = true
+            }
         }
     }
     

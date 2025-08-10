@@ -1,4 +1,3 @@
-//
 //  ActiveChallengeSection.swift
 //  zenloop
 //
@@ -10,6 +9,7 @@ import SwiftUI
 struct ActiveChallengeSection: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some View {
         VStack(spacing: 20) {
@@ -24,6 +24,24 @@ struct ActiveChallengeSection: View {
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.4), value: showContent)
+        .onAppear {
+            // Si on arrive dans la vue avec une session active, on garantit le tick
+            if zenloopManager.currentState == .active {
+                zenloopManager.startStateMonitoring()
+            }
+        }
+        .onChange(of: zenloopManager.currentState) { newState in
+            // Re-démarre le monitoring à chaque passage en actif
+            if newState == .active {
+                zenloopManager.startStateMonitoring()
+            }
+        }
+        .onChange(of: scenePhase) { phase in
+            // Au retour au premier plan, on relance le monitoring si besoin
+            if phase == .active, zenloopManager.currentState == .active {
+                zenloopManager.startStateMonitoring()
+            }
+        }
     }
     
     // MARK: - Sub-components
@@ -102,6 +120,7 @@ struct ActiveChallengeSection: View {
                     Text("\(Int(zenloopManager.currentProgress * 100))%")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
+                        .id("progress-\(Int(zenloopManager.currentProgress * 100))")
                 }
                 
                 Spacer()
@@ -114,6 +133,7 @@ struct ActiveChallengeSection: View {
                     Text(zenloopManager.currentTimeRemaining)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(stateColor)
+                        .id("time-remaining-\(zenloopManager.currentTimeRemaining)")
                 }
             }
         }

@@ -1,37 +1,140 @@
-//
 //  BreathingMeditationView.swift
 //  zenloop
 //
 //  Created by Claude on 04/08/2025.
+//  Updated with center-reveal animation + rich haptics on 10/08/2025.
 //
 
 import SwiftUI
 import AVKit
 import AVFoundation
+import CoreHaptics
+
+// MARK: - Haptics Manager
+
+final class HapticsManager: ObservableObject {
+    private var engine: CHHapticEngine?
+    private var supportsHaptics: Bool = false
+    private let lightImpact = UIImpactFeedbackGenerator(style: .light)
+    private let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
+    private let successNotif = UINotificationFeedbackGenerator()
+    
+    func prepare() {
+        supportsHaptics = CHHapticEngine.capabilitiesForHardware().supportsHaptics
+        guard supportsHaptics else { return }
+        do {
+            engine = try CHHapticEngine()
+            try engine?.start()
+        } catch {
+            // Fallback UIKit if CoreHaptics fails
+            supportsHaptics = false
+        }
+    }
+    
+    func playPhase(_ phase: BreathingMeditationView.BreathingPhase) {
+        if supportsHaptics {
+            do {
+                // Pattern: transient bump at start + gentle continuous curve for inhale/exhale
+                let events: [CHHapticEvent]
+                switch phase {
+                case .inhale:
+                    events = [
+                        CHHapticEvent(eventType: .hapticTransient,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.45),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.3)],
+                                      relativeTime: 0),
+                        CHHapticEvent(eventType: .hapticContinuous,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)],
+                                      relativeTime: 0.02,
+                                      duration: 0.35)
+                    ]
+                case .hold:
+                    events = [
+                        CHHapticEvent(eventType: .hapticTransient,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.25),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.15)],
+                                      relativeTime: 0)
+                    ]
+                case .exhale:
+                    events = [
+                        CHHapticEvent(eventType: .hapticTransient,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.2)],
+                                      relativeTime: 0),
+                        CHHapticEvent(eventType: .hapticContinuous,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.28),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.2)],
+                                      relativeTime: 0.02,
+                                      duration: 0.28)
+                    ]
+                case .pause:
+                    events = [
+                        CHHapticEvent(eventType: .hapticTransient,
+                                      parameters: [CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.18),
+                                                   CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.1)],
+                                      relativeTime: 0)
+                    ]
+                }
+                let pattern = try CHHapticPattern(events: events, parameters: [])
+                let player = try engine?.makePlayer(with: pattern)
+                try engine?.start()
+                try player?.start(atTime: 0)
+            } catch {
+                // Fallback
+                lightImpact.impactOccurred()
+            }
+        } else {
+            // UIKit fallback mapping
+            switch phase {
+            case .inhale: mediumImpact.impactOccurred()
+            case .hold: lightImpact.impactOccurred(intensity: 0.6)
+            case .exhale: lightImpact.impactOccurred()
+            case .pause: lightImpact.impactOccurred(intensity: 0.4)
+            }
+        }
+    }
+    
+    func selection() {
+        lightImpact.impactOccurred(intensity: 0.7)
+    }
+    
+    func success() {
+        successNotif.notificationOccurred(.success)
+    }
+}
+
+// MARK: - Main View
 
 struct BreathingMeditationView: View {
     @ObservedObject var zenloopManager: ZenloopManager
     @Environment(\.dismiss) private var dismiss
+    
+    @StateObject private var haptics = HapticsManager()
+    
     @State private var showContent = false
     @State private var breathingScale: CGFloat = 1.0
     @State private var breathingOpacity: Double = 0.6
     @State private var currentPhase: BreathingPhase = .inhale
+    
     @State private var videoPlayer: AVPlayer?
     @State private var selectedVideoName: String = ""
     @State private var isVideoEnded = false
     @State private var showDecisionSheet = false
-    @State private var breathingTimer: Timer?
-    @State private var hapticTimer: Timer?
+    
     @State private var videoDuration: Double = 0
     @State private var currentBreathingCycle = 0
     @State private var tempVideoURL: URL?
     @State private var videoLoopCount = 0
     private let maxVideoLoops = 2
     
+    // Center reveal mask
+    @State private var reveal = false
+    
     // Vidéos disponibles
     private let availableVideos = [
         "0_Deer_Sunrise_1080x1920",
-        "0_Mountain_Lake_2160x3840", 
+        "0_Mountain_Lake_2160x3840",
         "0_Zebra_Wildlife_2160x3840"
     ]
     
@@ -83,48 +186,54 @@ struct BreathingMeditationView: View {
             }
         }
         
-        // Durée totale d'un cycle complet
         static var totalCycleDuration: Double {
-            return BreathingPhase.inhale.duration + 
-                   BreathingPhase.hold.duration + 
-                   BreathingPhase.exhale.duration + 
-                   BreathingPhase.pause.duration
+            inhale.duration + hold.duration + exhale.duration + pause.duration
         }
     }
     
     var body: some View {
         ZStack {
-            // Vidéo de fond
-            if let player = videoPlayer {
-                VideoPlayerView(player: player)
-                    .ignoresSafeArea()
-                    .onDisappear {
-                        player.pause()
-                    }
+            // Background video with center-reveal mask
+            GeometryReader { proxy in
+                let size = proxy.size
+                if let player = videoPlayer {
+                    VideoPlayerView(player: player)
+                        .ignoresSafeArea()
+                        .mask(
+                            // Circular mask that scales from center to reveal the video
+                            Circle()
+                                .frame(width: 10, height: 10)
+                                .scaleEffect(reveal ? revealTargetScale(for: size) : 0.001, anchor: .center)
+                                .position(x: size.width / 2, y: size.height / 2)
+                                .animation(.spring(response: 0.9, dampingFraction: 0.85).speed(0.9), value: reveal)
+                        )
+                        .onDisappear { player.pause() }
+                        .onAppear {
+                            // Ensure the mask opens shortly after view appears to feel “cinematic”
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                                reveal = true
+                            }
+                        }
+                } else {
+                    Color.black.ignoresSafeArea()
+                }
             }
             
-            // Overlay sombre pour le contraste
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            .black.opacity(0.4),
-                            .black.opacity(0.2),
-                            .black.opacity(0.4)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .ignoresSafeArea()
+            // Subtle vignette for contrast
+            LinearGradient(
+                colors: [.black.opacity(0.45), .black.opacity(0.2), .black.opacity(0.45)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header minimaliste
+                // Header
                 HStack {
-                    Button(action: {
+                    Button {
+                        haptics.selection()
                         stopBreathingSession()
                         showDecisionSheet = true
-                    }) {
+                    } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
@@ -140,36 +249,28 @@ struct BreathingMeditationView: View {
                     
                     Spacer()
                     
-                    // Espace pour équilibrer
-                    Color.clear
-                        .frame(width: 44, height: 44)
+                    Color.clear.frame(width: 44, height: 44)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
                 
                 Spacer()
                 
-                // Zone de respiration centrale avec animation douce
+                // Breathing core
                 ZStack {
-                    // Cercles concentriques
                     concentricCircles
-                    
-                    // Cercle central avec pulsation douce
                     centralBreathingCircle
-                    
-                    // Particules flottantes
+                    breathingHalo
                     floatingParticles
-                    
-                    // Instruction au centre avec style amélioré
                     breathingInstructions
                 }
                 .opacity(showContent ? 1 : 0)
                 .scaleEffect(showContent ? 1 : 0.8)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8), value: showContent)
+                .animation(.spring(response: 0.8, dampingFraction: 0.82), value: showContent)
                 
                 Spacer()
                 
-                // Instructions en bas
+                // Bottom tips
                 VStack(spacing: 12) {
                     Text("Suivez le rythme du cercle")
                         .font(.system(size: 16, weight: .medium))
@@ -182,11 +283,12 @@ struct BreathingMeditationView: View {
                 }
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 20)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3), value: showContent)
+                .animation(.spring(response: 0.8, dampingFraction: 0.85).delay(0.25), value: showContent)
                 .padding(.bottom, 40)
             }
         }
         .onAppear {
+            haptics.prepare()
             setupBreathingSession()
         }
         .onDisappear {
@@ -195,14 +297,14 @@ struct BreathingMeditationView: View {
         .sheet(isPresented: $showDecisionSheet) {
             BreathingDecisionSheet(
                 onContinue: {
-                    // Reprendre la session (sortir de pause et fermer l'écran de respiration)
+                    haptics.selection()
                     zenloopManager.resumeChallenge()
                     zenloopManager.showBreathingMeditation = false
                     showDecisionSheet = false
                     dismiss()
                 },
                 onStop: {
-                    // Arrêter définitivement la session
+                    haptics.success()
                     zenloopManager.stopCurrentChallenge()
                     showDecisionSheet = false
                     dismiss()
@@ -214,12 +316,10 @@ struct BreathingMeditationView: View {
     // MARK: - Setup & Cleanup
     
     private func setupBreathingSession() {
-        // Sélectionner une vidéo aléatoire
         selectedVideoName = availableVideos.randomElement() ?? availableVideos[0]
         setupVideoPlayer()
         
-        // Afficher le contenu avec animation
-        withAnimation(.easeOut(duration: 1.0)) {
+        withAnimation(.easeOut(duration: 0.9)) {
             showContent = true
         }
         
@@ -227,52 +327,34 @@ struct BreathingMeditationView: View {
     }
     
     private func setupVideoPlayer() {
-        // Pour les vidéos dans Assets.xcassets datasets, nous devons utiliser NSDataAsset
-        guard let dataAsset = NSDataAsset(name: selectedVideoName) else {
-            print("❌ [BREATHING] DataAsset introuvable: \(selectedVideoName)")
-            print("📁 [BREATHING] Tentative avec Bundle.main...")
-            
-            // Fallback : essayer directement dans le bundle
-            if let videoURL = Bundle.main.url(forResource: selectedVideoName, withExtension: "mp4") {
-                setupPlayerWithURL(videoURL)
+        // Try NSDataAsset first (Assets Catalog)
+        if let dataAsset = NSDataAsset(name: selectedVideoName) {
+            let tempDirectory = FileManager.default.temporaryDirectory
+            let tempVideoURL = tempDirectory.appendingPathComponent("\(selectedVideoName).mp4")
+            do {
+                try dataAsset.data.write(to: tempVideoURL)
+                self.tempVideoURL = tempVideoURL
+                setupPlayerWithURL(tempVideoURL)
                 return
+            } catch {
+                print("❌ [BREATHING] Erreur écriture fichier temp: \(error)")
             }
-            
-            print("❌ [BREATHING] Vidéo non trouvée, utilisation d'une durée par défaut")
-            // Utiliser une durée par défaut et démarrer la respiration sans vidéo
-            videoDuration = 30.0 // 30 secondes par défaut
-            startBreathingForDuration(videoDuration)
+        }
+        // Fallback: bundle resource
+        if let url = Bundle.main.url(forResource: selectedVideoName, withExtension: "mp4") {
+            setupPlayerWithURL(url)
             return
         }
         
-        print("✅ [BREATHING] DataAsset trouvé: \(selectedVideoName), taille: \(dataAsset.data.count) bytes")
-        
-        // Créer un fichier temporaire à partir du NSDataAsset
-        let tempDirectory = FileManager.default.temporaryDirectory
-        let tempVideoURL = tempDirectory.appendingPathComponent("\(selectedVideoName).mp4")
-        
-        do {
-            // Écrire les données de la vidéo dans un fichier temporaire
-            try dataAsset.data.write(to: tempVideoURL)
-            print("✅ [BREATHING] Vidéo écrite dans: \(tempVideoURL.path)")
-            
-            // Stocker l'URL pour nettoyage ultérieur
-            self.tempVideoURL = tempVideoURL
-            
-            setupPlayerWithURL(tempVideoURL)
-        } catch {
-            print("❌ [BREATHING] Erreur écriture fichier temporaire: \(error)")
-            // Fallback avec durée par défaut
-            videoDuration = 30.0
-            startBreathingForDuration(videoDuration)
-        }
+        // Final fallback: no video, just run breathing for default duration
+        videoDuration = 30.0
+        startBreathingForDuration(videoDuration)
     }
     
     private func setupPlayerWithURL(_ url: URL) {
         videoPlayer = AVPlayer(url: url)
         videoPlayer?.actionAtItemEnd = .none
         
-        // Observer la fin de la vidéo pour la boucle
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: videoPlayer?.currentItem,
@@ -280,8 +362,6 @@ struct BreathingMeditationView: View {
         ) { _ in
             self.handleVideoLoop()
         }
-        
-        // Configurer l'audio pour ne pas interrompre les autres apps
         do {
             try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
@@ -289,160 +369,121 @@ struct BreathingMeditationView: View {
             print("❌ [BREATHING] Erreur configuration audio: \(error)")
         }
         
-        // Démarrer la lecture et obtenir la durée après un court délai
         videoPlayer?.play()
-        print("🎥 [BREATHING] Lecture vidéo démarrée: \(url.lastPathComponent)")
+        print("🎥 [BREATHING] Lecture vidéo: \(url.lastPathComponent)")
         
-        // Obtenir la durée de la vidéo après un délai
+        // Determine duration shortly after playback starts
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if let duration = videoPlayer?.currentItem?.duration {
                 let seconds = CMTimeGetSeconds(duration)
-                if seconds.isFinite && seconds > 0 {
-                    videoDuration = seconds
-                    print("🎥 [BREATHING] Durée vidéo: \(seconds)s")
-                    startBreathingForDuration(seconds)
-                } else {
-                    // Durée par défaut si impossible à obtenir
-                    videoDuration = 30.0
-                    startBreathingForDuration(videoDuration)
-                }
+                self.videoDuration = (seconds.isFinite && seconds > 0) ? seconds : 30.0
+            } else {
+                self.videoDuration = 30.0
             }
+            startBreathingForDuration(self.videoDuration)
         }
     }
     
     private func startBreathingForDuration(_ duration: Double) {
-        // La vidéo va jouer 2 fois, donc doubler la durée pour la respiration
         let totalDuration = duration * Double(maxVideoLoops)
-        print("🫁 [BREATHING] Démarrage respiration pour \(totalDuration)s (\(duration)s × \(maxVideoLoops) boucles)")
-        
-        // Calculer combien de cycles de respiration pour la durée totale
         let cycleDuration = BreathingPhase.totalCycleDuration
-        let numberOfCycles = Int(totalDuration / cycleDuration)
+        let cycles = max(1, Int(totalDuration / cycleDuration))
         
-        print("🫁 [BREATHING] \(numberOfCycles) cycles de respiration (\(cycleDuration)s chacun)")
-        
-        startBreathingCycles(numberOfCycles)
-    }
-    
-    private func handleVideoLoop() {
-        videoLoopCount += 1
-        print("🔄 [BREATHING] Boucle vidéo \(videoLoopCount)/\(maxVideoLoops)")
-        
-        if videoLoopCount < maxVideoLoops {
-            // Relancer la vidéo depuis le début
-            videoPlayer?.seek(to: .zero)
-            videoPlayer?.play()
-            print("🎥 [BREATHING] Relancement vidéo pour boucle \(videoLoopCount + 1)")
-        } else {
-            // Toutes les boucles terminées
-            print("🎥 [BREATHING] Toutes les boucles vidéo terminées")
-            handleVideoEnd()
-        }
-    }
-    
-    private func startBreathingCycles(_ totalCycles: Int) {
         currentBreathingCycle = 0
-        startNextBreathingPhase()
+        currentPhase = .inhale
+        // Kick first phase haptic immediately to “lock” user into rhythm
+        haptics.playPhase(.inhale)
+        animatePhase(.inhale)
+        scheduleNextPhase()
         
-        // Haptique synchrone avec chaque phase
-        scheduleHapticForCurrentPhase()
+        print("🫁 [BREATHING] Durée totale ~\(Int(totalDuration))s, cycles ≈ \(cycles)")
     }
     
-    private func startNextBreathingPhase() {
-        guard currentBreathingCycle < getTotalCyclesNeeded() else {
-            print("🫁 [BREATHING] Tous les cycles terminés")
-            return
-        }
-        
-        // Animation pour la phase actuelle avec courbe spécifique
-        withAnimation(currentPhase.animationCurve) {
-            breathingScale = currentPhase.scale
-            breathingOpacity = currentPhase.opacity
-        }
-        
-        // Programmer la phase suivante
+    private func scheduleNextPhase() {
         DispatchQueue.main.asyncAfter(deadline: .now() + currentPhase.duration) {
             self.switchToNextPhase()
-            self.startNextBreathingPhase()
-        }
-    }
-    
-    private func getTotalCyclesNeeded() -> Int {
-        let cycleDuration = BreathingPhase.totalCycleDuration
-        return Int(videoDuration / cycleDuration) + 1
-    }
-    
-    private func scheduleHapticForCurrentPhase() {
-        triggerHapticFeedback()
-        
-        // Programmer le prochain haptique pour cette phase
-        DispatchQueue.main.asyncAfter(deadline: .now() + currentPhase.duration) {
-            if self.currentBreathingCycle < self.getTotalCyclesNeeded() {
-                self.scheduleHapticForCurrentPhase()
+            self.animatePhase(self.currentPhase)
+            self.haptics.playPhase(self.currentPhase)
+            if self.shouldContinueBreathing() {
+                self.scheduleNextPhase()
             }
         }
     }
     
+    private func animatePhase(_ phase: BreathingPhase) {
+        withAnimation(phase.animationCurve) {
+            breathingScale = phase.scale
+            breathingOpacity = phase.opacity
+        }
+    }
     
     private func switchToNextPhase() {
         switch currentPhase {
-        case .inhale: 
-            currentPhase = .hold
-        case .hold: 
-            currentPhase = .exhale  
-        case .exhale: 
-            currentPhase = .pause
-        case .pause: 
+        case .inhale: currentPhase = .hold
+        case .hold: currentPhase = .exhale
+        case .exhale: currentPhase = .pause
+        case .pause:
             currentPhase = .inhale
             currentBreathingCycle += 1
             print("🫁 [BREATHING] Cycle \(currentBreathingCycle) terminé")
         }
     }
     
-    private func triggerHapticFeedback() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
+    private func shouldContinueBreathing() -> Bool {
+        // Continue until video loops are done; handleVideoEnd() stops everything
+        return !isVideoEnded
+    }
+    
+    private func handleVideoLoop() {
+        videoLoopCount += 1
+        print("🔄 [BREATHING] Boucle vidéo \(videoLoopCount)/\(maxVideoLoops)")
+        if videoLoopCount < maxVideoLoops {
+            videoPlayer?.seek(to: .zero)
+            videoPlayer?.play()
+        } else {
+            handleVideoEnd()
+        }
     }
     
     private func handleVideoEnd() {
         print("🎥 [BREATHING] Vidéo terminée")
         isVideoEnded = true
+        haptics.success()
         showDecisionSheet = true
         stopBreathingSession()
     }
     
     private func stopBreathingSession() {
-        breathingTimer?.invalidate()
-        hapticTimer?.invalidate()
         videoPlayer?.pause()
         print("🫁 [BREATHING] Session arrêtée")
     }
     
     private func cleanupSession() {
-        stopBreathingSession()
         NotificationCenter.default.removeObserver(self)
+        videoPlayer?.pause()
+        videoPlayer = nil
         
-        // Nettoyer le fichier temporaire
         if let tempURL = tempVideoURL {
-            do {
-                try FileManager.default.removeItem(at: tempURL)
-                print("🗑️ [BREATHING] Fichier temporaire supprimé: \(tempURL.path)")
-            } catch {
-                print("⚠️ [BREATHING] Impossible de supprimer fichier temporaire: \(error)")
-            }
+            try? FileManager.default.removeItem(at: tempURL)
             tempVideoURL = nil
         }
-        
-        // Restaurer l'audio session
         do {
             try AVAudioSession.sharedInstance().setActive(false)
         } catch {
-            print("❌ [BREATHING] Erreur nettoyage audio: \(error)")
+            print("❌ [BREATHING] Erreur cleanup audio: \(error)")
         }
     }
     
+    // MARK: - Helpers
+    
+    private func revealTargetScale(for size: CGSize) -> CGFloat {
+        // Base circle is 10pt; we need diameter >= diagonal to fully reveal
+        let diagonal = sqrt(size.width * size.width + size.height * size.height)
+        let target = (diagonal / 10.0) * 1.15 // margin
+        return max(target, 1.0)
+    }
+    
     private func getBreathingCount() -> String {
-        // Compteur de cycles pour l'utilisateur
         switch currentPhase {
         case .inhale: return "1...2...3...4"
         case .hold: return "Maintenez..."
@@ -464,11 +505,9 @@ struct BreathingMeditationView: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [
-                            circleColor.opacity(0.1),
-                            circleColor.opacity(0.05),
-                            .clear
-                        ],
+                        colors: [circleColor.opacity(0.1),
+                                 circleColor.opacity(0.05),
+                                 .clear],
                         center: .center,
                         startRadius: 0,
                         endRadius: CGFloat(80 + index * 20)
@@ -481,22 +520,39 @@ struct BreathingMeditationView: View {
         }
     }
     
+    // Subtle glowing ring that breathes
+    private var breathingHalo: some View {
+        Circle()
+            .stroke(
+                AngularGradient(
+                    colors: [.cyan.opacity(0.6), .blue.opacity(0.55), .purple.opacity(0.45), .cyan.opacity(0.6)],
+                    center: .center
+                ),
+                lineWidth: 2.0
+            )
+            .frame(width: 150, height: 150)
+            .scaleEffect(breathingScale * 0.9)
+            .opacity(breathingOpacity * 0.8)
+            .blur(radius: 1.2)
+            .shadow(color: .cyan.opacity(0.35), radius: 8, x: 0, y: 0)
+    }
+    
     private var centralBreathingCircle: some View {
         Circle()
             .fill(
                 AngularGradient(
                     colors: [
-                        .cyan.opacity(0.3),
-                        .blue.opacity(0.4),
-                        .purple.opacity(0.2),
-                        .cyan.opacity(0.3)
+                        .cyan.opacity(0.35),
+                        .blue.opacity(0.45),
+                        .purple.opacity(0.25),
+                        .cyan.opacity(0.35)
                     ],
                     center: .center
                 )
             )
-            .frame(width: 80, height: 80)
-            .scaleEffect(breathingScale * 0.6)
-            .opacity(breathingOpacity + 0.3)
+            .frame(width: 84, height: 84)
+            .scaleEffect(breathingScale * 0.62)
+            .opacity(min(1.0, breathingOpacity + 0.3))
             .blur(radius: 1)
     }
     
@@ -520,7 +576,7 @@ struct BreathingMeditationView: View {
             
             Text(getBreathingCount())
                 .font(.system(size: 14, weight: .regular, design: .monospaced))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.white.opacity(0.85))
                 .opacity(breathingOpacity)
         }
     }
@@ -540,8 +596,8 @@ struct BreathingMeditationView: View {
             .indigo.opacity(0.3),
             .teal.opacity(0.5),
             .mint.opacity(0.4),
-            .white.opacity(0.3),
-            .cyan.opacity(0.4)
+            .white.opacity(0.35),
+            .cyan.opacity(0.45)
         ]
         return baseColors[index % baseColors.count]
     }
@@ -557,8 +613,8 @@ struct FloatingParticle: View {
     
     var body: some View {
         let angle = Double(index) * .pi / 4
-        let baseRadius: Double = 60
-        let dynamicRadius = baseRadius + breathingScale * 20
+        let baseRadius: Double = 62
+        let dynamicRadius = baseRadius + Double(breathingScale) * 18
         let offsetX = cos(angle) * dynamicRadius
         let offsetY = sin(angle) * dynamicRadius
         
@@ -566,9 +622,9 @@ struct FloatingParticle: View {
             .fill(color)
             .frame(width: 4, height: 4)
             .offset(x: offsetX, y: offsetY)
-            .opacity(breathingOpacity * 0.8)
+            .opacity(breathingOpacity * 0.85)
             .scaleEffect(breathingScale * 0.5)
-            .blur(radius: 0.5)
+            .blur(radius: 0.6)
     }
 }
 
@@ -578,31 +634,18 @@ struct VideoPlayerView: UIViewRepresentable {
     let player: AVPlayer
     
     func makeUIView(context: Context) -> PlayerUIView {
-        let playerView = PlayerUIView()
-        playerView.player = player
-        return playerView
+        let view = PlayerUIView()
+        view.player = player
+        return view
     }
     
-    func updateUIView(_ uiView: PlayerUIView, context: Context) {
-        // Rien à faire, le player est déjà configuré
-    }
+    func updateUIView(_ uiView: PlayerUIView, context: Context) {}
 }
 
-class PlayerUIView: UIView {
-    var player: AVPlayer? {
-        didSet {
-            playerLayer.player = player
-        }
-    }
-    
-    override static var layerClass: AnyClass {
-        return AVPlayerLayer.self
-    }
-    
-    private var playerLayer: AVPlayerLayer {
-        return layer as! AVPlayerLayer
-    }
-    
+final class PlayerUIView: UIView {
+    var player: AVPlayer? { didSet { playerLayer.player = player } }
+    override static var layerClass: AnyClass { AVPlayerLayer.self }
+    private var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
     override func layoutSubviews() {
         super.layoutSubviews()
         playerLayer.videoGravity = .resizeAspectFill
@@ -619,29 +662,22 @@ struct BreathingDecisionSheet: View {
     
     var body: some View {
         ZStack {
-            // Background
             LinearGradient(
-                colors: [
-                    Color(red: 0.02, green: 0.02, blue: 0.12),
-                    Color(red: 0.06, green: 0.03, blue: 0.15)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color(red: 0.02, green: 0.02, blue: 0.12),
+                         Color(red: 0.06, green: 0.03, blue: 0.15)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
             
             VStack(spacing: 32) {
                 Spacer()
                 
-                // Icône de méditation
                 ZStack {
                     Circle()
                         .fill(
                             RadialGradient(
                                 colors: [.cyan.opacity(0.3), .blue.opacity(0.1)],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 50
+                                center: .center, startRadius: 0, endRadius: 50
                             )
                         )
                         .frame(width: 100, height: 100)
@@ -661,19 +697,17 @@ struct BreathingDecisionSheet: View {
                     
                     Text("Que souhaitez-vous faire maintenant ?")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
                 }
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 20)
                 
                 VStack(spacing: 16) {
-                    // Bouton Continuer
                     Button(action: onContinue) {
                         HStack(spacing: 12) {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            
                             Text("Continuer la session")
                                 .font(.system(size: 16, weight: .semibold))
                         }
@@ -681,22 +715,16 @@ struct BreathingDecisionSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
+                            LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing),
                             in: RoundedRectangle(cornerRadius: 16)
                         )
                         .shadow(color: .cyan.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     
-                    // Bouton Arrêter
                     Button(action: onStop) {
                         HStack(spacing: 12) {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            
                             Text("Arrêter et retourner à l'accueil")
                                 .font(.system(size: 16, weight: .semibold))
                         }
@@ -718,7 +746,7 @@ struct BreathingDecisionSheet: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2)) {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.85).delay(0.2)) {
                 showContent = true
             }
         }
