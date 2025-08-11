@@ -109,21 +109,31 @@ struct TimerCard: View {
             SchedulePickerView(selectedTime: $scheduledStartTime)
         }
         .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
-        .onChange(of: selectedApps) { _, newSelection in
+        .onChange(of: selectedApps) { oldSelection, newSelection in
+            // Une sélection est valide si elle contient des apps individuelles OU des catégories
+            // Les catégories contiennent implicitement plusieurs applications
+            let oldHasSelectedApps = hasSelectedApps
             hasSelectedApps = !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty
+            
+            print("🔍 [TIMER_CARD] Selection changed:")
+            print("  - Old: Apps=\(oldSelection.applicationTokens.count), Categories=\(oldSelection.categoryTokens.count)")
+            print("  - New: Apps=\(newSelection.applicationTokens.count), Categories=\(newSelection.categoryTokens.count)")
+            print("  - HasSelectedApps: \(oldHasSelectedApps) -> \(hasSelectedApps)")
+            
             zenloopManager.updateAppsSelectionWithDetails(newSelection)
         }
         .onAppear {
             // Charger la sélection existante
             selectedApps = zenloopManager.getAppsSelection()
-            // Vérifier si la sélection est réellement valide (pas juste le count)
+            // Vérifier si la sélection est réellement valide
+            // Une sélection est valide si elle contient des apps individuelles OU des catégories
             hasSelectedApps = !selectedApps.applicationTokens.isEmpty || !selectedApps.categoryTokens.isEmpty
             
-            print("🔍 [TIMER_CARD] OnAppear - AppsCount: \(selectedApps.applicationTokens.count), CategoriesCount: \(selectedApps.categoryTokens.count), HasSelectedApps: \(hasSelectedApps), ManagerCount: \(zenloopManager.selectedAppsCount)")
+            print("🔍 [TIMER_CARD] OnAppear - Apps: \(selectedApps.applicationTokens.count), Categories: \(selectedApps.categoryTokens.count), HasSelectedApps: \(hasSelectedApps), ManagerCount: \(zenloopManager.selectedAppsCount)")
             
-            // Mettre à jour le gestionnaire si la sélection est vide mais le count > 0
-            if hasSelectedApps == false && zenloopManager.selectedAppsCount > 0 {
-                print("⚠️ [TIMER_CARD] Incohérence détectée - reset de la sélection")
+            // Mettre à jour le gestionnaire si la sélection est incohérente
+            if !hasSelectedApps && zenloopManager.selectedAppsCount > 0 {
+                print("⚠️ [TIMER_CARD] Incohérence détectée - reset de la sélection du manager")
                 zenloopManager.updateAppsSelection(FamilyActivitySelection())
             }
         }
@@ -313,10 +323,12 @@ struct TimerCard: View {
             
             Spacer()
             
-            // Mini aperçu des apps (première ligne des icônes)
+            // Mini aperçu des apps et catégories
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    let apps = Array(selectedApps.applicationTokens.prefix(4))
+                    // Afficher les applications individuelles d'abord
+                    let maxAppsToShow = 3
+                    let apps = Array(selectedApps.applicationTokens.prefix(maxAppsToShow))
                     ForEach(apps, id: \.self) { token in
                         Label(token)
                             .labelStyle(.iconOnly)
@@ -332,13 +344,35 @@ struct TimerCard: View {
                             )
                     }
                     
-                    if selectedApps.applicationTokens.count > 4 {
+                    // Afficher les catégories sélectionnées
+                    let maxCategoriesToShow = 2
+                    let categories = Array(selectedApps.categoryTokens.prefix(maxCategoriesToShow))
+                    ForEach(categories, id: \.self) { token in
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 16))
+                            .frame(width: 24, height: 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(.purple.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(.purple.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                    }
+                    
+                    // Compteur si plus d'éléments
+                    let totalItems = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+                    let displayedItems = min(apps.count + categories.count, maxAppsToShow + maxCategoriesToShow)
+                    
+                    if totalItems > displayedItems {
                         ZStack {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(.ultraThinMaterial)
                                 .frame(width: 24, height: 24)
                             
-                            Text("+\(selectedApps.applicationTokens.count - 4)")
+                            Text("+\(totalItems - displayedItems)")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.8))
                         }

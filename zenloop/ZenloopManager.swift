@@ -2,13 +2,14 @@
 //  zenloop
 //
 //  Created by MROIVILI MOUSTOIFA on 02/08/2025.
-//
+//  Optimized on 11/08/2025: single GCD ticker, throttled events, no I/O in tick.
 
 import Foundation
 import SwiftUI
 import FamilyControls
 import DeviceActivity
 import ManagedSettings
+import os
 
 // MARK: - États de l'application
 
@@ -79,31 +80,30 @@ struct ZenloopChallenge: Identifiable, Codable {
     }
     
     var progress: Double {
-        guard let startTime = startTime, isActive else { return isCompleted ? 1.0 : 0.0 }
-        guard duration > 0 else { return 1.0 }
-        
-        let elapsed = Date().timeIntervalSince(startTime) - pauseDuration
-        let progressValue = elapsed / duration
+        guard let startTime = self.startTime, self.isActive else { return self.isCompleted ? 1.0 : 0.0 }
+        guard self.duration > 0 else { return 1.0 }
+        let elapsed = Date().timeIntervalSince(startTime) - self.pauseDuration
+        let progressValue = elapsed / self.duration
         return progressValue.isFinite ? min(max(progressValue, 0.0), 1.0) : 0.0
     }
     
     var safeProgress: Double {
-        let p = progress
+        let p = self.progress
         return p.isFinite ? p : 0.0
     }
     
     var progressPercentage: Int {
-        let p = safeProgress * 100
+        let p = self.safeProgress * 100
         return p.isFinite ? Int(p) : 0
     }
     
     var timeRemaining: String {
-        guard let startTime = startTime, isActive, !isCompleted else {
-            return formatDuration(duration)
+        guard let startTime = self.startTime, self.isActive, !self.isCompleted else {
+            return self.formatDuration(self.duration)
         }
-        let elapsed = Date().timeIntervalSince(startTime) - pauseDuration
-        let remaining = max(duration - elapsed, 0)
-        return formatDuration(remaining)
+        let elapsed = Date().timeIntervalSince(startTime) - self.pauseDuration
+        let remaining = max(self.duration - elapsed, 0)
+        return self.formatDuration(remaining)
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -145,6 +145,26 @@ struct ActivityRecord: Identifiable, Codable {
     }
 }
 
+// MARK: - Ticker GCD (1 Hz)
+
+final class Ticker {
+    private var timer: DispatchSourceTimer?
+    private let queue = DispatchQueue(label: "zenloop.ticker", qos: .utility)
+    
+    func start(every seconds: Double = 1.0, handler: @escaping () -> Void) {
+        self.stop()
+        let t = DispatchSource.makeTimerSource(queue: self.queue)
+        t.schedule(deadline: .now() + seconds,
+                   repeating: seconds,
+                   leeway: .milliseconds(100)) // coalescing
+        t.setEventHandler(handler: handler)
+        t.resume()
+        self.timer = t
+    }
+    
+    func stop() { self.timer?.cancel(); self.timer = nil }
+}
+
 // MARK: - Gestionnaire principal
 
 @MainActor
@@ -170,137 +190,114 @@ class ZenloopManager: ObservableObject {
     @Published var completedChallengesTotal: Int = 0
     @Published var currentStreakCount: Int = 0
     
-    // MARK: - Propriétés pour les badges (nonisolated pour être accessible depuis BadgeManager)
+    // MARK: - Propriétés nonisolated (badges)
+    nonisolated var completedChallengesCount: Int { UserDefaults.standard.integer(forKey: "completed_challenges_count") }
+    nonisolated var totalFocusTime: TimeInterval { UserDefaults.standard.double(forKey: "total_focus_time") }
+    nonisolated var maxAppsBlockedSimultaneously: Int { UserDefaults.standard.integer(forKey: "max_apps_blocked") }
+    nonisolated var currentStreak: Int { UserDefaults.standard.integer(forKey: "current_streak") }
     
-    nonisolated var completedChallengesCount: Int {
-        UserDefaults.standard.integer(forKey: "completed_challenges_count")
-    }
-    
-    nonisolated var totalFocusTime: TimeInterval {
-        UserDefaults.standard.double(forKey: "total_focus_time")
-    }
-    
-    nonisolated var maxAppsBlockedSimultaneously: Int {
-        UserDefaults.standard.integer(forKey: "max_apps_blocked")
-    }
-    
-    nonisolated var currentStreak: Int {
-        UserDefaults.standard.integer(forKey: "current_streak")
-    }
-    
-    // MARK: - Propriétés privées
-    
+    // MARK: - Privées
     private let store = ManagedSettingsStore()
     private let activityCenter = DeviceActivityCenter()
-    private var stateTimer: Timer?
-    private var pauseTimer: Timer?
     private var pauseEndTime: Date?
     private var blockedAppsSelection = FamilyActivitySelection()
     
+    private let ticker = Ticker()
+    private var lastSecondBroadcast: Int? = nil
+    private var lastProgress: Double = -1
+    private var lastPauseSecondBroadcast: Int? = nil
+    
+    private var lastEventsCheck: TimeInterval = 0
+    
+    private var persistWorkItem: DispatchWorkItem?
+    
+    #if DEBUG
+    private let logger = Logger(subsystem: "com.app.zenloop", category: "Zenloop")
+    private let verboseLogging = false
+    #endif
+    
     private init() {
-        loadPersistedData()
-        loadPersistedAppsSelection()
-        checkAuthorizationStatus()
-        loadStatistics()
+        self.loadPersistedData()
+        self.loadPersistedAppsSelection()
+        self.checkAuthorizationStatus()
+        self.loadStatistics()
     }
     
     // MARK: - Initialisation
     
     func initialize() {
-        Swift.debugPrint("🚀 [ZENLOOP] Initialisation du gestionnaire")
+        #if DEBUG
+        self.logger.debug("🚀 [ZENLOOP] Initialisation du gestionnaire")
+        #endif
         
-        startStateMonitoring()
-        checkAuthorizationStatus()
-        loadRecentActivity()
+        self.startStateMonitoring()
+        self.checkAuthorizationStatus()
+        self.loadRecentActivity()
+        self.syncSelectedAppsCount()
         
-        // Synchroniser le count d'apps sélectionnées
-        syncSelectedAppsCount()
-        
-        // Demander l'autorisation si pas encore accordée
-        if !isAuthorized {
-            Task {
-                await requestAuthorization()
+        if !self.isAuthorized {
+            Task { @MainActor in
+                await self.requestAuthorization()
             }
         }
         
-        // Vérifier s'il y a un défi en cours au lancement
-        if let challenge = currentChallenge, challenge.isActive {
-            currentState = .active
-            Swift.debugPrint("📱 [ZENLOOP] Défi en cours détecté au lancement: \(challenge.title)")
+        if let challenge = self.currentChallenge, challenge.isActive {
+            self.currentState = .active
+            self.currentTimeRemaining = challenge.timeRemaining
+            self.currentProgress = challenge.safeProgress
             
-            // Initialiser les propriétés de l'UI
-            currentTimeRemaining = challenge.timeRemaining
-            currentProgress = challenge.safeProgress
-            
-            // Restaurer les restrictions si nécessaire (mais apps devront être re-sélectionnées)
-            if isAuthorized && isAppsSelectionValid() {
-                applyRestrictions()
-            } else if isAuthorized {
-                Swift.debugPrint("⚠️ [ZENLOOP] Apps doivent être re-sélectionnées pour appliquer les restrictions")
+            if self.isAuthorized && self.isAppsSelectionValid() {
+                self.applyRestrictions()
+            } else if self.isAuthorized {
+                #if DEBUG
+                self.logger.warning("⚠️ [ZENLOOP] Apps doivent être re-sélectionnées pour appliquer les restrictions")
+                #endif
             }
-            
-            // Reprogrammer l'auto-completion pour le temps restant
-            scheduleAutoCompletion()
-            
-            Swift.debugPrint("🔄 [ZENLOOP] Session restaurée avec auto-completion")
+            self.scheduleAutoCompletion()
         }
     }
     
-    // MARK: - Debug et validation
+    // MARK: - Validation
     
     func validateState() -> Bool {
-        Swift.debugPrint("🔍 [ZENLOOP] Validation de l'état du gestionnaire")
-        
-        if let challenge = currentChallenge {
-            if challenge.isActive && currentState != .active {
-                debugPrint("⚠️ [VALIDATION] Incohérence: challenge.isActive=true mais currentState=\(currentState)")
-                return false
-            }
-            if !challenge.isActive && currentState == .active {
-                debugPrint("⚠️ [VALIDATION] Incohérence: challenge.isActive=false mais currentState=active")
-                return false
-            }
-            if challenge.startTime == nil && challenge.isActive {
-                debugPrint("⚠️ [VALIDATION] Incohérence: challenge actif sans startTime")
-                return false
-            }
+        if let challenge = self.currentChallenge {
+            if challenge.isActive && self.currentState != .active { return false }
+            if !challenge.isActive && self.currentState == .active { return false }
+            if challenge.startTime == nil && challenge.isActive { return false }
         }
-        
-        if currentChallenge == nil && currentState != .idle {
-            debugPrint("⚠️ [VALIDATION] Incohérence: pas de challenge mais currentState=\(currentState)")
-            return false
-        }
-        
-        debugPrint("✅ [VALIDATION] État cohérent")
+        if self.currentChallenge == nil && self.currentState != .idle { return false }
         return true
     }
     
-    // MARK: - Gestion des autorisations
+    // MARK: - Autorisations
     
     func requestAuthorization() async {
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            checkAuthorizationStatus()
-            debugPrint("✅ [ZENLOOP] Autorisation accordée")
+            self.checkAuthorizationStatus()
+            #if DEBUG
+            self.logger.debug("✅ [ZENLOOP] Autorisation accordée")
+            #endif
         } catch {
-            debugPrint("❌ [ZENLOOP] Erreur autorisation: \(error)")
-            isAuthorized = false
+            #if DEBUG
+            self.logger.error("❌ [ZENLOOP] Erreur autorisation: \(error.localizedDescription)")
+            #endif
+            self.isAuthorized = false
         }
     }
     
     private func checkAuthorizationStatus() {
         let status = AuthorizationCenter.shared.authorizationStatus
-        isAuthorized = status == .approved
-        debugPrint("🔐 [ZENLOOP] Statut autorisation: \(status)")
+        self.isAuthorized = status == .approved
+        #if DEBUG
+        self.logger.debug("🔐 [ZENLOOP] Statut autorisation: \(String(describing: status))")
+        #endif
     }
     
-    // MARK: - Gestion des défis
+    // MARK: - Défis
     
     func startQuickChallenge(duration: TimeInterval) {
-        guard currentState == .idle else {
-            debugPrint("⚠️ [ZENLOOP] Impossible de démarrer - état actuel: \(currentState)")
-            return
-        }
+        guard self.currentState == .idle else { return }
         
         var challenge = ZenloopChallenge(
             id: "quick-\(UUID().uuidString)",
@@ -311,23 +308,16 @@ class ZenloopManager: ObservableObject {
             startTime: Date(),
             isActive: true
         )
-        
-        // Apps par défaut pour les défis rapides
         challenge.blockedAppsNames = ["Instagram", "TikTok", "Twitter", "Facebook", "YouTube"]
         challenge.blockedAppsCount = challenge.blockedAppsNames.count
         
-        startChallenge(challenge)
+        self.startChallenge(challenge)
     }
     
     func startCustomChallenge(title: String, duration: TimeInterval, difficulty: DifficultyLevel, apps: FamilyActivitySelection) {
-        guard currentState == .idle else {
-            debugPrint("⚠️ [ZENLOOP] Impossible de démarrer - état actuel: \(currentState)")
-            return
-        }
-        
+        guard self.currentState == .idle else { return }
         guard !apps.applicationTokens.isEmpty || !apps.categoryTokens.isEmpty else {
-            debugPrint("⚠️ [ZENLOOP] Impossible de démarrer - aucune app sélectionnée")
-            recordActivity(.challengeStopped, title: "Échec démarrage: aucune app sélectionnée")
+            self.recordActivity(.challengeStopped, title: "Échec démarrage: aucune app sélectionnée")
             return
         }
         
@@ -342,500 +332,378 @@ class ZenloopManager: ObservableObject {
         )
         
         challenge.blockedAppsCount = apps.applicationTokens.count
-        challenge.blockedAppsNames = generateAppNamesFromSelection(apps)
+        challenge.blockedAppsNames = self.generateAppNamesFromSelection(apps)
+        self.updateAppsSelection(apps)
         
-        // Mettre à jour la sélection d'apps
-        updateAppsSelection(apps)
-        
-        startChallenge(challenge)
+        self.startChallenge(challenge)
     }
     
     func startSavedCustomChallenge(_ challenge: ZenloopChallenge) {
-        guard currentState == .idle else {
-            debugPrint("⚠️ [ZENLOOP] Impossible de démarrer - état actuel: \(currentState)")
+        guard self.currentState == .idle else { return }
+        guard self.isAppsSelectionValid() else {
+            self.recordActivity(.challengeStopped, title: "Échec démarrage défi sauvegardé: aucune app sélectionnée")
             return
         }
         
-        guard isAppsSelectionValid() else {
-            debugPrint("⚠️ [ZENLOOP] Impossible de démarrer défi sauvegardé - aucune app sélectionnée")
-            recordActivity(.challengeStopped, title: "Échec démarrage défi sauvegardé: aucune app sélectionnée")
-            return
-        }
+        var updated = challenge
+        updated.startTime = Date()
+        updated.isActive = true
+        updated.blockedAppsNames = self.getSelectedAppsNames()
+        updated.blockedAppsCount = self.selectedAppsCount
         
-        var updatedChallenge = challenge
-        updatedChallenge.startTime = Date()
-        updatedChallenge.isActive = true
-        
-        updatedChallenge.blockedAppsNames = getSelectedAppsNames()
-        updatedChallenge.blockedAppsCount = selectedAppsCount
-        
-        startChallenge(updatedChallenge)
+        self.startChallenge(updated)
     }
     
     private func startChallenge(_ challenge: ZenloopChallenge) {
-        debugPrint("🎯 [ZENLOOP] Démarrage du défi: \(challenge.title)")
+        self.currentChallenge = challenge
+        self.currentState = .active
         
-        currentChallenge = challenge
-        currentState = .active
+        self.currentTimeRemaining = challenge.timeRemaining
+        self.currentProgress = challenge.safeProgress
         
-        // Initialiser les propriétés de l'UI
-        currentTimeRemaining = challenge.timeRemaining
-        currentProgress = challenge.safeProgress
+        self.startStateMonitoring()
+        self.applyRestrictions()
+        self.startDeviceActivityMonitoring(for: challenge)
         
-        // 🔧 S'assurer que le tick UI tourne dès le départ
-        startStateMonitoring()
-        
-        // Appliquer les restrictions
-        applyRestrictions()
-        
-        // Démarrer le monitoring DeviceActivity
-        startDeviceActivityMonitoring(for: challenge)
-        
-        // Enregistrer l'activité
-        recordActivity(.challengeStarted, title: "Défi \(challenge.title) démarré", duration: challenge.duration)
-        
-        // Sauvegarder
-        persistCurrentState()
-        
-        // Programmer l'auto-completion
-        scheduleAutoCompletion()
-        
-        // Validation de l'état
-        _ = validateState()
+        self.recordActivity(.challengeStarted, title: "Défi \(challenge.title) démarré", duration: challenge.duration)
+        self.persistCurrentStateNow()
+        self.scheduleAutoCompletion()
+        _ = self.validateState()
     }
     
-    // MARK: - Arrêt avec méditation respiratoire
+    // MARK: - Arrêt / Complétion
     
     func initiateStopWithBreathing() {
-        guard let challenge = currentChallenge, currentState == .active || currentState == .paused else {
-            debugPrint("⚠️ [ZENLOOP] Aucun défi à arrêter")
-            return
-        }
-        debugPrint("🫁 [ZENLOOP] Initiation arrêt avec respiration pour: \(challenge.title)")
-        showBreathingMeditation = true
+        guard let challenge = self.currentChallenge, self.currentState == .active || self.currentState == .paused else { return }
+        _ = challenge
+        self.showBreathingMeditation = true
     }
     
     func stopCurrentChallenge() {
-        guard let challenge = currentChallenge, currentState == .active || currentState == .paused else {
-            debugPrint("⚠️ [ZENLOOP] Aucun défi à arrêter")
-            return
-        }
+        guard let challenge = self.currentChallenge, self.currentState == .active || self.currentState == .paused else { return }
         
-        debugPrint("🛑 [ZENLOOP] Arrêt du défi: \(challenge.title)")
-        showBreathingMeditation = false
-        removeRestrictions()
-        stopDeviceActivityMonitoring(for: challenge)
+        self.showBreathingMeditation = false
+        self.removeRestrictions()
+        self.stopDeviceActivityMonitoring(for: challenge)
         
-        var updatedChallenge = challenge
-        updatedChallenge.isActive = false
-        currentChallenge = updatedChallenge
-        currentState = .idle
+        var updated = challenge
+        updated.isActive = false
+        self.currentChallenge = updated
+        self.currentState = .idle
         
-        recordActivity(.challengeStopped, title: "Défi \(challenge.title) arrêté")
-        cancelTimers()
-        persistCurrentState()
-        _ = validateState()
+        self.recordActivity(.challengeStopped, title: "Défi \(challenge.title) arrêté")
+        self.cancelTimers()
+        self.persistCurrentStateNow()
+        _ = self.validateState()
     }
     
     func completeCurrentChallenge() {
-        guard let challenge = currentChallenge, currentState == .active else {
-            debugPrint("⚠️ [ZENLOOP] Aucun défi à compléter")
-            return
+        guard let challenge = self.currentChallenge, self.currentState == .active else { return }
+        
+        self.removeRestrictions()
+        
+        var updated = challenge
+        updated.isActive = false
+        updated.isCompleted = true
+        self.currentChallenge = updated
+        self.currentState = .completed
+        
+        self.recordActivity(.challengeCompleted, title: "Défi \(challenge.title) terminé avec succès", duration: challenge.duration)
+        self.updateChallengeStatistics(challenge: challenge)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.resetToIdle()
         }
         
-        debugPrint("🎉 [ZENLOOP] Défi complété: \(challenge.title)")
-        removeRestrictions()
-        
-        var updatedChallenge = challenge
-        updatedChallenge.isActive = false
-        updatedChallenge.isCompleted = true
-        currentChallenge = updatedChallenge
-        currentState = .completed
-        
-        recordActivity(.challengeCompleted, title: "Défi \(challenge.title) terminé avec succès", duration: challenge.duration)
-        updateChallengeStatistics(challenge: challenge)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            self.resetToIdle()
-        }
-        
-        cancelTimers()
-        persistCurrentState()
-        _ = validateState()
+        self.cancelTimers()
+        self.persistCurrentStateNow()
+        _ = self.validateState()
     }
     
     func resetToIdle() {
-        debugPrint("🔄 [ZENLOOP] Retour à l'état idle")
-        currentChallenge = nil
-        currentState = .idle
-        pauseEndTime = nil
-        pauseTimeRemaining = "00:00"
+        self.currentChallenge = nil
+        self.currentState = .idle
+        self.pauseEndTime = nil
+        self.pauseTimeRemaining = "00:00"
         
-        cancelTimers()
-        persistCurrentState()
+        self.cancelTimers()
+        self.persistCurrentStateDebounced()
     }
     
-    // MARK: - Gestion des pauses
+    // MARK: - Pause / Reprise
     
     func requestPause() {
-        debugPrint("🔍 [ZENLOOP] requestPause() appelée - État actuel: \(currentState)")
-        guard let challenge = currentChallenge, currentState == .active else {
-            debugPrint("⚠️ [ZENLOOP] Aucun défi actif pour la pause - État: \(currentState)")
-            return
-        }
+        guard let challenge = self.currentChallenge, self.currentState == .active else { return }
         
-        debugPrint("⏸️ [ZENLOOP] Demande de pause pour: \(challenge.title)")
-        stateTimer?.invalidate()
-        pauseTimer?.invalidate()
+        var updated = challenge
+        updated.pausedTime = Date()
+        self.currentChallenge = updated
+        self.currentState = .paused
         
-        var updatedChallenge = challenge
-        updatedChallenge.pausedTime = Date()
-        currentChallenge = updatedChallenge
-        currentState = .paused
+        self.removeRestrictions()
         
-        debugPrint("✅ [ZENLOOP] État changé vers: \(currentState)")
-        removeRestrictions()
-        
-        pauseEndTime = Date().addingTimeInterval(5 * 60)
-        startPauseTimer()
-        
-        recordActivity(.challengePaused, title: "Pause de 5 minutes")
-        persistCurrentState()
-        
-        if let end = pauseEndTime { debugPrint("⏱️ [ZENLOOP] Timer de pause démarré - fin prévue: \(end)") }
+        self.pauseEndTime = Date().addingTimeInterval(5 * 60)
+        self.recordActivity(.challengePaused, title: "Pause de 5 minutes")
+        self.persistCurrentStateNow()
     }
     
     func resumeChallenge() {
-        debugPrint("🔍 [ZENLOOP] resumeChallenge() appelée - État actuel: \(currentState)")
-        guard let challenge = currentChallenge, currentState == .paused else {
-            debugPrint("⚠️ [ZENLOOP] Aucun défi en pause à reprendre - État: \(currentState)")
-            return
-        }
-        
-        debugPrint("▶️ [ZENLOOP] Reprise du défi: \(challenge.title)")
-        pauseTimer?.invalidate()
-        pauseTimer = nil
+        guard let challenge = self.currentChallenge, self.currentState == .paused else { return }
         
         if let pausedTime = challenge.pausedTime {
-            let pauseDuration = Date().timeIntervalSince(pausedTime)
-            debugPrint("⏱️ [ZENLOOP] Durée de pause: \(pauseDuration) secondes")
-            
-            var updatedChallenge = challenge
-            updatedChallenge.pauseDuration += pauseDuration
-            updatedChallenge.pausedTime = nil
-            updatedChallenge.isActive = true
-            currentChallenge = updatedChallenge
+            let pauseDur = Date().timeIntervalSince(pausedTime)
+            var updated = challenge
+            updated.pauseDuration += pauseDur
+            updated.pausedTime = nil
+            updated.isActive = true
+            self.currentChallenge = updated
         }
         
-        currentState = .active
-        debugPrint("✅ [ZENLOOP] État changé vers: \(currentState)")
+        self.currentState = .active
+        self.applyRestrictions()
+        self.pauseEndTime = nil
+        self.pauseTimeRemaining = "00:00"
         
-        applyRestrictions()
-        pauseEndTime = nil
-        pauseTimeRemaining = "00:00"
+        self.startStateMonitoring()
+        self.scheduleAutoCompletion()
         
-        startStateMonitoring()
-        scheduleAutoCompletion()
-        
-        recordActivity(.challengeResumed, title: "Défi repris")
-        persistCurrentState()
-        
-        debugPrint("🔄 [ZENLOOP] Monitoring d'état et auto-completion redémarrés")
+        self.recordActivity(.challengeResumed, title: "Défi repris")
+        self.persistCurrentStateNow()
     }
     
-    // MARK: - Gestion des restrictions
+    // MARK: - Restrictions
     
     private func applyRestrictions() {
-        guard isAuthorized else {
-            debugPrint("❌ [ZENLOOP] Pas d'autorisation pour appliquer les restrictions")
-            return
+        guard self.isAuthorized else { return }
+        
+        let appTokens = self.blockedAppsSelection.applicationTokens
+        self.store.shield.applications = appTokens
+        
+        if !self.blockedAppsSelection.categoryTokens.isEmpty {
+            self.store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
+                .specific(self.blockedAppsSelection.categoryTokens)
         }
         
-        // Utiliser les tokens des applications sélectionnées pour le blocage
-        let appTokens = blockedAppsSelection.applicationTokens
-        store.shield.applications = appTokens
-        
-        if !blockedAppsSelection.categoryTokens.isEmpty {
-            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
-                .specific(blockedAppsSelection.categoryTokens)
+        #if DEBUG
+        if self.verboseLogging {
+            self.logger.debug("🛡️ Restrictions appliquées: \(appTokens.count) apps, \(self.blockedAppsSelection.categoryTokens.count) catégories")
         }
-        
-        debugPrint("🛡️ [ZENLOOP] Restrictions appliquées: \(appTokens.count) apps, \(blockedAppsSelection.categoryTokens.count) catégories")
+        #endif
     }
     
     private func removeRestrictions() {
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-        debugPrint("🔓 [ZENLOOP] Restrictions supprimées")
+        self.store.shield.applications = nil
+        self.store.shield.applicationCategories = nil
     }
     
-    // MARK: - Timers et monitoring
+    // MARK: - Ticker (1 Hz)
     
-    // ⛔️ N'EST PLUS private : on veut pouvoir l'appeler depuis la vue
     func startStateMonitoring() {
-        // Arrêter le timer existant avant d'en créer un nouveau
-        stateTimer?.invalidate()
-        
-        debugPrint("🔄 [ZENLOOP] Démarrage du monitoring d'état")
-        stateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.updateState()
-        }
-        
-        if let timer = stateTimer {
-            RunLoop.main.add(timer, forMode: .common)
-            debugPrint("✅ [ZENLOOP] Timer d'état ajouté au RunLoop main")
+        self.ticker.start(every: 1.0) { [weak self] in
+            // tick est @MainActor — on y revient proprement
+            Task { @MainActor [weak self] in
+                self?.tick()
+            }
         }
     }
     
-    private func updateState() {
-        guard Thread.isMainThread else {
-            DispatchQueue.main.async { [weak self] in
-                self?.updateState()
+    func cancelTimers() {
+        self.ticker.stop()
+    }
+    
+    // @MainActor: on garde la sécurité UI; on a réduit au minimum le travail ici
+    private func tick() {
+        let now = Date()
+        
+        // 1) DeviceActivity events (throttlé)
+        let nowTs = now.timeIntervalSince1970
+        if nowTs - self.lastEventsCheck >= 8 {
+            self.lastEventsCheck = nowTs
+            self.checkDeviceActivityEvents()
+        }
+        
+        // 2) Défi actif
+        if let c = self.currentChallenge, c.isActive, let start = c.startTime {
+            let elapsed = now.timeIntervalSince(start) - c.pauseDuration
+            let remaining = max(0, c.duration - elapsed)
+            let sec = Int(remaining.rounded(.down))
+            let prog = min(1, max(0, elapsed / max(1, c.duration)))
+            
+            if self.lastSecondBroadcast != sec || abs(prog - self.lastProgress) > 0.001 {
+                self.lastSecondBroadcast = sec
+                self.lastProgress = prog
+                let timeString = Self.mmss(sec)
+                
+                if self.currentTimeRemaining != timeString { self.currentTimeRemaining = timeString }
+                if abs(self.currentProgress - prog) > 0.001 { self.currentProgress = prog }
+                if prog >= 1.0, self.currentState == .active { self.completeCurrentChallenge() }
             }
             return
         }
         
-        // Vérifier les événements remontés par l'extension
-        checkDeviceActivityEvents()
+        // 3) Pause en cours
+        if self.currentState == .paused, let end = self.pauseEndTime {
+            let remain = max(0, Int(end.timeIntervalSinceNow.rounded(.down)))
+            if self.lastPauseSecondBroadcast != remain {
+                self.lastPauseSecondBroadcast = remain
+                let str = Self.mmss(remain)
+                if self.pauseTimeRemaining != str { self.pauseTimeRemaining = str }
+                if remain == 0 { self.resumeChallenge() }
+            }
+            return
+        }
         
-        if let challenge = currentChallenge, currentState == .active {
-            let newTimeRemaining = challenge.timeRemaining
-            let newProgress = challenge.safeProgress
-            
-            if challenge.progress >= 1.0 {
-                completeCurrentChallenge()
-                return
-            }
-            
-            if currentTimeRemaining != newTimeRemaining || abs(currentProgress - newProgress) > 0.001 {
-                currentTimeRemaining = newTimeRemaining
-                currentProgress = newProgress
-                
-                if Int(Date().timeIntervalSince1970) % 5 == 0 {
-                    debugPrint("🔄 [TIMER] UI mise à jour - Temps: \(newTimeRemaining), Progrès: \(Int(newProgress * 100))%")
-                }
-            }
-        } else {
-            currentTimeRemaining = "00:00"
-            currentProgress = 0.0
+        // 4) État inactif
+        if self.currentState != .active {
+            if self.currentTimeRemaining != "00:00" { self.currentTimeRemaining = "00:00" }
+            if self.currentProgress != 0 { self.currentProgress = 0 }
         }
     }
     
+    private static func mmss(_ s: Int) -> String {
+        let clamped = max(0, s)
+        return String(format: "%02d:%02d", clamped/60, clamped%60)
+    }
+    
+    // MARK: - Auto-completion
+    
     private func scheduleAutoCompletion() {
-        guard let challenge = currentChallenge, let startTime = challenge.startTime else { return }
-        
+        guard let challenge = self.currentChallenge, let startTime = challenge.startTime else { return }
         let elapsedTime = Date().timeIntervalSince(startTime) - challenge.pauseDuration
         let remainingTime = max(challenge.duration - elapsedTime, 0)
-        
-        debugPrint("⏰ [ZENLOOP] Auto-completion programmée dans \(remainingTime) secondes")
-        
         DispatchQueue.main.asyncAfter(deadline: .now() + remainingTime) { [weak self] in
             if self?.currentState == .active {
-                debugPrint("⏰ [ZENLOOP] Auto-completion déclenchée")
                 self?.completeCurrentChallenge()
             }
         }
     }
     
-    private func startPauseTimer() {
-        debugPrint("⏱️ [ZENLOOP] Démarrage du timer de pause")
-        
-        pauseTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
-            Task { @MainActor in
-                await self.updatePauseTimer()
-            }
-        }
-        
-        if let timer = pauseTimer {
-            RunLoop.main.add(timer, forMode: .common)
-            debugPrint("✅ [ZENLOOP] Timer de pause ajouté au RunLoop")
-        }
-    }
-    
-    private func updatePauseTimer() async {
-        guard let endTime = pauseEndTime else {
-            debugPrint("⚠️ [ZENLOOP] Pas de pauseEndTime - arrêt du timer")
-            pauseTimer?.invalidate()
-            pauseTimer = nil
-            return
-        }
-        
-        let remaining = endTime.timeIntervalSinceNow
-        
-        if remaining <= 0 {
-            debugPrint("🔔 [ZENLOOP] Temps de pause écoulé - reprise automatique")
-            resumeChallenge()
-        } else {
-            let minutes = Int(remaining) / 60
-            let seconds = Int(remaining) % 60
-            let newTimeString = String(format: "%02d:%02d", minutes, seconds)
-            
-            if pauseTimeRemaining != newTimeString {
-                pauseTimeRemaining = newTimeString
-                if seconds % 10 == 0 {
-                    debugPrint("⏱️ [ZENLOOP] Pause - temps restant: \(pauseTimeRemaining)")
-                }
-            }
-        }
-    }
-    
-    private func cancelTimers() {
-        stateTimer?.invalidate()
-        stateTimer = nil
-        pauseTimer?.invalidate()
-        pauseTimer = nil
-    }
-    
-    nonisolated private func cancelTimersNonisolated() {
-        Task { @MainActor [weak self] in
-            self?.stateTimer?.invalidate()
-            self?.stateTimer = nil
-            self?.pauseTimer?.invalidate()
-            self?.pauseTimer = nil
-        }
-    }
-    
-    // MARK: - Persistance et activité
+    // MARK: - Persistance & activité (debounce, pas d'I/O dans tick)
     
     private func recordActivity(_ type: ActivityRecord.ActivityType, title: String, duration: TimeInterval? = nil) {
-        let activity = ActivityRecord(
-            type: type,
-            title: title,
-            timestamp: Date(),
-            duration: duration
-        )
-        recentActivity.insert(activity, at: 0)
-        if recentActivity.count > 20 {
-            recentActivity = Array(recentActivity.prefix(20))
-        }
-        saveRecentActivity()
+        let activity = ActivityRecord(type: type, title: title, timestamp: Date(), duration: duration)
+        self.recentActivity.insert(activity, at: 0)
+        if self.recentActivity.count > 20 { self.recentActivity = Array(self.recentActivity.prefix(20)) }
+        self.saveRecentActivityDebounced()
     }
     
-    private func persistCurrentState() {
+    private func persistCurrentStateDebounced() {
+        self.persistWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?._persistCurrentStateNow()
+        }
+        self.persistWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: item)
+    }
+    
+    private func persistCurrentStateNow() {
+        self._persistCurrentStateNow()
+    }
+    
+    private func _persistCurrentStateNow() {
         let userDefaults = UserDefaults.standard
-        userDefaults.set(currentState.rawValue, forKey: "zenloop_current_state")
-        
-        if let challenge = currentChallenge {
-            if let data = try? JSONEncoder().encode(challenge) {
-                userDefaults.set(data, forKey: "zenloop_current_challenge")
-            }
+        userDefaults.set(self.currentState.rawValue, forKey: "zenloop_current_state")
+        if let challenge = self.currentChallenge, let data = try? JSONEncoder().encode(challenge) {
+            userDefaults.set(data, forKey: "zenloop_current_challenge")
         } else {
             userDefaults.removeObject(forKey: "zenloop_current_challenge")
         }
-        userDefaults.synchronize()
     }
     
     private func loadPersistedData() {
         let userDefaults = UserDefaults.standard
         if let stateString = userDefaults.string(forKey: "zenloop_current_state"),
            let state = ZenloopState(rawValue: stateString) {
-            currentState = state
+            self.currentState = state
         }
         if let data = userDefaults.data(forKey: "zenloop_current_challenge"),
            let challenge = try? JSONDecoder().decode(ZenloopChallenge.self, from: data) {
-            currentChallenge = challenge
+            self.currentChallenge = challenge
         }
     }
     
     private func loadRecentActivity() {
         if let data = UserDefaults.standard.data(forKey: "zenloop_recent_activity"),
            let activities = try? JSONDecoder().decode([ActivityRecord].self, from: data) {
-            recentActivity = activities
+            self.recentActivity = activities
         }
     }
     
-    private func saveRecentActivity() {
-        if let data = try? JSONEncoder().encode(recentActivity) {
-            UserDefaults.standard.set(data, forKey: "zenloop_recent_activity")
+    private func saveRecentActivityDebounced() {
+        self.persistWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            if let data = try? JSONEncoder().encode(self.recentActivity) {
+                UserDefaults.standard.set(data, forKey: "zenloop_recent_activity")
+            }
         }
+        self.persistWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: item)
     }
     
-    // MARK: - Gestion de la sélection d'apps
+    // MARK: - Sélection d'apps
     
     func updateAppsSelection(_ selection: FamilyActivitySelection) {
-        blockedAppsSelection = selection
-        selectedAppsCount = selection.applicationTokens.count + selection.categoryTokens.count
-        persistAppsSelection()
-        debugPrint("📱 [ZENLOOP] Apps sélectionnées mises à jour: \(selectedAppsCount) éléments (apps: \(selection.applicationTokens.count), catégories: \(selection.categoryTokens.count))")
+        self.blockedAppsSelection = selection
+        self.selectedAppsCount = selection.applicationTokens.count + selection.categoryTokens.count
+        self.persistAppsSelection()
     }
     
     func getAppsSelection() -> FamilyActivitySelection {
-        return blockedAppsSelection
+        return self.blockedAppsSelection
     }
     
     func isAppsSelectionValid() -> Bool {
-        let hasApps = !blockedAppsSelection.applicationTokens.isEmpty
-        let hasCategories = !blockedAppsSelection.categoryTokens.isEmpty
-        let hasTokens = hasApps || hasCategories
-        
-        debugPrint("🔍 [ZENLOOP] Validation apps - Apps: \(blockedAppsSelection.applicationTokens.count), Catégories: \(blockedAppsSelection.categoryTokens.count), SelectedCount: \(selectedAppsCount), HasTokens: \(hasTokens)")
-        return hasTokens
+        return (!self.blockedAppsSelection.applicationTokens.isEmpty) || (!self.blockedAppsSelection.categoryTokens.isEmpty)
     }
     
     var canStartCustomSession: Bool {
-        return currentState == .idle && (!blockedAppsSelection.applicationTokens.isEmpty || !blockedAppsSelection.categoryTokens.isEmpty)
+        return self.currentState == .idle && self.isAppsSelectionValid()
     }
     
     func syncSelectedAppsCount() {
-        let actualCount = blockedAppsSelection.applicationTokens.count + blockedAppsSelection.categoryTokens.count
-        if selectedAppsCount != actualCount {
-            selectedAppsCount = actualCount
-            persistAppsSelection()
-            debugPrint("🔄 [ZENLOOP] Count synchronisé: \(selectedAppsCount) apps")
+        let actualCount = self.blockedAppsSelection.applicationTokens.count + self.blockedAppsSelection.categoryTokens.count
+        if self.selectedAppsCount != actualCount {
+            self.selectedAppsCount = actualCount
+            self.persistAppsSelection()
         }
     }
     
     private func persistAppsSelection() {
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(blockedAppsSelection)
+            let data = try encoder.encode(self.blockedAppsSelection)
             UserDefaults.standard.set(data, forKey: "zenloop_apps_selection")
-            UserDefaults.standard.set(selectedAppsCount, forKey: "zenloop_selected_apps_count")
-            debugPrint("✅ [ZENLOOP] Sélection d'apps persistée: \(selectedAppsCount) éléments")
+            UserDefaults.standard.set(self.selectedAppsCount, forKey: "zenloop_selected_apps_count")
         } catch {
-            debugPrint("❌ [ZENLOOP] Erreur persistance sélection: \(error)")
-            UserDefaults.standard.set(selectedAppsCount, forKey: "zenloop_selected_apps_count")
+            UserDefaults.standard.set(self.selectedAppsCount, forKey: "zenloop_selected_apps_count")
         }
-        UserDefaults.standard.synchronize()
     }
     
     private func loadPersistedAppsSelection() {
         if let data = UserDefaults.standard.data(forKey: "zenloop_apps_selection") {
             do {
                 let decoder = JSONDecoder()
-                blockedAppsSelection = try decoder.decode(FamilyActivitySelection.self, from: data)
-                selectedAppsCount = blockedAppsSelection.applicationTokens.count + blockedAppsSelection.categoryTokens.count
-                debugPrint("✅ [ZENLOOP] Sélection d'apps restaurée: \(selectedAppsCount) éléments")
+                self.blockedAppsSelection = try decoder.decode(FamilyActivitySelection.self, from: data)
+                self.selectedAppsCount = self.blockedAppsSelection.applicationTokens.count + self.blockedAppsSelection.categoryTokens.count
             } catch {
-                debugPrint("❌ [ZENLOOP] Erreur lors du chargement de la sélection: \(error)")
-                selectedAppsCount = 0
-                blockedAppsSelection = FamilyActivitySelection()
+                self.selectedAppsCount = 0
+                self.blockedAppsSelection = FamilyActivitySelection()
             }
         } else {
-            selectedAppsCount = UserDefaults.standard.integer(forKey: "zenloop_selected_apps_count")
-            if selectedAppsCount > 0 {
-                debugPrint("⚠️ [ZENLOOP] \(selectedAppsCount) apps étaient sélectionnées (ancien système)")
-                debugPrint("🔄 [ZENLOOP] Migration vers le nouveau système de persistance")
-                selectedAppsCount = 0
+            self.selectedAppsCount = UserDefaults.standard.integer(forKey: "zenloop_selected_apps_count")
+            if self.selectedAppsCount > 0 {
+                self.selectedAppsCount = 0
                 UserDefaults.standard.set(0, forKey: "zenloop_selected_apps_count")
             }
         }
-        
-        debugPrint("📱 [ZENLOOP] Apps sélectionnées initialisées: \(selectedAppsCount) éléments")
-        let hasApps = !blockedAppsSelection.applicationTokens.isEmpty
-        let hasCategories = !blockedAppsSelection.categoryTokens.isEmpty
-        debugPrint("🔍 [ZENLOOP] État final - HasApps: \(hasApps), HasCategories: \(hasCategories), Count: \(selectedAppsCount)")
     }
     
-    // MARK: - Détails des applications sélectionnées
+    // MARK: - Détails apps
     
     func getSelectedAppsDetails() async -> [AppDetail] {
         var details: [AppDetail] = []
-        for token in blockedAppsSelection.applicationTokens {
+        for token in self.blockedAppsSelection.applicationTokens {
             let app = Application(token: token)
             let detail = AppDetail(
                 token: token,
@@ -850,7 +718,7 @@ class ZenloopManager: ObservableObject {
     
     func getSelectedAppsNames() -> [String] {
         var names: [String] = []
-        for token in blockedAppsSelection.applicationTokens {
+        for token in self.blockedAppsSelection.applicationTokens {
             let app = Application(token: token)
             let bundleId = app.bundleIdentifier ?? "com.unknown.app"
             let name = bundleId.components(separatedBy: ".").last ?? "App"
@@ -859,7 +727,6 @@ class ZenloopManager: ObservableObject {
         return names.isEmpty ? ["Apps sélectionnées"] : names
     }
     
-    // ✅ Manquait dans ta build : sert à nommer les apps lors du démarrage d'un défi
     private func generateAppNamesFromSelection(_ selection: FamilyActivitySelection) -> [String] {
         var names: [String] = []
         for token in selection.applicationTokens {
@@ -869,14 +736,13 @@ class ZenloopManager: ObservableObject {
             names.append(name.capitalized)
         }
         if !selection.categoryTokens.isEmpty {
-            // Les catégories n'ont pas de nom public → libellé générique
             names.append(contentsOf: Array(repeating: "Catégorie", count: selection.categoryTokens.count))
         }
         return names.isEmpty ? ["Apps sélectionnées"] : names
     }
     
     func isAppSelected(bundleIdentifier: String) -> Bool {
-        for token in blockedAppsSelection.applicationTokens {
+        for token in self.blockedAppsSelection.applicationTokens {
             let app = Application(token: token)
             if app.bundleIdentifier == bundleIdentifier { return true }
         }
@@ -884,56 +750,44 @@ class ZenloopManager: ObservableObject {
     }
     
     func updateAppsSelectionWithDetails(_ selection: FamilyActivitySelection) {
-        blockedAppsSelection = selection
-        selectedAppsCount = selection.applicationTokens.count + selection.categoryTokens.count
+        self.blockedAppsSelection = selection
+        self.selectedAppsCount = selection.applicationTokens.count + selection.categoryTokens.count
         
-        Task {
-            let appDetails = await getSelectedAppsDetails()
+        Task { [weak self] in
+            guard let self = self else { return }
+            let appDetails = await self.getSelectedAppsDetails()
             let appNames = appDetails.map { $0.displayName }
             await MainActor.run {
-                // ✅ Correction de la chaîne interpolée (pas de \")
                 debugPrint("📱 [ZENLOOP] Apps sélectionnées: \(appNames.joined(separator: ", "))")
             }
         }
         
-        persistAppsSelection()
-        debugPrint("📱 [ZENLOOP] Apps sélectionnées mises à jour: \(selectedAppsCount) éléments")
+        self.persistAppsSelection()
     }
     
     // MARK: - App Attempt Tracking
     
     func recordAppOpenAttempt(appName: String? = nil) {
-        guard var challenge = currentChallenge, currentState == .active else {
-            debugPrint("⚠️ [ZENLOOP] Tentative d'ouverture enregistrée mais aucun défi actif")
-            return
-        }
-        
+        guard var challenge = self.currentChallenge, self.currentState == .active else { return }
         challenge.appOpenAttempts += 1
         if let appName = appName {
             challenge.attemptedApps[appName, default: 0] += 1
-            debugPrint("🚫 [ZENLOOP] Tentative d'ouverture: \(appName) (total: \(challenge.attemptedApps[appName]!))")
-        } else {
-            debugPrint("🚫 [ZENLOOP] Tentative d'ouverture d'app bloquée (total: \(challenge.appOpenAttempts))")
         }
-        currentChallenge = challenge
-        persistCurrentState()
-        
+        self.currentChallenge = challenge
+        self.persistCurrentStateDebounced()
         let appInfo = appName != nil ? " (\(appName!))" : ""
-        recordActivity(.challengeStarted, title: "Tentative d'accès à une app bloquée\(appInfo)")
+        self.recordActivity(.challengeStarted, title: "Tentative d'accès à une app bloquée\(appInfo)")
     }
     
     func getTopAttemptedApps() -> [(String, Int)] {
-        guard let challenge = currentChallenge else { return [] }
+        guard let challenge = self.currentChallenge else { return [] }
         return challenge.attemptedApps.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
     }
     
     // MARK: - DeviceActivity Monitoring
     
     private func startDeviceActivityMonitoring(for challenge: ZenloopChallenge) {
-        guard isAuthorized else {
-            debugPrint("❌ [DeviceActivity] Pas d'autorisation pour le monitoring")
-            return
-        }
+        guard self.isAuthorized else { return }
         
         let activityName = DeviceActivityName("zenloop-challenge-\(challenge.id)")
         let startDate = challenge.startTime ?? Date()
@@ -952,30 +806,27 @@ class ZenloopManager: ObservableObject {
         )
         
         do {
-            try activityCenter.startMonitoring(activityName, during: schedule)
-            debugPrint("✅ [DeviceActivity] Monitoring démarré pour: \(activityName)")
+            try self.activityCenter.startMonitoring(activityName, during: schedule)
         } catch {
-            debugPrint("❌ [DeviceActivity] Erreur monitoring: \(error)")
+            #if DEBUG
+            self.logger.error("❌ [DeviceActivity] Erreur monitoring: \(error.localizedDescription)")
+            #endif
         }
     }
     
     private func stopDeviceActivityMonitoring(for challenge: ZenloopChallenge) {
         let activityName = DeviceActivityName("zenloop-challenge-\(challenge.id)")
-        // ✅ attend un tableau
-        activityCenter.stopMonitoring([activityName])
-        debugPrint("✅ [DeviceActivity] Monitoring arrêté pour: \(activityName)")
+        self.activityCenter.stopMonitoring([activityName])
     }
     
     func checkDeviceActivityEvents() {
         let defaults = UserDefaults(suiteName: "group.com.app.zenloop") ?? UserDefaults.standard
-        
         if let events = defaults.array(forKey: "device_activity_events") as? [[String: Any]] {
             for event in events {
                 if let eventType = event["event"] as? String,
                    let activity = event["activity"] as? String,
                    let timestamp = event["timestamp"] as? TimeInterval {
-                    debugPrint("📥 [DeviceActivity] Événement reçu: \(eventType) pour \(activity) @ \(timestamp)")
-                    handleDeviceActivityEvent(type: eventType, activity: activity, timestamp: timestamp)
+                    self.handleDeviceActivityEvent(type: eventType, activity: activity, timestamp: timestamp)
                 }
             }
             defaults.removeObject(forKey: "device_activity_events")
@@ -985,10 +836,7 @@ class ZenloopManager: ObservableObject {
     private func handleDeviceActivityEvent(type: String, activity: String, timestamp: TimeInterval) {
         switch type {
         case "intervalDidEnd":
-            if currentState == .active {
-                debugPrint("🎉 [DeviceActivity] Défi terminé automatiquement")
-                completeCurrentChallenge()
-            }
+            if self.currentState == .active { self.completeCurrentChallenge() }
         case "thresholdReached":
             debugPrint("⚠️ [DeviceActivity] Seuil atteint")
         case "warningStart", "warningEnd":
@@ -1001,14 +849,9 @@ class ZenloopManager: ObservableObject {
     // MARK: - Badge Statistics
     
     private func loadStatistics() {
-        totalSavedTime = UserDefaults.standard.double(forKey: "total_focus_time")
-        completedChallengesTotal = UserDefaults.standard.integer(forKey: "completed_challenges_count")
-        currentStreakCount = UserDefaults.standard.integer(forKey: "current_streak")
-        
-        debugPrint("📊 [ZENLOOP] Statistiques chargées:")
-        debugPrint("⏱️ [ZENLOOP] Temps économisé: \(totalSavedTime)s")
-        debugPrint("🎯 [ZENLOOP] Défis complétés: \(completedChallengesTotal)")
-        debugPrint("🔥 [ZENLOOP] Série actuelle: \(currentStreakCount)")
+        self.totalSavedTime = UserDefaults.standard.double(forKey: "total_focus_time")
+        self.completedChallengesTotal = UserDefaults.standard.integer(forKey: "completed_challenges_count")
+        self.currentStreakCount = UserDefaults.standard.integer(forKey: "current_streak")
     }
     
     private func updateChallengeStatistics(challenge: ZenloopChallenge) {
@@ -1023,15 +866,10 @@ class ZenloopManager: ObservableObject {
             UserDefaults.standard.set(challenge.blockedAppsCount, forKey: "max_apps_blocked")
         }
         
-        totalSavedTime = currentFocusTime + challenge.duration
-        completedChallengesTotal = currentCount + 1
+        self.totalSavedTime = currentFocusTime + challenge.duration
+        self.completedChallengesTotal = currentCount + 1
         
-        debugPrint("📊 [ZENLOOP] Statistiques mises à jour:")
-        debugPrint("⏱️ [ZENLOOP] Nouveau temps économisé: \(totalSavedTime)s")
-        debugPrint("🎯 [ZENLOOP] Nouveaux défis complétés: \(completedChallengesTotal)")
-        
-        updateConsecutiveDays()
-        debugPrint("📊 [STATS] Statistiques mises à jour - Défis: \(currentCount + 1), Focus: \(Int((currentFocusTime + challenge.duration) / 3600))h")
+        self.updateConsecutiveDays()
     }
     
     private func updateConsecutiveDays() {
@@ -1053,9 +891,10 @@ class ZenloopManager: ObservableObject {
         }
         
         UserDefaults.standard.set(today, forKey: "last_challenge_date")
+        self.currentStreakCount = UserDefaults.standard.integer(forKey: "current_streak")
     }
     
     deinit {
-        cancelTimersNonisolated()
+        self.ticker.stop()
     }
 }

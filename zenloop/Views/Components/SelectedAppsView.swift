@@ -32,7 +32,14 @@ struct SelectedAppsView: View {
     }
     
     var body: some View {
-        if !selectedAppsArray.isEmpty || !selection.categoryTokens.isEmpty {
+        let hasApps = !selectedAppsArray.isEmpty
+        let hasCategories = !selection.categoryTokens.isEmpty
+        let shouldShow = hasApps || hasCategories
+        
+        let _ = print("🔍 [SELECTED_APPS_VIEW] Apps: \(selection.applicationTokens.count), Categories: \(selection.categoryTokens.count), HasApps: \(hasApps), HasCategories: \(hasCategories), ShouldShow: \(shouldShow)")
+        
+        return Group {
+            if shouldShow {
             VStack(spacing: 12) {
                 // Header
                 HStack {
@@ -63,6 +70,7 @@ struct SelectedAppsView: View {
                 
                 // Catégories sélectionnées
                 if !selection.categoryTokens.isEmpty {
+                    let _ = print("🔍 [SELECTED_APPS_VIEW] Displaying \(selection.categoryTokens.count) categories")
                     CategoriesSection(categoryTokens: selection.categoryTokens)
                 }
             }
@@ -72,8 +80,9 @@ struct SelectedAppsView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(.white.opacity(0.1), lineWidth: 1)
             )
-        } else {
-            EmptySelectionView()
+            } else {
+                EmptySelectionView()
+            }
         }
     }
 }
@@ -125,7 +134,8 @@ struct CategoriesSection: View {
     let categoryTokens: Set<ActivityCategoryToken>
     
     var body: some View {
-        VStack(spacing: 8) {
+        let _ = print("🔍 [CATEGORIES_SECTION] Rendering \(categoryTokens.count) categories")
+        return VStack(spacing: 8) {
             HStack {
                 Text("Catégories")
                     .font(.system(size: 12, weight: .semibold))
