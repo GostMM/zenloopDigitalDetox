@@ -34,11 +34,11 @@ struct SchedulePickerView: View {
                             .foregroundColor(.cyan)
                         
                         VStack(spacing: 8) {
-                            Text("Programmer le démarrage")
+                            Text(String(localized: "schedule_start"))
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Choisissez quand commencer votre session")
+                            Text(String(localized: "choose_session_start_time"))
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.white.opacity(0.7))
                                 .multilineTextAlignment(.center)
@@ -51,7 +51,7 @@ struct SchedulePickerView: View {
                     // Date Picker personnalisé
                     VStack(spacing: 20) {
                         DatePicker(
-                            "Heure de démarrage",
+                            String(localized: "start_time"),
                             selection: $selectedTime,
                             in: Date()...,
                             displayedComponents: [.date, .hourAndMinute]
@@ -68,16 +68,16 @@ struct SchedulePickerView: View {
                         
                         // Raccourcis rapides
                         VStack(spacing: 12) {
-                            Text("Raccourcis")
+                            Text(String(localized: "shortcuts"))
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.8))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                                QuickTimeButton(title: "Dans 5 min", minutes: 5, selectedTime: $selectedTime)
-                                QuickTimeButton(title: "Dans 15 min", minutes: 15, selectedTime: $selectedTime)
-                                QuickTimeButton(title: "Dans 30 min", minutes: 30, selectedTime: $selectedTime)
-                                QuickTimeButton(title: "Dans 1 heure", minutes: 60, selectedTime: $selectedTime)
+                                QuickTimeButton(title: String(localized: "in_5_min"), minutes: 5, selectedTime: $selectedTime)
+                                QuickTimeButton(title: String(localized: "in_15_min"), minutes: 15, selectedTime: $selectedTime)
+                                QuickTimeButton(title: String(localized: "in_30_min"), minutes: 30, selectedTime: $selectedTime)
+                                QuickTimeButton(title: String(localized: "in_1_hour"), minutes: 60, selectedTime: $selectedTime)
                             }
                         }
                     }
@@ -90,18 +90,18 @@ struct SchedulePickerView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
             }
-            .navigationTitle("Programmation")
+            .navigationTitle(String(localized: "programming"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
+                    Button(String(localized: "cancel")) {
                         dismiss()
                     }
                     .foregroundColor(.white.opacity(0.7))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Confirmer") {
+                    Button(String(localized: "confirm")) {
                         dismiss()
                     }
                     .foregroundColor(.cyan)

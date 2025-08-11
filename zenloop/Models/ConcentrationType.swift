@@ -18,21 +18,21 @@ enum ConcentrationType: String, CaseIterable, Identifiable {
     
     var title: String {
         switch self {
-        case .deep: return "Focus Profond"
-        case .creative: return "Créativité"
-        case .study: return "Étude"
-        case .meditation: return "Méditation"
-        case .work: return "Travail"
+        case .deep: return String(localized: "concentration_deep_focus")
+        case .creative: return String(localized: "concentration_creativity")
+        case .study: return String(localized: "concentration_study")
+        case .meditation: return String(localized: "concentration_meditation")
+        case .work: return String(localized: "concentration_work")
         }
     }
     
     var description: String {
         switch self {
-        case .deep: return "Concentration intense pour les tâches complexes"
-        case .creative: return "Libère ta créativité et ton imagination"
-        case .study: return "Apprentissage et mémorisation optimale"
-        case .meditation: return "Calme mental et paix intérieure"
-        case .work: return "Productivité maximum pour tes projets"
+        case .deep: return String(localized: "concentration_deep_focus_desc")
+        case .creative: return String(localized: "concentration_creativity_desc")
+        case .study: return String(localized: "concentration_study_desc")
+        case .meditation: return String(localized: "concentration_meditation_desc")
+        case .work: return String(localized: "concentration_work_desc")
         }
     }
     

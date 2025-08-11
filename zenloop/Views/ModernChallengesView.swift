@@ -24,11 +24,11 @@ struct ModernChallengesView: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Défis")
+                        Text(String(localized: "challenges_title"))
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Crée des sessions personnalisées")
+                        Text(String(localized: "create_personalized_sessions"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.7))
                     }
@@ -152,32 +152,32 @@ struct ModernChallengesView: View {
     private func createDefaultChallenges() {
         let defaultChallenges = [
             SavedChallenge(
-                title: "Focus Matinal",
-                description: "Commence ta journée avec concentration",
+                title: String(localized: "morning_focus"),
+                description: String(localized: "start_day_with_concentration"),
                 durationMinutes: 30,
                 difficulty: .easy,
                 iconName: "sunrise.fill",
                 color: .orange
             ),
             SavedChallenge(
-                title: "Deep Work",
-                description: "Session de travail profond",
+                title: String(localized: "deep_work"),
+                description: String(localized: "deep_work_session"),
                 durationMinutes: 90,
                 difficulty: .hard,
                 iconName: "brain.head.profile",
                 color: .blue
             ),
             SavedChallenge(
-                title: "Pause Étude",
-                description: "Révisions concentrées",
+                title: String(localized: "study_break"),
+                description: String(localized: "concentrated_revision"),
                 durationMinutes: 45,
                 difficulty: .medium,
                 iconName: "book.fill",
                 color: .green
             ),
             SavedChallenge(
-                title: "Créativité",
-                description: "Session créative sans distractions",
+                title: String(localized: "creativity"),
+                description: String(localized: "creative_session_no_distractions"),
                 durationMinutes: 60,
                 difficulty: .medium,
                 iconName: "paintbrush.fill",
@@ -208,13 +208,13 @@ struct CustomChallengesSection: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("Défis Personnalisés")
+                Text(String(localized: "custom_challenges"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
                 
                 Spacer()
                 
-                Button("Créer") {
+                Button(String(localized: "create")) {
                     onCreateChallenge()
                 }
                 .font(.system(size: 14, weight: .semibold))
@@ -265,11 +265,11 @@ struct EmptyChallengesView: View {
                 }
                 
                 VStack(spacing: 8) {
-                    Text("Aucun défi personnalisé")
+                    Text(String(localized: "no_custom_challenge"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    Text("Tape pour créer ton premier défi sur mesure")
+                    Text(String(localized: "tap_to_create_first_challenge"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -405,7 +405,7 @@ struct SavedChallengeCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(.white.opacity(0.7))
                         
-                        Text("\(challenge.durationMinutes) min")
+                        Text("\(challenge.durationMinutes) \(String(localized: "min"))")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.7))
                     }
@@ -489,11 +489,11 @@ struct SavedChallengeCard: View {
     
     private var buttonText: String {
         if isStarted {
-            return "Démarré !"
+            return String(localized: "started_exclamation")
         } else if !canStart {
-            return "Choisir & Lancer"
+            return String(localized: "choose_launch")
         } else {
-            return "Démarrer"
+            return String(localized: "start")
         }
     }
     
@@ -544,7 +544,7 @@ struct CreateChallengeSheet: View {
                         // Preview card
                         SavedChallengeCard(
                             challenge: SavedChallenge(
-                                title: title.isEmpty ? "Mon Défi" : title,
+                                title: title.isEmpty ? String(localized: "my_challenge") : title,
                                 description: description,
                                 durationMinutes: durationMinutes,
                                 difficulty: selectedDifficulty,
@@ -560,34 +560,34 @@ struct CreateChallengeSheet: View {
                         VStack(spacing: 18) {
                             // Titre
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Titre du défi")
+                                Text(String(localized: "challenge_title"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
-                                TextField("Ex: Focus Matinal", text: $title)
+                                TextField(String(localized: "challenge_title_placeholder"), text: $title)
                                     .textFieldStyle(CompactTextFieldStyle())
                             }
                             
                             // Description
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Description (optionnel)")
+                                Text(String(localized: "description_optional"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
-                                TextField("Ex: Session de focus", text: $description)
+                                TextField(String(localized: "description_placeholder"), text: $description)
                                     .textFieldStyle(CompactTextFieldStyle())
                             }
                             
                             // Durée
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Durée")
+                                Text(String(localized: "duration"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
                                         ForEach(availableDurations, id: \.self) { duration in
-                                            Button("\(duration)min") {
+                                            Button("\(duration)\(String(localized: "min"))") {
                                                 durationMinutes = duration
                                             }
                                             .font(.system(size: 13, weight: .medium))
@@ -610,7 +610,7 @@ struct CreateChallengeSheet: View {
                             
                             // Difficulté
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Difficulté")
+                                Text(String(localized: "difficulty"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
@@ -643,7 +643,7 @@ struct CreateChallengeSheet: View {
                             
                             // Icône
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Icône")
+                                Text(String(localized: "icon"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
@@ -671,7 +671,7 @@ struct CreateChallengeSheet: View {
                             
                             // Couleur
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Couleur")
+                                Text(String(localized: "color"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                 
@@ -700,20 +700,20 @@ struct CreateChallengeSheet: View {
                     }
                 }
             }
-            .navigationTitle("Nouveau Défi")
+            .navigationTitle(String(localized: "new_challenge"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
+                    Button(String(localized: "cancel")) {
                         onCancel()
                     }
                     .foregroundColor(.white.opacity(0.7))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Sauvegarder") {
+                    Button(String(localized: "save")) {
                         let challenge = SavedChallenge(
-                            title: title.isEmpty ? "Mon Défi" : title,
+                            title: title.isEmpty ? String(localized: "my_challenge") : title,
                             description: description,
                             durationMinutes: durationMinutes,
                             difficulty: selectedDifficulty,

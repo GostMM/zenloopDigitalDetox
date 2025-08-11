@@ -12,6 +12,7 @@ struct HomeView: View {
     @EnvironmentObject var zenloopManager: ZenloopManager
     @StateObject private var badgeManager = BadgeManager.shared
     @StateObject private var categoryManager = CategoryManager.shared
+    @StateObject private var purchaseManager = PurchaseManager.shared
     @State private var showContent = false
     @StateObject private var backgroundAnimator = BackgroundAnimator()
     
@@ -37,7 +38,8 @@ struct HomeView: View {
                 // Header minimaliste
                 MinimalHeader(
                     showContent: showContent,
-                    currentState: zenloopManager.currentState
+                    currentState: zenloopManager.currentState,
+                    isPremium: purchaseManager.isPremium
                 )
                 .padding(.horizontal, 20)
                

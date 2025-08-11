@@ -85,6 +85,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		DE205E982E49057C0010FD1A /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Products.storekit; path = zenloop/StoreKit/Products.storekit; sourceTree = "<group>"; };
 		DE4F56802E3D18EC0014A5D1 /* zenloop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = zenloop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE4F56982E3D19CC0014A5D1 /* zenloopmonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = zenloopmonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DE4F56AB2E3D1B560014A5D1 /* zenloopaction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopaction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -235,6 +236,7 @@
 		DE4F56772E3D18EC0014A5D1 = {
 			isa = PBXGroup;
 			children = (
+				DE205E982E49057C0010FD1A /* Products.storekit */,
 				DE4F56822E3D18EC0014A5D1 /* zenloop */,
 				DE4F56992E3D19CC0014A5D1 /* zenloopmonitor */,
 				DE4F56AF2E3D1B560014A5D1 /* zenloopaction */,
@@ -447,6 +449,7 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
 			);
 			mainGroup = DE4F56772E3D18EC0014A5D1;
 			minimizedProjectReferenceProxies = 1;

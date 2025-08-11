@@ -94,10 +94,10 @@ struct CompactStateIndicator: View {
     
     private var stateTitle: String {
         switch currentState {
-        case .idle: return "Tu peux y arriver"
-        case .active: return "Tu es focus !"
-        case .paused: return "Petite pause"
-        case .completed: return "Bravo toi !"
+        case .idle: return String(localized: "you_can_do_it")
+        case .active: return String(localized: "you_are_focused")
+        case .paused: return String(localized: "little_break")
+        case .completed: return String(localized: "well_done")
         }
     }
 }
@@ -135,11 +135,11 @@ struct StateDetailsSheet: View {
             }
             .padding(.vertical, 20)
             .background(Color.black.ignoresSafeArea())
-            .navigationTitle("État de la Session")
+            .navigationTitle(String(localized: "session_state"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") {
+                    Button(String(localized: "close")) {
                         dismiss()
                     }
                     .foregroundColor(.white)
@@ -255,19 +255,19 @@ struct StateInfoSection: View {
     
     private var stateTitle: String {
         switch currentState {
-        case .idle: return "Prêt à Focus"
-        case .active: return "En Concentration"
-        case .paused: return "Pause Active"
-        case .completed: return "Mission Accomplie!"
+        case .idle: return String(localized: "ready_to_focus")
+        case .active: return String(localized: "in_concentration")
+        case .paused: return String(localized: "active_pause")
+        case .completed: return String(localized: "mission_accomplished")
         }
     }
     
     private var stateDescription: String {
         switch currentState {
-        case .idle: return "Choisis ton type de concentration et commence une session"
-        case .active: return "Reste concentré, tu progresses vers ton objectif"
-        case .paused: return "Prends ton temps, reprend quand tu es prêt"
-        case .completed: return "Excellent travail! Tu as terminé ta session avec succès"
+        case .idle: return String(localized: "choose_concentration_start_session")
+        case .active: return String(localized: "stay_focused_progress")
+        case .paused: return String(localized: "take_time_resume_ready")
+        case .completed: return String(localized: "excellent_work_completed")
         }
     }
 }
@@ -315,7 +315,7 @@ struct ProgressSection: View {
             // Informations de progression redesignées
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("PROGRESSION")
+                    Text(String(localized: "progression"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white.opacity(0.6))
                         .tracking(1)
@@ -328,7 +328,7 @@ struct ProgressSection: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("TEMPS RESTANT")
+                    Text(String(localized: "time_remaining"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white.opacity(0.6))
                         .tracking(1)
@@ -382,11 +382,11 @@ struct ModernQuickActionsRow: View {
                         .background(.blue.opacity(0.15), in: Circle())
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Sessions")
+                        Text(String(localized: "sessions"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Choisis ton type de concentration")
+                        Text(String(localized: "choose_concentration_type"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
@@ -427,8 +427,8 @@ struct ModernQuickActionsRow: View {
             ) {
                 ModernQuickActionButton(
                     imageAsset: "focus",
-                    title: "Focus Profond",
-                    subtitle: "Concentration maximale",
+                    title: String(localized: "deep_focus"),
+                    subtitle: String(localized: "maximum_concentration"),
                     color: .indigo,
                     action: { 
                         handleQuickAction {
@@ -440,8 +440,8 @@ struct ModernQuickActionsRow: View {
                 
                 ModernQuickActionButton(
                     imageAsset: "study",
-                    title: "Étude",
-                    subtitle: "Apprentissage efficace",
+                    title: String(localized: "study"),
+                    subtitle: String(localized: "efficient_learning"),
                     color: .blue,
                     action: { 
                         handleQuickAction {
@@ -453,8 +453,8 @@ struct ModernQuickActionsRow: View {
                 
                 ModernQuickActionButton(
                     imageAsset: "creativite",
-                    title: "Créativité",
-                    subtitle: "Expression artistique",
+                    title: String(localized: "creativity"),
+                    subtitle: String(localized: "artistic_expression"),
                     color: .purple,
                     action: { 
                         handleQuickAction {
@@ -466,8 +466,8 @@ struct ModernQuickActionsRow: View {
                 
                 ModernQuickActionButton(
                     imageAsset: "meditation",
-                    title: "Méditation",
-                    subtitle: "Pleine conscience",
+                    title: String(localized: "meditation"),
+                    subtitle: String(localized: "mindfulness"),
                     color: .green,
                     action: { 
                         handleQuickAction {
@@ -624,7 +624,7 @@ struct ModernActiveChallengeActions: View {
             // En-tête avec info session
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Session en Cours")
+                    Text(String(localized: "session_in_progress"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
@@ -641,14 +641,14 @@ struct ModernActiveChallengeActions: View {
             HStack(spacing: 20) {
                 ModernActionButton(
                     icon: "pause.fill",
-                    title: "Pause",
+                    title: String(localized: "pause"),
                     color: .mint,
                     action: { zenloopManager.requestPause() }
                 )
                 
                 ModernActionButton(
                     icon: "stop.fill",
-                    title: "Arrêter",
+                    title: String(localized: "stop"),
                     color: .red,
                     action: { zenloopManager.initiateStopWithBreathing() }
                 )
@@ -667,11 +667,11 @@ struct ModernPausedActions: View {
             // En-tête avec info pause
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Session en Pause")
+                    Text(String(localized: "session_paused"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("Reprends quand tu es prêt")
+                    Text(String(localized: "resume_when_ready"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.mint.opacity(0.8))
                 }
@@ -682,14 +682,14 @@ struct ModernPausedActions: View {
             HStack(spacing: 20) {
                 ModernActionButton(
                     icon: "play.fill",
-                    title: "Reprendre",
+                    title: String(localized: "resume"),
                     color: .green,
                     action: { zenloopManager.resumeChallenge() }
                 )
                 
                 ModernActionButton(
                     icon: "stop.fill",
-                    title: "Terminer",
+                    title: String(localized: "finish"),
                     color: .red,
                     action: { zenloopManager.initiateStopWithBreathing() }
                 )
@@ -708,11 +708,11 @@ struct CompletedActions: View {
             // En-tête avec félicitations
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Bravo! 🎉")
+                    Text(String(localized: "congratulations"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("Session terminée avec succès")
+                    Text(String(localized: "session_completed_successfully"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.purple.opacity(0.8))
                 }
@@ -722,7 +722,7 @@ struct CompletedActions: View {
             
             ModernActionButton(
                 icon: "plus.circle.fill",
-                title: "Nouvelle Session",
+                title: String(localized: "new_session"),
                 color: .purple,
                 action: { 
                     print("🔄 [HERO] Retour à idle pour nouvelle session")

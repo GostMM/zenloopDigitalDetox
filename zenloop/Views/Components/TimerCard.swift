@@ -49,11 +49,13 @@ struct TimerCard: View {
         
         let calendar = Calendar.current
         if calendar.isDate(scheduledStartTime, inSameDayAs: Date()) {
-            return "Aujourd'hui à \(timeString)"
+            return String(localized: "today_at", defaultValue: "Today at \(timeString)", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: timeString)
         } else if calendar.isDate(scheduledStartTime, inSameDayAs: calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()) {
-            return "Demain à \(timeString)"
+            return String(localized: "tomorrow_at", defaultValue: "Tomorrow at \(timeString)", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: timeString)
         } else {
-            formatter.dateFormat = "dd/MM à HH:mm"
+            // Use locale-specific date formatting for other dates
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
             return formatter.string(from: scheduledStartTime)
         }
     }
@@ -69,14 +71,14 @@ struct TimerCard: View {
     
     private var buttonText: String {
         if isScheduled {
-            return "Programmer ton moment"
+            return String(localized: "schedule_your_moment")
         }
         
         if !hasSelectedApps {
-            return "D'abord, choisis tes distractions"
+            return String(localized: "first_choose_distractions")
         }
         
-        return "C'est parti !"
+        return String(localized: "lets_go")
     }
     
     var body: some View {
@@ -164,7 +166,7 @@ struct TimerCard: View {
                     
                     // Titre et status
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Reprends ton temps")
+                        Text(String(localized: "take_your_time"))
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
@@ -175,7 +177,7 @@ struct TimerCard: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(.green)
                                 
-                                Text("Tout est prêt pour toi")
+                                Text(String(localized: "everything_ready"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.green)
                             } else {
@@ -183,7 +185,7 @@ struct TimerCard: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(.orange)
                                 
-                                Text("Sélectionner des apps")
+                                Text(String(localized: "select_apps"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.orange)
                             }
@@ -198,7 +200,7 @@ struct TimerCard: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
                         
-                        Text(isExpanded ? "Moins" : "Plus")
+                        Text(isExpanded ? String(localized: "less") : String(localized: "more"))
                             .font(.system(size: 9, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
@@ -263,7 +265,7 @@ struct TimerCard: View {
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.white)
                                 
-                                Text("Démarrer la Session")
+                                Text(String(localized: "start_session"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                             }
@@ -304,7 +306,7 @@ struct TimerCard: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.cyan.opacity(0.8))
                 
-                Text("Apps bloquées:")
+                Text(String(localized: "apps_blocked"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
             }
@@ -368,7 +370,7 @@ struct TimerCard: View {
             VStack(spacing: 16) {
                 // Type de concentration
                 HStack {
-                    Text("Type")
+                    Text(String(localized: "type"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white.opacity(0.8))
                     
@@ -403,7 +405,7 @@ struct TimerCard: View {
                 // Sélecteur de durée avec heures/minutes
                 VStack(spacing: 12) {
                     HStack {
-                        Text("Durée")
+                        Text(String(localized: "duration"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
                         
@@ -418,7 +420,7 @@ struct TimerCard: View {
                     HStack(spacing: 16) {
                         // Heures
                         VStack(spacing: 8) {
-                            Text("Heures")
+                            Text(String(localized: "hours"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                             
@@ -452,7 +454,7 @@ struct TimerCard: View {
                         
                         // Minutes
                         VStack(spacing: 8) {
-                            Text("Minutes")
+                            Text(String(localized: "minutes"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                             
@@ -489,7 +491,7 @@ struct TimerCard: View {
                 // Applications à bloquer
                 VStack(spacing: 12) {
                     HStack {
-                        Text("Apps à bloquer")
+                        Text(String(localized: "apps_to_block"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
                         
@@ -503,7 +505,7 @@ struct TimerCard: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(hasSelectedApps ? .cyan : .white.opacity(0.7))
                                 
-                                Text(hasSelectedApps ? "Modifier" : "Sélectionner")
+                                Text(hasSelectedApps ? String(localized: "modify") : String(localized: "select"))
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white)
                             }
@@ -528,7 +530,7 @@ struct TimerCard: View {
                 // Programmation (optionnel)
                 VStack(spacing: 12) {
                     HStack {
-                        Text("Programmation")
+                        Text(String(localized: "scheduling"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
                         

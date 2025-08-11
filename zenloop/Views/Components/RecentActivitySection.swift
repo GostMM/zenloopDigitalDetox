@@ -17,11 +17,11 @@ struct RecentActivitySection: View {
             VStack(spacing: 20) {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Activité Récente")
+                        Text(String(localized: "recent_activity"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Tes dernières sessions de focus")
+                        Text(String(localized: "your_latest_focus_sessions"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
@@ -63,7 +63,7 @@ struct RecentActivitySection: View {
                             // Action pour voir historique complet
                         } label: {
                             HStack(spacing: 6) {
-                                Text("Voir l'historique complet")
+                                Text(String(localized: "view_complete_history"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white)
                                 
@@ -110,11 +110,11 @@ struct RecentActivitySection: View {
                     }
                     
                     VStack(spacing: 12) {
-                        Text("Aucune activité récente")
+                        Text(String(localized: "no_recent_activity"))
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
-                        Text("Lance ton premier défi de focus\npour commencer à suivre tes progrès")
+                        Text(String(localized: "launch_first_focus_challenge"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
@@ -292,11 +292,11 @@ struct EnhancedActivityRow: View {
     
     private var activityTypeText: String {
         switch activity.type {
-        case .challengeStarted: return "DÉBUT"
-        case .challengeCompleted: return "TERMINÉ"
-        case .challengePaused: return "PAUSE"
-        case .challengeResumed: return "REPRISE"
-        case .challengeStopped: return "ARRÊT"
+        case .challengeStarted: return String(localized: "started")
+        case .challengeCompleted: return String(localized: "completed")
+        case .challengePaused: return String(localized: "paused")
+        case .challengeResumed: return String(localized: "resumed")
+        case .challengeStopped: return String(localized: "stopped")
         }
     }
     
@@ -306,10 +306,10 @@ struct EnhancedActivityRow: View {
         
         if calendar.isDate(date, inSameDayAs: Date()) {
             formatter.dateFormat = "HH:mm"
-            return "Aujourd'hui \(formatter.string(from: date))"
+            return String(localized: "today_at_time", defaultValue: "Today \(formatter.string(from: date))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatter.string(from: date))
         } else if calendar.isDate(date, inSameDayAs: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) {
             formatter.dateFormat = "HH:mm"
-            return "Hier \(formatter.string(from: date))"
+            return String(localized: "yesterday_at_time", defaultValue: "Yesterday \(formatter.string(from: date))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatter.string(from: date))
         } else {
             formatter.dateFormat = "dd/MM HH:mm"
             return formatter.string(from: date)
@@ -405,11 +405,11 @@ struct RecentActivityRow: View {
     
     private var activityTypeText: String {
         switch activity.type {
-        case .challengeStarted: return "DÉBUT"
-        case .challengeCompleted: return "FINI"
-        case .challengePaused: return "PAUSE"
-        case .challengeResumed: return "REPRISE"
-        case .challengeStopped: return "ARRÊT"
+        case .challengeStarted: return String(localized: "started")
+        case .challengeCompleted: return String(localized: "finished")
+        case .challengePaused: return String(localized: "paused")
+        case .challengeResumed: return String(localized: "resumed")
+        case .challengeStopped: return String(localized: "stopped")
         }
     }
     
@@ -419,10 +419,10 @@ struct RecentActivityRow: View {
         
         if calendar.isDate(date, inSameDayAs: Date()) {
             formatter.dateFormat = "HH:mm"
-            return "Aujourd'hui \(formatter.string(from: date))"
+            return String(localized: "today_at_time", defaultValue: "Today \(formatter.string(from: date))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatter.string(from: date))
         } else if calendar.isDate(date, inSameDayAs: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()) {
             formatter.dateFormat = "HH:mm"
-            return "Hier \(formatter.string(from: date))"
+            return String(localized: "yesterday_at_time", defaultValue: "Yesterday \(formatter.string(from: date))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatter.string(from: date))
         } else {
             formatter.dateFormat = "dd/MM HH:mm"
             return formatter.string(from: date)

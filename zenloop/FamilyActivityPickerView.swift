@@ -21,7 +21,7 @@ struct FamilyActivityPickerView: View {
                         .font(.largeTitle)
                         .foregroundColor(.accentColor)
                     
-                    Text("Sélectionner les apps à bloquer")
+                    Text(String(localized: "select_apps_to_block"))
                         .font(.title2)
                         .fontWeight(.semibold)
                         .multilineTextAlignment(.center)
@@ -39,7 +39,7 @@ struct FamilyActivityPickerView: View {
                 Spacer()
                 
                 VStack(spacing: 12) {
-                    Button("Confirmer la sélection") {
+                    Button(String(localized: "confirm_selection")) {
                         onConfirm(selection)
                         isPresented = false
                     }

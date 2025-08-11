@@ -37,15 +37,25 @@ struct TotalActivityView: View {
     
     // Tabs
     enum Tab: String, CaseIterable, Identifiable {
-        case overview = "Aperçu"
-        case apps = "Applications"
+        case overview = "overview"
+        case apps = "applications"
         var id: String { rawValue }
+        
+        var localizedTitle: String {
+            String(localized: String.LocalizationValue(rawValue))
+        }
     }
     @State private var selectedTab: Tab = .overview
     
     // Search & Sort (Apps tab)
     @State private var searchText: String = ""
-    enum AppSort: String, CaseIterable { case time = "Temps", name = "Nom" }
+    enum AppSort: String, CaseIterable { 
+        case time = "time", name = "name"
+        
+        var localizedTitle: String {
+            String(localized: String.LocalizationValue(rawValue))
+        }
+    }
     @State private var sort: AppSort = .time
     @State private var visibleAppCount: Int = 8
     
@@ -83,21 +93,21 @@ struct TotalActivityView: View {
             // Hero metrics in modern cards
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 ModernMetricCard(
-                    title: "Quotidien",
+                    title: String(localized: "daily"),
                     value: formatTime(activityReport.averageDaily),
                     icon: "sun.max.fill",
                     color: .orange
                 )
                 
                 ModernMetricCard(
-                    title: "Hebdo",
+                    title: String(localized: "weekly"),
                     value: formatTime(activityReport.averageWeekly),
                     icon: "calendar",
                     color: .blue
                 )
                 
                 ModernMetricCard(
-                    title: "Total",
+                    title: String(localized: "total"),
                     value: formatTime(activityReport.totalDuration),
                     icon: "clock.fill",
                     color: .green
@@ -134,7 +144,7 @@ struct TotalActivityView: View {
     }
     
     private var distributionSection: some View {
-        ModernSection(title: "Répartition", icon: "chart.pie.fill") {
+        ModernSection(title: String(localized: "distribution"), icon: "chart.pie.fill") {
             ActivityDistributionCard(
                 categories: topCategories,
                 totalDuration: activityReport.totalDuration
@@ -143,11 +153,11 @@ struct TotalActivityView: View {
     }
     
     private var categoriesSection: some View {
-        ModernSection(title: "Top Catégories", icon: "rectangle.3.group.fill") {
+        ModernSection(title: String(localized: "top_categories"), icon: "rectangle.3.group.fill") {
             if topCategories.isEmpty {
                 EmptyStateCard(
-                    title: "Aucune catégorie",
-                    subtitle: "Pas d'activité détectée pour cette période",
+                    title: String(localized: "no_category"),
+                    subtitle: String(localized: "no_activity_detected"),
                     icon: "tray"
                 )
             } else {
@@ -165,8 +175,8 @@ struct TotalActivityView: View {
     
     private var quickActionsSection: some View {
         ModernActionCard(
-            title: "Explorer les applications",
-            subtitle: "Voir le classement détaillé",
+            title: String(localized: "explore_applications"),
+            subtitle: String(localized: "see_detailed_ranking"),
             icon: "arrow.right.circle.fill",
             color: .blue
         ) {
@@ -185,8 +195,8 @@ struct TotalActivityView: View {
             // Apps list
             if filteredApps.isEmpty {
                 EmptyStateCard(
-                    title: "Aucune application",
-                    subtitle: searchText.isEmpty ? "Pas d'applications trouvées" : "Aucun résultat pour '\(searchText)'",
+                    title: String(localized: "no_application"),
+                    subtitle: searchText.isEmpty ? String(localized: "no_apps_found") : String(localized: "no_results_for").replacingOccurrences(of: "%@", with: searchText),
                     icon: "magnifyingglass"
                 )
                 .padding(.horizontal, ModernUI.containerPadding)
@@ -241,7 +251,7 @@ struct TotalActivityView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
-                Text("Afficher \(min(10, filteredApps.count - visibleAppCount)) de plus")
+                Text(String(localized: "show_more").replacingOccurrences(of: "%d", with: "\(min(10, filteredApps.count - visibleAppCount))"))
                     .font(.system(size: 14, weight: .semibold))
             }
             .foregroundColor(ModernUI.textPrimary)
@@ -338,7 +348,7 @@ private struct ModernTabSelector<T: RawRepresentable & CaseIterable & Identifiab
                         selection = option
                     }
                 } label: {
-                    Text(option.rawValue)
+                    Text(String(localized: String.LocalizationValue(option.rawValue)))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(selection.id == option.id ? .black : ModernUI.textSecondary)
                         .padding(.horizontal, 18)
@@ -403,7 +413,7 @@ private struct ActivityDistributionCard: View {
         
         if remainder > 0 {
             result.append(DistributionSegment(
-                label: "Autres",
+                label: String(localized: "others"),
                 value: remainder,
                 color: .gray
             ))
@@ -496,7 +506,7 @@ private struct ModernCategoryCard: View {
                         .foregroundColor(ModernUI.textPrimary)
                         .lineLimit(1)
                     
-                    Text("\(category.appCount) app\(category.appCount > 1 ? "s" : "")")
+                    Text("\(category.appCount) \(category.appCount > 1 ? String(localized: "apps_plural") : String(localized: "app_singular"))")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(ModernUI.textTertiary)
                 }
@@ -594,7 +604,7 @@ private struct ModernSearchField: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(ModernUI.textTertiary)
             
-            TextField("Rechercher", text: $text)
+            TextField(String(localized: "search"), text: $text)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(ModernUI.textPrimary)
                 .textInputAutocapitalization(.never)
@@ -616,16 +626,16 @@ private struct ModernSortButton: View {
     
     var body: some View {
         Menu {
-            Picker(selection: $sort, label: Text("Trier par")) {
+            Picker(selection: $sort, label: Text(String(localized: "sort_by"))) {
                 ForEach(TotalActivityView.AppSort.allCases, id: \.self) { option in
-                    Text(option.rawValue).tag(option)
+                    Text(option.localizedTitle).tag(option)
                 }
             }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.arrow.down")
                     .font(.system(size: 12, weight: .semibold))
-                Text("Trier")
+                Text(String(localized: "sort"))
                     .font(.system(size: 14, weight: .semibold))
             }
             .foregroundColor(ModernUI.textPrimary)

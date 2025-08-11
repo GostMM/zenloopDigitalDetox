@@ -44,7 +44,7 @@ struct CategoryChallengesRow: View {
                             )
                             
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Défis sur-mesure")
+                                Text(String(localized: "custom_challenges"))
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.white)
                                 
@@ -53,7 +53,7 @@ struct CategoryChallengesRow: View {
                                         .font(.system(size: 12))
                                         .foregroundColor(.cyan)
                                     
-                                    Text("Touche pour configurer")
+                                    Text(String(localized: "tap_to_configure"))
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.cyan)
                                 }
@@ -66,7 +66,7 @@ struct CategoryChallengesRow: View {
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.8))
                                 
-                                Text("Config")
+                                Text(String(localized: "config"))
                                     .font(.system(size: 9, weight: .medium))
                                     .foregroundColor(.white.opacity(0.6))
                             }
@@ -94,11 +94,11 @@ struct CategoryChallengesRow: View {
                                 .background(.purple.opacity(0.15), in: Circle())
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Défis 8h")
+                                Text(String(localized: "8h_challenges"))
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
                                 
-                                Text("Choisir ton défi du jour")
+                                Text(String(localized: "choose_daily_challenge"))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.white.opacity(0.6))
                             }
@@ -235,13 +235,13 @@ struct ModernChallengeCard: View {
                         )
                         
                         // Titre du défi avec restriction claire
-                        Text("PAS DE \(getCategoryRestrictionName())")
+                        Text("\(String(localized: "no_restriction")) \(getCategoryRestrictionName())")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                         
                         // Apps count
-                        Text("\(category.selectedAppsCount) apps")
+                        Text("\(category.selectedAppsCount) \(String(localized: "apps"))")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
@@ -281,18 +281,18 @@ struct ModernChallengeCard: View {
     
     private func getCategoryShortName() -> String {
         switch category.id {
-        case "ai_productivity": return "IA"
-        case "social_media": return "Social"
-        case "games_entertainment": return "Gaming"
+        case "ai_productivity": return String(localized: "category_ai_productivity_short")
+        case "social_media": return String(localized: "category_social_media_short")
+        case "games_entertainment": return String(localized: "category_games_entertainment_short")
         default: return String(category.name.prefix(6))
         }
     }
     
     private func getCategoryRestrictionName() -> String {
         switch category.id {
-        case "ai_productivity": return "IA"
-        case "social_media": return "SOCIAL"
-        case "games_entertainment": return "JEUX"
+        case "ai_productivity": return String(localized: "category_ai_productivity_restriction")
+        case "social_media": return String(localized: "category_social_media_restriction")
+        case "games_entertainment": return String(localized: "category_games_entertainment_restriction")
         default: return getCategoryShortName().uppercased()
         }
     }
@@ -416,17 +416,17 @@ struct CategoryChallengesModal: View {
                         .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
                         
                         VStack(spacing: 8) {
-                            Text("Défis par Catégorie")
+                            Text(String(localized: "challenges_by_category"))
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                             
                             if categoryManager.configuredCategories.isEmpty {
-                                Text("Personnalise tes catégories pour découvrir des défis qui te ressemblent")
+                                Text(String(localized: "personalize_categories_discover"))
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white.opacity(0.7))
                                     .multilineTextAlignment(.center)
                             } else {
-                                Text("Lance un défi ou ajoute de nouveaux univers à explorer")
+                                Text(String(localized: "launch_challenge_add_universes"))
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white.opacity(0.7))
                                     .multilineTextAlignment(.center)
@@ -447,11 +447,11 @@ struct CategoryChallengesModal: View {
                 .padding(.top, 20)
             }
         }
-        .navigationTitle("Défis Catégories")
+        .navigationTitle(String(localized: "category_challenges"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Fermer") {
+                Button(String(localized: "close")) {
                     dismiss()
                 }
                 .foregroundColor(.white)
@@ -477,7 +477,7 @@ struct CategoryChallengesModal: View {
     private var categoriesConfigurationSection: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Configuration")
+                Text(String(localized: "configuration"))
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                 
@@ -559,7 +559,7 @@ struct CategoryChallengeSection: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("\(challenges.count) défis • \(category.selectedAppsCount) apps")
+                    Text("\(challenges.count) \(String(localized: "challenges")) • \(category.selectedAppsCount) \(String(localized: "apps"))")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(category.color.color)
                 }
@@ -623,9 +623,9 @@ struct CategoryChallengeSection: View {
     
     private var categoryShortName: String {
         switch category.id {
-        case "ai_productivity": return "IA"
-        case "social_media": return "Social"
-        case "games_entertainment": return "Games"
+        case "ai_productivity": return String(localized: "category_ai_productivity_short")
+        case "social_media": return String(localized: "category_social_media_short")
+        case "games_entertainment": return String(localized: "category_games_entertainment_short")
         default: return String(category.name.prefix(5))
         }
     }
@@ -910,7 +910,7 @@ struct CompactCategoryConfigCard: View {
                                     .foregroundColor(category.color.color)
                             }
                             
-                            Text(category.isConfigured ? "OK" : "Config")
+                            Text(category.isConfigured ? String(localized: "ok") : String(localized: "config"))
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(category.isConfigured ? .green : category.color.color)
                         }
@@ -924,7 +924,7 @@ struct CompactCategoryConfigCard: View {
                                     .font(.system(size: 10))
                                     .foregroundColor(category.color.color)
                                 
-                                Text("\(category.selectedAppsCount) apps")
+                                Text("\(category.selectedAppsCount) \(String(localized: "apps"))")
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundColor(category.color.color)
                             }
@@ -935,7 +935,7 @@ struct CompactCategoryConfigCard: View {
                                     .fill(category.color.color.opacity(0.15))
                             )
                         } else {
-                            Text("Touche pour personnaliser")
+                            Text(String(localized: "tap_to_personalize"))
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                         }
@@ -1077,9 +1077,9 @@ struct CategoryChallengeButton: View {
     
     private var categoryShortName: String {
         switch category.id {
-        case "ai_productivity": return "IA"
-        case "social_media": return "Social"
-        case "games_entertainment": return "Games"
+        case "ai_productivity": return String(localized: "category_ai_productivity_short")
+        case "social_media": return String(localized: "category_social_media_short")
+        case "games_entertainment": return String(localized: "category_games_entertainment_short")
         default: return String(category.name.prefix(5))
         }
     }

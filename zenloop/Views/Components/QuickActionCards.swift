@@ -28,9 +28,9 @@ struct QuickActionCards: View {
     private let quickPresets: [QuickPreset] = [
         QuickPreset(
             id: "pomodoro",
-            title: "Pomodoro",
+            title: String(localized: "pomodoro"),
             subtitle: "25 min",
-            description: "Technique de concentration classique",
+            description: String(localized: "classic_concentration_technique"),
             icon: "timer",
             duration: 25 * 60,
             primaryColor: .orange,
@@ -40,9 +40,9 @@ struct QuickActionCards: View {
         ),
         QuickPreset(
             id: "deep",
-            title: "Deep Focus",
+            title: String(localized: "deep_focus"),
             subtitle: "60 min",
-            description: "Concentration profonde et continue",
+            description: String(localized: "deep_continuous_concentration"),
             icon: "brain.head.profile",
             duration: 60 * 60,
             primaryColor: .blue,
@@ -52,9 +52,9 @@ struct QuickActionCards: View {
         ),
         QuickPreset(
             id: "sprint",
-            title: "Sprint",
+            title: String(localized: "sprint"),
             subtitle: "15 min",
-            description: "Session rapide et intense",
+            description: String(localized: "quick_intense_session"),
             icon: "bolt.fill",
             duration: 15 * 60,
             primaryColor: .yellow,
@@ -64,9 +64,9 @@ struct QuickActionCards: View {
         ),
         QuickPreset(
             id: "flow",
-            title: "Flow State",
+            title: String(localized: "flow_state"),
             subtitle: "90 min",
-            description: "Immersion totale et créativité",
+            description: String(localized: "total_immersion_creativity"),
             icon: "infinity",
             duration: 90 * 60,
             primaryColor: .purple,
@@ -81,11 +81,11 @@ struct QuickActionCards: View {
             // En-tête de section
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Sessions Rapides")
+                    Text(String(localized: "quick_sessions"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("Démarre instantanément avec nos presets optimisés")
+                    Text(String(localized: "start_instantly_with_optimized_presets"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -98,7 +98,7 @@ struct QuickActionCards: View {
                         .font(.system(size: 10))
                         .foregroundColor(.yellow)
                     
-                    Text("Populaire")
+                    Text(String(localized: "popular"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -263,11 +263,11 @@ struct QuickActionCards: View {
                 }
                 
                 VStack(spacing: 8) {
-                    Text("Session Démarrée !")
+                    Text(String(localized: "session_started_exclamation"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text("Retourne à l'accueil pour voir ton défi")
+                    Text(String(localized: "return_to_home_to_see_challenge"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)

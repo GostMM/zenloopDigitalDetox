@@ -28,11 +28,11 @@ struct ConcentrationTypePickerView: View {
                         
                         // Titre
                         VStack(spacing: 8) {
-                            Text("Type de Concentration")
+                            Text(String(localized: "concentration_type"))
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Choisis ton ambiance idéale")
+                            Text(String(localized: "choose_ideal_ambiance"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white.opacity(0.7))
                         }

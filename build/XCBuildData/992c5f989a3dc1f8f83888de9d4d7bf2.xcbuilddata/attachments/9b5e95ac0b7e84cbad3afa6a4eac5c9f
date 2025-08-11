@@ -1,0 +1,38 @@
+{
+  "" : {
+    "diagnostics" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity-master.dia",
+    "emit-module-dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity-master-emit-module.dia",
+    "swift-dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity-master.swiftdeps"
+  },
+  "/Users/gostmm/SaaS/zenloop/zenloopactivity/TotalActivityReport.swift" : {
+    "const-values" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.swiftconstvalues",
+    "dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.d",
+    "diagnostics" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.dia",
+    "index-unit-output-path" : "/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.o",
+    "llvm-bc" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.bc",
+    "object" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.o",
+    "swift-dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport.swiftdeps",
+    "swiftmodule" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityReport~partial.swiftmodule"
+  },
+  "/Users/gostmm/SaaS/zenloop/zenloopactivity/TotalActivityView.swift" : {
+    "const-values" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.swiftconstvalues",
+    "dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.d",
+    "diagnostics" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.dia",
+    "index-unit-output-path" : "/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.o",
+    "llvm-bc" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.bc",
+    "object" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.o",
+    "swift-dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView.swiftdeps",
+    "swiftmodule" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/TotalActivityView~partial.swiftmodule"
+  },
+  "/Users/gostmm/SaaS/zenloop/zenloopactivity/zenloopactivity.swift" : {
+    "const-values" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.swiftconstvalues",
+    "dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.d",
+    "diagnostics" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.dia",
+    "index-unit-output-path" : "/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.o",
+    "llvm-bc" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.bc",
+    "object" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.o",
+    "swift-dependencies" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity.swiftdeps",
+    "swiftmodule" : "/Users/gostmm/SaaS/zenloop/build/zenloop.build/Debug-iphoneos/zenloopactivity.build/Objects-normal/arm64/zenloopactivity~partial.swiftmodule"
+  }
+}

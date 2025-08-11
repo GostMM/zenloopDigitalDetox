@@ -152,10 +152,10 @@ struct BreathingMeditationView: View {
         
         var instruction: String {
             switch self {
-            case .inhale: return "Inspirez"
-            case .hold: return "Retenez"
-            case .exhale: return "Expirez"
-            case .pause: return "Pause"
+            case .inhale: return String(localized: "inhale")
+            case .hold: return String(localized: "hold")
+            case .exhale: return String(localized: "exhale")
+            case .pause: return String(localized: "pause")
             }
         }
         
@@ -243,7 +243,7 @@ struct BreathingMeditationView: View {
                     
                     Spacer()
                     
-                    Text("Respiration")
+                    Text(String(localized: "breathing"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
@@ -272,11 +272,11 @@ struct BreathingMeditationView: View {
                 
                 // Bottom tips
                 VStack(spacing: 12) {
-                    Text("Suivez le rythme du cercle")
+                    Text(String(localized: "follow_circle_rhythm"))
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
                     
-                    Text("Respirez profondément et détendez-vous")
+                    Text(String(localized: "breathe_deeply_relax"))
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -485,10 +485,10 @@ struct BreathingMeditationView: View {
     
     private func getBreathingCount() -> String {
         switch currentPhase {
-        case .inhale: return "1...2...3...4"
-        case .hold: return "Maintenez..."
-        case .exhale: return "1...2...3...4...5...6"
-        case .pause: return "Relâchez..."
+        case .inhale: return String(localized: "count_inhale")
+        case .hold: return String(localized: "count_hold")
+        case .exhale: return String(localized: "count_exhale")
+        case .pause: return String(localized: "count_pause")
         }
     }
     
@@ -690,12 +690,12 @@ struct BreathingDecisionSheet: View {
                 .opacity(showContent ? 1 : 0)
                 
                 VStack(spacing: 16) {
-                    Text("Moment de respiration terminé")
+                    Text(String(localized: "breathing_moment_completed"))
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
-                    Text("Que souhaitez-vous faire maintenant ?")
+                    Text(String(localized: "what_would_you_like_to_do"))
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
@@ -708,7 +708,7 @@ struct BreathingDecisionSheet: View {
                         HStack(spacing: 12) {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("Continuer la session")
+                            Text(String(localized: "continue_session"))
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(.white)
@@ -725,7 +725,7 @@ struct BreathingDecisionSheet: View {
                         HStack(spacing: 12) {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("Arrêter et retourner à l'accueil")
+                            Text(String(localized: "stop_return_home"))
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(.white)

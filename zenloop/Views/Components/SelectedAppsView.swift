@@ -36,7 +36,7 @@ struct SelectedAppsView: View {
             VStack(spacing: 12) {
                 // Header
                 HStack {
-                    Text("Apps sélectionnées")
+                    Text(String(localized: "selected_apps"))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white.opacity(0.8))
                     
@@ -168,7 +168,7 @@ struct EmptySelectionView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.white.opacity(0.6))
             
-            Text("Aucune app sélectionnée")
+            Text(String(localized: "no_app_selected"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
             

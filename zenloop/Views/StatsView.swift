@@ -100,14 +100,14 @@ struct StatsView: View {
     @State private var reportInstanceID = UUID()
     
     enum Screen: String, CaseIterable, Identifiable {
-        case apple = "Apple", overview = "Aperçu", analytics = "Analyses"
+        case apple = "apple", overview = "overview", analytics = "analytics"
         var id: String { rawValue }
         var icon: String {
             switch self { case .apple: "chart.bar.xaxis"; case .overview: "rectangle.grid.2x2"; case .analytics: "waveform.path.ecg" }
         }
     }
     enum TimePeriod: String, CaseIterable, Identifiable {
-        case today = "Aujourd'hui", week = "7 jours", month = "30 jours"
+        case today = "today", week = "7_days", month = "30_days"
         var id: String { rawValue }
         func dateInterval(now: Date = Date(), cal: Calendar = .current) -> DateInterval {
             switch self {
@@ -156,7 +156,7 @@ struct StatsView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Statistiques")
+                Text(String(localized: "statistics"))
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
                     .opacity(show ? 1 : 0)
@@ -178,7 +178,7 @@ struct StatsView: View {
                     .background(.white.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .accessibilityLabel("Rafraîchir")
+            .accessibilityLabel(String(localized: "refresh"))
         }
         .padding([.leading, .trailing], 20)
         .padding(.top, 10)
@@ -189,7 +189,7 @@ struct StatsView: View {
     private var controlRow: some View {
         HStack(spacing: 10) {
             Picker("", selection: $selectedPeriod) {
-                ForEach(TimePeriod.allCases) { p in Text(p.rawValue).tag(p) }
+                ForEach(TimePeriod.allCases) { p in Text(LocalizedStringKey(p.rawValue)).tag(p) }
             }
             .pickerStyle(.segmented)
             
@@ -207,7 +207,7 @@ struct StatsView: View {
                         .frame(width: 28, height: 28)
                         .background(.white.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .accessibilityLabel("Autoriser Screen Time")
+                        .accessibilityLabel(String(localized: "authorize_screen_time"))
                 }
             }
         }
@@ -247,7 +247,7 @@ struct StatsView: View {
     private func refreshReport() { reportInstanceID = UUID() }
     private func lastUpdated(_ date: Date) -> String {
         RelativeDateTimeFormatter.cached.localizedString(for: date, relativeTo: Date())
-            .replacingOccurrences(of: "il y a ", with: "Maj ")
+            .replacingOccurrences(of: "il y a ", with: String(localized: "updated_maj"))
     }
     private func dateRange(_ i: DateInterval) -> String {
         let s = DateFormatter.dayMonth.string(from: i.start)
@@ -270,27 +270,7 @@ private struct MicroNav: View {
     var body: some View {
         HStack(spacing: 6) {
             ForEach(items) { s in
-                Button {
-                    selected = s
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    ZStack {
-                        if selected == s {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(.white.opacity(0.16))
-                                .matchedGeometryEffect(id: "micro-pill", in: namespace)
-                                .frame(height: size)
-                                .transition(.opacity)
-                        }
-                        Image(systemName: s.icon)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(selected == s ? 1 : 0.85))
-                            .frame(width: size, height: size)
-                    }
-                }
-                .buttonStyle(.plain)
-                .contentShape(RoundedRectangle(cornerRadius: 8))
-                .accessibilityLabel(s.rawValue)
+                navButton(for: s)
             }
         }
         .padding(.horizontal, paddingH)
@@ -298,6 +278,31 @@ private struct MicroNav: View {
         .background(.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
+    }
+    
+    @ViewBuilder
+    private func navButton(for s: StatsView.Screen) -> some View {
+        Button {
+            selected = s
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            ZStack {
+                if selected == s {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.white.opacity(0.16))
+                        .matchedGeometryEffect(id: "micro-pill", in: namespace)
+                        .frame(height: size)
+                        .transition(.opacity)
+                }
+                Image(systemName: s.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(selected == s ? 1 : 0.85))
+                    .frame(width: size, height: size)
+            }
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityLabel(LocalizedStringKey(s.rawValue))
     }
 }
 
@@ -320,7 +325,7 @@ private struct AppleScreen: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "chart.bar.xaxis").font(.system(size: 28))
-                    Text("Autorisez Screen Time pour voir le détail Apple.")
+                    Text(String(localized: "authorize_screen_time_detail"))
                         .font(.footnote).foregroundColor(.white.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity, minHeight: 120)
@@ -343,14 +348,14 @@ private struct OverviewScreen: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: UIx.sectionGap) {
-                SectionBlock(title: "Aperçu") {
+                SectionBlock(title: String(localized: "overview")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
-                        MetricTile(title: "Écran", value: DateComponentsFormatter.cached.string(from: totalSeconds) ?? "0 min", icon: "iphone")
-                        MetricTile(title: "Hors écran", value: DateComponentsFormatter.cached.string(from: offScreenSeconds) ?? "0 min", icon: "moon")
-                        MetricTile(title: "Économisé", value: DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min", icon: "shield.lefthalf.filled")
+                        MetricTile(title: String(localized: "screen"), value: DateComponentsFormatter.cached.string(from: totalSeconds) ?? "0 min", icon: "iphone")
+                        MetricTile(title: String(localized: "off_screen"), value: DateComponentsFormatter.cached.string(from: offScreenSeconds) ?? "0 min", icon: "moon")
+                        MetricTile(title: String(localized: "saved"), value: DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min", icon: "shield.lefthalf.filled")
                     }
                     if savedSeconds > 0 {
-                        InsightTile(text: "Vous avez économisé \(DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min") (\(savedPct)%) sur cette période.",
+                        InsightTile(text: String(localized: "you_saved_time_percent", defaultValue: "You saved \(DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min") (\(savedPct)%) during this period.", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min").replacingOccurrences(of: "%d", with: "\(savedPct)"),
                                     icon: "lightbulb")
                     }
                 }
@@ -370,10 +375,10 @@ private struct AnalyticsScreen: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: UIx.sectionGap) {
-                SectionBlock(title: "Analyses") {
+                SectionBlock(title: String(localized: "analytics")) {
                     VStack(spacing: 10) {
-                        MiniChartCard(title: "Tendance") { Sparkline(days: days) }
-                        MiniChartCard(title: "Top catégories") { TopCategoriesMini(slices: slices) }
+                        MiniChartCard(title: String(localized: "trend")) { Sparkline(days: days) }
+                        MiniChartCard(title: String(localized: "top_categories")) { TopCategoriesMini(slices: slices) }
                     }
                 }
                 .padding([.leading, .trailing], UIx.hPad)
@@ -496,7 +501,7 @@ private struct ChartEmpty: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: "sparkles").foregroundColor(.white.opacity(0.6))
-            Text("Pas assez de données.").font(.caption).foregroundColor(.white.opacity(0.6))
+            Text(String(localized: "not_enough_data")).font(.caption).foregroundColor(.white.opacity(0.6))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

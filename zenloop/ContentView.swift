@@ -75,7 +75,7 @@ struct ContentView: View {
                 .environmentObject(zenloopManager)
                 .tabItem {
                     Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                    Text("Accueil")
+                    Text(String(localized: "home"))
                 }
                 .tag(0)
             
@@ -84,7 +84,7 @@ struct ContentView: View {
                 .environmentObject(zenloopManager)
                 .tabItem {
                     Image(systemName: selectedTab == 1 ? "target" : "target")
-                    Text("Défis")
+                    Text(String(localized: "challenges"))
                 }
                 .tag(1)
             
@@ -93,7 +93,7 @@ struct ContentView: View {
                 .environmentObject(zenloopManager)
                 .tabItem {
                     Image(systemName: selectedTab == 2 ? "chart.bar.fill" : "chart.bar")
-                    Text("Stats")
+                    Text(String(localized: "stats"))
                 }
                 .tag(2)
         }
@@ -359,14 +359,14 @@ struct SplashScreen: View {
                 if showText {
                     ZStack {
                         // Background glow for text
-                        Text("Zenloop")
+                        Text(String(localized: "app_name"))
                             .font(.system(size: 42, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                             .blur(radius: 20)
                             .opacity(0.5)
                         
                         // Main text with shimmer
-                        Text("Zenloop")
+                        Text(String(localized: "app_name"))
                             .font(.system(size: 42, weight: .black, design: .rounded))
                             .foregroundStyle(
                                 LinearGradient(
@@ -394,7 +394,7 @@ struct SplashScreen: View {
                                 .frame(width: 60)
                                 .offset(x: textShimmer * 200)
                                 .mask(
-                                    Text("Zenloop")
+                                    Text(String(localized: "app_name"))
                                         .font(.system(size: 42, weight: .black, design: .rounded))
                                 )
                             )
@@ -410,7 +410,7 @@ struct SplashScreen: View {
                 // Premium Motivation Text
                 if showMotivation {
                     VStack(spacing: 12) {
-                        Text("Reprends le contrôle")
+                        Text(String(localized: "take_control"))
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(
                                 LinearGradient(
@@ -421,7 +421,7 @@ struct SplashScreen: View {
                             )
                             .shadow(color: .cyan.opacity(0.3), radius: 5)
                         
-                        Text("Une session à la fois")
+                        Text(String(localized: "one_session"))
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                             .foregroundColor(.white.opacity(0.8))
                             .shadow(color: .black.opacity(0.3), radius: 2)

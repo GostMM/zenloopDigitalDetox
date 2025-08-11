@@ -63,10 +63,10 @@ enum BadgeRarity: String, Codable, CaseIterable {
     
     var title: String {
         switch self {
-        case .common: return "Commun"
-        case .rare: return "Rare"
-        case .epic: return "Épique"
-        case .legendary: return "Légendaire"
+        case .common: return String(localized: "rarity_common")
+        case .rare: return String(localized: "rarity_rare")
+        case .epic: return String(localized: "rarity_epic")
+        case .legendary: return String(localized: "rarity_legendary")
         }
     }
 }
@@ -86,27 +86,27 @@ enum BadgeRequirement: Codable, Hashable {
     var description: String {
         switch self {
         case .challengesCompleted(let count):
-            return "Termine \(count) défis"
+            return String(localized: "requirement_complete_challenges", defaultValue: "Complete \(count) challenges", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(count)")
         case .totalFocusTime(let seconds):
             let hours = Int(seconds) / 3600
-            return "Accumule \(hours)h de focus"
+            return String(localized: "requirement_accumulate_focus_hours", defaultValue: "Accumulate \(hours)h of focus", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(hours)")
         case .consecutiveDays(let days):
-            return "\(days) jours consécutifs"
+            return String(localized: "requirement_consecutive_days", defaultValue: "\(days) consecutive days", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(days)")
         case .perfectWeek:
-            return "Une semaine parfaite"
+            return String(localized: "requirement_perfect_week")
         case .nightOwl:
-            return "Défi après 22h"
+            return String(localized: "requirement_challenge_after_10pm")
         case .earlyBird:
-            return "Défi avant 6h"
+            return String(localized: "requirement_challenge_before_6am")
         case .marathon(let seconds):
             let hours = Int(seconds) / 3600
-            return "Défi de \(hours)h+"
+            return String(localized: "requirement_challenge_duration_hours", defaultValue: "\(hours)h+ challenge", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(hours)")
         case .multipleApps(let count):
-            return "Bloque \(count)+ apps"
+            return String(localized: "requirement_block_apps", defaultValue: "Block \(count)+ apps", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(count)")
         case .firstChallenge:
-            return "Premier défi"
+            return String(localized: "requirement_first_challenge")
         case .speedster(let count):
-            return "\(count) défis en 24h"
+            return String(localized: "requirement_challenges_in_24h", defaultValue: "\(count) challenges in 24h", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(count)")
         }
     }
 }
@@ -120,49 +120,51 @@ class BadgeManager: ObservableObject {
     @Published var unlockedBadges: Set<String> = []
     @Published var recentlyUnlocked: [Badge] = []
     
-    private let allBadges: [Badge] = [
+    private var allBadges: [Badge] {
+        return [
         // Badges de débutant
-        Badge(id: "first_challenge", title: "Premier Pas", description: "Ton premier défi terminé !", 
+        Badge(id: "first_challenge", title: String(localized: "badge_first_step"), description: String(localized: "badge_first_step_desc"), 
               icon: "star.fill", color: .bronze, requirement: .firstChallenge, rarity: .common),
         
-        Badge(id: "5_challenges", title: "Régulier", description: "5 défis terminés", 
+        Badge(id: "5_challenges", title: String(localized: "badge_regular"), description: String(localized: "badge_regular_desc"), 
               icon: "flame.fill", color: .bronze, requirement: .challengesCompleted(5), rarity: .common),
         
-        Badge(id: "25_challenges", title: "Déterminé", description: "25 défis terminés", 
+        Badge(id: "25_challenges", title: String(localized: "badge_determined"), description: String(localized: "badge_determined_desc"), 
               icon: "bolt.fill", color: .silver, requirement: .challengesCompleted(25), rarity: .rare),
         
-        Badge(id: "100_challenges", title: "Champion", description: "100 défis terminés", 
+        Badge(id: "100_challenges", title: String(localized: "badge_champion"), description: String(localized: "badge_champion_desc"), 
               icon: "crown.fill", color: .gold, requirement: .challengesCompleted(100), rarity: .epic),
         
         // Badges de temps
-        Badge(id: "10h_focus", title: "Concentré", description: "10 heures de focus total", 
+        Badge(id: "10h_focus", title: String(localized: "badge_focused"), description: String(localized: "badge_focused_desc"), 
               icon: "clock.fill", color: .bronze, requirement: .totalFocusTime(36000), rarity: .common),
         
-        Badge(id: "50h_focus", title: "Maître du Focus", description: "50 heures de focus total", 
+        Badge(id: "50h_focus", title: String(localized: "badge_focus_master"), description: String(localized: "badge_focus_master_desc"), 
               icon: "brain.head.profile", color: .silver, requirement: .totalFocusTime(180000), rarity: .rare),
         
-        Badge(id: "200h_focus", title: "Guru de la Concentration", description: "200 heures de focus total", 
+        Badge(id: "200h_focus", title: String(localized: "badge_concentration_guru"), description: String(localized: "badge_concentration_guru_desc"), 
               icon: "infinity", color: .gold, requirement: .totalFocusTime(720000), rarity: .epic),
         
         // Badges spéciaux
-        Badge(id: "night_owl", title: "Chouette de Nuit", description: "Défi terminé après 22h", 
+        Badge(id: "night_owl", title: String(localized: "badge_night_owl"), description: String(localized: "badge_night_owl_desc"), 
               icon: "moon.stars.fill", color: .diamond, requirement: .nightOwl, rarity: .rare),
         
-        Badge(id: "early_bird", title: "Lève-tôt", description: "Défi terminé avant 6h", 
+        Badge(id: "early_bird", title: String(localized: "badge_early_bird"), description: String(localized: "badge_early_bird_desc"), 
               icon: "sunrise.fill", color: .diamond, requirement: .earlyBird, rarity: .rare),
         
-        Badge(id: "marathon_3h", title: "Marathonien", description: "Défi de 3 heures", 
+        Badge(id: "marathon_3h", title: String(localized: "badge_marathoner"), description: String(localized: "badge_marathoner_desc"), 
               icon: "figure.run", color: .gold, requirement: .marathon(10800), rarity: .epic),
         
-        Badge(id: "perfect_week", title: "Semaine Parfaite", description: "7 jours consécutifs", 
+        Badge(id: "perfect_week", title: String(localized: "badge_perfect_week"), description: String(localized: "badge_perfect_week_desc"), 
               icon: "checkmark.seal.fill", color: .rainbow, requirement: .perfectWeek, rarity: .legendary),
         
-        Badge(id: "app_master", title: "Maître du Blocage", description: "Bloque 10+ apps simultanément", 
+        Badge(id: "app_master", title: String(localized: "badge_blocking_master"), description: String(localized: "badge_blocking_master_desc"), 
               icon: "shield.fill", color: .diamond, requirement: .multipleApps(10), rarity: .epic),
         
-        Badge(id: "speedster", title: "Speedster", description: "5 défis en 24h", 
+        Badge(id: "speedster", title: String(localized: "badge_speedster"), description: String(localized: "badge_speedster_desc"), 
               icon: "speedometer", color: .rainbow, requirement: .speedster(5), rarity: .legendary)
-    ]
+        ]
+    }
     
     private init() {
         loadUnlockedBadges()
@@ -215,7 +217,7 @@ class BadgeManager: ObservableObject {
         }
     }
     
-    nonisolated func getBadge(id: String) -> Badge? {
+    func getBadge(id: String) -> Badge? {
         return allBadges.first { $0.id == id }
     }
     
@@ -223,7 +225,7 @@ class BadgeManager: ObservableObject {
         return allBadges.filter { unlockedBadges.contains($0.id) }
     }
     
-    nonisolated func getAllBadges() -> [Badge] {
+    func getAllBadges() -> [Badge] {
         return allBadges
     }
     

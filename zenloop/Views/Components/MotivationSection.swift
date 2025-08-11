@@ -16,32 +16,32 @@ struct MotivationSection: View {
     private let motivationalTips = [
         MotivationalTip(
             icon: "brain.head.profile",
-            title: "Marre de scroller sans fin ?",
-            message: "25 minutes de vraie concentration valent mieux que 2 heures perdues",
+            title: String(localized: "tired_of_endless_scrolling"),
+            message: String(localized: "25_min_focus_better_than_2h_lost"),
             color: .blue
         ),
         MotivationalTip(
             icon: "target",
-            title: "Dis-toi pourquoi",
-            message: "Avant de commencer, rappelle-toi pourquoi c'est important pour toi",
+            title: String(localized: "tell_yourself_why"),
+            message: String(localized: "before_starting_remember_why_important"),
             color: .green
         ),
         MotivationalTip(
             icon: "moon.stars",
-            title: "Respire un peu",
-            message: "5 minutes de pause toutes les 25 minutes, ton cerveau te remerciera",
+            title: String(localized: "breathe_a_little"),
+            message: String(localized: "5_min_break_every_25_brain_thanks"),
             color: .purple
         ),
         MotivationalTip(
             icon: "leaf.fill",
-            title: "Ton cocon de calme",
-            message: "Range ton bureau, éteins les notifs, crée ton espace de sérénité",
+            title: String(localized: "your_cocoon_of_calm"),
+            message: String(localized: "tidy_desk_turn_off_notifs_create_serenity"),
             color: .mint
         ),
         MotivationalTip(
             icon: "heart.fill",
-            title: "Vas-y doucement",
-            message: "Chaque petit pas compte, pas besoin d'être parfait aujourd'hui",
+            title: String(localized: "go_easy"),
+            message: String(localized: "every_small_step_counts_no_need_perfect"),
             color: .pink
         )
     ]
@@ -59,11 +59,11 @@ struct MotivationSection: View {
                         .background(.pink.opacity(0.15), in: Circle())
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Motivation")
+                        Text(String(localized: "motivation"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Un petit mot pour toi")
+                        Text(String(localized: "a_little_word_for_you"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }

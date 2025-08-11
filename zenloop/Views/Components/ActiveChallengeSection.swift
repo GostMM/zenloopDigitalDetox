@@ -48,7 +48,7 @@ struct ActiveChallengeSection: View {
     
     private var activeChallengeHeader: some View {
         HStack {
-            Text("Session Active")
+            Text(String(localized: "active_session"))
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)
             
@@ -82,7 +82,7 @@ struct ActiveChallengeSection: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text("Commencé à \(formatTime(challenge.startTime))")
+                Text(String(localized: "started_at", defaultValue: "Started at \(formatTime(challenge.startTime))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatTime(challenge.startTime)))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
             }
@@ -113,7 +113,7 @@ struct ActiveChallengeSection: View {
             // Stats de progression
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Progression")
+                    Text(String(localized: "progression"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                     
@@ -126,7 +126,7 @@ struct ActiveChallengeSection: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Temps Restant")
+                    Text(String(localized: "time_remaining"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                     
@@ -151,7 +151,9 @@ struct ActiveChallengeSection: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
                             
-                            Text("\(challenge.appOpenAttempts) tentative\(challenge.appOpenAttempts > 1 ? "s" : "") d'ouverture")
+                            Text(challenge.appOpenAttempts > 1 
+                                ? String(localized: "opening_attempts_plural", defaultValue: "\(challenge.appOpenAttempts) opening attempts", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(challenge.appOpenAttempts)")
+                                : String(localized: "opening_attempts", defaultValue: "\(challenge.appOpenAttempts) opening attempt", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(challenge.appOpenAttempts)"))
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.orange)
                             

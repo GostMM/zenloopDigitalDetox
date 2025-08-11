@@ -40,19 +40,19 @@ struct FuturisticHeader: View {
     private var currentGreeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Bonjour"
-        case 12..<17: return "Bel après-midi"
-        case 17..<21: return "Bonsoir"
-        default: return "Bonne nuit"
+        case 5..<12: return String(localized: "greeting_morning")
+        case 12..<17: return String(localized: "greeting_afternoon")
+        case 17..<21: return String(localized: "greeting_evening")
+        default: return String(localized: "greeting_night")
         }
     }
     
     private var statusText: String {
         switch currentState {
-        case .idle: return "Prêt pour un nouveau défi"
-        case .active: return "Focus en cours"
-        case .paused: return "Pause active"
-        case .completed: return "Mission accomplie"
+        case .idle: return String(localized: "status_ready_new_challenge")
+        case .active: return String(localized: "status_focus_in_progress")
+        case .paused: return String(localized: "status_active_pause")
+        case .completed: return String(localized: "status_mission_accomplished")
         }
     }
 }

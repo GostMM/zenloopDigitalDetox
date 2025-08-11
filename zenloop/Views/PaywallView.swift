@@ -6,613 +6,555 @@
 //
 
 import SwiftUI
+import StoreKit
+import UIKit
 
 struct PaywallView: View {
     @Binding var isOnboardingComplete: Bool
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var purchaseManager = PurchaseManager.shared
     @State private var showContent = false
     @State private var selectedPlan: PricingPlan = .yearly
     @State private var isPurchasing = false
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var rotationAngle: Double = 0
+    @State private var messageIndex = 0
+    @State private var glowIntensity: Double = 0.3
+    @State private var purchaseError: String?
+    
+    // Haptic Feedback
+    private let impactLight = UIImpactFeedbackGenerator(style: .light)
+    private let impactMedium = UIImpactFeedbackGenerator(style: .medium)
+    private let impactHeavy = UIImpactFeedbackGenerator(style: .heavy)
+    private let notificationFeedback = UINotificationFeedbackGenerator()
+    
+    private let hypnoticMessages = [
+        String(localized: "hypnotic_unlock_potential"),
+        String(localized: "hypnotic_stop_scrolling"),
+        String(localized: "hypnotic_focus_master"), 
+        String(localized: "hypnotic_time_is_gold"),
+        String(localized: "hypnotic_transform_productivity"),
+        String(localized: "hypnotic_unlock_superpower"),
+        String(localized: "hypnotic_take_control_now"),
+        String(localized: "hypnotic_premium_version")
+    ]
     
     var body: some View {
-        ZStack {
-            // Background premium
-            PremiumBackground()
-                .ignoresSafeArea(.all, edges: .all)
-            
-            VStack(spacing: 0) {
-                // Header avec close button
-                PaywallHeader(onClose: { dismiss() }, showContent: showContent)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
+        GeometryReader { geometry in
+            ZStack {
+                // Background hypnotique
+                HypnoticBackground()
+                    .ignoresSafeArea(.all, edges: .all)
                 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 40) {
-                        // Hero section premium
-                        PremiumHeroSection(showContent: showContent)
+                // Interface principale sans scroll
+                VStack(spacing: 0) {
+                    // Header compact
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Zenloop")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.yellow)
+                                Text("PREMIUM")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.yellow)
+                            }
+                        }
                         
-                        // Features premium
-                        PremiumFeaturesSection(showContent: showContent)
+                        Spacer()
                         
-                        // Pricing plans
-                        PricingSection(
-                            selectedPlan: $selectedPlan,
-                            showContent: showContent
-                        )
-                        
-                        // CTA et garantie
-                        PaywallCTASection(
-                            selectedPlan: selectedPlan,
-                            isPurchasing: isPurchasing,
-                            onPurchase: { purchasePlan() },
-                            showContent: showContent
-                        )
-                        
-                        // Trust indicators
-                        TrustSection(showContent: showContent)
-                        
-                        Spacer(minLength: 100)
+                        Button(action: { 
+                            impactLight.impactOccurred()
+                            dismiss() 
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .frame(width: 28, height: 28)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    
+                    Spacer()
+                    
+                    // Centre hypnotique
+                    VStack(spacing: 24) {
+                        // Cercle central hypnotique
+                        ZStack {
+                            // Anneaux animés
+                            ForEach(0..<5, id: \.self) { index in
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [
+                                                .cyan.opacity(0.8 - Double(index) * 0.15),
+                                                .purple.opacity(0.6 - Double(index) * 0.1),
+                                                .pink.opacity(0.4 - Double(index) * 0.08)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 2 - CGFloat(index) * 0.3
+                                    )
+                                    .frame(width: 100 + CGFloat(index * 20), height: 100 + CGFloat(index * 20))
+                                    .rotationEffect(.degrees(rotationAngle + Double(index * 45)))
+                                    .scaleEffect(pulseScale + Double(index) * 0.05)
+                                    .opacity(glowIntensity + Double(index) * 0.1)
+                            }
+                            
+                            // Centre lumineux
+                            Circle()
+                                .fill(
+                                    RadialGradient(
+                                        colors: [.white.opacity(0.9), .cyan.opacity(0.7), .purple.opacity(0.5)],
+                                        center: .center,
+                                        startRadius: 0,
+                                        endRadius: 50
+                                    )
+                                )
+                                .frame(width: 100, height: 100)
+                                .shadow(color: .cyan, radius: 20)
+                                .shadow(color: .purple, radius: 30)
+                                .scaleEffect(pulseScale)
+                            
+                            // Icône couronne
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 30, weight: .bold))
+                                .foregroundColor(.white)
+                                .scaleEffect(pulseScale)
+                                .shadow(color: .white, radius: 10)
+                        }
+                        
+                        // Message hypnotique animé
+                        Text(hypnoticMessages[messageIndex])
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .shadow(color: .cyan, radius: 8)
+                            .scaleEffect(showContent ? 1.0 : 0.8)
+                            .opacity(showContent ? 1 : 0)
+                        
+                        // Sous-message
+                        Text(String(localized: "paywall_ultimate_experience"))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .opacity(showContent ? 1 : 0)
+                    }
+                    
+                    Spacer()
+                    
+                    // Section des plans compacte
+                    VStack(spacing: 12) {
+                        // Plans côte à côte
+                        HStack(spacing: 12) {
+                            // Plan annuel
+                            PremiumPlanCard(
+                                plan: .yearly,
+                                isSelected: selectedPlan == .yearly,
+                                isCompact: true,
+                                purchaseManager: purchaseManager,
+                                onSelect: { 
+                                    impactMedium.impactOccurred()
+                                    selectedPlan = .yearly 
+                                }
+                            )
+                            
+                            // Plan mensuel
+                            PremiumPlanCard(
+                                plan: .monthly,
+                                isSelected: selectedPlan == .monthly,
+                                isCompact: true,
+                                purchaseManager: purchaseManager,
+                                onSelect: { 
+                                    impactMedium.impactOccurred()
+                                    selectedPlan = .monthly 
+                                }
+                            )
+                        }
+                        
+                        // CTA hypnotique
+                        Button(action: { 
+                            impactHeavy.impactOccurred()
+                            purchasePlan() 
+                        }) {
+                            HStack(spacing: 12) {
+                                if isPurchasing {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                                
+                                Text(isPurchasing ? "Activation..." : "DÉVERROUILLE TON POTENTIEL")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                ZStack {
+                                    // Background principal
+                                    LinearGradient(
+                                        colors: [.cyan, .purple, .pink],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                    
+                                    // Overlay animé
+                                    LinearGradient(
+                                        colors: [.white.opacity(0.3), .clear, .white.opacity(0.3)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                    .offset(x: showContent ? 200 : -200)
+                                    .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: showContent)
+                                }
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 25))
+                            .shadow(color: .cyan.opacity(0.5), radius: 15, x: 0, y: 5)
+                            .shadow(color: .purple.opacity(0.3), radius: 20, x: 0, y: 10)
+                            .scaleEffect(isPurchasing ? 0.95 : 1.0)
+                        }
+                        .disabled(isPurchasing)
+                        
+                        // Garantie et restore
+                        VStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.shield.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.green)
+                                
+                                Text("Garantie 7 jours satisfait ou remboursé")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            
+                            Button("Restaurer les achats") {
+                                impactLight.impactOccurred()
+                                Task {
+                                    do {
+                                        try await purchaseManager.restorePurchases()
+                                        if purchaseManager.isPremium {
+                                            notificationFeedback.notificationOccurred(.success)
+                                            isOnboardingComplete = true
+                                            dismiss()
+                                        }
+                                    } catch {
+                                        print("❌ Failed to restore purchases: \(error)")
+                                        notificationFeedback.notificationOccurred(.error)
+                                    }
+                                }
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.cyan)
+                        }
+                        .opacity(showContent ? 1 : 0)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 30)
                 }
             }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 1.2)) {
-                showContent = true
+            // Feedback haptique d'entrée
+            impactMedium.impactOccurred()
+            startAnimations()
+            
+            // Force reload products si nécessaire
+            Task {
+                if purchaseManager.products.isEmpty {
+                    print("🔄 Products empty, reloading...")
+                    await purchaseManager.reloadProducts()
+                }
+                print("📊 Available products: \(purchaseManager.products.count)")
+                for product in purchaseManager.products {
+                    print("📦 \(product.id): \(product.displayPrice)")
+                }
+            }
+        }
+    }
+    
+    private func startAnimations() {
+        // Animation d'apparition
+        withAnimation(.easeOut(duration: 0.8)) {
+            showContent = true
+        }
+        
+        // Rotation continue
+        withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
+            rotationAngle = 360
+        }
+        
+        // Pulsation hypnotique
+        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+            pulseScale = 1.2
+        }
+        
+        // Variation du glow
+        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+            glowIntensity = 0.8
+        }
+        
+        // Messages rotatifs avec feedback haptique
+        Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
+            impactLight.impactOccurred()
+            withAnimation(.easeInOut(duration: 0.5)) {
+                messageIndex = (messageIndex + 1) % hypnoticMessages.count
             }
         }
     }
     
     private func purchasePlan() {
-        isPurchasing = true
-        
-        // Simulate purchase process
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            isPurchasing = false
-            isOnboardingComplete = true
-            dismiss()
+        guard let product = getSelectedProduct() else { 
+            notificationFeedback.notificationOccurred(.error)
+            return 
         }
+        
+        isPurchasing = true
+        purchaseError = nil
+        
+        Task {
+            do {
+                try await purchaseManager.purchase(product)
+                
+                // Succès de l'achat - feedback de succès
+                await MainActor.run {
+                    notificationFeedback.notificationOccurred(.success)
+                    isPurchasing = false
+                    isOnboardingComplete = true
+                    dismiss()
+                }
+                
+            } catch {
+                await MainActor.run {
+                    notificationFeedback.notificationOccurred(.error)
+                    isPurchasing = false
+                    purchaseError = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    private func getSelectedProduct() -> Product? {
+        let product = purchaseManager.products.first { product in
+            product.planType == selectedPlan
+        }
+        print("🛒 Getting selected product for plan: \(selectedPlan)")
+        print("🛒 Available products: \(purchaseManager.products.count)")
+        print("🛒 Found product: \(product?.id ?? "nil")")
+        return product
     }
 }
 
-// MARK: - Premium Background
+// MARK: - Background Hypnotique
 
-struct PremiumBackground: View {
-    @State private var animationOffset: CGFloat = 0
+struct HypnoticBackground: View {
+    @State private var phase: Double = 0
+    @State private var waveOffset: Double = 0
     
     var body: some View {
         ZStack {
-            // Base gradient
+            // Base sombre
             LinearGradient(
                 colors: [
-                    Color(red: 0.02, green: 0.02, blue: 0.08),
+                    Color(red: 0.01, green: 0.01, blue: 0.05),
+                    Color(red: 0.05, green: 0.01, blue: 0.08),
                     Color(red: 0.08, green: 0.02, blue: 0.12),
-                    Color(red: 0.02, green: 0.08, blue: 0.15)
+                    Color(red: 0.01, green: 0.05, blue: 0.10)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             
-            // Animated premium elements
-            ForEach(0..<15, id: \.self) { index in
+            // Particules flottantes hypnotiques
+            ForEach(0..<20, id: \.self) { index in
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [.cyan.opacity(0.1), .purple.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                        RadialGradient(
+                            colors: [
+                                .cyan.opacity(0.4),
+                                .purple.opacity(0.3),
+                                .pink.opacity(0.2),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 30
                         )
                     )
-                    .frame(width: CGFloat.random(in: 50...150))
+                    .frame(width: CGFloat.random(in: 20...80))
                     .position(
-                        x: CGFloat.random(in: 0...400),
-                        y: CGFloat.random(in: 0...800) + animationOffset
+                        x: CGFloat.random(in: 0...400) + CGFloat(sin(phase + Double(index)) * 30),
+                        y: CGFloat.random(in: 0...800) + CGFloat(cos(phase + Double(index) * 0.7) * 40)
                     )
-                    .animation(
-                        .linear(duration: Double.random(in: 10...20))
-                        .repeatForever(autoreverses: false)
-                        .delay(Double.random(in: 0...5)),
-                        value: animationOffset
+                    .opacity(0.6 + sin(phase + Double(index) * 0.5) * 0.4)
+                    .scaleEffect(0.8 + sin(phase + Double(index) * 0.3) * 0.2)
+            }
+            
+            // Vagues hypnotiques
+            ForEach(0..<3, id: \.self) { index in
+                WaveShape(offset: waveOffset + Double(index) * 0.3, amplitude: 30 + Double(index) * 10)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .cyan.opacity(0.3 - Double(index) * 0.1),
+                                .purple.opacity(0.2 - Double(index) * 0.05),
+                                .clear
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 2
                     )
+                    .offset(y: CGFloat(index * 100))
             }
         }
         .onAppear {
-            animationOffset = -200
-            withAnimation {
-                animationOffset = 200
+            // Animation des particules
+            withAnimation(.linear(duration: 10).repeatForever(autoreverses: false)) {
+                phase = .pi * 2
+            }
+            
+            // Animation des vagues
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+                waveOffset = .pi * 2
             }
         }
     }
 }
 
-// MARK: - Paywall Header
-
-struct PaywallHeader: View {
-    let onClose: () -> Void
-    let showContent: Bool
+struct WaveShape: Shape {
+    var offset: Double
+    var amplitude: Double
     
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Zenloop")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.yellow)
-                    
-                    Text("Premium")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.yellow)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
-                    .frame(width: 32, height: 32)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let midHeight = rect.height / 2
+        let wavelength = rect.width / 2
+        
+        path.move(to: CGPoint(x: 0, y: midHeight))
+        
+        for x in stride(from: 0, through: rect.width, by: 1) {
+            let relativeX = x / wavelength
+            let sine = sin(relativeX + offset)
+            let y = midHeight + sine * amplitude
+            path.addLine(to: CGPoint(x: x, y: y))
         }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : -20)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1), value: showContent)
+        
+        return path
     }
 }
 
-// MARK: - Premium Hero Section
+// MARK: - Plan Card Compact
 
-struct PremiumHeroSection: View {
-    let showContent: Bool
-    
-    var body: some View {
-        VStack(spacing: 24) {
-            // Premium icon avec animations
-            ZStack {
-                // Glow effects
-                ForEach(0..<3, id: \.self) { index in
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [.cyan.opacity(0.3 - Double(index) * 0.1), .clear],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 60 + CGFloat(index * 20)
-                            )
-                        )
-                        .frame(width: 120 + CGFloat(index * 40), height: 120 + CGFloat(index * 40))
-                        .scaleEffect(showContent ? 1.0 + Double(index) * 0.2 : 0.5)
-                        .animation(
-                            .easeInOut(duration: 2.0 + Double(index) * 0.5)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.3),
-                            value: showContent
-                        )
-                }
-                
-                // Main premium icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.cyan.opacity(0.8), .purple.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 120)
-                        .shadow(color: .cyan.opacity(0.4), radius: 20, x: 0, y: 10)
-                    
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 40, weight: .medium))
-                        .foregroundColor(.white)
-                        .shadow(color: .white.opacity(0.3), radius: 8)
-                }
-            }
-            .scaleEffect(showContent ? 1.0 : 0.3)
-            .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.3), value: showContent)
-            
-            // Premium messaging
-            VStack(spacing: 16) {
-                Text("Débloque ton Potentiel")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                
-                Text("Accède à toutes les fonctionnalités premium et transforme définitivement tes habitudes numériques")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 20)
-            }
-            .opacity(showContent ? 1 : 0)
-            .offset(y: showContent ? 0 : 30)
-            .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.5), value: showContent)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 30)
-    }
-}
-
-// MARK: - Premium Features Section
-
-struct PremiumFeaturesSection: View {
-    let showContent: Bool
-    
-    private let features: [PremiumFeature] = [
-        PremiumFeature(
-            icon: "infinity",
-            title: "Sessions Illimitées",
-            description: "Autant de sessions de focus que tu veux",
-            color: .cyan
-        ),
-        PremiumFeature(
-            icon: "chart.line.uptrend.xyaxis",
-            title: "Analytics Avancés",
-            description: "Statistiques détaillées et insights personnalisés",
-            color: .blue
-        ),
-        PremiumFeature(
-            icon: "trophy.fill",
-            title: "Tous les Badges",
-            description: "Débloquer tous les achievements premium",
-            color: .purple
-        ),
-        PremiumFeature(
-            icon: "icloud.fill",
-            title: "Sync Multi-Appareils",
-            description: "Synchronisation sur tous tes appareils",
-            color: .green
-        ),
-        PremiumFeature(
-            icon: "paintbrush.fill",
-            title: "Thèmes Premium",
-            description: "Personnalise l'app avec des thèmes exclusifs",
-            color: .pink
-        ),
-        PremiumFeature(
-            icon: "headphones",
-            title: "Support Prioritaire",
-            description: "Assistance premium 24/7",
-            color: .orange
-        )
-    ]
-    
-    var body: some View {
-        VStack(spacing: 24) {
-            Text("Fonctionnalités Premium")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 20)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.6), value: showContent)
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
-                    PremiumFeatureCard(feature: feature)
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : 30)
-                        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.7 + Double(index) * 0.1), value: showContent)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-}
-
-struct PremiumFeatureCard: View {
-    let feature: PremiumFeature
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(feature.color.opacity(0.2))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: feature.icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(feature.color)
-            }
-            
-            VStack(spacing: 4) {
-                Text(feature.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                
-                Text(feature.description)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(feature.color.opacity(0.3), lineWidth: 1)
-        )
-    }
-}
-
-// MARK: - Pricing Section
-
-struct PricingSection: View {
-    @Binding var selectedPlan: PricingPlan
-    let showContent: Bool
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Choisis ton Plan")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 20)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.8), value: showContent)
-            
-            VStack(spacing: 12) {
-                PricingCard(
-                    plan: .yearly,
-                    isSelected: selectedPlan == .yearly,
-                    onSelect: { selectedPlan = .yearly }
-                )
-                .opacity(showContent ? 1 : 0)
-                .offset(x: showContent ? 0 : -50)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.9), value: showContent)
-                
-                PricingCard(
-                    plan: .monthly,
-                    isSelected: selectedPlan == .monthly,
-                    onSelect: { selectedPlan = .monthly }
-                )
-                .opacity(showContent ? 1 : 0)
-                .offset(x: showContent ? 0 : 50)
-                .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(1.0), value: showContent)
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-}
-
-struct PricingCard: View {
+struct PremiumPlanCard: View {
     let plan: PricingPlan
     let isSelected: Bool
+    let isCompact: Bool
+    let purchaseManager: PurchaseManager
     let onSelect: () -> Void
     
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(plan.title)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        if plan == .yearly {
-                            Text("POPULAIRE")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(.orange, in: Capsule())
-                        }
-                    }
-                    
-                    Text(plan.subtitle)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+            VStack(spacing: 8) {
+                // Badge popular si annuel
+                if plan == .yearly {
+                    Text("POPULAIRE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(.orange, in: Capsule())
+                } else {
+                    Spacer().frame(height: 16) // Espace pour alignement
                 }
                 
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(plan.price)
+                VStack(spacing: 4) {
+                    Text(plan.title)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text(realPrice)
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(plan.color)
                     
-                    if let oldPrice = plan.oldPrice {
+                    if let oldPrice = realOldPrice {
                         Text(oldPrice)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 11))
                             .foregroundColor(.white.opacity(0.5))
                             .strikethrough()
                     }
+                    
+                    Text(plan.subtitle)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
                 }
                 
+                // Indicateur de sélection
                 Circle()
                     .fill(isSelected ? plan.color : .clear)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 16, height: 16)
                     .overlay(
                         Circle()
                             .stroke(plan.color, lineWidth: 2)
                     )
                     .overlay(
                         Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white)
                             .opacity(isSelected ? 1 : 0)
                     )
             }
-            .padding(20)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        isSelected ? plan.color : .white.opacity(0.2),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isSelected)
-        }
-    }
-}
-
-// MARK: - CTA Section
-
-struct PaywallCTASection: View {
-    let selectedPlan: PricingPlan
-    let isPurchasing: Bool
-    let onPurchase: () -> Void
-    let showContent: Bool
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            Button(action: onPurchase) {
-                HStack(spacing: 12) {
-                    if isPurchasing {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
                     
-                    Text(isPurchasing ? "Processing..." : "Démarrer Premium")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            isSelected ? plan.color : .white.opacity(0.2),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                    
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(plan.color.opacity(0.1))
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(
-                    LinearGradient(
-                        colors: [selectedPlan.color, selectedPlan.color.opacity(0.8)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 28)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: selectedPlan.color.opacity(0.4), radius: 15, x: 0, y: 8)
-            }
-            .disabled(isPurchasing)
-            
-            // Garantie
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.green)
-                
-                Text("Garantie satisfait ou remboursé 7 jours")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
-            }
+            )
+            .scaleEffect(isSelected ? 1.05 : 1.0)
+            .shadow(
+                color: isSelected ? plan.color.opacity(0.3) : .clear,
+                radius: isSelected ? 10 : 0
+            )
         }
-        .padding(.horizontal, 20)
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(1.1), value: showContent)
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+    
+    private var realPrice: String {
+        return purchaseManager.priceForPlan(plan)
+    }
+    
+    private var realOldPrice: String? {
+        return purchaseManager.oldPriceForPlan(plan)
     }
 }
 
-// MARK: - Trust Section
-
-struct TrustSection: View {
-    let showContent: Bool
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 24) {
-                TrustIndicator(icon: "star.fill", text: "4.9★", subtitle: "App Store")
-                TrustIndicator(icon: "person.2.fill", text: "10K+", subtitle: "Utilisateurs")
-                TrustIndicator(icon: "shield.fill", text: "Sécurisé", subtitle: "Données")
-            }
-            
-            Text("Rejoins des milliers d'utilisateurs qui ont déjà transformé leur relation avec la technologie")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(1.2), value: showContent)
-    }
-}
-
-struct TrustIndicator: View {
-    let icon: String
-    let text: String
-    let subtitle: String
-    
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(.cyan)
-            
-            Text(text)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
-            
-            Text(subtitle)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
-        }
-    }
-}
-
-// MARK: - Data Models
-
-struct PremiumFeature {
-    let icon: String
-    let title: String
-    let description: String
-    let color: Color
-}
-
-enum PricingPlan: CaseIterable {
-    case yearly
-    case monthly
-    
-    var title: String {
-        switch self {
-        case .yearly: return "Annuel"
-        case .monthly: return "Mensuel"
-        }
-    }
-    
-    var subtitle: String {
-        switch self {
-        case .yearly: return "Économise 60%"
-        case .monthly: return "Flexibilité maximale"
-        }
-    }
-    
-    var price: String {
-        switch self {
-        case .yearly: return "3,99€/mois"
-        case .monthly: return "9,99€/mois"
-        }
-    }
-    
-    var oldPrice: String? {
-        switch self {
-        case .yearly: return "9,99€/mois"
-        case .monthly: return nil
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .yearly: return .cyan
-        case .monthly: return .purple
-        }
-    }
-}
+// MARK: - Data Models (moved to PurchaseManager)
 
 #Preview {
     PaywallView(isOnboardingComplete: .constant(false))

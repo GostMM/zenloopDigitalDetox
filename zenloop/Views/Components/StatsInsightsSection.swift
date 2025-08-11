@@ -27,11 +27,11 @@ struct StatsInsightsSection: View {
                         .background(.purple.opacity(0.15), in: Circle())
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Tes Progrès")
+                        Text(String(localized: "your_progress"))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
                         
-                        Text("Vue d'ensemble")
+                        Text(String(localized: "overview"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
@@ -39,7 +39,7 @@ struct StatsInsightsSection: View {
                 
                 Spacer()
                 
-                Button("Voir tout") {
+                Button(String(localized: "see_all")) {
                     // Action pour voir détails
                 }
                 .font(.system(size: 13, weight: .medium))
@@ -54,16 +54,16 @@ struct StatsInsightsSection: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 ProgressStatCard(
                     icon: "flame.fill",
-                    title: "Série Actuelle",
+                    title: String(localized: "current_streak"),
                     value: "\(zenloopManager.currentStreakCount)",
-                    unit: "jours",
+                    unit: String(localized: "days"),
                     color: .orange,
                     trend: .up
                 )
                 
                 ProgressStatCard(
                     icon: "clock.fill",
-                    title: "Temps Économisé",
+                    title: String(localized: "time_saved"),
                     value: formatTotalTime(zenloopManager.totalSavedTime).value,
                     unit: formatTotalTime(zenloopManager.totalSavedTime).unit,
                     color: .blue,
@@ -72,18 +72,18 @@ struct StatsInsightsSection: View {
                 
                 ProgressStatCard(
                     icon: "trophy.fill",
-                    title: "Défis Complétés",
+                    title: String(localized: "challenges_completed"),
                     value: "\(zenloopManager.completedChallengesTotal)",
-                    unit: "sessions",
+                    unit: String(localized: "sessions"),
                     color: .yellow,
                     trend: .up
                 )
                 
                 ProgressStatCard(
                     icon: "star.fill",
-                    title: "Badges Gagnés",
+                    title: String(localized: "badges_earned"),
                     value: "\(badgeManager.getUnlockedBadges().count)",
-                    unit: "badges",
+                    unit: String(localized: "badges"),
                     color: .purple,
                     trend: .up
                 )
@@ -138,11 +138,11 @@ struct StatsInsightsSection: View {
                                 .background(.yellow.opacity(0.15), in: Circle())
                             
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Derniers Badges")
+                                Text(String(localized: "recent_badges"))
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.white)
                                 
-                                Text("Tes dernières réussites")
+                                Text(String(localized: "your_latest_achievements"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.5))
                             }
@@ -150,7 +150,7 @@ struct StatsInsightsSection: View {
                         
                         Spacer()
                         
-                        Button("Collection") {
+                        Button(String(localized: "collection")) {
                             // Action pour voir collection complète
                         }
                         .font(.system(size: 12, weight: .medium))
@@ -181,7 +181,7 @@ struct StatsInsightsSection: View {
     private func formatTotalTime(_ seconds: TimeInterval) -> (value: String, unit: String) {
         let hours = Int(seconds) / 3600
         let value = hours < 100 ? "\(hours)" : "99+"
-        return (value: value, unit: "heures")
+        return (value: value, unit: String(localized: "hours"))
     }
     
 }

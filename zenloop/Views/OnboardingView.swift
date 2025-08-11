@@ -93,7 +93,7 @@ struct OnboardingHeader: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Digital Wellness")
+                Text(String(localized: "digital_wellness"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.cyan.opacity(0.8))
             }
@@ -221,7 +221,7 @@ struct OnboardingBottomActions: View {
                 }
             }) {
                 HStack(spacing: 12) {
-                    Text(currentPage == totalPages - 1 ? "Commencer" : "Continuer")
+                    Text(currentPage == totalPages - 1 ? String(localized: "get_started") : String(localized: "continue"))
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                     
@@ -248,7 +248,7 @@ struct OnboardingBottomActions: View {
             
             // Bouton skip (sauf sur la dernière page)
             if currentPage < totalPages - 1 {
-                Button("Passer") {
+                Button(String(localized: "skip")) {
                     onSkip()
                 }
                 .font(.system(size: 16, weight: .medium))
@@ -271,26 +271,26 @@ struct OnboardingPage {
     
     static let allPages: [OnboardingPage] = [
         OnboardingPage(
-            title: "Reprends le Contrôle",
-            description: "Transforme ta relation avec la technologie. Zenloop t'aide à créer des habitudes numériques saines et à retrouver ta concentration.",
+            title: String(localized: "take_back_control"),
+            description: String(localized: "take_back_control_desc"),
             icon: "brain.head.profile",
             color: .cyan
         ),
         OnboardingPage(
-            title: "Sessions de Focus",
-            description: "Lance des sessions de concentration personnalisées. Bloque les apps distractives et reste dans ta zone de flow optimale.",
+            title: String(localized: "focus_sessions"),
+            description: String(localized: "focus_sessions_desc"),
             icon: "target",
             color: .blue
         ),
         OnboardingPage(
-            title: "Défis & Gamification",
-            description: "Gagne des badges, débloquer des achievements et progresse vers tes objectifs de bien-être numérique jour après jour.",
+            title: String(localized: "challenges_gamification"),
+            description: String(localized: "challenges_gamification_desc"),
             icon: "trophy.fill",
             color: .purple
         ),
         OnboardingPage(
-            title: "Insights Avancés",
-            description: "Analyse tes habitudes avec des statistiques détaillées et des rapports personnalisés pour optimiser ton temps d'écran.",
+            title: String(localized: "advanced_insights"),
+            description: String(localized: "advanced_insights_desc"),
             icon: "chart.line.uptrend.xyaxis",
             color: .green
         )
