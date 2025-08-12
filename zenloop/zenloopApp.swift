@@ -13,14 +13,15 @@ struct zenloopApp: App {
         WindowGroup {
             ContentView()
                 .onAppear {
-                    // DEBUG: Test PurchaseManager initialization
-                    print("🎯 App started - Testing PurchaseManager...")
-                    let manager = PurchaseManager.shared
-                    print("🎯 PurchaseManager instance created: \(manager)")
-                    print("🎯 Current products count: \(manager.products.count)")
-                    
-                    // Demander autorisation Screen Time de manière asynchrone
+                    // Initialisation asynchrone pour éviter les lags au démarrage
                     Task {
+                        // DEBUG: Test PurchaseManager initialization (background)
+                        print("🎯 App started - Testing PurchaseManager...")
+                        let manager = PurchaseManager.shared
+                        print("🎯 PurchaseManager instance created: \(manager)")
+                        print("🎯 Current products count: \(manager.products.count)")
+                        
+                        // Demander autorisation Screen Time de manière asynchrone
                         await AppUsageManager.shared.requestAuthorization()
                     }
                 }

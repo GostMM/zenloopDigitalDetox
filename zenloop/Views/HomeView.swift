@@ -10,11 +10,12 @@ import FamilyControls
 
 struct HomeView: View {
     @EnvironmentObject var zenloopManager: ZenloopManager
-    @StateObject private var badgeManager = BadgeManager.shared
-    @StateObject private var categoryManager = CategoryManager.shared
-    @StateObject private var purchaseManager = PurchaseManager.shared
+    // Lazy loading des managers pour éviter l'initialisation lourde
+    private var badgeManager: BadgeManager { BadgeManager.shared }
+    private var categoryManager: CategoryManager { CategoryManager.shared }  
+    private var purchaseManager: PurchaseManager { PurchaseManager.shared }
     @State private var showContent = false
-    @StateObject private var backgroundAnimator = BackgroundAnimator()
+    // @StateObject private var backgroundAnimator = BackgroundAnimator() // ⚠️ DÉSACTIVÉ - CPU KILLER
     
     // MARK: - Computed Properties
     
@@ -29,8 +30,8 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            // Background plus sombre et intense pour focus sur les badges
-            IntenseBackground(currentState: zenloopManager.currentState)
+            // Background optimisé - moins gourmand en ressources
+            OptimizedBackground(currentState: zenloopManager.currentState)
                 .ignoresSafeArea(.all, edges: .all)
             
             // Interface principale
@@ -92,20 +93,21 @@ struct HomeView: View {
             withAnimation(.spring(response: 1.2, dampingFraction: 0.7)) {
                 showContent = true
             }
-            backgroundAnimator.startAnimation()
+            // backgroundAnimator.startAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
             badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
         }
         .onDisappear {
-            backgroundAnimator.stopAnimation()
+            // backgroundAnimator.stopAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
         }
         .onChange(of: zenloopManager.currentState) { oldValue, newValue in
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.75)) {
+            // Badge checking différé pour éviter les appels trop fréquents
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
             }
             
-            // Feedback haptique lors des changements d'état
-            if oldValue != newValue {
-                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            // Feedback haptique léger seulement pour les transitions importantes
+            if oldValue != newValue && (newValue == .active || newValue == .completed) {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
             }
         }

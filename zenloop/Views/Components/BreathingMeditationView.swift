@@ -128,6 +128,9 @@ struct BreathingMeditationView: View {
     @State private var videoLoopCount = 0
     private let maxVideoLoops = 2
     
+    // Cleanup control
+    @State private var isSessionActive = false
+    
     // Center reveal mask
     @State private var reveal = false
     
@@ -231,6 +234,7 @@ struct BreathingMeditationView: View {
                 HStack {
                     Button {
                         haptics.selection()
+                        isSessionActive = false
                         stopBreathingSession()
                         showDecisionSheet = true
                     } label: {
@@ -288,10 +292,12 @@ struct BreathingMeditationView: View {
             }
         }
         .onAppear {
+            isSessionActive = true
             haptics.prepare()
             setupBreathingSession()
         }
         .onDisappear {
+            isSessionActive = false
             cleanupSession()
         }
         .sheet(isPresented: $showDecisionSheet) {
@@ -401,6 +407,12 @@ struct BreathingMeditationView: View {
     
     private func scheduleNextPhase() {
         DispatchQueue.main.asyncAfter(deadline: .now() + currentPhase.duration) {
+            // ✅ Vérifier si la session est toujours active avant de continuer
+            guard self.isSessionActive else {
+                print("🫁 [BREATHING] Session fermée - arrêt des animations")
+                return
+            }
+            
             self.switchToNextPhase()
             self.animatePhase(self.currentPhase)
             self.haptics.playPhase(self.currentPhase)
@@ -430,8 +442,8 @@ struct BreathingMeditationView: View {
     }
     
     private func shouldContinueBreathing() -> Bool {
-        // Continue until video loops are done; handleVideoEnd() stops everything
-        return !isVideoEnded
+        // Continue seulement si session active et vidéo pas terminée
+        return isSessionActive && !isVideoEnded
     }
     
     private func handleVideoLoop() {
@@ -454,24 +466,43 @@ struct BreathingMeditationView: View {
     }
     
     private func stopBreathingSession() {
+        isSessionActive = false
         videoPlayer?.pause()
         print("🫁 [BREATHING] Session arrêtée")
     }
     
     private func cleanupSession() {
+        print("🧹 [BREATHING] Cleanup complet - arrêt de toutes les animations")
+        
+        // ✅ Arrêter immédiatement toutes les animations en cours
+        isSessionActive = false
+        isVideoEnded = true
+        
+        // ✅ Cleanup video et notifications
         NotificationCenter.default.removeObserver(self)
         videoPlayer?.pause()
         videoPlayer = nil
         
+        // ✅ Cleanup fichiers temporaires
         if let tempURL = tempVideoURL {
             try? FileManager.default.removeItem(at: tempURL)
             tempVideoURL = nil
         }
+        
+        // ✅ Cleanup session audio
         do {
             try AVAudioSession.sharedInstance().setActive(false)
         } catch {
             print("❌ [BREATHING] Erreur cleanup audio: \(error)")
         }
+        
+        // ✅ Reset des états d'animation
+        breathingScale = 1.0
+        breathingOpacity = 0.6
+        currentBreathingCycle = 0
+        videoLoopCount = 0
+        
+        print("✅ [BREATHING] Cleanup terminé")
     }
     
     // MARK: - Helpers

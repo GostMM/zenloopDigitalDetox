@@ -227,21 +227,85 @@ class ZenloopManager: ObservableObject {
     
     func initialize() {
         #if DEBUG
-        self.logger.debug("🚀 [ZENLOOP] Initialisation du gestionnaire")
+        self.logger.debug("🚀 [ZENLOOP] Initialisation rapide du gestionnaire")
         #endif
         
-        self.startStateMonitoring()
-        self.checkAuthorizationStatus()
-        self.loadRecentActivity()
-        self.syncSelectedAppsCount()
+        // PHASE 1: Initialisation critique immédiate (main thread)
+        initializeCriticalComponents()
         
-        if !self.isAuthorized {
-            Task { @MainActor in
-                await self.requestAuthorization()
+        // PHASE 2: Initialisation complète en arrière-plan
+        Task.detached(priority: .userInitiated) { [weak self] in
+            await self?.initializeBackgroundComponents()
+        }
+    }
+    
+    @MainActor
+    private func initializeCriticalComponents() {
+        // Seulement les composants critiques pour l'UI
+        self.checkAuthorizationStatus() // Rapide - juste un status check
+        
+        // État minimal pour permettre l'affichage
+        self.currentState = .idle
+        self.currentProgress = 0.0
+        self.currentTimeRemaining = "00:00"
+        
+        #if DEBUG
+        self.logger.debug("✅ [ZENLOOP] Composants critiques initialisés")
+        #endif
+    }
+    
+    private func initializeBackgroundComponents() async {
+        #if DEBUG
+        await MainActor.run {
+            self.logger.debug("🔄 [ZENLOOP] Initialisation background en cours...")
+        }
+        #endif
+        
+        // Opérations lourdes en arrière-plan
+        await withTaskGroup(of: Void.self) { group in
+            // Charger les données persistées
+            group.addTask { [weak self] in
+                // I/O operations hors du main thread
+                await MainActor.run { [weak self] in
+                    self?.loadRecentActivity()
+                    self?.loadPersistedAppsSelection()
+                    self?.syncSelectedAppsCount()
+                }
+            }
+            
+            // Gérer l'autorisation si nécessaire
+            group.addTask { [weak self] in
+                await MainActor.run { [weak self] in
+                    if !(self?.isAuthorized ?? false) {
+                        Task {
+                            await self?.requestAuthorization()
+                        }
+                    }
+                }
+            }
+            
+            // Restaurer la session active si nécessaire
+            group.addTask { [weak self] in
+                await self?.restoreActiveSession()
             }
         }
         
-        if let challenge = self.currentChallenge, challenge.isActive {
+        // Démarrer le monitoring une fois tout initialisé
+        await MainActor.run { [weak self] in
+            self?.startStateMonitoring()
+            
+            #if DEBUG
+            self?.logger.debug("✅ [ZENLOOP] Initialisation complète terminée")
+            #endif
+        }
+    }
+    
+    private func restoreActiveSession() async {
+        await MainActor.run { [weak self] in
+            guard let self = self,
+                  let challenge = self.currentChallenge, 
+                  challenge.isActive else { return }
+            
             self.currentState = .active
             self.currentTimeRemaining = challenge.timeRemaining
             self.currentProgress = challenge.safeProgress
@@ -250,7 +314,7 @@ class ZenloopManager: ObservableObject {
                 self.applyRestrictions()
             } else if self.isAuthorized {
                 #if DEBUG
-                self.logger.warning("⚠️ [ZENLOOP] Apps doivent être re-sélectionnées pour appliquer les restrictions")
+                self.logger.warning("⚠️ [ZENLOOP] Apps doivent être re-sélectionnées")
                 #endif
             }
             self.scheduleAutoCompletion()
@@ -299,6 +363,9 @@ class ZenloopManager: ObservableObject {
     func startQuickChallenge(duration: TimeInterval) {
         guard self.currentState == .idle else { return }
         
+        // Utiliser les applications sélectionnées par l'utilisateur si disponibles
+        let hasSelectedApps = !self.blockedAppsSelection.applicationTokens.isEmpty || !self.blockedAppsSelection.categoryTokens.isEmpty
+        
         var challenge = ZenloopChallenge(
             id: "quick-\(UUID().uuidString)",
             title: "Focus Rapide",
@@ -308,8 +375,18 @@ class ZenloopManager: ObservableObject {
             startTime: Date(),
             isActive: true
         )
-        challenge.blockedAppsNames = ["Instagram", "TikTok", "Twitter", "Facebook", "YouTube"]
-        challenge.blockedAppsCount = challenge.blockedAppsNames.count
+        
+        if hasSelectedApps {
+            // Utiliser la sélection de l'utilisateur
+            challenge.blockedAppsCount = self.blockedAppsSelection.applicationTokens.count + self.blockedAppsSelection.categoryTokens.count
+            challenge.blockedAppsNames = self.generateAppNamesFromSelection(self.blockedAppsSelection)
+            print("🎯 [ZENLOOP_MANAGER] Quick challenge avec \(challenge.blockedAppsCount) apps/catégories sélectionnées")
+        } else {
+            // Fallback vers une liste par défaut si aucune sélection
+            challenge.blockedAppsNames = ["Instagram", "TikTok", "Twitter", "Facebook", "YouTube"]
+            challenge.blockedAppsCount = challenge.blockedAppsNames.count
+            print("🎯 [ZENLOOP_MANAGER] Quick challenge avec apps par défaut")
+        }
         
         self.startChallenge(challenge)
     }

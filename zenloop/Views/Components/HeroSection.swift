@@ -489,14 +489,17 @@ struct ModernQuickActionsRow: View {
                 
                 // Exécuter l'action en attente seulement si des apps ont été sélectionnées
                 let hasAppsSelected = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+                print("🔍 [HERO] HasAppsSelected: \(hasAppsSelected), PendingAction: \(pendingAction != nil)")
                 
                 if hasAppsSelected, let action = pendingAction {
                     print("🚀 [HERO] Exécution de l'action en attente avec apps sélectionnées")
                     action()
                     pendingAction = nil
-                } else if !hasAppsSelected {
+                } else if !hasAppsSelected && pendingAction != nil {
                     print("❌ [HERO] Aucune app sélectionnée, action en attente annulée")
                     pendingAction = nil
+                } else if hasAppsSelected && pendingAction == nil {
+                    print("ℹ️ [HERO] Apps sélectionnées mais aucune action en attente")
                 }
             }
         ))

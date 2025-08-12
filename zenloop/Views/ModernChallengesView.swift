@@ -16,8 +16,8 @@ struct ModernChallengesView: View {
     
     var body: some View {
         ZStack {
-            // Background style cohérent avec HomeView
-            IntenseBackground(currentState: zenloopManager.currentState)
+            // Background optimisé pour de meilleures performances
+            OptimizedBackground(currentState: zenloopManager.currentState)
                 .ignoresSafeArea(.all, edges: .all)
             
             VStack(spacing: 0) {

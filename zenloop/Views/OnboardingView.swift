@@ -17,8 +17,8 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-            // Background intense comme HomeView
-            IntenseBackground(currentState: .idle)
+            // Background optimisé pour de meilleures performances
+            OptimizedBackground(currentState: .idle)
                 .ignoresSafeArea(.all, edges: .all)
             
             VStack(spacing: 0) {

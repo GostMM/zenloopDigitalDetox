@@ -43,10 +43,12 @@ final class SharedActivityStore: ObservableObject {
     private let savedKey  = "zenloop.savedSeconds"
     
     func load() {
-        // Utilisation sécurisée de UserDefaults avec gestion d'erreurs
+        // Utilisation sécurisée de UserDefaults avec gestion d'erreurs et fallback
         do {
-            if let shared = UserDefaults(suiteName: appGroup),
-               let data = shared.data(forKey: reportKey) {
+            // Essayer d'abord l'App Group, avec fallback vers UserDefaults standard
+            let shared = UserDefaults(suiteName: appGroup) ?? UserDefaults.standard
+            
+            if let data = shared.data(forKey: reportKey) {
                 let p = try JSONDecoder().decode(SharedReportPayload.self, from: data)
                 interval = .init(start: Date(timeIntervalSince1970: p.intervalStart),
                                  end:   Date(timeIntervalSince1970: p.intervalEnd))
@@ -59,7 +61,7 @@ final class SharedActivityStore: ObservableObject {
                 resetToDefaults()
             }
         } catch {
-            print("⚠️ [STATS] Erreur chargement App Group: \(error)")
+            print("⚠️ [STATS] Erreur chargement données partagées: \(error)")
             resetToDefaults()
         }
         
@@ -98,6 +100,7 @@ struct StatsView: View {
     @State private var selected: Screen = .apple
     @State private var selectedPeriod: TimePeriod = .today
     @State private var reportInstanceID = UUID()
+    @State private var hasInitiallyLoaded = false
     
     enum Screen: String, CaseIterable, Identifiable {
         case apple = "apple", overview = "overview", analytics = "analytics"
@@ -131,7 +134,7 @@ struct StatsView: View {
     
     var body: some View {
         ZStack {
-            IntenseBackground(currentState: zenloopManager.currentState).ignoresSafeArea()
+            OptimizedBackground(currentState: zenloopManager.currentState).ignoresSafeArea()
             
             VStack(spacing: 8) {
                 header
@@ -142,8 +145,16 @@ struct StatsView: View {
         .onAppear {
             withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) { show = true }
             screenTimeManager.checkAuthorization()
-            screenTimeManager.selectedPeriod  = selectedPeriod
-            store.load()
+            screenTimeManager.selectedPeriod = selectedPeriod
+            
+            // Chargement initial avec retry automatique
+            if !hasInitiallyLoaded {
+                hasInitiallyLoaded = true
+                loadInitialData()
+            } else {
+                // Si déjà chargé, juste un refresh léger
+                store.load()
+            }
         }
         .onChange(of: selectedPeriod) { _, new in
             screenTimeManager.selectedPeriod = new
@@ -169,8 +180,17 @@ struct StatsView: View {
             Spacer()
             Button {
                 refreshReport()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { store.load() }
+                store.load()
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                
+                // Retry intelligent si pas de données après 0.5s
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if store.totalSeconds == 0 && store.days.isEmpty {
+                        print("🔄 [STATS] Refresh auto-retry")
+                        store.load()
+                        refreshReport()
+                    }
+                }
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .foregroundColor(.white)
@@ -245,6 +265,34 @@ struct StatsView: View {
     
     // MARK: - Helpers
     private func refreshReport() { reportInstanceID = UUID() }
+    
+    private func loadInitialData() {
+        // Chargement immédiat
+        store.load()
+        
+        // Si pas de données, retry avec délai progressif
+        Task {
+            var retryCount = 0
+            while retryCount < 3 && store.totalSeconds == 0 && store.days.isEmpty {
+                retryCount += 1
+                let delay = Double(retryCount) * 0.5 // 0.5s, 1s, 1.5s
+                
+                print("📊 [STATS] Retry \(retryCount)/3 dans \(delay)s")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                
+                await MainActor.run {
+                    store.load()
+                    refreshReport()
+                }
+            }
+            
+            if store.totalSeconds > 0 || !store.days.isEmpty {
+                print("✅ [STATS] Données chargées après \(retryCount) tentatives")
+            } else {
+                print("⚠️ [STATS] Aucune donnée disponible après 3 tentatives")
+            }
+        }
+    }
     private func lastUpdated(_ date: Date) -> String {
         RelativeDateTimeFormatter.cached.localizedString(for: date, relativeTo: Date())
             .replacingOccurrences(of: "il y a ", with: String(localized: "updated_maj"))
