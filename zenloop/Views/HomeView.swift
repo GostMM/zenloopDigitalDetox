@@ -14,6 +14,8 @@ struct HomeView: View {
     private var badgeManager: BadgeManager { BadgeManager.shared }
     private var categoryManager: CategoryManager { CategoryManager.shared }  
     private var purchaseManager: PurchaseManager { PurchaseManager.shared }
+    @StateObject private var dailyReportManager = DailyReportManager.shared
+    @StateObject private var onboardingManager = OnboardingManager.shared
     @State private var showContent = false
     // @StateObject private var backgroundAnimator = BackgroundAnimator() // ⚠️ DÉSACTIVÉ - CPU KILLER
     
@@ -95,6 +97,11 @@ struct HomeView: View {
             }
             // backgroundAnimator.startAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
             badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
+            
+            // Vérifier s'il faut afficher le rapport quotidien
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                dailyReportManager.checkShouldShowReport()
+            }
         }
         .onDisappear {
             // backgroundAnimator.stopAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
@@ -109,6 +116,16 @@ struct HomeView: View {
             if oldValue != newValue && (newValue == .active || newValue == .completed) {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
+            }
+        }
+        .sheet(isPresented: $dailyReportManager.shouldShowReport) {
+            DailyReportModal(
+                isPresented: $dailyReportManager.shouldShowReport,
+                reportData: onboardingManager.dailyActivityData,
+                timeOfDay: dailyReportManager.currentTimeOfDay
+            )
+            .onDisappear {
+                dailyReportManager.markReportAsShown()
             }
         }
     }

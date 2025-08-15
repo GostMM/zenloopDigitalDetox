@@ -711,27 +711,54 @@ struct TimerCard: View {
         
         let totalMinutes = selectedHours * 60 + selectedMinutes
         
-        if isScheduled {
-            print("📅 [TIMER_CARD] Programmation session: \(selectedConcentrationType.title), \(formattedDuration) à \(formatScheduledTime)")
-            // TODO: Implémenter la programmation différée
-            // Pour l'instant, on démarre immédiatement
-        }
-        
-        print("🚀 [TIMER_CARD] Démarrage session: \(selectedConcentrationType.title), \(formattedDuration)")
-        
         let title = "\(selectedConcentrationType.title) - \(formattedDuration)"
         let duration = TimeInterval(totalMinutes * 60)
         let difficulty: DifficultyLevel = totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard
         
-        if hasSelectedApps {
-            zenloopManager.startCustomChallenge(
-                title: title,
-                duration: duration,
-                difficulty: difficulty,
-                apps: selectedApps
-            )
+        if isScheduled {
+            print("📅 [TIMER_CARD] Programmation session: \(title) à \(formatScheduledTime)")
+            
+            // Programmer la session avec notifications
+            if hasSelectedApps {
+                zenloopManager.scheduleCustomChallenge(
+                    title: title,
+                    duration: duration,
+                    difficulty: difficulty,
+                    apps: selectedApps,
+                    startTime: scheduledStartTime
+                )
+            } else {
+                // Pour les sessions programmées sans apps spécifiques, on utilise la sélection courante
+                zenloopManager.scheduleCustomChallenge(
+                    title: title,
+                    duration: duration,
+                    difficulty: difficulty,
+                    apps: selectedApps, // Sera vide mais requis par l'API
+                    startTime: scheduledStartTime
+                )
+            }
+            
+            // Donner un feedback à l'utilisateur
+            let successFeedback = UINotificationFeedbackGenerator()
+            successFeedback.notificationOccurred(.success)
+            
+            // Optionnel: Afficher une confirmation
+            print("✅ [TIMER_CARD] Session programmée avec succès pour \(formatScheduledTime)")
+            
         } else {
-            zenloopManager.startQuickChallenge(duration: duration)
+            print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
+            
+            // Démarrer immédiatement la session
+            if hasSelectedApps {
+                zenloopManager.startCustomChallenge(
+                    title: title,
+                    duration: duration,
+                    difficulty: difficulty,
+                    apps: selectedApps
+                )
+            } else {
+                zenloopManager.startQuickChallenge(duration: duration)
+            }
         }
     }
 }

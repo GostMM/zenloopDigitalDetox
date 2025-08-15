@@ -12,18 +12,9 @@ import FamilyControls
 import Foundation
 import UIKit // haptique léger
 
-// MARK: - Shared DTO (si tu as déjà SharedModels.swift commun App+Extension, supprime ce bloc)
-private struct SharedReportPayload: Codable {
-    let intervalStart: TimeInterval
-    let intervalEnd: TimeInterval
-    let totalSeconds: Double
-    let averageDailySeconds: Double
-    let updatedAt: TimeInterval
-    let topCategories: [SRPCategory]
-    let days: [SRPDayPoint]
-}
-private struct SRPCategory: Codable { let name: String; let seconds: Double; let appCount: Int }
-private struct SRPDayPoint:  Codable { let dayStart: TimeInterval; let seconds: Double }
+// MARK: - Local aliases pour compatibilité
+private typealias SRPCategory = SharedReportCategory
+private typealias SRPDayPoint = SharedReportDayPoint
 
 // MARK: - Store (App Group + temps économisé)
 final class SharedActivityStore: ObservableObject {
@@ -38,8 +29,8 @@ final class SharedActivityStore: ObservableObject {
     @Published var updatedAt: Date = Date()
     @Published var savedSeconds: Double = 0
     
-    private let appGroup = "group.com.app.zenloop"
-    private let reportKey = "DAReportLatest"
+    private let appGroup = AppGroupConfig.suiteName
+    private let reportKey = AppGroupConfig.Keys.deviceActivityReport
     private let savedKey  = "zenloop.savedSeconds"
     
     func load() {

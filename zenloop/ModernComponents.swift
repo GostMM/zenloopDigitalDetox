@@ -226,6 +226,7 @@ struct ActivityRow: View {
         case .challengePaused: return .orange
         case .challengeResumed: return .blue
         case .challengeStopped: return .red
+        case .challengeScheduled: return .purple
         }
     }
     
@@ -236,6 +237,7 @@ struct ActivityRow: View {
         case .challengePaused: return "pause.circle.fill"
         case .challengeResumed: return "play.circle.fill"
         case .challengeStopped: return "stop.circle.fill"
+        case .challengeScheduled: return "clock.circle.fill"
         }
     }
     

@@ -142,6 +142,7 @@ struct ActivityRecord: Identifiable, Codable {
         case challengePaused = "challenge_paused"
         case challengeResumed = "challenge_resumed"
         case challengeStopped = "challenge_stopped"
+        case challengeScheduled = "challenge_scheduled"
     }
 }
 
@@ -199,6 +200,7 @@ class ZenloopManager: ObservableObject {
     // MARK: - Privées
     private let store = ManagedSettingsStore()
     private let activityCenter = DeviceActivityCenter()
+    private let notificationManager = SessionNotificationManager.shared
     private var pauseEndTime: Date?
     private var blockedAppsSelection = FamilyActivitySelection()
     
@@ -321,6 +323,14 @@ class ZenloopManager: ObservableObject {
         }
     }
     
+    // MARK: - Notifications Debug
+    
+    func debugNotifications() {
+        Task {
+            await notificationManager.debugScheduledNotifications()
+        }
+    }
+    
     // MARK: - Validation
     
     func validateState() -> Bool {
@@ -431,6 +441,118 @@ class ZenloopManager: ObservableObject {
         self.startChallenge(updated)
     }
     
+    // MARK: - Scheduled Sessions
+    
+    func scheduleCustomChallenge(
+        title: String,
+        duration: TimeInterval,
+        difficulty: DifficultyLevel,
+        apps: FamilyActivitySelection,
+        startTime: Date
+    ) {
+        let sessionId = "scheduled-\(UUID().uuidString)"
+        
+        // Créer la session programmée
+        let appNames = generateAppNamesFromSelection(apps)
+        
+        // Programmer les notifications
+        notificationManager.scheduleSessionReminder(
+            sessionId: sessionId,
+            title: title,
+            startTime: startTime,
+            duration: duration,
+            apps: appNames
+        )
+        
+        // Enregistrer la session programmée pour démarrage automatique
+        let scheduledChallenge = ZenloopChallenge(
+            id: sessionId,
+            title: title,
+            description: "Session programmée",
+            duration: duration,
+            difficulty: difficulty,
+            startTime: startTime,
+            isActive: false
+        )
+        
+        // Sauvegarder dans UserDefaults pour persistance
+        saveScheduledChallenge(scheduledChallenge, apps: apps)
+        
+        // Programmer le démarrage automatique
+        scheduleAutoStart(challenge: scheduledChallenge, apps: apps)
+        
+        print("📅 [ZENLOOP] Session programmée: \(title) pour \(startTime)")
+        recordActivity(.challengeScheduled, title: "Session programmée: \(title)")
+    }
+    
+    private func saveScheduledChallenge(_ challenge: ZenloopChallenge, apps: FamilyActivitySelection) {
+        var scheduledChallenges = getScheduledChallenges()
+        scheduledChallenges[challenge.id] = (challenge, apps)
+        
+        if let encoded = try? JSONEncoder().encode(scheduledChallenges.mapValues { $0.0 }) {
+            UserDefaults.standard.set(encoded, forKey: "scheduled_challenges")
+        }
+        
+        // Sauvegarder aussi la sélection d'apps (plus complexe car FamilyActivitySelection n'est pas Codable)
+        // Pour l'instant, on utilisera la sélection courante au moment du démarrage
+    }
+    
+    private func getScheduledChallenges() -> [String: (ZenloopChallenge, FamilyActivitySelection)] {
+        guard let data = UserDefaults.standard.data(forKey: "scheduled_challenges"),
+              let challenges = try? JSONDecoder().decode([String: ZenloopChallenge].self, from: data) else {
+            return [:]
+        }
+        
+        // Retourner avec une sélection vide pour l'instant (à améliorer)
+        return challenges.mapValues { ($0, FamilyActivitySelection()) }
+    }
+    
+    private func scheduleAutoStart(challenge: ZenloopChallenge, apps: FamilyActivitySelection) {
+        guard let startTime = challenge.startTime else { return }
+        let timeInterval = startTime.timeIntervalSinceNow
+        guard timeInterval > 0 else { return }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeInterval) {
+            // Vérifier que la session n'a pas été annulée
+            let scheduledChallenges = self.getScheduledChallenges()
+            guard scheduledChallenges[challenge.id] != nil else { return }
+            
+            // Démarrer automatiquement
+            self.updateAppsSelection(apps)
+            var startingChallenge = challenge
+            startingChallenge.startTime = Date()
+            startingChallenge.isActive = true
+            
+            self.startChallenge(startingChallenge)
+            
+            // Notifier l'utilisateur
+            self.notificationManager.notifySessionStarted(sessionTitle: challenge.title, sessionId: challenge.id)
+            
+            // Nettoyer les données de programmation
+            self.removeScheduledChallenge(challenge.id)
+        }
+    }
+    
+    func cancelScheduledChallenge(_ challengeId: String) {
+        // Annuler les notifications
+        notificationManager.cancelSessionNotifications(sessionId: challengeId)
+        
+        // Supprimer de la persistance
+        removeScheduledChallenge(challengeId)
+        
+        print("🗑️ [ZENLOOP] Session programmée annulée: \(challengeId)")
+        recordActivity(.challengeStopped, title: "Session programmée annulée")
+    }
+    
+    private func removeScheduledChallenge(_ challengeId: String) {
+        var scheduledChallenges = getScheduledChallenges()
+        scheduledChallenges.removeValue(forKey: challengeId)
+        
+        if let encoded = try? JSONEncoder().encode(scheduledChallenges.mapValues { $0.0 }) {
+            UserDefaults.standard.set(encoded, forKey: "scheduled_challenges")
+        }
+    }
+    
     private func startChallenge(_ challenge: ZenloopChallenge) {
         self.currentChallenge = challenge
         self.currentState = .active
@@ -441,6 +563,10 @@ class ZenloopManager: ObservableObject {
         self.startStateMonitoring()
         self.applyRestrictions()
         self.startDeviceActivityMonitoring(for: challenge)
+        
+        // Notifier le démarrage de session et programmer les notifications de progression et fin
+        self.notificationManager.notifySessionStarted(sessionTitle: challenge.title, sessionId: challenge.id)
+        self.notificationManager.scheduleProgressNotification(sessionTitle: challenge.title, sessionId: challenge.id, duration: challenge.duration)
         
         self.recordActivity(.challengeStarted, title: "Défi \(challenge.title) démarré", duration: challenge.duration)
         self.persistCurrentStateNow()
@@ -463,6 +589,9 @@ class ZenloopManager: ObservableObject {
         self.removeRestrictions()
         self.stopDeviceActivityMonitoring(for: challenge)
         
+        // Annuler les notifications en cours pour cette session
+        self.notificationManager.cancelSessionNotifications(sessionId: challenge.id)
+        
         var updated = challenge
         updated.isActive = false
         self.currentChallenge = updated
@@ -484,6 +613,9 @@ class ZenloopManager: ObservableObject {
         updated.isCompleted = true
         self.currentChallenge = updated
         self.currentState = .completed
+        
+        // Notifier la fin de session
+        self.notificationManager.notifySessionCompleted(sessionTitle: challenge.title, sessionId: challenge.id)
         
         self.recordActivity(.challengeCompleted, title: "Défi \(challenge.title) terminé avec succès", duration: challenge.duration)
         self.updateChallengeStatistics(challenge: challenge)

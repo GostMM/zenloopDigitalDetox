@@ -9,6 +9,7 @@
 "app_name" = "Zenloop";
 "take_control" = "Take back control";
 "one_session" = "One session at a time";
+"break_infinite_loop" = "Break the infinite loop";
 
 // Common
 "loading" = "Loading...";
@@ -227,6 +228,7 @@
 "resumed" = "RESUMED";
 "stopped" = "STOPPED";
 "finished" = "FINISHED";
+"scheduled" = "SCHEDULED";
 
 // Date formatting
 "today_at_time" = "Today %@";
@@ -361,6 +363,8 @@
 "take_back_control_desc" = "Transform your relationship with technology. Zenloop helps you create healthy digital habits and regain your focus.";
 "focus_sessions" = "Focus Sessions";
 "focus_sessions_desc" = "Launch personalized concentration sessions. Block distracting apps and stay in your optimal flow zone.";
+"focus_sessions_and_insights" = "Sessions & Insights";
+"focus_sessions_and_insights_desc" = "Launch personalized focus sessions, earn badges, and get detailed insights about your digital habits to optimize your wellness.";
 "challenges_gamification" = "Challenges & Gamification";
 "challenges_gamification_desc" = "Earn badges, unlock achievements and progress towards your digital wellness goals day by day.";
 "advanced_insights" = "Advanced Insights";
@@ -494,3 +498,102 @@
 "hypnotic_take_control_now" = "Take control NOW";
 "hypnotic_premium_version" = "Become the PREMIUM version of you";
 "paywall_ultimate_experience" = "Access the ultimate experience";
+
+// Session Notifications
+"session_starting_soon" = "Session starting soon";
+"session_starts_in_15_minutes" = "%@ starts in 15 minutes. Get ready!";
+"session_starting_now" = "Session starting now!";
+"session_starts_in_2_minutes" = "%@ starts in 2 minutes. Time to focus!";
+"focus_time" = "Focus Time!";
+"session_ready_to_start" = "%@ is ready to start! Tap to begin your focus session.";
+"session_progress_halfway" = "Halfway there!";
+"halfway_through_session" = "You're halfway through your focus session. Keep going!";
+"session_complete" = "Session Complete! 🎉";
+"session_started" = "Session Started";
+"session_started_successfully" = "%@ has started successfully! Stay focused.";
+"app_blocked" = "App Blocked! 🛡️";
+"app_blocked_during_session" = "%@ is blocked during your focus session. Stay on track!";
+
+// Daily Tips & Motivational Notifications
+"daily_wellness_tip" = "Daily Wellness Tip";
+"stay_motivated" = "Stay Motivated";
+"weekly_preparation" = "Weekly Preparation";
+"prepare_for_productive_week" = "Ready for a productive week? Set your focus goals and make it happen! 🎯";
+
+// Tips Content
+"take_regular_breaks_tip" = "Take regular breaks to maintain your focus throughout the day. Your brain will thank you! 🧠";
+"single_tasking_tip" = "Focus on one task at a time. Multitasking is a myth that reduces your productivity by up to 40%.";
+"notification_silence_tip" = "Turn off non-essential notifications during focus time. Create your zone of deep concentration.";
+"morning_routine_tip" = "Start your day with a 10-minute focus ritual. Set your intentions and prepare for success.";
+"deep_work_blocks_tip" = "Schedule 90-minute deep work blocks. This matches your natural attention cycles for maximum productivity.";
+
+// Motivational Reminders
+"small_steps_big_impact" = "Small, consistent steps create big transformations. You're building something amazing! ✨";
+"consistency_beats_intensity" = "Consistency beats intensity every time. Keep showing up, even for 10 minutes a day.";
+"focus_is_superpower" = "In a distracted world, your ability to focus deeply is your superpower. Use it wisely! 🦸‍♀️";
+"digital_wellness_journey" = "Every moment of mindful phone use is a victory on your digital wellness journey. Be proud!";
+"proud_of_progress" = "Look how far you've come! Your future self will thank you for the focus habits you're building today.";
+
+// Permission Onboarding
+"setup_permissions" = "Setup Permissions";
+"screen_time_access" = "Screen Time Access";
+"smart_notifications" = "Smart Notifications";
+"personal_insights" = "Personal Insights";
+"screen_time_explanation" = "Authorize Screen Time access to effectively block distracting apps and create personalized focus sessions.";
+"notification_explanation" = "Receive smart reminders, daily tips, and encouragement to maintain your healthy digital habits.";
+"insights_preview_description" = "Discover personalized insights about your usage and track your progress towards optimal digital wellness.";
+"block_distracting_apps" = "Block distracting apps";
+"track_usage_patterns" = "Track your usage patterns";
+"create_focus_sessions" = "Create focus sessions";
+"authorize_screen_time" = "Authorize Screen Time";
+"enable_notifications" = "Enable Notifications";
+"maybe_later" = "Maybe Later";
+"start_your_journey" = "Start Your Journey";
+"processing" = "Processing...";
+"daily_average" = "Daily Average";
+"trend" = "Trend";
+"insights" = "Insights";
+"unlock_insights_with_screen_time" = "Unlock detailed insights by enabling Screen Time and discover how to optimize your screen time!";
+"high_usage_insight" = "You spend an average of %@ daily on your phone. Let's optimize that time together!";
+"moderate_usage_insight" = "With %@ daily screen time, you're on track! Let's help you stay focused on what matters.";
+"low_usage_insight" = "Great job! Your %@ daily usage shows healthy digital habits. Let's maintain that balance.";
+"top_category_insight" = "Your top category is %@";
+"enable_screen_time_for_insights" = "Enable Screen Time for personalized insights";
+
+// Encouragement Messages
+"start_your_digital_wellness_journey" = "Start your digital wellness journey";
+"great_progress_today" = "Great progress today! Keep it up";
+"time_for_focus_break" = "Time for a focus break and reconnect with what matters";
+"stay_mindful_of_usage" = "Stay mindful of your usage, you're on the right track";
+
+// Daily Insights Card
+"daily_insights" = "Daily Insights";
+"your_screen_time_today" = "Your screen time today";
+"loading_insights" = "Loading insights...";
+"enable_screen_time_for_detailed_insights" = "Enable Screen Time in Settings for detailed insights";
+"open_settings" = "Open Settings";
+"top_category_today" = "Top category: %@";
+
+// Daily Report Modal
+"good_morning" = "Good Morning";
+"good_afternoon" = "Good Afternoon";
+"good_evening" = "Good Evening";
+"morning_report_subtitle" = "Here's how you're starting your day";
+"afternoon_report_subtitle" = "Let's check your progress so far";
+"evening_report_subtitle" = "Time to reflect on your day";
+"top_3_apps_today" = "Top 3 Categories Today";
+"no_usage_data" = "No usage data";
+"start_using_apps_to_see_data" = "Start using your phone to see your patterns";
+"no_screen_time_data" = "No Screen Time Data";
+"daily_motivation" = "Daily Motivation";
+"start_focus_session" = "Start Focus Session";
+
+// Motivational Messages
+"morning_motivation" = "Every new day is a chance to build better digital habits. You have the power to make today productive and intentional.";
+"afternoon_motivation" = "You're halfway through the day! Take a moment to assess and adjust your focus for maximum productivity.";
+"evening_motivation" = "As the day winds down, reflect on your screen time patterns and prepare for a restful evening routine.";
+
+// Action Tips
+"morning_action_tip" = "Try starting with 25 minutes of focused work before checking social media.";
+"afternoon_action_tip" = "Consider taking a 10-minute break from screens to reset your attention.";
+"evening_action_tip" = "Set a screen curfew 1 hour before bed for better sleep quality.";

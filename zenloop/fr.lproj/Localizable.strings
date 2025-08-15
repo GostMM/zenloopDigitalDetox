@@ -9,6 +9,7 @@
 "app_name" = "Zenloop";
 "take_control" = "Reprends le contrôle";
 "one_session" = "Une session à la fois";
+"break_infinite_loop" = "Brise la boucle infinie";
 
 // Common
 "loading" = "Chargement...";
@@ -227,6 +228,7 @@
 "resumed" = "REPRISE";
 "stopped" = "ARRÊT";
 "finished" = "FINI";
+"scheduled" = "PROGRAMMÉ";
 
 // Date formatting
 "today_at_time" = "Aujourd'hui %@";
@@ -361,6 +363,8 @@
 "take_back_control_desc" = "Transforme ta relation avec la technologie. Zenloop t'aide à créer des habitudes numériques saines et à retrouver ta concentration.";
 "focus_sessions" = "Sessions de Focus";
 "focus_sessions_desc" = "Lance des sessions de concentration personnalisées. Bloque les apps distractives et reste dans ta zone de flow optimale.";
+"focus_sessions_and_insights" = "Sessions & Insights";
+"focus_sessions_and_insights_desc" = "Lance des sessions de focus personnalisées, gagne des badges, et obtiens des insights détaillés sur tes habitudes numériques pour optimiser ton bien-être.";
 "challenges_gamification" = "Défis & Gamification";
 "challenges_gamification_desc" = "Gagne des badges, débloquer des achievements et progresse vers tes objectifs de bien-être numérique jour après jour.";
 "advanced_insights" = "Insights Avancés";
@@ -494,3 +498,102 @@
 "hypnotic_take_control_now" = "Prends le contrôle MAINTENANT";
 "hypnotic_premium_version" = "Deviens la version PREMIUM de toi";
 "paywall_ultimate_experience" = "Accède à l'expérience ultime";
+
+// Notifications de Session
+"session_starting_soon" = "Session bientôt";
+"session_starts_in_15_minutes" = "%@ démarre dans 15 minutes. Prépare-toi !";
+"session_starting_now" = "Session maintenant !";
+"session_starts_in_2_minutes" = "%@ démarre dans 2 minutes. C'est l'heure de focus !";
+"focus_time" = "C'est Focus Time !";
+"session_ready_to_start" = "%@ est prêt à commencer ! Tape pour débuter ta session focus.";
+"session_progress_halfway" = "À mi-parcours !";
+"halfway_through_session" = "Tu es à la moitié de ta session focus. Continue comme ça !";
+"session_complete" = "Session Terminée ! 🎉";
+"session_started" = "Session Démarrée";
+"session_started_successfully" = "%@ a démarré avec succès ! Reste concentré.";
+"app_blocked" = "App Bloquée ! 🛡️";
+"app_blocked_during_session" = "%@ est bloquée pendant ta session focus. Reste sur la bonne voie !";
+
+// Tips Quotidiens & Notifications Motivationnelles  
+"daily_wellness_tip" = "Conseil Bien-être du Jour";
+"stay_motivated" = "Reste Motivé";
+"weekly_preparation" = "Préparation Hebdomadaire";
+"prepare_for_productive_week" = "Prêt pour une semaine productive ? Fixe tes objectifs focus et réalise-les ! 🎯";
+
+// Contenu des Tips
+"take_regular_breaks_tip" = "Prends des pauses régulières pour maintenir ta concentration toute la journée. Ton cerveau te remerciera ! 🧠";
+"single_tasking_tip" = "Concentre-toi sur une seule tâche à la fois. Le multitâche est un mythe qui réduit ta productivité de 40%.";
+"notification_silence_tip" = "Désactive les notifications non-essentielles pendant tes temps de focus. Crée ta zone de concentration profonde.";
+"morning_routine_tip" = "Commence ta journée par un rituel focus de 10 minutes. Pose tes intentions et prépare ton succès.";
+"deep_work_blocks_tip" = "Programme des blocs de travail profond de 90 minutes. Cela correspond à tes cycles d'attention naturels.";
+
+// Rappels Motivationnels
+"small_steps_big_impact" = "Les petits pas constants créent de grandes transformations. Tu construis quelque chose d'incroyable ! ✨";
+"consistency_beats_intensity" = "La régularité bat l'intensité à chaque fois. Continue à te présenter, même 10 minutes par jour.";
+"focus_is_superpower" = "Dans un monde distrait, ta capacité à te concentrer profondément est ton super-pouvoir. Utilise-le ! 🦸‍♀️";
+"digital_wellness_journey" = "Chaque moment d'usage conscient de ton téléphone est une victoire sur ton parcours bien-être digital !";
+"proud_of_progress" = "Regarde comme tu as progressé ! Ton futur toi te remerciera pour les habitudes focus que tu construis aujourd'hui.";
+
+// Permission Onboarding
+"setup_permissions" = "Configuration des permissions";
+"screen_time_access" = "Accès Screen Time";
+"smart_notifications" = "Notifications Intelligentes";
+"personal_insights" = "Insights Personnalisés";
+"screen_time_explanation" = "Autorisez l'accès à Screen Time pour bloquer efficacement les applications distrayantes et créer des sessions de focus personnalisées.";
+"notification_explanation" = "Recevez des rappels intelligents, des conseils quotidiens et des encouragements pour maintenir vos habitudes numériques saines.";
+"insights_preview_description" = "Découvrez des insights personnalisés sur votre utilisation et suivez vos progrès vers un bien-être numérique optimal.";
+"block_distracting_apps" = "Bloquer les applications distrayantes";
+"track_usage_patterns" = "Suivre vos habitudes d'utilisation";
+"create_focus_sessions" = "Créer des sessions de concentration";
+"authorize_screen_time" = "Autoriser Screen Time";
+"enable_notifications" = "Activer les Notifications";
+"maybe_later" = "Peut-être plus tard";
+"start_your_journey" = "Commencer votre parcours";
+"processing" = "En cours...";
+"daily_average" = "Moyenne Quotidienne";
+"trend" = "Tendance";
+"insights" = "Insights";
+"unlock_insights_with_screen_time" = "Débloquez des insights détaillés en activant Screen Time et découvrez comment optimiser votre temps d'écran !";
+"high_usage_insight" = "Vous passez en moyenne %@ par jour sur votre téléphone. Optimisons ce temps ensemble !";
+"moderate_usage_insight" = "Avec %@ d'écran quotidien, vous êtes sur la bonne voie ! Aidons-vous à rester concentré sur l'essentiel.";
+"low_usage_insight" = "Bravo ! Votre utilisation de %@ par jour montre de saines habitudes numériques. Maintenons cet équilibre.";
+"top_category_insight" = "Votre catégorie principale est %@";
+"enable_screen_time_for_insights" = "Activez Screen Time pour des insights personnalisés";
+
+// Encouragement Messages
+"start_your_digital_wellness_journey" = "Commencez votre parcours de bien-être numérique";
+"great_progress_today" = "Excellent progrès aujourd'hui ! Continuez comme ça";
+"time_for_focus_break" = "Il est temps de faire une pause focus et de vous reconnecter";
+"stay_mindful_of_usage" = "Restez conscient de votre utilisation, vous êtes sur la bonne voie";
+
+// Daily Insights Card
+"daily_insights" = "Insights Quotidiens";
+"your_screen_time_today" = "Votre temps d'écran aujourd'hui";
+"loading_insights" = "Chargement des insights...";
+"enable_screen_time_for_detailed_insights" = "Activez Screen Time dans les Réglages pour des insights détaillés";
+"open_settings" = "Ouvrir Réglages";
+"top_category_today" = "Catégorie principale : %@";
+
+// Daily Report Modal
+"good_morning" = "Bonjour";
+"good_afternoon" = "Bon après-midi";
+"good_evening" = "Bonsoir";
+"morning_report_subtitle" = "Voici comment vous commencez votre journée";
+"afternoon_report_subtitle" = "Faisons le point sur vos progrès";
+"evening_report_subtitle" = "Il est temps de réfléchir à votre journée";
+"top_3_apps_today" = "Top 3 Catégories Aujourd'hui";
+"no_usage_data" = "Aucune donnée d'utilisation";
+"start_using_apps_to_see_data" = "Commencez à utiliser votre téléphone pour voir vos habitudes";
+"no_screen_time_data" = "Aucune Donnée Screen Time";
+"daily_motivation" = "Motivation Quotidienne";
+"start_focus_session" = "Démarrer Session Focus";
+
+// Messages Motivationnels
+"morning_motivation" = "Chaque nouveau jour est une chance de construire de meilleures habitudes numériques. Vous avez le pouvoir de rendre cette journée productive et intentionnelle.";
+"afternoon_motivation" = "Vous êtes à mi-journée ! Prenez un moment pour évaluer et ajuster votre focus pour une productivité maximale.";
+"evening_motivation" = "Alors que la journée se termine, réfléchissez à vos habitudes d'écran et préparez-vous pour une routine relaxante.";
+
+// Conseils d'Action
+"morning_action_tip" = "Essayez de commencer par 25 minutes de travail concentré avant de consulter les réseaux sociaux.";
+"afternoon_action_tip" = "Envisagez de prendre 10 minutes de pause écran pour recentrer votre attention.";
+"evening_action_tip" = "Fixez un couvre-feu numérique 1h avant le coucher pour mieux dormir.";

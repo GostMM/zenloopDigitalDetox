@@ -277,6 +277,7 @@ struct EnhancedActivityRow: View {
         case .challengePaused: return "pause.circle.fill"
         case .challengeResumed: return "arrow.clockwise.circle.fill"
         case .challengeStopped: return "stop.circle.fill"
+        case .challengeScheduled: return "clock.circle.fill"
         }
     }
     
@@ -287,6 +288,7 @@ struct EnhancedActivityRow: View {
         case .challengePaused: return .orange
         case .challengeResumed: return .blue
         case .challengeStopped: return .red
+        case .challengeScheduled: return .purple
         }
     }
     
@@ -297,6 +299,7 @@ struct EnhancedActivityRow: View {
         case .challengePaused: return String(localized: "paused")
         case .challengeResumed: return String(localized: "resumed")
         case .challengeStopped: return String(localized: "stopped")
+        case .challengeScheduled: return String(localized: "scheduled")
         }
     }
     
@@ -390,6 +393,7 @@ struct RecentActivityRow: View {
         case .challengePaused: return "pause.circle"
         case .challengeResumed: return "arrow.clockwise.circle"
         case .challengeStopped: return "stop.circle"
+        case .challengeScheduled: return "clock.circle"
         }
     }
     
@@ -400,6 +404,7 @@ struct RecentActivityRow: View {
         case .challengePaused: return .orange
         case .challengeResumed: return .blue
         case .challengeStopped: return .red
+        case .challengeScheduled: return .purple
         }
     }
     
@@ -410,6 +415,7 @@ struct RecentActivityRow: View {
         case .challengePaused: return String(localized: "paused")
         case .challengeResumed: return String(localized: "resumed")
         case .challengeStopped: return String(localized: "stopped")
+        case .challengeScheduled: return String(localized: "scheduled")
         }
     }
     
