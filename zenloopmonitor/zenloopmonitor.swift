@@ -8,11 +8,43 @@
 import DeviceActivity
 import Foundation
 import UserNotifications
+import ManagedSettings
+import FamilyControls
+
+// MARK: - Shared Models
+
+struct SelectionPayload: Codable {
+    let sessionId: String
+    let apps: [ApplicationToken]
+    let categories: [ActivityCategoryToken]
+}
 
 class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     
+    override init() {
+        super.init()
+        
+        // DEBUGGING: Marquer dans App Group que l'extension est initialisée
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        suite?.set(Date().timeIntervalSince1970, forKey: "extension_initialized_timestamp")
+        suite?.set("ZenloopDeviceActivityMonitor initialized", forKey: "extension_status")
+        suite?.synchronize()
+        
+        // DEBUGGING: Notification dès que l'extension est chargée
+        scheduleNotification(
+            title: "🚀 EXTENSION INITIALISÉE",
+            body: "ZenloopDeviceActivityMonitor a été chargé par le système",
+            identifier: "extension_initialized_\(Date().timeIntervalSince1970)"
+        )
+        
+        print("🚀 [DeviceActivity] Extension ZenloopDeviceActivityMonitor initialized")
+    }
+    
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
+        
+        // CRUCIAL: Appliquer le blocage des apps depuis l'extension
+        applyShield(for: activity)
         
         // Logique quand un défi commence
         print("🎯 [DeviceActivity] Défi commencé: \(activity)")
@@ -31,6 +63,12 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
         
+        // CRUCIAL: Retirer le blocage des apps
+        removeShield(for: activity)
+        
+        // IMPORTANT: Arrêter le monitoring pour les sessions uniques (repeats: true)
+        stopMonitoringIfSingleSession(activity: activity)
+        
         // Logique quand un défi se termine
         print("✅ [DeviceActivity] Défi terminé: \(activity)")
         
@@ -46,6 +84,19 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         
         // Sauvegarder les statistiques
         saveChallengeCompletion(activityName: activity)
+    }
+    
+    private func stopMonitoringIfSingleSession(activity: DeviceActivityName) {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        // Vérifier si c'est une session programmée (commence par "scheduled_")
+        if activity.rawValue.hasPrefix("scheduled_") {
+            // Signaler à l'app principale d'arrêter le monitoring
+            suite?.set(true, forKey: "stop_monitoring_\(activity.rawValue)")
+            suite?.synchronize()
+            
+            print("🛑 [DeviceActivity] Marked single session for stop: \(activity.rawValue)")
+        }
     }
     
     // Note: Les méthodes d'avertissement ne sont pas disponibles dans DeviceActivityMonitor
@@ -68,6 +119,112 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     }
     
     // Note: eventWillReachThresholdWarning n'est pas disponible non plus
+    
+    // MARK: - Shield Management (CRUCIAL for background blocking)
+    
+    private func applyShield(for activity: DeviceActivityName) {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        // DEBUGGING: Notification pour confirmer que l'extension fonctionne
+        scheduleNotification(
+            title: "🔥 Extension ACTIVE!",
+            body: "L'extension DeviceActivity tente de bloquer pour: \(activity.rawValue)",
+            identifier: "extension_debug_\(activity.rawValue)"
+        )
+        
+        // DEBUG: Vérifier l'App Group
+        guard let suite = suite else {
+            scheduleNotification(
+                title: "❌ App Group FAIL",
+                body: "Cannot access App Group 'group.com.app.zenloop'",
+                identifier: "app_group_fail_\(activity.rawValue)"
+            )
+            return
+        }
+        
+        let expectedKey = "payload_\(activity.rawValue)"
+        print("🔍 [DeviceActivity] Looking for key: \(expectedKey)")
+        
+        // DEBUG: Lister toutes les clés disponibles
+        let allKeys = suite.dictionaryRepresentation().keys
+        print("📋 [DeviceActivity] Available keys in App Group: \(Array(allKeys))")
+        
+        // Vérifier si c'est un test ou un vrai payload
+        if let testPayload = suite.string(forKey: expectedKey) {
+            // C'est un test payload simple
+            scheduleNotification(
+                title: "✅ PAYLOAD TROUVÉ (TEST)",
+                body: "Extension trouve le test payload: \(testPayload)",
+                identifier: "test_payload_found_\(activity.rawValue)"
+            )
+            print("✅ [DeviceActivity] Test payload found: \(testPayload)")
+            return
+        }
+        
+        guard
+            let data = suite.data(forKey: expectedKey),
+            let payload = try? JSONDecoder().decode(SelectionPayload.self, from: data)
+        else {
+            print("⚠️ [DeviceActivity] No payload found for key: \(expectedKey)")
+            scheduleNotification(
+                title: "❌ Pas de payload",
+                body: "Extension ne trouve pas les apps à bloquer pour: \(expectedKey). Keys: \(allKeys.count)",
+                identifier: "no_payload_\(activity.rawValue)"
+            )
+            return
+        }
+
+        print("🎯 [DeviceActivity] Found payload - Apps: \(payload.apps.count), Categories: \(payload.categories.count)")
+
+        // IMPORTANT: Le blocage s'applique depuis l'extension avec un store nommé
+        let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activity.rawValue))
+
+        // Bloquer les apps sélectionnées
+        if !payload.apps.isEmpty {
+            store.shield.applications = Set(payload.apps)
+            print("🛡️ [DeviceActivity] Blocked \(payload.apps.count) apps")
+            
+            // Notification de confirmation
+            scheduleNotification(
+                title: "🛡️ APPS BLOQUÉES!",
+                body: "\(payload.apps.count) applications sont maintenant bloquées",
+                identifier: "apps_blocked_\(activity.rawValue)"
+            )
+        }
+
+        // Bloquer les catégories sélectionnées  
+        if !payload.categories.isEmpty {
+            store.shield.applicationCategories = .specific(Set(payload.categories))
+            print("🛡️ [DeviceActivity] Blocked \(payload.categories.count) categories")
+            
+            // Notification de confirmation
+            scheduleNotification(
+                title: "🛡️ CATÉGORIES BLOQUÉES!",
+                body: "\(payload.categories.count) catégories sont maintenant bloquées",
+                identifier: "cats_blocked_\(activity.rawValue)"
+            )
+        }
+        
+        if payload.apps.isEmpty && payload.categories.isEmpty {
+            scheduleNotification(
+                title: "⚠️ Rien à bloquer",
+                body: "Payload trouvé mais aucune app/catégorie à bloquer",
+                identifier: "nothing_to_block_\(activity.rawValue)"
+            )
+        }
+        
+        print("✅ [DeviceActivity] Shield applied for \(activity.rawValue)")
+    }
+
+    private func removeShield(for activity: DeviceActivityName) {
+        let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activity.rawValue))
+        
+        // Retirer tous les blocages
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        
+        print("🔓 [DeviceActivity] Shield removed for \(activity.rawValue)")
+    }
     
     // MARK: - Helper Methods
     

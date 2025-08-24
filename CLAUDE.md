@@ -154,3 +154,4 @@ The project is designed to integrate with Firebase for:
 - Must test on iOS Simulator with Screen Time enabled
 - Device Activity permissions must be granted for proper testing
 - Firebase setup required for backend integration (authentication, data storage)
+- to memorize

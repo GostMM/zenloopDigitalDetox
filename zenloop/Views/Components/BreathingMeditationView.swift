@@ -300,6 +300,7 @@ struct BreathingMeditationView: View {
             isSessionActive = false
             cleanupSession()
         }
+        .interactiveDismissDisabled()
         .sheet(isPresented: $showDecisionSheet) {
             BreathingDecisionSheet(
                 onContinue: {

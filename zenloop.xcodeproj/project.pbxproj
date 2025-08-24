@@ -706,6 +706,7 @@
 		DE4F56A42E3D19CC0014A5D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopmonitor/zenloopmonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BJN2XLBCFS;
@@ -733,6 +734,7 @@
 		DE4F56A52E3D19CC0014A5D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = zenloopmonitor/zenloopmonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BJN2XLBCFS;

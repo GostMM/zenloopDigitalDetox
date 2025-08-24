@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import FamilyControls
+import ManagedSettings
 
 struct HeroSection: View {
     let currentState: ZenloopState
@@ -371,6 +373,11 @@ struct ModernQuickActionsRow: View {
     
     var body: some View {
         VStack(spacing: 12) {
+            // Indicateur de sessions programmées (en haut)
+            if zenloopManager.hasActiveScheduledSessions {
+                ScheduledSessionIndicator(zenloopManager: zenloopManager)
+            }
+            
             // Header homogénéisé avec les autres sections
             HStack {
                 HStack(spacing: 12) {
@@ -478,6 +485,13 @@ struct ModernQuickActionsRow: View {
                 )
             }
             .padding(.horizontal, 12)
+            
+            // Section pour afficher les apps/catégories sélectionnées
+            if zenloopManager.selectedAppsCount > 0 {
+                SelectedAppsDisplaySection(zenloopManager: zenloopManager)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+            }
         }
         .padding(.vertical, 4)
         .familyActivityPicker(isPresented: $showingAppSelection, selection: Binding(
@@ -641,6 +655,11 @@ struct ModernActiveChallengeActions: View {
                 Spacer()
             }
             
+            // Section pour afficher les apps/catégories bloquées pendant la session
+            if zenloopManager.selectedAppsCount > 0 {
+                SelectedAppsDisplaySection(zenloopManager: zenloopManager)
+            }
+            
             HStack(spacing: 20) {
                 ModernActionButton(
                     icon: "pause.fill",
@@ -680,6 +699,11 @@ struct ModernPausedActions: View {
                 }
                 
                 Spacer()
+            }
+            
+            // Section pour afficher les apps/catégories bloquées pendant la pause
+            if zenloopManager.selectedAppsCount > 0 {
+                SelectedAppsDisplaySection(zenloopManager: zenloopManager)
             }
             
             HStack(spacing: 20) {
@@ -777,6 +801,192 @@ struct ModernActionButton: View {
                 isPressed = pressing
             }
         }, perform: {})
+    }
+}
+
+// MARK: - Selected Apps Display Section
+
+struct SelectedAppsDisplaySection: View {
+    @ObservedObject var zenloopManager: ZenloopManager
+    
+    var body: some View {
+        let selection = zenloopManager.getAppsSelection()
+        let appTokens = Array(selection.applicationTokens.prefix(6))
+        let categoryTokens = Array(selection.categoryTokens.prefix(6))
+        let totalItems = selection.applicationTokens.count + selection.categoryTokens.count
+        let displayedItems = min(12, totalItems)
+        
+        HStack(spacing: 0) {
+            // Header compact
+            HStack(spacing: 8) {
+                Image(systemName: "shield.checkerboard")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.cyan.opacity(0.8))
+                
+                Text("Apps bloquées")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            
+            Spacer()
+            
+            // Liste horizontale compacte des icônes
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    // Apps (max 4)
+                    ForEach(Array(appTokens.prefix(4)), id: \.self) { token in
+                        CompactAppItemView(token: token, isApp: true)
+                    }
+                    
+                    // Catégories (max 4)
+                    ForEach(Array(categoryTokens.prefix(4)), id: \.self) { token in
+                        CompactCategoryItemView(token: token)
+                    }
+                    
+                    // Indicateur du nombre total si plus d'éléments
+                    if totalItems > 8 {
+                        CompactMoreIndicator(count: totalItems - 8)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.cyan.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.cyan.opacity(0.2), lineWidth: 1)
+                )
+        )
+    }
+    
+}
+
+// MARK: - Compact App Item View
+
+struct CompactAppItemView: View {
+    let token: ApplicationToken
+    let isApp: Bool
+    
+    var body: some View {
+        Label(token)
+            .labelStyle(.iconOnly)
+            .font(.system(size: 16))
+            .frame(width: 24, height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                    )
+            )
+    }
+}
+
+// MARK: - Compact Category Item View
+
+struct CompactCategoryItemView: View {
+    let token: ActivityCategoryToken
+    
+    var body: some View {
+        Label(token)
+            .labelStyle(.iconOnly)
+            .font(.system(size: 16))
+            .frame(width: 24, height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(.purple.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(.purple.opacity(0.3), lineWidth: 1)
+                    )
+            )
+    }
+}
+
+// MARK: - Compact More Indicator
+
+struct CompactMoreIndicator: View {
+    let count: Int
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(.white.opacity(0.1))
+                .frame(width: 24, height: 24)
+            
+            Text("+\(count)")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundColor(.white.opacity(0.8))
+        }
+    }
+}
+
+
+// MARK: - Scheduled Session Indicator
+
+struct ScheduledSessionIndicator: View {
+    @ObservedObject var zenloopManager: ZenloopManager
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icône animée
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.cyan.opacity(0.1))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: "clock.badge")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.cyan)
+            }
+            
+            // Informations de session
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sessions programmées")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                if let nextSession = zenloopManager.nextScheduledSession {
+                    Text("Prochaine: \(nextSession.title) à \(formatTime(nextSession.startTime))")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.cyan.opacity(0.8))
+                } else {
+                    Text("Plusieurs sessions actives")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.cyan.opacity(0.8))
+                }
+            }
+            
+            Spacer()
+            
+            // Badge du nombre de sessions
+            let count = zenloopManager.hasActiveScheduledSessions ? BlockScheduler.shared.getActiveSchedules().count : 0
+            if count > 0 {
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 20, height: 20)
+                    .background(.cyan, in: Circle())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.cyan.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.cyan.opacity(0.2), lineWidth: 1)
+        )
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

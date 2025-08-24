@@ -23,7 +23,7 @@ struct TimerCard: View {
     @State private var showingSchedulePicker = false
     @State private var isExpanded = false // Nouvel état pour l'expansion
     
-    private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 60, 90, 120]
+    private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 55]
     private let availableHours = Array(0...24)
     private let quickDurations = [15, 25, 45, 60, 90, 120, 180, 300, 480, 720, 1440] // jusqu'à 24h
     
@@ -123,6 +123,11 @@ struct TimerCard: View {
             zenloopManager.updateAppsSelectionWithDetails(newSelection)
         }
         .onAppear {
+            // Vérifier et corriger les minutes si nécessaire
+            if !availableMinutes.contains(selectedMinutes) {
+                selectedMinutes = 25 // Valeur par défaut sûre
+            }
+            
             // Charger la sélection existante
             selectedApps = zenloopManager.getAppsSelection()
             // Vérifier si la sélection est réellement valide
@@ -180,24 +185,46 @@ struct TimerCard: View {
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
-                        // Status badge
-                        HStack(spacing: 4) {
-                            if hasSelectedApps {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.green)
-                                
-                                Text(String(localized: "everything_ready"))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.green)
-                            } else {
-                                Image(systemName: "exclamationmark.circle")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                                
-                                Text(String(localized: "select_apps"))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.orange)
+                        // Status badges
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Badge de sélection d'apps
+                            HStack(spacing: 4) {
+                                if hasSelectedApps {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.green)
+                                    
+                                    Text(String(localized: "everything_ready"))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.green)
+                                } else {
+                                    Image(systemName: "exclamationmark.circle")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.orange)
+                                    
+                                    Text(String(localized: "select_apps"))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                            
+                            // Indicateur de sessions programmées
+                            if zenloopManager.hasActiveScheduledSessions {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock.badge")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.cyan)
+                                    
+                                    if let nextSession = zenloopManager.nextScheduledSession {
+                                        Text("Session programmée à \(formatTime(nextSession.startTime))")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(.cyan)
+                                    } else {
+                                        Text("Sessions programmées")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(.cyan)
+                                    }
+                                }
                             }
                         }
                     }
@@ -692,6 +719,10 @@ struct TimerCard: View {
         if let currentIndex = availableMinutes.firstIndex(of: selectedMinutes),
            currentIndex < availableMinutes.count - 1 {
             selectedMinutes = availableMinutes[currentIndex + 1]
+        } else if selectedMinutes == availableMinutes.last {
+            // Si on est au max des minutes (55), passer à 1h 00min
+            selectedMinutes = 0
+            selectedHours += 1
         }
     }
     
@@ -702,6 +733,10 @@ struct TimerCard: View {
         if let currentIndex = availableMinutes.firstIndex(of: selectedMinutes),
            currentIndex > 0 {
             selectedMinutes = availableMinutes[currentIndex - 1]
+        } else if selectedMinutes == 0 && selectedHours > 0 {
+            // Si on est à 0 minutes et qu'on a des heures, passer à l'heure précédente avec 55min
+            selectedMinutes = availableMinutes.last ?? 55
+            selectedHours -= 1
         }
     }
     
@@ -760,6 +795,12 @@ struct TimerCard: View {
                 zenloopManager.startQuickChallenge(duration: duration)
             }
         }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
