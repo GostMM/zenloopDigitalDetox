@@ -10,46 +10,28 @@ import FamilyControls
 import os.log
 import Foundation
 
-struct SharedReportPayload: Codable {
-    let intervalStart: TimeInterval
-    let intervalEnd: TimeInterval
-    let totalSeconds: Double
-    let averageDailySeconds: Double
-    let updatedAt: TimeInterval
-    let topCategories: [SharedReportCategory]
-    let days: [SharedReportDayPoint]
-}
+// MARK: - Extension Types
 
-struct SharedReportCategory: Codable {
-    let name: String
-    let seconds: Double
-    let appCount: Int
-}
-
-struct SharedReportDayPoint: Codable {
-    let dayStart: TimeInterval
-    let seconds: Double
-}
-
-
-// MARK: - Modèles UI (propres à l’extension)
-
-struct ActivityReport {
+struct ExtensionActivityReport {
     let totalDuration: TimeInterval
     let averageDaily: TimeInterval
-    let averageWeekly: TimeInterval   // durée de la période
-    let allApps: [AppUsage]
-    let categories: [CategoryUsage]   // Top 4
+    let averageWeekly: TimeInterval
+    let allApps: [ExtensionAppUsage]
+    let categories: [ExtensionCategoryUsage]
+    let todayScreenSeconds: TimeInterval
+    let todayOffScreenSeconds: TimeInterval
 }
 
-struct AppUsage: Identifiable, Hashable {
+struct ExtensionAppUsage: Identifiable, Hashable {
     let id = UUID()
     let name: String
     let duration: TimeInterval
+    #if os(iOS)
     let token: ApplicationToken
+    #endif
 }
 
-struct CategoryUsage: Identifiable, Hashable {
+struct ExtensionCategoryUsage: Identifiable, Hashable {
     let id = UUID()
     let categoryName: String
     let duration: TimeInterval
@@ -88,6 +70,30 @@ struct CategoryUsage: Identifiable, Hashable {
     }
 }
 
+struct SharedReportPayload: Codable {
+    let intervalStart: TimeInterval
+    let intervalEnd: TimeInterval
+    let totalSeconds: Double
+    let averageDailySeconds: Double
+    let updatedAt: TimeInterval
+    let topCategories: [SharedReportCategory]
+    let days: [SharedReportDayPoint]
+    let todayScreenSeconds: Double
+    let todayOffScreenSeconds: Double
+}
+
+struct SharedReportCategory: Codable {
+    let name: String
+    let seconds: Double
+    let appCount: Int
+}
+
+struct SharedReportDayPoint: Codable {
+    let dayStart: TimeInterval
+    let seconds: Double
+}
+
+
 extension DeviceActivityReport.Context {
     static let totalActivity = Self("TotalActivity")
 }
@@ -95,13 +101,13 @@ extension DeviceActivityReport.Context {
 // MARK: - Report Scene
 
 struct TotalActivityReport: DeviceActivityReportScene {
-    let context: DeviceActivityReport.Context = .totalActivity
-    let content: (ActivityReport) -> TotalActivityView
+    let context: DeviceActivityReport.Context = .init("TotalActivity")
+    let content: (ExtensionActivityReport) -> TotalActivityView
     
     private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
     private let appGroupSuite = "group.com.app.zenloop" // ← adapte si besoin
     
-    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ActivityReport {
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ExtensionActivityReport {
         var totalDuration: TimeInterval = 0
         
         // Agrégations
@@ -166,15 +172,21 @@ struct TotalActivityReport: DeviceActivityReportScene {
         }
         
         // Apps triées
-        let allApps: [AppUsage] = appDurations
-            .map { (token, v) in AppUsage(name: v.name, duration: v.duration, token: token) }
+        let allApps: [ExtensionAppUsage] = appDurations
+            .map { (token, v) in 
+                #if os(iOS)
+                ExtensionAppUsage(name: v.name, duration: v.duration, token: token)
+                #else
+                ExtensionAppUsage(name: v.name, duration: v.duration)
+                #endif
+            }
             .sorted { $0.duration > $1.duration }
         
         // Catégories triées
-        let allCategories: [CategoryUsage] = categoryDurationsByID.map { (catID, secs) in
+        let allCategories: [ExtensionCategoryUsage] = categoryDurationsByID.map { (catID, secs) in
             let name = categoryDisplayNameByID[catID] ?? catID
             let appCount = categoryAppTokensByID[catID]?.count ?? 0
-            return CategoryUsage(categoryName: name, duration: secs, appCount: appCount)
+            return ExtensionCategoryUsage(categoryName: name, duration: secs, appCount: appCount)
         }
         .sorted { $0.duration > $1.duration }
         
@@ -195,6 +207,12 @@ struct TotalActivityReport: DeviceActivityReportScene {
         let start = globalStart ?? Date()
         let end = globalEnd ?? start
         
+        // Calcul du temps d'écran et hors écran d'aujourd'hui
+        let todayStart = cal.startOfDay(for: Date())
+        let todayScreen = dailyDurations[todayStart] ?? 0
+        let elapsedToday = max(0, Date().timeIntervalSince(todayStart))
+        let todayOff = max(0, elapsedToday - todayScreen)
+        
         // — App Group JSON partagé —
         let payload = SharedReportPayload(
             intervalStart: start.timeIntervalSince1970,
@@ -207,11 +225,13 @@ struct TotalActivityReport: DeviceActivityReportScene {
             },
             days: daysSorted.map {
                 SharedReportDayPoint(dayStart: $0.key.timeIntervalSince1970, seconds: $0.value)
-            }
+            },
+            todayScreenSeconds: todayScreen,
+            todayOffScreenSeconds: todayOff
         )
         persistSharedReport(payload)
         
-        // Legacy miroir simple (si tu l’utilisais côté app)
+        // Legacy miroir simple (si tu l'utilisais côté app)
         persistLegacyMirror(total: totalDuration,
                             averageDaily: averageDaily,
                             periodTotal: end.timeIntervalSince(start),
@@ -219,13 +239,16 @@ struct TotalActivityReport: DeviceActivityReportScene {
         
         logger.info("✅ [REPORT] total=\(totalDuration, privacy: .public)s avgDaily=\(averageDaily, privacy: .public)s days=\(dayCount, privacy: .public)")
         logger.info("📊 [REPORT] apps=\(allApps.count, privacy: .public) topCats=\(top4.count, privacy: .public)")
+        logger.info("📅 [REPORT] todayScreen=\(todayScreen, privacy: .public)s todayOff=\(todayOff, privacy: .public)s")
         
-        return ActivityReport(
+        return ExtensionActivityReport(
             totalDuration: totalDuration,
             averageDaily: averageDaily,
             averageWeekly: end.timeIntervalSince(start),
             allApps: allApps,
-            categories: top4
+            categories: top4,
+            todayScreenSeconds: todayScreen,
+            todayOffScreenSeconds: todayOff
         )
     }
 }
@@ -306,7 +329,7 @@ private func persistSharedReport(_ payload: SharedReportPayload) {
 private func persistLegacyMirror(total: TimeInterval,
                                  averageDaily: TimeInterval,
                                  periodTotal: TimeInterval,
-                                 topApps: [AppUsage]) {
+                                 topApps: [ExtensionAppUsage]) {
     let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
     guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
         logger.error("❌ [REPORT] Legacy: App Group indisponible")

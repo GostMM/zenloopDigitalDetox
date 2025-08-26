@@ -28,6 +28,9 @@ struct zenloopApp: App {
                         // Demander autorisation Screen Time de manière asynchrone
                         await AppUsageManager.shared.requestAuthorization()
                         
+                        // NOUVEAU: Précharger les données stats en arrière-plan
+                        preloadStatsData()
+                        
                         // TEST: Déclencher l'extension après 3 secondes pour voir si elle répond
                         try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 secondes
                         testExtensionResponse()
@@ -143,6 +146,25 @@ struct zenloopApp: App {
             if let error = error {
                 print("Erreur notification app: \(error)")
             }
+        }
+    }
+    
+    // NOUVEAU: Préchargement des données stats
+    func preloadStatsData() {
+        Task(priority: .background) {
+            print("📊 [PRELOAD] Début préchargement données stats...")
+            
+            // Précharger les UserDefaults des statistiques
+            let appGroup = "group.com.app.zenloop"
+            let reportKey = "deviceActivityReport"
+            let savedKey = "zenloop.savedSeconds"
+            
+            // Charger les données partagées en arrière-plan pour les mettre en cache
+            let shared = UserDefaults(suiteName: appGroup) ?? UserDefaults.standard
+            let _ = shared.data(forKey: reportKey) // Charge en cache
+            let _ = UserDefaults.standard.double(forKey: savedKey) // Charge en cache
+            
+            print("📊 [PRELOAD] Données stats UserDefaults préchargées")
         }
     }
 }

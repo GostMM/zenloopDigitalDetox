@@ -502,8 +502,10 @@
 // Notifications de Session
 "session_starting_soon" = "Session bientôt";
 "session_starts_in_15_minutes" = "%@ démarre dans 15 minutes. Prépare-toi !";
-"session_starting_now" = "Session maintenant !";
+"session_starts_in_5_minutes" = "%@ démarre dans 5 minutes. C'est bientôt !";
 "session_starts_in_2_minutes" = "%@ démarre dans 2 minutes. C'est l'heure de focus !";
+"session_starts_in_1_minute" = "%@ démarre dans 1 minute. Prépare-toi maintenant !";
+"session_starting_now" = "Session maintenant !";
 "focus_time" = "C'est Focus Time !";
 "session_ready_to_start" = "%@ est prêt à commencer ! Tape pour débuter ta session focus.";
 "session_progress_halfway" = "À mi-parcours !";

@@ -19,6 +19,15 @@ struct SelectionPayload: Codable {
     let categories: [ActivityCategoryToken]
 }
 
+struct SessionInfo: Codable {
+    let sessionId: String
+    let title: String
+    let duration: TimeInterval
+    let startTime: Date
+    let endTime: Date
+    let createdAt: Date
+}
+
 class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     
     override init() {
@@ -48,6 +57,9 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         
         // Logique quand un défi commence
         print("🎯 [DeviceActivity] Défi commencé: \(activity)")
+        
+        // CRUCIAL: Signaler à l'app qu'une session doit être activée
+        activateSessionInMainApp(for: activity)
         
         // Notifier l'app principale
         notifyMainApp(event: "intervalDidStart", activity: activity.rawValue)
@@ -315,6 +327,71 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         defaults.synchronize()
         
         print("🚫 [DeviceActivity] Tentative d'ouverture enregistrée: \(appName ?? "app inconnue")")
+    }
+    
+    // MARK: - Session Activation
+    
+    private func activateSessionInMainApp(for activity: DeviceActivityName) {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        // Récupérer les infos de session depuis l'App Group
+        let sessionKey = "session_info_\(activity.rawValue)"
+        
+        guard let sessionData = suite?.data(forKey: sessionKey),
+              let sessionInfo = try? JSONDecoder().decode(SessionInfo.self, from: sessionData) else {
+            print("⚠️ [DeviceActivity] No session info found for \(activity.rawValue)")
+            return
+        }
+        
+        // NOUVEAU: Gestion des sessions multiples - utiliser un système de queue
+        let activationId = "\(activity.rawValue)_\(Date().timeIntervalSince1970)"
+        
+        // Créer un challenge actif avec ID unique
+        let activeChallenge: [String: Any] = [
+            "id": sessionInfo.sessionId,
+            "title": sessionInfo.title,
+            "duration": sessionInfo.duration,
+            "startTime": Date().timeIntervalSince1970, // Commence maintenant
+            "isActive": true,
+            "isScheduled": true, // Marquer comme session programmée
+            "originalStartTime": sessionInfo.startTime.timeIntervalSince1970,
+            "activationId": activationId, // ID unique pour éviter les collisions
+            "extensionTriggeredAt": Date().timeIntervalSince1970
+        ]
+        
+        // NOUVEAU: Ajouter à une queue au lieu d'écraser
+        addSessionToActivationQueue(session: activeChallenge, activationId: activationId, suite: suite!)
+        
+        print("🔥 [DeviceActivity] Session queued for activation: \(sessionInfo.title) (ID: \(activationId))")
+    }
+    
+    private func addSessionToActivationQueue(session: [String: Any], activationId: String, suite: UserDefaults) {
+        // Récupérer la queue existante
+        var activationQueue = suite.array(forKey: "extension_activation_queue") as? [[String: Any]] ?? []
+        
+        // Ajouter la nouvelle session
+        activationQueue.append(session)
+        
+        // Nettoyer les anciennes activations (> 5 minutes)
+        let now = Date().timeIntervalSince1970
+        activationQueue = activationQueue.filter { sessionData in
+            if let triggerTime = sessionData["extensionTriggeredAt"] as? Double {
+                return (now - triggerTime) < 300 // 5 minutes
+            }
+            return false
+        }
+        
+        // Garder seulement les 5 dernières activations pour éviter l'overflow
+        if activationQueue.count > 5 {
+            activationQueue = Array(activationQueue.suffix(5))
+        }
+        
+        // Sauvegarder la queue mise à jour
+        suite.set(activationQueue, forKey: "extension_activation_queue")
+        suite.set(Date().timeIntervalSince1970, forKey: "extension_queue_updated_at")
+        suite.synchronize()
+        
+        print("📋 [DeviceActivity] Session added to queue. Total queued: \(activationQueue.count)")
     }
 }
 

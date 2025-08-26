@@ -18,6 +18,8 @@ struct SharedReportPayload: Codable {
     let updatedAt: TimeInterval
     let topCategories: [SharedReportCategory]
     let days: [SharedReportDayPoint]
+    let todayScreenSeconds: Double
+    let todayOffScreenSeconds: Double
 }
 
 struct SharedReportCategory: Codable {

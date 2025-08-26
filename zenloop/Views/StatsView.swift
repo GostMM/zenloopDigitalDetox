@@ -10,7 +10,6 @@ import Charts
 import DeviceActivity
 import FamilyControls
 import Foundation
-import UIKit // haptique léger
 
 // MARK: - Local aliases pour compatibilité
 private typealias SRPCategory = SharedReportCategory
@@ -28,6 +27,8 @@ final class SharedActivityStore: ObservableObject {
     @Published var topCategories: [CategorySlice] = []
     @Published var updatedAt: Date = Date()
     @Published var savedSeconds: Double = 0
+    @Published var todayScreenSeconds: Double = 0
+    @Published var todayOffScreenSeconds: Double = 0
     
     private let appGroup = AppGroupConfig.suiteName
     private let reportKey = AppGroupConfig.Keys.deviceActivityReport
@@ -46,13 +47,15 @@ final class SharedActivityStore: ObservableObject {
                 totalSeconds        = p.totalSeconds
                 averageDailySeconds = p.averageDailySeconds
                 updatedAt           = Date(timeIntervalSince1970: p.updatedAt)
+                todayScreenSeconds  = p.todayScreenSeconds
+                todayOffScreenSeconds = p.todayOffScreenSeconds
                 days = p.days.map { .init(date: Date(timeIntervalSince1970: $0.dayStart), seconds: $0.seconds) }
                 topCategories = p.topCategories.map { .init(name: $0.name, seconds: $0.seconds, appCount: $0.appCount) }
             } else {
+                // Si pas de données de l'extension, tout à zéro
                 resetToDefaults()
             }
         } catch {
-            print("⚠️ [STATS] Erreur chargement données partagées: \(error)")
             resetToDefaults()
         }
         
@@ -64,10 +67,13 @@ final class SharedActivityStore: ObservableObject {
         interval = .init(start: Calendar.current.startOfDay(for: Date()), end: Date())
         totalSeconds = 0
         averageDailySeconds = 0
+        todayScreenSeconds = 0
+        todayOffScreenSeconds = 0
         days = []
         topCategories = []
         updatedAt = Date()
     }
+    
     
     func addSaved(seconds: Double) {
         let v = max(0, savedSeconds + seconds)
@@ -76,8 +82,53 @@ final class SharedActivityStore: ObservableObject {
     }
 }
 
-// MARK: - Layout constants
-private enum UIx { static let hPad: CGFloat = 16; static let sectionGap: CGFloat = 14 }
+// MARK: - Design System Moderne
+private enum DS {
+    // Spacing parfait
+    static let spacing: (xs: CGFloat, s: CGFloat, m: CGFloat, l: CGFloat, xl: CGFloat) = (6, 12, 20, 32, 48)
+    static let padding: CGFloat = 16
+    static let cardPadding: CGFloat = 20
+    
+    // Typography hiérarchie
+    static let heroSize: CGFloat = 28
+    static let titleSize: CGFloat = 20
+    static let headlineSize: CGFloat = 16
+    static let bodySize: CGFloat = 14
+    static let captionSize: CGFloat = 12
+    static let labelSize: CGFloat = 10
+    
+    // Rayons cohérents
+    static let radius: (s: CGFloat, m: CGFloat, l: CGFloat, xl: CGFloat) = (8, 12, 16, 24)
+    
+    // Palette moderne wellness
+    struct Color {
+        // Textes et éléments principaux
+        static let text = SwiftUI.Color.white
+        static let textSecondary = SwiftUI.Color.white.opacity(0.8)
+        static let textTertiary = SwiftUI.Color.white.opacity(0.6)
+        
+        // Couleurs thématiques modernes
+        static let screenTime = SwiftUI.Color(red: 0.3, green: 0.7, blue: 1.0)      // Bleu ciel
+        static let focusTime = SwiftUI.Color(red: 0.2, green: 0.8, blue: 0.4)      // Vert nature
+        static let savedTime = SwiftUI.Color(red: 1.0, green: 0.7, blue: 0.2)      // Orange doré
+        static let productivity = SwiftUI.Color(red: 0.4, green: 0.6, blue: 1.0)   // Bleu productivité
+        static let social = SwiftUI.Color(red: 0.9, green: 0.3, blue: 0.8)         // Rose social
+        static let entertainment = SwiftUI.Color(red: 0.8, green: 0.4, blue: 1.0)  // Violet divertissement
+        static let education = SwiftUI.Color(red: 0.2, green: 0.9, blue: 0.7)      // Turquoise éducation
+        
+        // Backgrounds et surfaces
+        static let cardBg = SwiftUI.Color.white.opacity(0.08)
+        static let cardBgActive = SwiftUI.Color.white.opacity(0.12)
+        static let sectionBg = SwiftUI.Color.white.opacity(0.04)
+        static let divider = SwiftUI.Color.white.opacity(0.12)
+        
+        // États et accents
+        static let accent = SwiftUI.Color(red: 0.2, green: 0.8, blue: 1.0)
+        static let success = SwiftUI.Color(red: 0.2, green: 0.9, blue: 0.4)
+        static let warning = SwiftUI.Color(red: 1.0, green: 0.8, blue: 0.2)
+        static let error = SwiftUI.Color(red: 1.0, green: 0.4, blue: 0.4)
+    }
+}
 
 // MARK: - StatsView
 
@@ -86,20 +137,51 @@ struct StatsView: View {
     @StateObject private var screenTimeManager = RealScreenTimeManager()
     @StateObject private var store = SharedActivityStore()
     
-    @Namespace private var navAnim
-    @State private var show = false
-    @State private var selected: Screen = .apple
     @State private var selectedPeriod: TimePeriod = .today
     @State private var reportInstanceID = UUID()
     @State private var hasInitiallyLoaded = false
     
-    enum Screen: String, CaseIterable, Identifiable {
-        case apple = "apple", overview = "overview", analytics = "analytics"
+    // Navigation dynamique
+    @State private var activeSection: StatsSection = .overview
+    @State private var showSections = false
+    
+    
+    enum StatsSection: String, CaseIterable, Identifiable {
+        case overview = "overview"
+        case apps = "apps"
+        case categories = "categories"
+        case patterns = "patterns"
+        
         var id: String { rawValue }
+        
+        var title: String {
+            switch self {
+            case .overview: return "Vue d'ensemble"
+            case .apps: return "Applications"
+            case .categories: return "Catégories"
+            case .patterns: return "Tendances"
+            }
+        }
+        
         var icon: String {
-            switch self { case .apple: "chart.bar.xaxis"; case .overview: "rectangle.grid.2x2"; case .analytics: "waveform.path.ecg" }
+            switch self {
+            case .overview: return "chart.pie.fill"
+            case .apps: return "square.grid.3x3.fill"
+            case .categories: return "folder.fill"
+            case .patterns: return "chart.line.uptrend.xyaxis"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .overview: return DS.Color.accent
+            case .apps: return DS.Color.screenTime
+            case .categories: return DS.Color.social
+            case .patterns: return DS.Color.productivity
+            }
         }
     }
+    
     enum TimePeriod: String, CaseIterable, Identifiable {
         case today = "today", week = "7_days", month = "30_days"
         var id: String { rawValue }
@@ -127,23 +209,46 @@ struct StatsView: View {
         ZStack {
             OptimizedBackground(currentState: zenloopManager.currentState).ignoresSafeArea()
             
-            VStack(spacing: 8) {
-                header
-                controlRow
-                contentPages
+            VStack(spacing: 0) {
+                // Header moderne avec métriques importantes
+                modernHeader
+                
+                // Navigation par onglets
+                sectionTabs
+                
+                // Contenu de la section active
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: DS.spacing.m) {
+                        if screenTimeManager.isAuthorized {
+                            sectionContent
+                                .padding(.top, DS.spacing.s)
+                        } else {
+                            unauthorizedView
+                                .padding(.top, DS.spacing.xl)
+                        }
+                    }
+                    .padding(.horizontal, DS.padding)
+                    .padding(.bottom, DS.spacing.xl)
+                }
             }
+            
+            // Extension invisible pour générer les données d'aujourd'hui
+            DeviceActivityReport(screenTimeManager.reportContext, filter: screenTimeManager.currentFilter)
+                .frame(width: 0, height: 0)
+                .opacity(0)
+                .id("totalactivity-\(reportInstanceID)")
         }
         .onAppear {
-            withAnimation(.spring(response: 0.9, dampingFraction: 0.85)) { show = true }
+            withAnimation(.easeOut(duration: 0.8)) { 
+                showSections = true 
+            }
             screenTimeManager.checkAuthorization()
             screenTimeManager.selectedPeriod = selectedPeriod
             
-            // Chargement initial avec retry automatique
             if !hasInitiallyLoaded {
                 hasInitiallyLoaded = true
                 loadInitialData()
             } else {
-                // Si déjà chargé, juste un refresh léger
                 store.load()
             }
         }
@@ -154,108 +259,299 @@ struct StatsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    // MARK: - Header (compact)
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "statistics"))
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
-                    .opacity(show ? 1 : 0)
-                Text("\(dateRange(store.interval)) • \(lastUpdated(store.updatedAt))")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.65))
-                    .lineLimit(1)
-                    .opacity(show ? 1 : 0)
-            }
-            Spacer()
-            Button {
-                refreshReport()
-                store.load()
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    // MARK: - Header Moderne avec métrique swipeable
+    private var modernHeader: some View {
+        VStack(spacing: DS.spacing.m) {
+            // Titre et contrôles
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Statistiques")
+                        .font(.system(size: DS.heroSize, weight: .bold, design: .rounded))
+                        .foregroundColor(DS.Color.text)
+                    
+                    Text(formatPeriodRange())
+                        .font(.system(size: DS.captionSize, weight: .medium))
+                        .foregroundColor(DS.Color.textSecondary)
+                }
                 
-                // Retry intelligent si pas de données après 0.5s
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if store.totalSeconds == 0 && store.days.isEmpty {
-                        print("🔄 [STATS] Refresh auto-retry")
-                        store.load()
-                        refreshReport()
-                    }
+                Spacer()
+                
+                // Sélecteur de période moderne
+                periodSelector
+                
+                // Bouton refresh
+                Button(action: refreshWithHaptic) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: DS.bodySize, weight: .semibold))
+                        .foregroundColor(DS.Color.text)
+                        .frame(width: 36, height: 36)
+                        .background(DS.Color.cardBg)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.radius.s))
                 }
+            }
+            
+            // Métrique principale compacte avec vraies données
+            DeviceActivityReport(.init("Metrics"), filter: screenTimeManager.currentFilter)
+                .id("metrics-\(reportInstanceID)")
+                .frame(height: 110)
+        }
+        .padding(.horizontal, DS.padding)
+        .padding(.top, DS.spacing.s)
+        .opacity(showSections ? 1 : 0)
+        .animation(.easeOut(duration: 0.6), value: showSections)
+    }
+    
+    // MARK: - Sélecteur de période moderne
+    private var periodSelector: some View {
+        HStack(spacing: 4) {
+            ForEach(TimePeriod.allCases) { period in
+                Button(action: { selectedPeriod = period }) {
+                    Text(periodLabel(period))
+                        .font(.system(size: DS.labelSize, weight: .semibold))
+                        .foregroundColor(selectedPeriod == period ? .black : DS.Color.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: DS.radius.s)
+                                .fill(selectedPeriod == period ? DS.Color.text : Color.clear)
+                        )
+                }
+                .animation(.easeInOut(duration: 0.2), value: selectedPeriod)
+            }
+        }
+        .padding(4)
+        .background(DS.Color.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: DS.radius.s))
+    }
+    
+    // MARK: - Onglets de navigation (plus bas, sans fond)
+    private var sectionTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DS.spacing.s) {
+                ForEach(StatsSection.allCases) { section in
+                    SectionTab(
+                        section: section,
+                        isActive: activeSection == section,
+                        action: { 
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                activeSection = section
+                            }
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, DS.padding)
+        }
+        .padding(.top, DS.spacing.l) // Plus d'espace en haut
+        .padding(.bottom, DS.spacing.s)
+    }
+    
+    // MARK: - Contenu des sections
+    @ViewBuilder
+    private var sectionContent: some View {
+        switch activeSection {
+        case .overview:
+            overviewSection
+        case .apps:
+            appsSection
+        case .categories:
+            categoriesSection
+        case .patterns:
+            patternsSection
+        }
+    }
+    
+    private var overviewSection: some View {
+        VStack(spacing: DS.spacing.m) {
+            // Graphique d'évolution récente
+            ModernCard(title: "Évolution récente", icon: "chart.line.uptrend.xyaxis", color: DS.Color.productivity) {
+                WeeklyPattern(days: store.days)
+            }
+            
+            // Insights rapides
+            HStack(spacing: DS.spacing.s) {
+                QuickInsight(
+                    title: "Moyenne/jour",
+                    value: formatTime(store.averageDailySeconds),
+                    icon: "calendar.day.timeline.left",
+                    color: DS.Color.accent
+                )
+                
+                QuickInsight(
+                    title: "Progression",
+                    value: savedPct > 0 ? "+\(savedPct)%" : "0%",
+                    icon: "arrow.up.right.circle.fill",
+                    color: DS.Color.success
+                )
+            }
+        }
+    }
+    
+    private var appsSection: some View {
+        VStack(spacing: DS.spacing.m) {
+            ModernCard(title: "Applications les plus utilisées", icon: "square.grid.3x3.fill", color: DS.Color.screenTime) {
+                DeviceActivityReport(.init("TopApps"), filter: screenTimeManager.currentFilter)
+                    .id("topapps-\(reportInstanceID)")
+                    .frame(minHeight: 160)
+            }
+            
+            ModernCard(title: "Résumé des applications", icon: "app.badge.fill", color: DS.Color.focusTime) {
+                DeviceActivityReport(.init("AppSummary"), filter: screenTimeManager.currentFilter)
+                    .id("appsummary-\(reportInstanceID)")
+                    .frame(minHeight: 120)
+            }
+        }
+    }
+    
+    private var categoriesSection: some View {
+        VStack(spacing: DS.spacing.m) {
+            ModernCard(title: "Distribution par catégories", icon: "chart.pie.fill", color: DS.Color.social) {
+                DeviceActivityReport(.init("CategoryDistribution"), filter: screenTimeManager.currentFilter)
+                    .id("categories-\(reportInstanceID)")
+                    .frame(minHeight: 180)
+            }
+            
+            ModernCard(title: "Top catégories", icon: "folder.badge.plus", color: DS.Color.entertainment) {
+                DeviceActivityReport(.init("TopCategoriesCompact"), filter: screenTimeManager.currentFilter)
+                    .id("topcategories-\(reportInstanceID)")
+                    .frame(minHeight: 100)
+            }
+        }
+    }
+    
+    private var patternsSection: some View {
+        VStack(spacing: DS.spacing.m) {
+            ModernCard(title: "Usage quotidien", icon: "chart.bar.fill", color: DS.Color.productivity) {
+                DeviceActivityReport(.init("DailyUsage"), filter: screenTimeManager.currentFilter)
+                    .id("dailyusage-\(reportInstanceID)")
+                    .frame(minHeight: 160)
+            }
+            
+            ModernCard(title: "Semaine vs Weekend", icon: "calendar.badge.clock", color: DS.Color.accent) {
+                DeviceActivityReport(.init("TimeComparison"), filter: screenTimeManager.currentFilter)
+                    .id("timecomparison-\(reportInstanceID)")
+                    .frame(minHeight: 140)
+            }
+        }
+    }
+    
+    // MARK: - Vue non autorisée moderne
+    private var unauthorizedView: some View {
+        VStack(spacing: DS.spacing.l) {
+            // Icône et titre
+            VStack(spacing: DS.spacing.m) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundColor(DS.Color.accent)
+                
+                VStack(spacing: DS.spacing.s) {
+                    Text("Débloquer les statistiques")
+                        .font(.system(size: DS.titleSize, weight: .bold, design: .rounded))
+                        .foregroundColor(DS.Color.text)
+                    
+                    Text("Autorise l'accès au temps d'écran pour découvrir tes habitudes numériques détaillées.")
+                        .font(.system(size: DS.bodySize, weight: .medium))
+                        .foregroundColor(DS.Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            
+            // Bouton d'autorisation moderne
+            Button {
+                Task { await screenTimeManager.requestAuthorization() }
             } label: {
-                Image(systemName: "arrow.clockwise")
-                    .foregroundColor(.white)
-                    .frame(width: 30, height: 30)
-                    .background(.white.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            .accessibilityLabel(String(localized: "refresh"))
-        }
-        .padding([.leading, .trailing], 20)
-        .padding(.top, 10)
-        .animation(.easeOut(duration: 0.6), value: show)
-    }
-    
-    // MARK: - Controls row (période + micro-nav icônes)
-    private var controlRow: some View {
-        HStack(spacing: 10) {
-            Picker("", selection: $selectedPeriod) {
-                ForEach(TimePeriod.allCases) { p in Text(LocalizedStringKey(p.rawValue)).tag(p) }
-            }
-            .pickerStyle(.segmented)
-            
-            Spacer(minLength: 8)
-            
-            MicroNav(selected: $selected, namespace: navAnim)
-            
-            if !screenTimeManager.isAuthorized {
-                Button {
-                    Task { await screenTimeManager.requestAuthorization() }
-                } label: {
-                    Image(systemName: "lock.open")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 28, height: 28)
-                        .background(.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .accessibilityLabel(String(localized: "authorize_screen_time"))
+                HStack(spacing: DS.spacing.s) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: DS.bodySize, weight: .semibold))
+                    
+                    Text("Autoriser l'accès")
+                        .font(.system(size: DS.bodySize, weight: .semibold))
                 }
+                .foregroundColor(.black)
+                .padding(.horizontal, DS.spacing.l)
+                .padding(.vertical, DS.spacing.m)
+                .background(DS.Color.text)
+                .clipShape(RoundedRectangle(cornerRadius: DS.radius.m))
+                .shadow(color: DS.Color.accent.opacity(0.3), radius: 8, x: 0, y: 4)
             }
         }
-        .padding([.leading, .trailing], 20)
+        .padding(DS.cardPadding)
+        .background(
+            LinearGradient(
+                colors: [DS.Color.accent.opacity(0.1), DS.Color.cardBg],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.radius.l))
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.radius.l)
+                .stroke(DS.Color.accent.opacity(0.2), lineWidth: 1)
+        )
     }
     
-    // MARK: - Content (TabView pages + swipe)
-    private var contentPages: some View {
-        TabView(selection: $selected) {
-            // Apple
-            AppleScreen(
-                isAuthorized: screenTimeManager.isAuthorized,
-                context: screenTimeManager.reportContext,
-                filter: screenTimeManager.currentFilter,
-                reportInstanceID: reportInstanceID
-            )
-            .tag(Screen.apple)
-            
-            // Aperçu
-            OverviewScreen(
-                totalSeconds: store.totalSeconds,
-                offScreenSeconds: offScreenSeconds,
-                savedSeconds: store.savedSeconds,
-                savedPct: savedPct
-            )
-            .tag(Screen.overview)
-            
-            // Analyses
-            AnalyticsScreen(days: store.days, slices: store.topCategories)
-                .tag(Screen.analytics)
+    // MARK: - Helper Methods
+    private func periodLabel(_ period: TimePeriod) -> String {
+        switch period {
+        case .today: return "Auj."
+        case .week: return "7j"
+        case .month: return "30j"
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .animation(.easeInOut(duration: 0.18), value: selected)
+    }
+    private func refreshReport() { reportInstanceID = UUID() }
+    
+    private func refreshWithHaptic() {
+        // Add haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        refreshReport()
+        store.load()
+        
+        // Intelligent retry
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if store.totalSeconds == 0 && store.days.isEmpty {
+                store.load()
+                refreshReport()
+            }
+        }
     }
     
-    // MARK: - Helpers
-    private func refreshReport() { reportInstanceID = UUID() }
+    private func toggleSection(_ sectionId: String) {
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            // Cette fonction n'est plus utilisée avec la nouvelle navigation
+        }
+    }
+    
+    private func calculateScreenTimeTrend() -> TrendDirection {
+        guard store.days.count >= 2 else { return .neutral }
+        let recent = store.days.suffix(3).reduce(0) { $0 + $1.seconds }
+        let previous = store.days.dropLast(3).suffix(3).reduce(0) { $0 + $1.seconds }
+        
+        if recent > previous * 1.1 { return .negative }
+        if recent < previous * 0.9 { return .positive }
+        return .neutral
+    }
+    
+    private func formatTime(_ duration: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = [.pad]
+        return formatter.string(from: max(0, duration)) ?? "0m"
+    }
+    
+    private func formatPeriodRange() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        let start = formatter.string(from: store.interval.start)
+        let end = formatter.string(from: store.interval.end)
+        return start == end ? start : "\(start) - \(end)"
+    }
+    
+    // Cette section n'est plus nécessaire - les métriques sont dans le header
     
     private func loadInitialData() {
         // Chargement immédiat
@@ -268,7 +564,6 @@ struct StatsView: View {
                 retryCount += 1
                 let delay = Double(retryCount) * 0.5 // 0.5s, 1s, 1.5s
                 
-                print("📊 [STATS] Retry \(retryCount)/3 dans \(delay)s")
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 
                 await MainActor.run {
@@ -276,278 +571,316 @@ struct StatsView: View {
                     refreshReport()
                 }
             }
-            
-            if store.totalSeconds > 0 || !store.days.isEmpty {
-                print("✅ [STATS] Données chargées après \(retryCount) tentatives")
-            } else {
-                print("⚠️ [STATS] Aucune donnée disponible après 3 tentatives")
-            }
         }
     }
     private func lastUpdated(_ date: Date) -> String {
-        RelativeDateTimeFormatter.cached.localizedString(for: date, relativeTo: Date())
-            .replacingOccurrences(of: "il y a ", with: String(localized: "updated_maj"))
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = .current
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+            .replacingOccurrences(of: "il y a ", with: "mis à jour ")
     }
+    
     private func dateRange(_ i: DateInterval) -> String {
-        let s = DateFormatter.dayMonth.string(from: i.start)
-        let e = DateFormatter.dayMonth.string(from: i.end)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        let s = formatter.string(from: i.start)
+        let e = formatter.string(from: i.end)
         return s == e ? s : "\(s) – \(e)"
     }
 }
 
-// MARK: - Micro Nav (icônes seules, 28pt)
-
-private struct MicroNav: View {
-    @Binding var selected: StatsView.Screen
-    var namespace: Namespace.ID
+// MARK: - Supporting Types
+enum TrendDirection {
+    case positive, negative, neutral
     
-    private let items: [StatsView.Screen] = [.apple, .overview, .analytics]
-    private let size: CGFloat = 28
-    private let paddingH: CGFloat = 6
-    private let paddingV: CGFloat = 4
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(items) { s in
-                navButton(for: s)
-            }
+    var color: Color {
+        switch self {
+        case .positive: return DS.Color.success
+        case .negative: return DS.Color.error
+        case .neutral: return DS.Color.textTertiary
         }
-        .padding(.horizontal, paddingH)
-        .padding(.vertical, paddingV)
-        .background(.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
     }
     
-    @ViewBuilder
-    private func navButton(for s: StatsView.Screen) -> some View {
-        Button {
-            selected = s
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        } label: {
-            ZStack {
-                if selected == s {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.white.opacity(0.16))
-                        .matchedGeometryEffect(id: "micro-pill", in: namespace)
-                        .frame(height: size)
-                        .transition(.opacity)
-                }
-                Image(systemName: s.icon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(selected == s ? 1 : 0.85))
-                    .frame(width: size, height: size)
-            }
-        }
-        .buttonStyle(.plain)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
-        .accessibilityLabel(LocalizedStringKey(s.rawValue))
-    }
-}
-
-// MARK: - Screens
-
-// 1) Apple — pas de card, scroll natif du rapport
-private struct AppleScreen: View {
-    let isAuthorized: Bool
-    let context: DeviceActivityReport.Context
-    let filter: DeviceActivityFilter
-    let reportInstanceID: UUID
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            if isAuthorized {
-                DeviceActivityReport(context, filter: filter)
-                    .id(reportInstanceID)                // refresh uniquement quand période change
-                    .frame(minHeight: 340)
-                    .padding([.leading, .trailing], 20)
-            } else {
-                VStack(spacing: 8) {
-                    Image(systemName: "chart.bar.xaxis").font(.system(size: 28))
-                    Text(String(localized: "authorize_screen_time_detail"))
-                        .font(.footnote).foregroundColor(.white.opacity(0.7))
-                }
-                .frame(maxWidth: .infinity, minHeight: 120)
-                .padding([.leading, .trailing], 20)
-                .background(.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding([.leading, .trailing], 20)
-            }
+    var icon: String {
+        switch self {
+        case .positive: return "arrow.up.right"
+        case .negative: return "arrow.down.right"
+        case .neutral: return "minus"
         }
     }
 }
 
-// 2) Aperçu — métriques + insight
-private struct OverviewScreen: View {
-    let totalSeconds: Double
-    let offScreenSeconds: Double
-    let savedSeconds: Double
-    let savedPct: Int
+enum DataSection: String, CaseIterable {
+    case apps = "apps"
+    case screenTime = "screen_time"
+    case categories = "categories"
     
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: UIx.sectionGap) {
-                SectionBlock(title: String(localized: "overview")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 10)], spacing: 10) {
-                        MetricTile(title: String(localized: "screen"), value: DateComponentsFormatter.cached.string(from: totalSeconds) ?? "0 min", icon: "iphone")
-                        MetricTile(title: String(localized: "off_screen"), value: DateComponentsFormatter.cached.string(from: offScreenSeconds) ?? "0 min", icon: "moon")
-                        MetricTile(title: String(localized: "saved"), value: DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min", icon: "shield.lefthalf.filled")
-                    }
-                    if savedSeconds > 0 {
-                        InsightTile(text: String(localized: "you_saved_time_percent", defaultValue: "You saved \(DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min") (\(savedPct)%) during this period.", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: DateComponentsFormatter.cached.string(from: savedSeconds) ?? "0 min").replacingOccurrences(of: "%d", with: "\(savedPct)"),
-                                    icon: "lightbulb")
-                    }
-                }
-                .padding([.leading, .trailing], UIx.hPad)
-            }
-            .padding(.top, 6)
-            .padding(.bottom, 8)
+    var title: String { String(localized: String.LocalizationValue(rawValue)) }
+    var icon: String {
+        switch self {
+        case .apps: return "apps.iphone"
+        case .screenTime: return "clock.badge"
+        case .categories: return "chart.pie"
+        }
+    }
+    var context: String {
+        switch self {
+        case .apps: return "AppList"
+        case .screenTime: return "ScreenTimeMetrics"
+        case .categories: return "CategoryBreakdown"
         }
     }
 }
 
-// 3) Analyses — tendance + top catégories
-private struct AnalyticsScreen: View {
-    let days: [SharedActivityStore.DayPoint]
-    let slices: [SharedActivityStore.CategorySlice]
-    
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: UIx.sectionGap) {
-                SectionBlock(title: String(localized: "analytics")) {
-                    VStack(spacing: 10) {
-                        MiniChartCard(title: String(localized: "trend")) { Sparkline(days: days) }
-                        MiniChartCard(title: String(localized: "top_categories")) { TopCategoriesMini(slices: slices) }
-                    }
-                }
-                .padding([.leading, .trailing], UIx.hPad)
-            }
-            .padding(.top, 6)
-            .padding(.bottom, 8)
-        }
+// MARK: - Scroll Offset Preference Key
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
-// MARK: - UI Components
+// MARK: - Animation Extensions
+extension Animation {
+    static func easeOutCubic(duration: Double) -> Animation {
+        .timingCurve(0.33, 1, 0.68, 1, duration: duration)
+    }
+}
 
-private struct SectionBlock<Content: View>: View {
+// MARK: - Nouveaux Composants Modernes
+
+// MARK: - Cartes de métriques modernisées  
+private struct ModernMetricCard: View {
     let title: String
-    @ViewBuilder var content: Content
+    let value: String
+    let icon: String
+    let color: Color
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.85))
+        VStack(spacing: DS.spacing.s) {
+            // Icône avec couleur thématique
+            Image(systemName: icon)
+                .font(.system(size: DS.bodySize, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 32, height: 32)
+                .background(color.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: DS.radius.s))
+            
+            // Valeur et titre sans ligne break
+            VStack(spacing: 2) {
+                Text(value)
+                    .font(.system(size: DS.headlineSize, weight: .bold, design: .rounded))
+                    .foregroundColor(DS.Color.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                
+                Text(title)
+                    .font(.system(size: DS.captionSize, weight: .medium))
+                    .foregroundColor(DS.Color.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(DS.spacing.m)
+        .background(
+            LinearGradient(
+                colors: [color.opacity(0.08), DS.Color.cardBg],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DS.radius.m))
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.radius.m)
+                .stroke(color.opacity(0.2), lineWidth: 0.5)
+        )
+    }
+}
+
+// MARK: - Onglet de section
+private struct SectionTab: View {
+    let section: StatsView.StatsSection
+    let isActive: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: DS.spacing.s) {
+                Image(systemName: section.icon)
+                    .font(.system(size: DS.captionSize, weight: .semibold))
+                    .foregroundColor(isActive ? .black : section.color)
+                
+                Text(section.title)
+                    .font(.system(size: DS.bodySize, weight: .semibold))
+                    .foregroundColor(isActive ? .black : DS.Color.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, DS.spacing.m)
+            .padding(.vertical, DS.spacing.s)
+            .background(
+                RoundedRectangle(cornerRadius: DS.radius.s)
+                    .fill(isActive ? section.color : DS.Color.cardBg)
+            )
+        }
+        .animation(.easeInOut(duration: 0.2), value: isActive)
+    }
+}
+
+// MARK: - Carte moderne principale
+private struct ModernCard<Content: View>: View {
+    let title: String
+    let icon: String
+    let color: Color
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.spacing.m) {
+            // Header avec icône et titre
+            HStack(spacing: DS.spacing.s) {
+                Image(systemName: icon)
+                    .font(.system(size: DS.bodySize, weight: .semibold))
+                    .foregroundColor(color)
+                    .frame(width: 24, height: 24)
+                
+                Text(title)
+                    .font(.system(size: DS.headlineSize, weight: .bold, design: .rounded))
+                    .foregroundColor(DS.Color.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                
+                Spacer()
+            }
+            
+            // Contenu
             content
         }
+        .padding(DS.cardPadding)
+        .background(DS.Color.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: DS.radius.l))
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.radius.l)
+                .stroke(color.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 
-private struct MetricTile: View {
-    let title: String, value: String, icon: String
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundColor(.white.opacity(0.9))
-                .frame(width: 24, height: 24)
-                .background(.white.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value).font(.system(size: 16, weight: .bold)).foregroundColor(.white).lineLimit(1)
-                Text(title).font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.65))
-            }
-            Spacer()
-        }
-        .padding(12)
-        .background(.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-private struct InsightTile: View {
-    let text: String, icon: String
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon).foregroundColor(.yellow)
-            Text(text).font(.footnote).foregroundColor(.white.opacity(0.9))
-            Spacer()
-        }
-        .padding(10)
-        .background(.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-private struct MiniChartCard<Content: View>: View {
+// MARK: - Insight rapide
+private struct QuickInsight: View {
     let title: String
-    @ViewBuilder var content: Content
+    let value: String
+    let icon: String
+    let color: Color
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.8))
-            content.frame(minHeight: 130)
+        HStack(spacing: DS.spacing.s) {
+            Image(systemName: icon)
+                .font(.system(size: DS.captionSize, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 20, height: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: DS.bodySize, weight: .bold, design: .rounded))
+                    .foregroundColor(DS.Color.text)
+                    .lineLimit(1)
+                
+                Text(title)
+                    .font(.system(size: DS.labelSize, weight: .medium))
+                    .foregroundColor(DS.Color.textSecondary)
+                    .lineLimit(1)
+            }
+            
+            Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity)
+        .padding(DS.spacing.m)
+        .background(DS.Color.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: DS.radius.s))
     }
 }
 
-// MARK: - Mini charts
-
-private struct Sparkline: View {
+// MARK: - Composant WeeklyPattern amélioré pour éviter les breaks
+private struct WeeklyPattern: View {
     let days: [SharedActivityStore.DayPoint]
+    
     var body: some View {
         if days.isEmpty {
-            ChartEmpty()
+            VStack(spacing: DS.spacing.s) {
+                Image(systemName: "chart.line.flattrend.xyaxis")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(DS.Color.textTertiary)
+                
+                Text("Aucune donnée disponible")
+                    .font(.system(size: DS.captionSize, weight: .medium))
+                    .foregroundColor(DS.Color.textTertiary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 80)
         } else {
-            Chart(days) { p in
-                LineMark(x: .value("Jour", p.date, unit: .day), y: .value("s", p.seconds))
-                AreaMark(x: .value("Jour", p.date, unit: .day), y: .value("s", p.seconds))
-                    .opacity(0.15)
-            }
-            .chartXAxis(.hidden)
-            .chartYAxis {
-                AxisMarks(values: .automatic(desiredCount: 3)) { val in
-                    AxisValueLabel {
-                        if let v = val.as(Double.self) { Text(Self.short(v)) }
+            VStack(alignment: .leading, spacing: DS.spacing.s) {
+                Text("Derniers 7 jours")
+                    .font(.system(size: DS.captionSize, weight: .semibold))
+                    .foregroundColor(DS.Color.textSecondary)
+                
+                HStack(spacing: 6) {
+                    ForEach(days.suffix(7), id: \.id) { day in
+                        ModernDayColumn(
+                            dayPoint: day,
+                            maxValue: days.map(\.seconds).max() ?? 1
+                        )
                     }
                 }
+                .frame(height: 60)
             }
         }
     }
-    private static func short(_ s: Double) -> String { s >= 3600 ? "\(Int(s/3600))h" : "\(Int(round(s/60)))m" }
 }
 
-private struct TopCategoriesMini: View {
-    let slices: [SharedActivityStore.CategorySlice]
+private struct ModernDayColumn: View {
+    let dayPoint: SharedActivityStore.DayPoint
+    let maxValue: Double
+    
     var body: some View {
-        if slices.isEmpty { ChartEmpty() }
-        else {
-            Chart(slices) { s in BarMark(x: .value("s", s.seconds), y: .value("Cat", s.name)) }
-                .chartLegend(.hidden)
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3)) { value in
-                        AxisValueLabel {
-                            if let v = value.as(Double.self) { Text(v >= 3600 ? "\(Int(v/3600))h" : "\(Int(round(v/60)))m") }
-                        }
-                    }
-                }
+        VStack(spacing: 4) {
+            // Barre moderne
+            RoundedRectangle(cornerRadius: 3)
+                .fill(barColor)
+                .frame(width: 16, height: max(6, 40 * heightRatio))
+                .animation(.easeInOut(duration: 0.4), value: heightRatio)
+            
+            // Label du jour
+            Text(dayLabel)
+                .font(.system(size: DS.labelSize, weight: .medium))
+                .foregroundColor(DS.Color.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var heightRatio: CGFloat {
+        maxValue > 0 ? CGFloat(dayPoint.seconds / maxValue) : 0
+    }
+    
+    private var dayLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "E"
+        return String(formatter.string(from: dayPoint.date).prefix(1))
+    }
+    
+    private var barColor: Color {
+        let hours = dayPoint.seconds / 3600
+        switch hours {
+        case 4...: return DS.Color.error
+        case 2..<4: return DS.Color.warning
+        case 1..<2: return DS.Color.accent
+        default: return DS.Color.success
         }
     }
 }
 
-private struct ChartEmpty: View {
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "sparkles").foregroundColor(.white.opacity(0.6))
-            Text(String(localized: "not_enough_data")).font(.caption).foregroundColor(.white.opacity(0.6))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
 
-// MARK: - Screen Time Manager (sans filtre d’appareils)
-
+// MARK: - Screen Time Manager (optimisé)
 final class RealScreenTimeManager: ObservableObject {
     @Published var isAuthorized = false
     @Published var selectedPeriod: StatsView.TimePeriod = .today
@@ -561,6 +894,7 @@ final class RealScreenTimeManager: ObservableObject {
                                     users: .all,
                                     devices: .init([.iPhone, .iPad]))
     }
+    
     func checkAuthorization() {
         switch authorizationCenter.authorizationStatus {
         case .approved: isAuthorized = true
@@ -568,6 +902,7 @@ final class RealScreenTimeManager: ObservableObject {
         @unknown default: isAuthorized = false
         }
     }
+    
     func requestAuthorization() async {
         do {
             try await authorizationCenter.requestAuthorization(for: .individual)
@@ -578,32 +913,5 @@ final class RealScreenTimeManager: ObservableObject {
     }
 }
 
-// MARK: - Formatters (cachés pour perf)
 
-private extension DateComponentsFormatter {
-    static let cached: DateComponentsFormatter = {
-        let f = DateComponentsFormatter()
-        f.allowedUnits = [.hour, .minute]
-        f.unitsStyle = .short
-        f.zeroFormattingBehavior = [.pad]
-        return f
-    }()
-}
-
-private extension RelativeDateTimeFormatter {
-    static let cached: RelativeDateTimeFormatter = {
-        let f = RelativeDateTimeFormatter()
-        f.locale = .current
-        f.unitsStyle = .abbreviated
-        return f
-    }()
-}
-
-private extension DateFormatter {
-    static let dayMonth: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "d MMM"
-        return f
-    }()
-}
 

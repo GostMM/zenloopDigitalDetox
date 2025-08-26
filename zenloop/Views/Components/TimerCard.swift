@@ -18,9 +18,6 @@ struct TimerCard: View {
     @State private var hasSelectedApps = false
     @State private var selectedConcentrationType: ConcentrationType = .deep
     @State private var showingConcentrationPicker = false
-    @State private var isScheduled = false
-    @State private var scheduledStartTime = Date()
-    @State private var showingSchedulePicker = false
     @State private var isExpanded = false // Nouvel état pour l'expansion
     
     private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 55]
@@ -42,38 +39,13 @@ struct TimerCard: View {
         }
     }
     
-    private var formatScheduledTime: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let timeString = formatter.string(from: scheduledStartTime)
-        
-        let calendar = Calendar.current
-        if calendar.isDate(scheduledStartTime, inSameDayAs: Date()) {
-            return String(localized: "today_at", defaultValue: "Today at \(timeString)", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: timeString)
-        } else if calendar.isDate(scheduledStartTime, inSameDayAs: calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()) {
-            return String(localized: "tomorrow_at", defaultValue: "Tomorrow at \(timeString)", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: timeString)
-        } else {
-            // Use locale-specific date formatting for other dates
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
-            return formatter.string(from: scheduledStartTime)
-        }
-    }
     
     private var buttonIsEnabled: Bool {
-        // Toujours permettre si c'est programmé (l'utilisateur sélectionnera les apps plus tard)
-        if isScheduled {
-            return zenloopManager.currentState == .idle
-        }
         // Pour les sessions immédiates, exiger des apps sélectionnées
         return hasSelectedApps && zenloopManager.currentState == .idle
     }
     
     private var buttonText: String {
-        if isScheduled {
-            return String(localized: "schedule_your_moment")
-        }
-        
         if !hasSelectedApps {
             return String(localized: "first_choose_distractions")
         }
@@ -104,9 +76,6 @@ struct TimerCard: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isExpanded)
         .sheet(isPresented: $showingConcentrationPicker) {
             ConcentrationTypePickerView(selectedType: $selectedConcentrationType)
-        }
-        .sheet(isPresented: $showingSchedulePicker) {
-            SchedulePickerView(selectedTime: $scheduledStartTime)
         }
         .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
         .onChange(of: selectedApps) { oldSelection, newSelection in
@@ -207,25 +176,8 @@ struct TimerCard: View {
                                         .foregroundColor(.orange)
                                 }
                             }
-                            
-                            // Indicateur de sessions programmées
-                            if zenloopManager.hasActiveScheduledSessions {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "clock.badge")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.cyan)
-                                    
-                                    if let nextSession = zenloopManager.nextScheduledSession {
-                                        Text("Session programmée à \(formatTime(nextSession.startTime))")
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundColor(.cyan)
-                                    } else {
-                                        Text("Sessions programmées")
-                                            .font(.system(size: 11, weight: .medium))
-                                            .foregroundColor(.cyan)
-                                    }
-                                }
-                            }
+                    
+                    
                         }
                     }
                     
@@ -588,58 +540,14 @@ struct TimerCard: View {
                     }
                 }
                 
-                // Programmation (optionnel)
-                VStack(spacing: 12) {
-                    HStack {
-                        Text(String(localized: "scheduling"))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.8))
-                        
-                        Spacer()
-                        
-                        Toggle("", isOn: $isScheduled)
-                            .scaleEffect(0.8)
-                            .tint(selectedConcentrationType.primaryColor)
-                    }
-                    
-                    if isScheduled {
-                        Button {
-                            showingSchedulePicker = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "clock")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(selectedConcentrationType.primaryColor)
-                                
-                                Text(formatScheduledTime)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.6))
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(selectedConcentrationType.primaryColor.opacity(0.3), lineWidth: 1)
-                            )
-                        }
-                        .transition(.opacity.combined(with: .scale))
-                        .animation(.easeInOut(duration: 0.2), value: isScheduled)
-                    }
-                }
-                
-                // Bouton de démarrage/programmation
+                // Bouton de démarrage
                 Button {
                     if buttonIsEnabled {
                         startSession()
                     }
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: isScheduled ? "clock.arrow.circlepath" : "play.fill")
+                        Image(systemName: "play.fill")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                         
@@ -750,50 +658,18 @@ struct TimerCard: View {
         let duration = TimeInterval(totalMinutes * 60)
         let difficulty: DifficultyLevel = totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard
         
-        if isScheduled {
-            print("📅 [TIMER_CARD] Programmation session: \(title) à \(formatScheduledTime)")
-            
-            // Programmer la session avec notifications
-            if hasSelectedApps {
-                zenloopManager.scheduleCustomChallenge(
-                    title: title,
-                    duration: duration,
-                    difficulty: difficulty,
-                    apps: selectedApps,
-                    startTime: scheduledStartTime
-                )
-            } else {
-                // Pour les sessions programmées sans apps spécifiques, on utilise la sélection courante
-                zenloopManager.scheduleCustomChallenge(
-                    title: title,
-                    duration: duration,
-                    difficulty: difficulty,
-                    apps: selectedApps, // Sera vide mais requis par l'API
-                    startTime: scheduledStartTime
-                )
-            }
-            
-            // Donner un feedback à l'utilisateur
-            let successFeedback = UINotificationFeedbackGenerator()
-            successFeedback.notificationOccurred(.success)
-            
-            // Optionnel: Afficher une confirmation
-            print("✅ [TIMER_CARD] Session programmée avec succès pour \(formatScheduledTime)")
-            
+        print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
+        
+        // Démarrer immédiatement la session
+        if hasSelectedApps {
+            zenloopManager.startCustomChallenge(
+                title: title,
+                duration: duration,
+                difficulty: difficulty,
+                apps: selectedApps
+            )
         } else {
-            print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
-            
-            // Démarrer immédiatement la session
-            if hasSelectedApps {
-                zenloopManager.startCustomChallenge(
-                    title: title,
-                    duration: duration,
-                    difficulty: difficulty,
-                    apps: selectedApps
-                )
-            } else {
-                zenloopManager.startQuickChallenge(duration: duration)
-            }
+            zenloopManager.startQuickChallenge(duration: duration)
         }
     }
     

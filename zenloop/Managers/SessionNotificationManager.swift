@@ -231,106 +231,211 @@ final class SessionNotificationManager: NSObject, ObservableObject {
         var notifications: [NotificationInfo] = []
         let baseId = session.id
         
-        // 1. Rappel 15 minutes avant
-        if let reminderTime = Calendar.current.date(byAdding: .minute, value: -15, to: session.scheduledFor) {
-            let content = createReminderContent(
-                title: String(localized: "session_starting_soon"),
-                body: String(localized: "session_starts_in_15_minutes", defaultValue: "\(session.title) starts in 15 minutes. Get ready!", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: session.title),
-                sound: .default
+        // NOUVEAU: Système dynamique basé sur le temps restant
+        let timeUntilSession = session.scheduledFor.timeIntervalSinceNow
+        let minutesUntilSession = Int(timeUntilSession / 60)
+        
+        print("📅 [SESSION_NOTIFICATIONS] Session in \(minutesUntilSession) minutes - creating dynamic notifications")
+        
+        // Logique dynamique adaptée au timing réel
+        if minutesUntilSession > 15 {
+            // Session dans plus de 15 minutes : notification à -15min ET -2min
+            createReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                minutesBefore: 15, 
+                messageKey: "session_starts_in_15_minutes",
+                notifications: &notifications
             )
-            
-            notifications.append(NotificationInfo(
-                id: "\(baseId)_reminder_15",
-                title: session.title,
-                content: content,
-                scheduledTime: reminderTime,
-                request: createNotificationRequest(
-                    identifier: "\(baseId)_reminder_15",
-                    content: content,
-                    triggerDate: reminderTime,
-                    categoryIdentifier: "SESSION_REMINDER"
-                )
-            ))
+            createReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                minutesBefore: 2, 
+                messageKey: "session_starts_in_2_minutes",
+                notifications: &notifications
+            )
+        } else if minutesUntilSession > 5 {
+            // Session dans 6-15 minutes : notification à -5min et -1min
+            createReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                minutesBefore: 5, 
+                messageKey: "session_starts_in_5_minutes",
+                notifications: &notifications
+            )
+            createReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                minutesBefore: 1, 
+                messageKey: "session_starts_in_1_minute",
+                notifications: &notifications
+            )
+        } else if minutesUntilSession > 2 {
+            // Session dans 3-5 minutes : notification à -1min seulement
+            createReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                minutesBefore: 1, 
+                messageKey: "session_starts_in_1_minute",
+                notifications: &notifications
+            )
+        } else if minutesUntilSession > 0 {
+            // Session dans 1-2 minutes : notification immédiate
+            createImmediateReminderNotification(
+                baseId: baseId, 
+                session: session, 
+                notifications: &notifications
+            )
         }
         
-        // 2. Rappel 2 minutes avant (notification critique)
-        if let finalReminderTime = Calendar.current.date(byAdding: .minute, value: -2, to: session.scheduledFor) {
-            let content = createReminderContent(
-                title: String(localized: "session_starting_now"),
-                body: String(localized: "session_starts_in_2_minutes", defaultValue: "\(session.title) starts in 2 minutes. Time to focus!", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: session.title),
-                sound: .critical
-            )
-            
-            notifications.append(NotificationInfo(
-                id: "\(baseId)_final_reminder",
-                title: session.title,
-                content: content,
-                scheduledTime: finalReminderTime,
-                request: createCriticalNotificationRequest(
-                    identifier: "\(baseId)_final_reminder",
-                    content: content,
-                    triggerDate: finalReminderTime
-                )
-            ))
-        }
+        // Toujours ajouter les notifications de progression et de fin
+        addProgressAndEndNotifications(baseId: baseId, session: session, notifications: &notifications)
         
-        // 3. Notification de début de session
-        let startContent = createSessionStartContent(for: session)
+        return notifications
+    }
+    
+    private func createReminderNotification(
+        baseId: String, 
+        session: ScheduledNotification, 
+        minutesBefore: Int, 
+        messageKey: String,
+        notifications: inout [NotificationInfo]
+    ) {
+        guard let reminderTime = Calendar.current.date(byAdding: .minute, value: -minutesBefore, to: session.scheduledFor),
+              reminderTime > Date() else { return }
+        
+        let body = createDynamicMessage(key: messageKey, sessionTitle: session.title, minutes: minutesBefore)
+        
+        let content = createReminderContent(
+            title: String(localized: "session_starting_soon"),
+            body: body,
+            sound: minutesBefore <= 2 ? .critical : .default
+        )
+        
         notifications.append(NotificationInfo(
-            id: "\(baseId)_start",
+            id: "\(baseId)_reminder_\(minutesBefore)",
             title: session.title,
-            content: startContent,
-            scheduledTime: session.scheduledFor,
+            content: content,
+            scheduledTime: reminderTime,
             request: createNotificationRequest(
-                identifier: "\(baseId)_start",
-                content: startContent,
-                triggerDate: session.scheduledFor,
-                categoryIdentifier: "SESSION_START"
+                identifier: "\(baseId)_reminder_\(minutesBefore)",
+                content: content,
+                triggerDate: reminderTime,
+                categoryIdentifier: "SESSION_REMINDER"
+            )
+        ))
+    }
+    
+    private func createDynamicMessage(key: String, sessionTitle: String, minutes: Int) -> String {
+        switch minutes {
+        case 15:
+            return "\(sessionTitle) démarre dans 15 minutes. Prépare-toi !"
+        case 5:
+            return "\(sessionTitle) démarre dans 5 minutes. C'est bientôt !"
+        case 2:
+            return "\(sessionTitle) démarre dans 2 minutes. C'est l'heure de focus !"
+        case 1:
+            return "\(sessionTitle) démarre dans 1 minute. Prépare-toi maintenant !"
+        default:
+            return "\(sessionTitle) démarre bientôt."
+        }
+    }
+    
+    private func createImmediateReminderNotification(
+        baseId: String, 
+        session: ScheduledNotification, 
+        notifications: inout [NotificationInfo]
+    ) {
+        let content = createReminderContent(
+            title: String(localized: "session_starting_now"),
+            body: "\(session.title) démarre maintenant ! 🚀",
+            sound: .critical
+        )
+        
+        notifications.append(NotificationInfo(
+            id: "\(baseId)_starting_now",
+            title: session.title,
+            content: content,
+            scheduledTime: Date().addingTimeInterval(5), // Dans 5 secondes
+            request: createNotificationRequest(
+                identifier: "\(baseId)_starting_now",
+                content: content,
+                triggerDate: Date().addingTimeInterval(5),
+                categoryIdentifier: "SESSION_STARTING"
+            )
+        ))
+    }
+    
+    private func addProgressAndEndNotifications(
+        baseId: String, 
+        session: ScheduledNotification, 
+        notifications: inout [NotificationInfo]
+    ) {
+        // Notification de progression (à mi-parcours)
+        let progressTime = session.scheduledFor.addingTimeInterval(session.duration / 2)
+        let progressContent = createReminderContent(
+            title: String(localized: "session_progress"),
+            body: String(localized: "session_progress_halfway", defaultValue: "You're halfway through your focus session. Keep going!", table: nil, bundle: .main, comment: ""),
+            sound: .default
+        )
+        
+        notifications.append(NotificationInfo(
+            id: "\(baseId)_progress",
+            title: "session_progress",
+            content: progressContent,
+            scheduledTime: progressTime,
+            request: createNotificationRequest(
+                identifier: "\(baseId)_progress",
+                content: progressContent,
+                triggerDate: progressTime,
+                categoryIdentifier: "SESSION_PROGRESS"
             )
         ))
         
-        // 4. Notification de progression (à mi-parcours)
-        if session.duration > 600 { // Seulement pour les sessions > 10 min
-            if let midTime = Calendar.current.date(byAdding: .second, value: Int(session.duration / 2), to: session.scheduledFor) {
-                let progressContent = createProgressContent(
-                    title: String(localized: "session_progress_halfway"),
-                    body: String(localized: "halfway_through_session", defaultValue: "You're halfway through your focus session. Keep going!", table: nil, bundle: .main, comment: ""),
-                    sound: .gentle
-                )
-                
-                notifications.append(NotificationInfo(
-                    id: "\(baseId)_progress",
-                    title: session.title,
-                    content: progressContent,
-                    scheduledTime: midTime,
-                    request: createNotificationRequest(
-                        identifier: "\(baseId)_progress",
-                        content: progressContent,
-                        triggerDate: midTime,
-                        categoryIdentifier: "SESSION_PROGRESS"
-                    )
-                ))
+        // Notification de fin
+        let endTime = session.scheduledFor.addingTimeInterval(session.duration)
+        let endContent = createReminderContent(
+            title: String(localized: "session_complete"),
+            body: String(localized: "session_completed_congratulations", defaultValue: "Congratulations! You've completed your focus session.", table: nil, bundle: .main, comment: ""),
+            sound: .default
+        )
+        
+        notifications.append(NotificationInfo(
+            id: "\(baseId)_end",
+            title: "session_end",
+            content: endContent,
+            scheduledTime: endTime,
+            request: createNotificationRequest(
+                identifier: "\(baseId)_end",
+                content: endContent,
+                triggerDate: endTime,
+                categoryIdentifier: "SESSION_END"
+            )
+        ))
+    }
+    
+    // MARK: - Conflict Resolution
+    
+    func notifySessionConflict(existing: String, new: String, timeRemaining: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "⚠️ Conflit de Sessions"
+        content.body = "Session '\(existing)' active (encore \(timeRemaining)min). '\(new)' sera reportée."
+        content.sound = .default
+        content.categoryIdentifier = "SESSION_CONFLICT"
+        
+        let request = UNNotificationRequest(
+            identifier: "session_conflict_\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+        
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("❌ [SESSION_NOTIFICATIONS] Failed to schedule conflict notification: \(error)")
+            } else {
+                print("⚠️ [SESSION_NOTIFICATIONS] Session conflict notification scheduled")
             }
         }
-        
-        // 5. Notification de fin de session
-        if let endTime = Calendar.current.date(byAdding: .second, value: Int(session.duration), to: session.scheduledFor) {
-            let endContent = createSessionEndContent(for: session)
-            notifications.append(NotificationInfo(
-                id: "\(baseId)_end",
-                title: session.title,
-                content: endContent,
-                scheduledTime: endTime,
-                request: createNotificationRequest(
-                    identifier: "\(baseId)_end",
-                    content: endContent,
-                    triggerDate: endTime,
-                    categoryIdentifier: "SESSION_END"
-                )
-            ))
-        }
-        
-        return notifications
     }
     
     // MARK: - Content Creation

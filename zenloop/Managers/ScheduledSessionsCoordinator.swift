@@ -50,11 +50,15 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         // Créer la session programmée
         let appNames = delegate?.generateAppNames(from: apps) ?? []
         
-        // Programmer les notifications
+        // CORRECTION: Utiliser le même timing arrondi pour les notifications
+        let calendar = Calendar.current
+        let roundedStartTime = calendar.dateInterval(of: .minute, for: startTime)?.start ?? startTime
+        
+        // Programmer les notifications avec le timing exact
         notificationManager.scheduleSessionReminder(
             sessionId: sessionId,
             title: title,
-            startTime: startTime,
+            startTime: roundedStartTime,
             duration: duration,
             apps: appNames
         )
@@ -66,7 +70,7 @@ final class ScheduledSessionsCoordinator: ObservableObject {
             description: "Session programmée",
             duration: duration,
             difficulty: difficulty,
-            startTime: startTime,
+            startTime: roundedStartTime, // Utiliser le timing exact
             isActive: false
         )
         
@@ -81,7 +85,7 @@ final class ScheduledSessionsCoordinator: ObservableObject {
             try BlockScheduler.shared.scheduleSession(
                 title: title,
                 duration: duration,
-                startTime: startTime,
+                startTime: roundedStartTime, // Réutiliser la même variable
                 selection: apps
             )
             #if DEBUG

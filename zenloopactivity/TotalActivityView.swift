@@ -8,6 +8,10 @@
 import SwiftUI
 import os.log
 import FamilyControls
+import DeviceActivity
+import ManagedSettings
+
+
 
 // MARK: - Design System
 private enum ModernUI {
@@ -32,7 +36,7 @@ private enum ModernUI {
 }
 
 struct TotalActivityView: View {
-    let activityReport: ActivityReport
+    let activityReport: ExtensionActivityReport
     private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityView")
     
     // Tabs
@@ -60,7 +64,7 @@ struct TotalActivityView: View {
     @State private var visibleAppCount: Int = 8
     
     // Computed properties
-    private var topCategories: [CategoryUsage] {
+    private var topCategories: [ExtensionCategoryUsage] {
         Array(activityReport.categories.prefix(6))
     }
     
@@ -269,8 +273,8 @@ struct TotalActivityView: View {
     }
     
     // MARK: - Computed Properties
-    private var filteredApps: [AppUsage] {
-        let sorted: [AppUsage]
+    private var filteredApps: [ExtensionAppUsage] {
+        let sorted: [ExtensionAppUsage]
         switch sort {
         case .time:
             sorted = activityReport.allApps.sorted { $0.duration > $1.duration }
@@ -396,7 +400,7 @@ private struct ModernSection<Content: View>: View {
 }
 
 private struct ActivityDistributionCard: View {
-    let categories: [CategoryUsage]
+    let categories: [ExtensionCategoryUsage]
     let totalDuration: TimeInterval
     
     private var segments: [DistributionSegment] {
@@ -482,7 +486,7 @@ private struct DistributionSegment {
 }
 
 private struct ModernCategoryCard: View {
-    let category: CategoryUsage
+    let category: ExtensionCategoryUsage
     let totalDuration: TimeInterval
     
     private var percentage: Int {
@@ -607,7 +611,9 @@ private struct ModernSearchField: View {
             TextField(String(localized: "search"), text: $text)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(ModernUI.textPrimary)
+#if os(iOS)
                 .textInputAutocapitalization(.never)
+#endif
                 .disableAutocorrection(true)
         }
         .padding(.horizontal, 12)
@@ -653,7 +659,7 @@ private struct ModernSortButton: View {
 
 private struct ModernAppRow: View {
     let index: Int
-    let app: AppUsage
+    let app: ExtensionAppUsage
     let totalDuration: TimeInterval
     
     private var percentage: Int {
@@ -760,17 +766,19 @@ private struct EmptyStateCard: View {
 
 // MARK: - Preview
 #Preview {
-    TotalActivityView(activityReport: ActivityReport(
+    TotalActivityView(activityReport: ExtensionActivityReport(
         totalDuration: 14400,
         averageDaily: 7200,
         averageWeekly: 50400,
         allApps: [],
         categories: [
-            CategoryUsage(categoryName: "Social Networking", duration: 7200, appCount: 3),
-            CategoryUsage(categoryName: "Productivity", duration: 3600, appCount: 2),
-            CategoryUsage(categoryName: "Photo & Video", duration: 2400, appCount: 4),
-            CategoryUsage(categoryName: "Health & Fitness", duration: 1200, appCount: 1)
-        ]
+            ExtensionCategoryUsage(categoryName: "Social Networking", duration: 7200, appCount: 3),
+            ExtensionCategoryUsage(categoryName: "Productivity", duration: 3600, appCount: 2),
+            ExtensionCategoryUsage(categoryName: "Photo & Video", duration: 2400, appCount: 4),
+            ExtensionCategoryUsage(categoryName: "Health & Fitness", duration: 1200, appCount: 1)
+        ],
+        todayScreenSeconds: 10800,
+        todayOffScreenSeconds: 28800
     ))
-    .preferredColorScheme(.dark)
+    .preferredColorScheme(ColorScheme.dark)
 }

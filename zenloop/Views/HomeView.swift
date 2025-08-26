@@ -17,7 +17,8 @@ struct HomeView: View {
     @StateObject private var dailyReportManager = DailyReportManager.shared
     @StateObject private var onboardingManager = OnboardingManager.shared
     @State private var showContent = false
-    // @StateObject private var backgroundAnimator = BackgroundAnimator() // ⚠️ DÉSACTIVÉ - CPU KILLER
+    @State private var syncTimer: Timer?
+
     
     // MARK: - Computed Properties
     
@@ -42,7 +43,8 @@ struct HomeView: View {
                 MinimalHeader(
                     showContent: showContent,
                     currentState: zenloopManager.currentState,
-                    isPremium: purchaseManager.isPremium
+                    isPremium: purchaseManager.isPremium,
+                    zenloopManager: zenloopManager
                 )
                 .padding(.horizontal, 20)
                
@@ -98,13 +100,28 @@ struct HomeView: View {
             // backgroundAnimator.startAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
             badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
             
+            // Synchroniser l'état des sessions en arrière-plan
+            Task {
+                await synchronizeBackgroundSessions()
+            }
+            
+            // Démarrer la synchronisation périodique
+            startPeriodicSync()
+            
             // Vérifier s'il faut afficher le rapport quotidien
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 dailyReportManager.checkShouldShowReport()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Re-synchroniser quand l'app devient active
+            Task {
+                await synchronizeBackgroundSessions()
+            }
+        }
         .onDisappear {
             // backgroundAnimator.stopAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
+            stopPeriodicSync()
         }
         .onChange(of: zenloopManager.currentState) { oldValue, newValue in
             // Badge checking différé pour éviter les appels trop fréquents
@@ -196,6 +213,106 @@ struct HomeView: View {
     private func getTabBarHeight() -> CGFloat {
         // Hauteur standard de la tab bar iOS (49pt + safe area)
         return 49
+    }
+    
+    // MARK: - Background Session Synchronization
+    
+    @MainActor
+    private func synchronizeBackgroundSessions() async {
+        print("🔄 [HOMEVIEW] Synchronisation des sessions en arrière-plan...")
+        
+        // 1. Forcer la mise à jour du statut des sessions programmées
+        zenloopManager.updateScheduledSessionsStatus()
+        
+        // 2. Vérifier s'il y a une session active en arrière-plan qui n'est pas reflétée dans l'UI
+        await checkAndRestoreActiveSession()
+        
+        // 3. Nettoyer les sessions expirées
+        cleanupExpiredSessions()
+        
+        // 4. Synchroniser avec l'extension Device Activity
+        await syncWithDeviceActivityExtension()
+        
+        print("✅ [HOMEVIEW] Synchronisation terminée - État: \(zenloopManager.currentState)")
+    }
+    
+    @MainActor
+    private func checkAndRestoreActiveSession() async {
+        // Si l'état local indique que nous sommes idle mais qu'une session pourrait être active
+        if zenloopManager.currentState == ZenloopState.idle {
+            // Vérifier avec le challenge actuel
+            if let challenge = zenloopManager.currentChallenge,
+               challenge.isActive && !isExpired(challenge) {
+                
+                print("🔄 [HOMEVIEW] Session active détectée, restoration de l'état UI...")
+                
+                // Restaurer l'état dans l'interface
+                zenloopManager.currentState = ZenloopState.active
+                zenloopManager.currentTimeRemaining = challenge.timeRemaining
+                zenloopManager.currentProgress = challenge.safeProgress
+                
+                // Les restrictions seront appliquées automatiquement par le ZenloopManager
+                // quand l'état change à .active
+                
+                print("✅ [HOMEVIEW] État restauré - Temps restant: \(challenge.timeRemaining)s")
+            }
+        }
+    }
+    
+    @MainActor
+    private func syncWithDeviceActivityExtension() async {
+        // Vérifier les sessions qui pourraient avoir été démarrées par l'extension
+        // et qui ne sont pas synchronisées avec l'app principale
+        
+        // Cette méthode pourrait être étendue pour communiquer avec l'extension
+        // via App Groups ou d'autres mécanismes de communication inter-processus
+        
+        print("🔄 [HOMEVIEW] Vérification de la synchronisation avec l'extension Device Activity")
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func isExpired(_ challenge: ZenloopChallenge) -> Bool {
+        guard let startTime = challenge.startTime else { return false }
+        let endTime = startTime.addingTimeInterval(challenge.duration)
+        return Date() > endTime
+    }
+    
+    private func cleanupExpiredSessions() {
+        // Nettoyer les sessions programmées expirées
+        zenloopManager.cleanupExpiredSessions()
+        
+        // Si la session actuelle est expirée, la terminer
+        if let challenge = zenloopManager.currentChallenge,
+           challenge.isActive && isExpired(challenge) {
+            print("🧹 [HOMEVIEW] Session expirée détectée, nettoyage...")
+            // La session sera automatiquement marquée comme complétée par le timer interne
+        }
+    }
+    
+    // MARK: - Periodic Sync Management
+    
+    private func startPeriodicSync() {
+        // Arrêter le timer existant s'il y en a un
+        stopPeriodicSync()
+        
+        // Créer un nouveau timer qui se déclenche toutes les 30 secondes
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                // Ne synchroniser que si l'app est active et visible
+                if UIApplication.shared.applicationState == .active {
+                    await synchronizeBackgroundSessions()
+                }
+            }
+        }
+        
+        print("⏰ [HOMEVIEW] Timer de synchronisation périodique démarré (30s)")
+    }
+    
+    private func stopPeriodicSync() {
+        syncTimer?.invalidate()
+        syncTimer = nil
+        print("⏰ [HOMEVIEW] Timer de synchronisation périodique arrêté")
     }
     
 }

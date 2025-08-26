@@ -320,10 +320,15 @@ class BlockScheduler {
         // Petit délai pour éviter les conflits iOS 18
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 sec
         
-        // Créer le schedule avec date complète + weekday (CRUCIAL pour fonctionner)
+        // Créer le schedule avec timing précis (arrondir à la minute exacte)
         let calendar = Calendar.current
-        let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: sessionInfo.startTime)
-        let endComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: sessionInfo.endTime)
+        
+        // CORRECTION: Arrondir à la minute exacte pour éviter les décalages de secondes
+        let startTimeRounded = calendar.dateInterval(of: .minute, for: sessionInfo.startTime)?.start ?? sessionInfo.startTime
+        let endTimeRounded = calendar.dateInterval(of: .minute, for: sessionInfo.endTime)?.start ?? sessionInfo.endTime
+        
+        let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: startTimeRounded)
+        let endComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: endTimeRounded)
         
         // Vérifier que la session est dans au moins 1 minute
         guard sessionInfo.startTime.timeIntervalSinceNow > 60 else {
@@ -549,6 +554,9 @@ class ZenloopManager: ObservableObject {
         // Démarrer le monitoring une fois tout initialisé
         await MainActor.run { [weak self] in
             self?.startStateMonitoring()
+            
+            // NOUVEAU: Surveiller les sessions activées par l'extension
+            self?.startExtensionSessionMonitoring()
             
             #if DEBUG
             self?.logger.debug("✅ [ZENLOOP] Initialisation complète terminée")
@@ -1005,6 +1013,179 @@ class ZenloopManager: ObservableObject {
         suite?.synchronize()
         
         print("📱 [ZENLOOP] App is terminating - Extension should detect this")
+    }
+    
+    // MARK: - Extension Session Monitoring
+    
+    private func startExtensionSessionMonitoring() {
+        // Surveiller les sessions activées par l'extension toutes les 2 secondes
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkForExtensionActivatedSession()
+            }
+        }
+    }
+    
+    @MainActor
+    private func checkForExtensionActivatedSession() {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        // NOUVEAU: Traiter la queue au lieu d'une seule session
+        guard let activationQueue = suite?.array(forKey: "extension_activation_queue") as? [[String: Any]],
+              !activationQueue.isEmpty else {
+            return // Pas de sessions en queue
+        }
+        
+        print("📋 [ZENLOOP] Processing \(activationQueue.count) queued sessions")
+        
+        // Traiter chaque session dans la queue
+        for (index, sessionData) in activationQueue.enumerated() {
+            guard let sessionId = sessionData["id"] as? String,
+                  let title = sessionData["title"] as? String,
+                  let duration = sessionData["duration"] as? TimeInterval,
+                  let startTimeInterval = sessionData["startTime"] as? TimeInterval,
+                  let activationId = sessionData["activationId"] as? String,
+                  let isScheduled = sessionData["isScheduled"] as? Bool,
+                  isScheduled == true else {
+                continue
+            }
+            
+            // Vérifier si cette activation a déjà été traitée
+            let processedActivations = suite?.array(forKey: "processed_activation_ids") as? [String] ?? []
+            if processedActivations.contains(activationId) {
+                print("⏭️ [ZENLOOP] Skipping already processed activation: \(activationId)")
+                continue
+            }
+            
+            print("🔥 [ZENLOOP] Processing session from queue: \(title) (\(index + 1)/\(activationQueue.count))")
+            
+            // Créer un challenge actif depuis les données de l'extension
+            let startTime = Date(timeIntervalSince1970: startTimeInterval)
+            
+            let activeChallenge = ZenloopChallenge(
+                id: sessionId,
+                title: title,
+                description: "Session programmée déclenchée automatiquement",
+                duration: duration,
+                difficulty: .medium,
+                startTime: startTime,
+                isActive: true
+            )
+            
+            // Activer la session (avec gestion des conflits intégrée)
+            self.activateScheduledSession(activeChallenge)
+            
+            // Marquer cette activation comme traitée
+            var updatedProcessedIds = processedActivations
+            updatedProcessedIds.append(activationId)
+            
+            // Garder seulement les 20 derniers IDs pour éviter l'overflow
+            if updatedProcessedIds.count > 20 {
+                updatedProcessedIds = Array(updatedProcessedIds.suffix(20))
+            }
+            
+            suite?.set(updatedProcessedIds, forKey: "processed_activation_ids")
+        }
+        
+        // Nettoyer la queue après traitement
+        suite?.removeObject(forKey: "extension_activation_queue")
+        suite?.synchronize()
+        
+        print("✅ [ZENLOOP] Finished processing session queue")
+    }
+    
+    private func activateScheduledSession(_ challenge: ZenloopChallenge) {
+        // VÉRIFICATION DE COHÉRENCE: S'il y a déjà une session active
+        if currentState == .active, let existingChallenge = currentChallenge {
+            print("⚠️ [ZENLOOP] Session conflict detected!")
+            print("   Existing: \(existingChallenge.title) (started \(existingChallenge.startTime?.timeIntervalSinceNow ?? 0)s ago)")
+            print("   New: \(challenge.title)")
+            
+            // Logique intelligente de résolution de conflit
+            resolveSessionConflict(existing: existingChallenge, new: challenge)
+            return
+        }
+        
+        // VÉRIFICATION: S'assurer que la session n'est pas expirée
+        guard let startTime = challenge.startTime,
+              startTime.addingTimeInterval(challenge.duration) > Date() else {
+            print("❌ [ZENLOOP] Scheduled session expired, ignoring: \(challenge.title)")
+            return
+        }
+        
+        // Activer la session proprement
+        currentChallenge = challenge
+        currentState = .active
+        
+        // Démarrer le timer de la session
+        challengeStateManager.startChallenge(challenge)
+        
+        print("✅ [ZENLOOP] Scheduled session activated: \(challenge.title)")
+        
+        // Envoyer une notification de confirmation
+        notificationManager.notifySessionStarted(
+            sessionTitle: challenge.title,
+            sessionId: challenge.id
+        )
+    }
+    
+    private func resolveSessionConflict(existing: ZenloopChallenge, new: ZenloopChallenge) {
+        // Calculer le temps restant pour la session existante
+        let existingTimeRemaining = existing.startTime?.addingTimeInterval(existing.duration).timeIntervalSinceNow ?? 0
+        
+        if existingTimeRemaining < 60 {
+            // Session existante finit dans moins de 1 minute : la terminer et démarrer la nouvelle
+            print("🔄 [ZENLOOP] Existing session ending soon, switching to new one")
+            completeCurrentChallenge()
+            
+            // Petit délai pour éviter les conflits
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                self?.activateScheduledSession(new)
+            }
+        } else {
+            // Session existante a encore du temps : reporter la nouvelle
+            print("⏸️ [ZENLOOP] Postponing new session - existing one still running")
+            
+            // Notifier l'utilisateur du conflit
+            notificationManager.notifySessionConflict(
+                existing: existing.title,
+                new: new.title,
+                timeRemaining: Int(existingTimeRemaining / 60)
+            )
+            
+            // Reporter la nouvelle session après la fin de l'existante
+            let postponedStartTime = existing.startTime?.addingTimeInterval(existing.duration).addingTimeInterval(120) ?? Date().addingTimeInterval(120) // +2min buffer
+            
+            schedulePostponedSession(challenge: new, newStartTime: postponedStartTime)
+        }
+    }
+    
+    private func schedulePostponedSession(challenge: ZenloopChallenge, newStartTime: Date) {
+        // Créer une nouvelle session programmée avec le timing reporté
+        var postponedChallenge = challenge
+        postponedChallenge.startTime = newStartTime
+        
+        // Re-programmer via le BlockScheduler
+        do {
+            try BlockScheduler.shared.scheduleSession(
+                title: "\(challenge.title) (reporté)",
+                duration: challenge.duration,
+                startTime: newStartTime,
+                selection: FamilyActivitySelection() // TODO: Récupérer la vraie sélection
+            )
+            
+            // Programmer les nouvelles notifications
+            notificationManager.scheduleSessionReminder(
+                sessionId: challenge.id,
+                title: "\(challenge.title) (reporté)",
+                startTime: newStartTime,
+                duration: challenge.duration
+            )
+            
+            print("📅 [ZENLOOP] Session postponed to \(newStartTime)")
+        } catch {
+            print("❌ [ZENLOOP] Failed to postpone session: \(error)")
+        }
     }
     
     deinit {

@@ -486,12 +486,6 @@ struct ModernQuickActionsRow: View {
             }
             .padding(.horizontal, 12)
             
-            // Section pour afficher les apps/catégories sélectionnées
-            if zenloopManager.selectedAppsCount > 0 {
-                SelectedAppsDisplaySection(zenloopManager: zenloopManager)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
-            }
         }
         .padding(.vertical, 4)
         .familyActivityPicker(isPresented: $showingAppSelection, selection: Binding(
