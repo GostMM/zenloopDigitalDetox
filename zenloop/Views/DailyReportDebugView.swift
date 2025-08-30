@@ -77,12 +77,21 @@ struct DailyReportDebugView: View {
         .sheet(isPresented: $dailyReportManager.shouldShowReport) {
             DailyReportModal(
                 isPresented: $dailyReportManager.shouldShowReport,
-                reportData: onboardingManager.dailyActivityData,
-                timeOfDay: dailyReportManager.currentTimeOfDay
+                timeOfDay: convertTimeOfDay(dailyReportManager.currentTimeOfDay)
             )
         }
         .onAppear {
             onboardingManager.loadDailyActivityData()
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func convertTimeOfDay(_ timeOfDay: DailyReportManager.TimeOfDay) -> DailyTimeOfDay {
+        switch timeOfDay {
+        case .morning: return .morning
+        case .afternoon: return .afternoon  
+        case .evening: return .evening
         }
     }
 }

@@ -7,13 +7,79 @@
 
 import SwiftUI
 import FamilyControls
+import DeviceActivity
+import os.log
+
+// MARK: - Simple Time of Day enum
+
+enum DailyTimeOfDay: String, CaseIterable {
+    case morning, afternoon, evening
+    
+    var greeting: String {
+        switch self {
+        case .morning: return "Bonjour !"
+        case .afternoon: return "Bon après-midi !"
+        case .evening: return "Bonsoir !"
+        }
+    }
+    
+    var subtitle: String {
+        switch self {
+        case .morning: return "Comment commencer la journée du bon pied"
+        case .afternoon: return "Votre bilan de mi-journée"
+        case .evening: return "Récapitulatif de votre journée"
+        }
+    }
+    
+    var emoji: String {
+        switch self {
+        case .morning: return "🌅"
+        case .afternoon: return "☀️"
+        case .evening: return "🌙"
+        }
+    }
+    
+    var motivationalMessage: String {
+        switch self {
+        case .morning: return "Une nouvelle journée commence ! Définissez vos priorités et créez des moments sans écran."
+        case .afternoon: return "Vous êtes à mi-parcours. Prenez une pause et reconnectez-vous avec le monde réel."
+        case .evening: return "Bravo pour cette journée ! Réfléchissez à vos accomplissements et préparez demain."
+        }
+    }
+    
+    var actionTip: String {
+        switch self {
+        case .morning: return "💡 Conseil: Commencez par 30 minutes sans téléphone"
+        case .afternoon: return "💡 Conseil: Faites une promenade de 10 minutes"
+        case .evening: return "💡 Conseil: Éteignez les écrans 1h avant de dormir"
+        }
+    }
+}
 
 struct DailyReportModal: View {
     @Binding var isPresented: Bool
-    let reportData: DailyActivityData?
-    let timeOfDay: DailyReportManager.TimeOfDay
+    let timeOfDay: DailyTimeOfDay
     
     @State private var showContent = false
+    
+    // Device Activity contexts - même que RealScreenTimeManager dans StatsView
+    private let metricsContext = DeviceActivityReport.Context("Metrics")
+    private let topCategoriesCompactContext = DeviceActivityReport.Context("TopCategoriesCompact")
+    
+    // Filter pour aujourd'hui - utilise la même logique que StatsView
+    private var todayFilter: DeviceActivityFilter {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        let interval = DateInterval(start: startOfToday, end: endOfToday)
+        
+        return DeviceActivityFilter(
+            segment: .daily(during: interval),
+            users: .all,
+            devices: .init([.iPhone, .iPad])
+        )
+    }
     
     // MARK: - Design System
     enum UI {
@@ -33,8 +99,12 @@ struct DailyReportModal: View {
     var body: some View {
         ZStack {
             // Background avec flou
-            OptimizedBackground(currentState: .idle)
-                .ignoresSafeArea()
+            LinearGradient(
+                colors: [Color.black, Color.gray.opacity(0.8)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
             // Modal content
             VStack(spacing: 0) {
@@ -42,13 +112,13 @@ struct DailyReportModal: View {
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: UI.sectionSpacing) {
-                        if let data = reportData {
-                            screenTimeSection(data: data)
-                            topAppsSection(data: data)
-                        } else {
-                            noDataSection
-                        }
+                        // Section temps d'écran avec vraies données
+                        realScreenTimeSection
                         
+                        // Section top apps avec vraies données
+                        realTopAppsSection
+                        
+                        // Message motivationnel
                         motivationalMessageSection
                     }
                     .padding(.horizontal, UI.cardPadding)
@@ -119,102 +189,48 @@ struct DailyReportModal: View {
         }
     }
     
-    // MARK: - Screen Time Section
+    // MARK: - Real Sections avec DeviceActivityReport
     
-    private func screenTimeSection(data: DailyActivityData) -> some View {
+    private var realScreenTimeSection: some View {
         VStack(alignment: .leading, spacing: UI.itemSpacing) {
             sectionTitle(
-                title: String(localized: "your_screen_time_today"),
+                title: "Temps d'écran aujourd'hui",
                 icon: "clock.fill",
                 color: .cyan
             )
             
-            // Temps total avec comparaison
-            HStack(spacing: UI.itemSpacing) {
-                // Temps principal
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(data.formattedTotalTime)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(UI.textPrimary)
-                    
-                    Text(String(localized: "total"))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(UI.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(1)
-                }
-                
-                Spacer()
-                
-                // Moyenne quotidienne
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text(data.formattedDailyAverage)
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(UI.textSecondary)
-                    
-                    Text(String(localized: "daily_average"))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(UI.textTertiary)
-                        .multilineTextAlignment(.trailing)
-                }
-            }
-            .padding(UI.cardPadding)
-            .background(UI.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                    .stroke(UI.cardBorder, lineWidth: 1)
-            )
-        }
-    }
-    
-    // MARK: - Top Apps Section
-    
-    private func topAppsSection(data: DailyActivityData) -> some View {
-        VStack(alignment: .leading, spacing: UI.itemSpacing) {
-            sectionTitle(
-                title: String(localized: "top_3_apps_today"),
-                icon: "apps.iphone",
-                color: .orange
-            )
-            
-            if data.topCategories.isEmpty {
-                // État vide avec style
-                VStack(spacing: 12) {
-                    Image(systemName: "apps.iphone")
-                        .font(.system(size: 32, weight: .light))
-                        .foregroundColor(UI.textTertiary)
-                    
-                    Text(String(localized: "no_usage_data"))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(UI.textSecondary)
-                    
-                    Text(String(localized: "start_using_apps_to_see_data"))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(UI.textTertiary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(32)
-                .frame(maxWidth: .infinity)
+            // DeviceActivityReport pour les métriques réelles - même que StatsView
+            DeviceActivityReport(metricsContext, filter: todayFilter)
+                .frame(height: 100)
                 .background(UI.cardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
                 .overlay(
                     RoundedRectangle(cornerRadius: UI.cornerRadius)
                         .stroke(UI.cardBorder, lineWidth: 1)
                 )
-            } else {
-                VStack(spacing: 12) {
-                    ForEach(Array(data.topCategories.prefix(3).enumerated()), id: \.offset) { index, category in
-                        TopAppCard(
-                            rank: index + 1,
-                            category: category,
-                            totalDuration: data.totalSeconds
-                        )
-                    }
-                }
-            }
         }
     }
+    
+    private var realTopAppsSection: some View {
+        VStack(alignment: .leading, spacing: UI.itemSpacing) {
+            sectionTitle(
+                title: "Top 3 catégories aujourd'hui",
+                icon: "apps.iphone",
+                color: .orange
+            )
+            
+            // DeviceActivityReport pour les catégories réelles - même que StatsView
+            DeviceActivityReport(topCategoriesCompactContext, filter: todayFilter)
+                .frame(height: 150)
+                .background(UI.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
+                        .stroke(UI.cardBorder, lineWidth: 1)
+                )
+        }
+    }
+    
     
     // MARK: - No Data Section
     
@@ -316,44 +332,27 @@ struct DailyReportModal: View {
                 .frame(height: 1)
                 .padding(.horizontal, UI.cardPadding)
             
-            HStack(spacing: 16) {
-                // Bouton "Plus tard"
-                Button(action: dismiss) {
-                    Text(String(localized: "maybe_later"))
+            // Un seul bouton principal - plus propre
+            Button(action: dismiss) {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(UI.textSecondary)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(UI.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: UI.smallRadius))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: UI.smallRadius)
-                                .stroke(UI.cardBorder, lineWidth: 1)
-                        )
+                    
+                    Text("J'ai vu mon rapport")
+                        .font(.system(size: 16, weight: .semibold))
                 }
-                
-                // Bouton principal
-                Button(action: startFocusSession) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "target")
-                            .font(.system(size: 16, weight: .semibold))
-                        
-                        Text(String(localized: "start_focus_session"))
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [.cyan, .blue],
+                        startPoint: .leading,
+                        endPoint: .trailing
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: UI.smallRadius))
-                    .shadow(color: .cyan.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: UI.smallRadius))
+                .shadow(color: .cyan.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, UI.cardPadding)
             .padding(.bottom, 40)
@@ -388,122 +387,17 @@ struct DailyReportModal: View {
         }
     }
     
-    private func startFocusSession() {
-        // Fermer le modal et lancer une session
-        dismiss()
-        // TODO: Déclencher une session focus
-    }
     
     private func openSettings() {
-        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(settingsUrl)
-        }
+        // Simple action pour ouvrir les paramètres
+        // L'utilisateur devra naviguer manuellement vers Screen Time
     }
 }
 
-// MARK: - Supporting Components
-
-private struct TopAppCard: View {
-    let rank: Int
-    let category: ActivityCategoryData
-    let totalDuration: Double
-    
-    private var percentage: Int {
-        guard totalDuration > 0 else { return 0 }
-        return Int(round((category.seconds / totalDuration) * 100))
-    }
-    
-    private var rankColor: Color {
-        switch rank {
-        case 1: return .orange
-        case 2: return .cyan
-        case 3: return .mint
-        default: return .gray
-        }
-    }
-    
-    private var rankEmoji: String {
-        switch rank {
-        case 1: return "🥇"
-        case 2: return "🥈"
-        case 3: return "🥉"
-        default: return "📱"
-        }
-    }
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Rang avec emoji
-            VStack(spacing: 4) {
-                Text(rankEmoji)
-                    .font(.system(size: 20))
-                
-                Text("#\(rank)")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(rankColor)
-            }
-            .frame(width: 40)
-            
-            // Info catégorie
-            VStack(alignment: .leading, spacing: 4) {
-                Text(category.name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DailyReportModal.UI.textPrimary)
-                    .lineLimit(1)
-                
-                Text("\(category.appCount) \(category.appCount > 1 ? String(localized: "apps_plural") : String(localized: "app_singular"))")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(DailyReportModal.UI.textTertiary)
-            }
-            
-            Spacer()
-            
-            // Temps et pourcentage
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(formatTime(category.seconds))
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(DailyReportModal.UI.textPrimary)
-                
-                Text("\(percentage)%")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(rankColor)
-            }
-        }
-        .padding(16)
-        .background(DailyReportModal.UI.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: DailyReportModal.UI.smallRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: DailyReportModal.UI.smallRadius)
-                .stroke(DailyReportModal.UI.cardBorder, lineWidth: 1)
-        )
-    }
-    
-    private func formatTime(_ duration: Double) -> String {
-        let hours = Int(duration / 3600)
-        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)min"
-        } else {
-            return "\(minutes)min"
-        }
-    }
-}
 
 #Preview {
     DailyReportModal(
         isPresented: .constant(true),
-        reportData: DailyActivityData(
-            totalSeconds: 28800, // 8 heures
-            averageDailySeconds: 25200, // 7 heures
-            topCategories: [
-                ActivityCategoryData(name: "Social Media", seconds: 10800, appCount: 3),
-                ActivityCategoryData(name: "Productivity", seconds: 7200, appCount: 2),
-                ActivityCategoryData(name: "Entertainment", seconds: 5400, appCount: 4)
-            ],
-            days: [],
-            updatedAt: Date().timeIntervalSince1970
-        ),
         timeOfDay: .morning
     )
     .preferredColorScheme(.dark)

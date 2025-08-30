@@ -142,12 +142,11 @@ struct StatsView: View {
     @State private var hasInitiallyLoaded = false
     
     // Navigation dynamique
-    @State private var activeSection: StatsSection = .overview
+    @State private var activeSection: StatsSection = .apps
     @State private var showSections = false
     
     
     enum StatsSection: String, CaseIterable, Identifiable {
-        case overview = "overview"
         case apps = "apps"
         case categories = "categories"
         case patterns = "patterns"
@@ -156,7 +155,6 @@ struct StatsView: View {
         
         var title: String {
             switch self {
-            case .overview: return "Vue d'ensemble"
             case .apps: return "Applications"
             case .categories: return "Catégories"
             case .patterns: return "Tendances"
@@ -165,7 +163,6 @@ struct StatsView: View {
         
         var icon: String {
             switch self {
-            case .overview: return "chart.pie.fill"
             case .apps: return "square.grid.3x3.fill"
             case .categories: return "folder.fill"
             case .patterns: return "chart.line.uptrend.xyaxis"
@@ -174,7 +171,6 @@ struct StatsView: View {
         
         var color: Color {
             switch self {
-            case .overview: return DS.Color.accent
             case .apps: return DS.Color.screenTime
             case .categories: return DS.Color.social
             case .patterns: return DS.Color.productivity
@@ -350,8 +346,6 @@ struct StatsView: View {
     @ViewBuilder
     private var sectionContent: some View {
         switch activeSection {
-        case .overview:
-            overviewSection
         case .apps:
             appsSection
         case .categories:
@@ -361,31 +355,6 @@ struct StatsView: View {
         }
     }
     
-    private var overviewSection: some View {
-        VStack(spacing: DS.spacing.m) {
-            // Graphique d'évolution récente
-            ModernCard(title: "Évolution récente", icon: "chart.line.uptrend.xyaxis", color: DS.Color.productivity) {
-                WeeklyPattern(days: store.days)
-            }
-            
-            // Insights rapides
-            HStack(spacing: DS.spacing.s) {
-                QuickInsight(
-                    title: "Moyenne/jour",
-                    value: formatTime(store.averageDailySeconds),
-                    icon: "calendar.day.timeline.left",
-                    color: DS.Color.accent
-                )
-                
-                QuickInsight(
-                    title: "Progression",
-                    value: savedPct > 0 ? "+\(savedPct)%" : "0%",
-                    icon: "arrow.up.right.circle.fill",
-                    color: DS.Color.success
-                )
-            }
-        }
-    }
     
     private var appsSection: some View {
         VStack(spacing: DS.spacing.m) {

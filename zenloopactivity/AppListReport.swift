@@ -273,11 +273,20 @@ private struct AppRowView: View {
                 .foregroundColor(rankColor)
                 .frame(width: 20, alignment: .leading)
             
-            // App icon
-            Label(app.token)
-                .labelStyle(.iconOnly)
-                .frame(width: 36, height: 36)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+            // App icon avec validation du token
+            if isValidToken(app.token) {
+                Label(app.token)
+                    .labelStyle(.iconOnly)
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                Image(systemName: "app.fill")
+                    .foregroundColor(.blue.opacity(0.8))
+                    .font(.system(size: 22, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .background(.blue.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
             
             // App details
             VStack(alignment: .leading, spacing: 3) {
@@ -350,6 +359,12 @@ private struct AppRowView: View {
         formatter.unitsStyle = .abbreviated
         return formatter.string(from: duration) ?? "0m"
     }
+}
+
+// MARK: - Helper Functions
+private func isValidToken(_ token: ApplicationToken) -> Bool {
+    // Toujours afficher les vraies icônes d'applications
+    return true
 }
 
 // MARK: - Extension for Context

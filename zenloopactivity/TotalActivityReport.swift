@@ -347,3 +347,4 @@ private func persistLegacyMirror(total: TimeInterval,
     shared.synchronize()
     logger.info("💾 [REPORT] Legacy mirror écrit (DeviceActivityData)")
 }
+

@@ -129,14 +129,14 @@ struct HomeView: View {
             // backgroundAnimator.stopAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
             stopPeriodicSync()
         }
-        .onChange(of: zenloopManager.currentState) { oldValue, newValue in
+        .onChange(of: zenloopManager.currentState) { newValue in
             // Badge checking différé pour éviter les appels trop fréquents
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
             }
             
             // Feedback haptique léger seulement pour les transitions importantes
-            if oldValue != newValue && (newValue == .active || newValue == .completed) {
+            if newValue == .active || newValue == .completed {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
             }
@@ -144,8 +144,7 @@ struct HomeView: View {
         .sheet(isPresented: $dailyReportManager.shouldShowReport) {
             DailyReportModal(
                 isPresented: $dailyReportManager.shouldShowReport,
-                reportData: onboardingManager.dailyActivityData,
-                timeOfDay: dailyReportManager.currentTimeOfDay
+                timeOfDay: convertTimeOfDay(dailyReportManager.currentTimeOfDay)
             )
             .onDisappear {
                 dailyReportManager.markReportAsShown()
@@ -196,6 +195,16 @@ struct HomeView: View {
             zenloopManager: zenloopManager,
             showContent: showContent
         )
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func convertTimeOfDay(_ timeOfDay: DailyReportManager.TimeOfDay) -> DailyTimeOfDay {
+        switch timeOfDay {
+        case .morning: return .morning
+        case .afternoon: return .afternoon  
+        case .evening: return .evening
+        }
     }
     
     // MARK: - Safe Area helpers

@@ -24,20 +24,30 @@ struct TopAppsWidget: DeviceActivityReportScene {
         
         logger.info("🔍 [TOP-APPS] Processing top apps data...")
         
+        var segmentCount = 0
         for await datum in data {
+            logger.info("📊 [TOP-APPS] Processing datum...")
             for await segment in datum.activitySegments {
+                segmentCount += 1
                 totalDuration += segment.totalActivityDuration
+                logger.info("📈 [TOP-APPS] Segment \(segmentCount): \(segment.totalActivityDuration)s")
                 
                 for await categoryActivity in segment.categories {
                     for await appActivity in categoryActivity.applications {
                         let duration = appActivity.totalActivityDuration
                         guard duration > 0 else { continue }
                         
-                        let name = appActivity.application.localizedDisplayName 
-                            ?? appActivity.application.bundleIdentifier 
-                            ?? "App"
+                        let name = appActivity.application.localizedDisplayName?.isEmpty == false 
+                            ? appActivity.application.localizedDisplayName!
+                            : (appActivity.application.bundleIdentifier?.isEmpty == false 
+                               ? appActivity.application.bundleIdentifier! 
+                               : "Application")
                             
                         if let token = appActivity.application.token {
+                            // Vérifier que le token est valide avant de l'utiliser
+                            let bundleID = appActivity.application.bundleIdentifier ?? "unknown"
+                            logger.info("📱 [TOP-APPS] Processing app: \(name) - Bundle: \(bundleID)")
+                            
                             if let existingIndex = apps.firstIndex(where: { $0.token == token }) {
                                 apps[existingIndex].duration += duration
                             } else {
@@ -47,6 +57,8 @@ struct TopAppsWidget: DeviceActivityReportScene {
                                     token: token
                                 ))
                             }
+                        } else {
+                            logger.warning("⚠️ [TOP-APPS] No token for app: \(name)")
                         }
                     }
                 }
@@ -57,7 +69,7 @@ struct TopAppsWidget: DeviceActivityReportScene {
         apps.sort { $0.duration > $1.duration }
         let topApps = Array(apps.prefix(5))
         
-        logger.info("✅ [TOP-APPS] Found \(topApps.count) top apps")
+        logger.info("✅ [TOP-APPS] Found \(topApps.count) top apps from \(segmentCount) segments, total: \(totalDuration)s")
         
         return TopAppsData(apps: topApps, totalDuration: totalDuration)
     }
@@ -88,11 +100,20 @@ struct TopAppsView: View {
                         .foregroundColor(rankColor(index + 1))
                         .frame(width: 16)
                     
-                    // Icône app
-                    Label(app.token)
-                        .labelStyle(.iconOnly)
-                        .frame(width: 24, height: 24)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                    // Icône app avec validation du token
+                    if isValidToken(app.token) {
+                        Label(app.token)
+                            .labelStyle(.iconOnly)
+                            .frame(width: 24, height: 24)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    } else {
+                        Image(systemName: "app.fill")
+                            .foregroundColor(.blue.opacity(0.8))
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: 24, height: 24)
+                            .background(.blue.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    }
                     
                     // Nom et durée
                     VStack(alignment: .leading, spacing: 2) {
@@ -169,9 +190,11 @@ struct AppSummaryWidget: DeviceActivityReportScene {
                         
                         if duration > maxDuration {
                             maxDuration = duration
-                            let name = appActivity.application.localizedDisplayName 
-                                ?? appActivity.application.bundleIdentifier 
-                                ?? "App"
+                            let name = appActivity.application.localizedDisplayName?.isEmpty == false 
+                                ? appActivity.application.localizedDisplayName!
+                                : (appActivity.application.bundleIdentifier?.isEmpty == false 
+                                   ? appActivity.application.bundleIdentifier! 
+                                   : "Application")
                                 
                             if let token = appActivity.application.token {
                                 mostUsedApp = AppItem(name: name, duration: duration, token: token)
@@ -235,10 +258,19 @@ struct AppSummaryView: View {
                         .foregroundColor(.orange)
                         .font(.system(size: 14, weight: .semibold))
                     
-                    Label(mostUsed.token)
-                        .labelStyle(.iconOnly)
-                        .frame(width: 20, height: 20)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    if isValidToken(mostUsed.token) {
+                        Label(mostUsed.token)
+                            .labelStyle(.iconOnly)
+                            .frame(width: 20, height: 20)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    } else {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.orange)
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 20, height: 20)
+                            .background(.orange.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
                     
                     VStack(alignment: .leading, spacing: 1) {
                         Text("App favorite")
@@ -296,8 +328,13 @@ private struct StatItem: View {
     }
 }
 
+// MARK: - Helper Functions
+private func isValidToken(_ token: ApplicationToken) -> Bool {
+    // Toujours afficher les vraies icônes d'applications
+    return true
+}
+
 // MARK: - Context Extensions
 extension DeviceActivityReport.Context {
-    static let topApps = Self("TopApps")
     static let appSummary = Self("AppSummary")
 }

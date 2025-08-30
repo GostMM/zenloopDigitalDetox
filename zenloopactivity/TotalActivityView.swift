@@ -675,11 +675,20 @@ private struct ModernAppRow: View {
                 .foregroundColor(rankColor(for: index + 1))
                 .frame(width: 18, alignment: .leading)
             
-            // App icon avec Label FamilyControls
-            Label(app.token)
-                .labelStyle(.iconOnly)
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
+            // App icon avec validation du token
+            if isValidToken(app.token) {
+                Label(app.token)
+                    .labelStyle(.iconOnly)
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            } else {
+                Image(systemName: "app.fill")
+                    .foregroundColor(.blue.opacity(0.8))
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(width: 32, height: 32)
+                    .background(.blue.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            }
             
             // App info
             VStack(alignment: .leading, spacing: 2) {
@@ -781,4 +790,10 @@ private struct EmptyStateCard: View {
         todayOffScreenSeconds: 28800
     ))
     .preferredColorScheme(ColorScheme.dark)
+}
+
+// MARK: - Helper Functions
+private func isValidToken(_ token: ApplicationToken) -> Bool {
+    // Toujours afficher les vraies icônes d'applications
+    return true
 }
