@@ -56,6 +56,12 @@ struct HomeView: View {
                         if isIdle {
                             TimerCard(zenloopManager: zenloopManager, showContent: showContent)
                                 .padding(.top, 20)
+                            
+                            // Session Planning directement après TimerCard
+                            SessionPlanningRow(
+                                zenloopManager: zenloopManager,
+                                showContent: showContent
+                            )
                         }
                         
                         // Section principale selon l'état
@@ -261,13 +267,102 @@ struct HomeView: View {
     
     @MainActor
     private func syncWithDeviceActivityExtension() async {
-        // Vérifier les sessions qui pourraient avoir été démarrées par l'extension
-        // et qui ne sont pas synchronisées avec l'app principale
+        // Lire les événements de l'extension via DeviceActivityCoordinator
+        // Ceci implémente le polling décrit dans la documentation
         
-        // Cette méthode pourrait être étendue pour communiquer avec l'extension
-        // via App Groups ou d'autres mécanismes de communication inter-processus
+        print("🔄 [HOMEVIEW] Lecture des événements de l'extension...")
         
-        print("🔄 [HOMEVIEW] Vérification de la synchronisation avec l'extension Device Activity")
+        // Lire directement les événements de l'extension depuis App Groups
+        checkExtensionEvents()
+        
+        print("✅ [HOMEVIEW] Événements de l'extension traités")
+    }
+    
+    // MARK: - Extension Events Processing
+    
+    private func checkExtensionEvents() {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [HOMEVIEW] Cannot access App Group")
+            return
+        }
+        
+        // Lire les événements de l'extension (comme dans DeviceActivityCoordinator)
+        if let events = suite.array(forKey: "device_activity_events") as? [[String: Any]], !events.isEmpty {
+            print("📡 [HOMEVIEW] \(events.count) événements reçus de l'extension")
+            
+            for event in events {
+                if let eventType = event["event"] as? String,
+                   let activity = event["activity"] as? String,
+                   let timestamp = event["timestamp"] as? TimeInterval {
+                    processExtensionEvent(type: eventType, activity: activity, timestamp: timestamp)
+                }
+            }
+            
+            // Nettoyer les événements après traitement
+            suite.removeObject(forKey: "device_activity_events")
+            suite.synchronize()
+        }
+        
+        // Vérifier la queue d'activation des sessions
+        if let activationQueue = suite.array(forKey: "extension_activation_queue") as? [[String: Any]], !activationQueue.isEmpty {
+            print("🔄 [HOMEVIEW] \(activationQueue.count) sessions en queue d'activation")
+            // Déléguer au ZenloopManager pour traiter les sessions activées
+            // (La méthode existe déjà dans le timer de ZenloopManager)
+        }
+    }
+    
+    private func processExtensionEvent(type: String, activity: String, timestamp: TimeInterval) {
+        print("📨 [HOMEVIEW] Event reçu: \(type) pour activité: \(activity)")
+        
+        switch type {
+        case "intervalDidStart":
+            handleSessionStartedByExtension(activity: activity)
+        case "intervalDidEnd":
+            handleSessionEndedByExtension(activity: activity)
+        case "thresholdReached":
+            handleThresholdReached(activity: activity)
+        default:
+            print("❓ [HOMEVIEW] Type d'événement inconnu: \(type)")
+        }
+    }
+    
+    private func handleSessionStartedByExtension(activity: String) {
+        print("🚀 [HOMEVIEW] Session démarrée par l'extension: \(activity)")
+        
+        // Mise à jour de l'UI pour refléter que la session est active
+        Task { @MainActor in
+            await synchronizeBackgroundSessions()
+            
+            // Afficher une notification à l'utilisateur
+            showSessionStartedAlert(activity: activity)
+        }
+    }
+    
+    private func handleSessionEndedByExtension(activity: String) {
+        print("🏁 [HOMEVIEW] Session terminée par l'extension: \(activity)")
+        
+        // Mise à jour de l'UI 
+        Task { @MainActor in
+            await synchronizeBackgroundSessions()
+            
+            // Afficher une notification de fin
+            showSessionCompletedAlert(activity: activity)
+        }
+    }
+    
+    private func handleThresholdReached(activity: String) {
+        print("⚠️ [HOMEVIEW] Seuil atteint pour: \(activity)")
+        // Potentiellement afficher une alerte ou notification
+    }
+    
+    private func showSessionStartedAlert(activity: String) {
+        // TODO: Implémenter une alerte/banner pour informer que la session programmée a démarré
+        print("🎯 [HOMEVIEW] Affichage: Session active - \(activity)")
+    }
+    
+    private func showSessionCompletedAlert(activity: String) {
+        // TODO: Implémenter une alerte/banner de félicitations pour session terminée
+        print("🎉 [HOMEVIEW] Affichage: Session complétée - \(activity)")
     }
     
     // MARK: - Helper Methods
@@ -296,17 +391,23 @@ struct HomeView: View {
         // Arrêter le timer existant s'il y en a un
         stopPeriodicSync()
         
-        // Créer un nouveau timer qui se déclenche toutes les 30 secondes
-        syncTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+        // Créer un nouveau timer qui se déclenche toutes les 8 secondes (selon documentation)
+        syncTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { _ in
             Task { @MainActor in
                 // Ne synchroniser que si l'app est active et visible
                 if UIApplication.shared.applicationState == .active {
-                    await synchronizeBackgroundSessions()
+                    // Polling des événements de l'extension (priorité haute)
+                    checkExtensionEvents()
+                    
+                    // Synchronisation complète moins fréquemment
+                    if Int(Date().timeIntervalSince1970) % 30 == 0 { // Toutes les 30s pour la sync complète
+                        await synchronizeBackgroundSessions()
+                    }
                 }
             }
         }
         
-        print("⏰ [HOMEVIEW] Timer de synchronisation périodique démarré (30s)")
+        print("⏰ [HOMEVIEW] Timer de polling démarré (8s selon documentation)")
     }
     
     private func stopPeriodicSync() {

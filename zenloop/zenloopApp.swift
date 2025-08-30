@@ -117,11 +117,11 @@ struct zenloopApp: App {
                 
                 print("📡 [APP] Extension status: \(status) at \(initTime)")
                 
-                // Envoyer une notification depuis l'app pour confirmer
-                sendAppNotification(
-                    title: "📡 EXTENSION DÉTECTÉE",
-                    body: "Extension initialisée: \(status)"
-                )
+                // Extension detected - debug notification removed
+                // sendAppNotification(
+                //     title: "📡 EXTENSION DÉTECTÉE", 
+                //     body: "Extension initialisée: \(status)"
+                // )
                 
                 // Arrêter le timer après avoir détecté l'extension
                 timer.invalidate()
@@ -129,6 +129,8 @@ struct zenloopApp: App {
         }
     }
     
+    // Extension debug notifications disabled - function commented out
+    /*
     func sendAppNotification(title: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -148,6 +150,7 @@ struct zenloopApp: App {
             }
         }
     }
+    */
     
     // NOUVEAU: Préchargement des données stats
     func preloadStatsData() {

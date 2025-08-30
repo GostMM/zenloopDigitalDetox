@@ -13,10 +13,11 @@ struct MinimalHeader: View {
     let isPremium: Bool
     @ObservedObject var zenloopManager: ZenloopManager
     
-    @State private var showingSchedulePicker = false
-    @State private var scheduledStartTime = Date()
-    @State private var isScheduled = false
-    @State private var scheduledDuration = 25
+    // TODO: Schedule functionality to be implemented in future version
+    // @State private var showingSchedulePicker = false
+    // @State private var scheduledStartTime = Date()
+    // @State private var isScheduled = false
+    // @State private var scheduledDuration = 25
     
     var body: some View {
         HStack {
@@ -36,6 +37,8 @@ struct MinimalHeader: View {
             
             Spacer()
             
+            // TODO: Schedule button to be implemented in future version
+            /*
             // Bouton de programmation compact
             Button(action: {
                 if isScheduled {
@@ -99,6 +102,7 @@ struct MinimalHeader: View {
             .opacity(showContent ? 1 : 0)
             .offset(y: showContent ? 0 : -10)
             .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isScheduled)
+            */
             
             // Badge PRO si premium
             if isPremium {
@@ -125,6 +129,8 @@ struct MinimalHeader: View {
                 .opacity(showContent ? 1 : 0)
         }
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
+        // TODO: Schedule picker to be implemented in future version
+        /*
         .sheet(isPresented: $showingSchedulePicker) {
             SchedulePickerView(
                 selectedTime: $scheduledStartTime,
@@ -133,6 +139,7 @@ struct MinimalHeader: View {
                 }
             )
         }
+        */
     }
     
     private var currentGreeting: String {
@@ -163,6 +170,8 @@ struct MinimalHeader: View {
         }
     }
     
+    // TODO: Schedule functions to be implemented in future version
+    /*
     private func formatCompactTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -224,6 +233,7 @@ struct MinimalHeader: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+    */
 }
 
 struct ProBadge: View {
@@ -251,6 +261,8 @@ struct ProBadge: View {
     }
 }
 
+// TODO: Schedule notification dot to be implemented in future version
+/*
 // MARK: - Scheduled Notification Dot
 
 struct ScheduledNotificationDot: View {
@@ -288,3 +300,4 @@ struct ScheduledNotificationDot: View {
             }
     }
 }
+*/

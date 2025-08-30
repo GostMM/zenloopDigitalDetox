@@ -20,104 +20,73 @@ struct MetricsWidget: DeviceActivityReportScene {
     private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "MetricsWidget")
     
     func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> MetricsData {
-        // Strategy: Check cache freshness first
-        let cached = loadCachedMetrics()
-        let cacheAge = Date().timeIntervalSince(cached.updatedAt)
-        
-        // Return cache if fresh (<60s), otherwise calculate immediately
-        if cacheAge < 60 {
-            return cached
-        }
-        
-        // Fast synchronous calculation - no background tasks
-        return await calculateMetricsOptimized(data)
+        // Always read from SharedReportPayload created by TotalActivityReport
+        // This ensures consistency and avoids duplicate calculation
+        return loadSharedMetrics()
     }
     
-    private func calculateMetricsOptimized(_ data: DeviceActivityResults<DeviceActivityData>) async -> MetricsData {
-        let now = Date()
-        let cal = Calendar.current
-        let todayStart = cal.startOfDay(for: now)
-        let elapsedToday = now.timeIntervalSince(todayStart)
+    
+    private func formatMetricTime(_ duration: TimeInterval) -> String {
+        let hours = Int(duration / 3600)
+        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
         
-        var todayScreenTime: TimeInterval = 0
-        
-        // Pre-calculate today's day boundary to avoid repeated calculations
-        guard let tomorrowStart = cal.date(byAdding: .day, value: 1, to: todayStart) else {
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "0m"
+        }
+    }
+    
+    private func loadSharedMetrics() -> MetricsData {
+        guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            logger.error("❌ [METRICS] App Group indisponible")
             return createDefaultMetrics()
         }
         
-        // Fast iteration - only process today's segments
-        for await datum in data {
-            for await segment in datum.activitySegments {
-                let segDur = segment.totalActivityDuration
-                guard segDur > 0 else { continue }
-                
-                let segmentInterval = segment.dateInterval
-                
-                // Quick check: only process segments that overlap with today
-                guard segmentInterval.end > todayStart && segmentInterval.start < tomorrowStart else { continue }
-                
-                // Calculate overlap with today efficiently
-                let segStart = max(segmentInterval.start, todayStart)
-                let segEnd = min(segmentInterval.end, tomorrowStart)
-                let overlapDuration = segEnd.timeIntervalSince(segStart)
-                
-                if overlapDuration > 0 {
-                    let proportion = overlapDuration / segmentInterval.duration
-                    todayScreenTime += segDur * proportion
+        // Try to decode SharedReportPayload JSON data
+        if let data = shared.data(forKey: "DAReportLatest") {
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let todayScreenSeconds = json["todayScreenSeconds"] as? Double ?? 0
+                    let updatedAt = json["updatedAt"] as? TimeInterval ?? Date().timeIntervalSince1970
+                    
+                    logger.info("✅ [METRICS] Loaded from JSON: todayScreenSeconds=\(todayScreenSeconds)s")
+                    return MetricsData(
+                        todayScreenSeconds: todayScreenSeconds,
+                        updatedAt: Date(timeIntervalSince1970: updatedAt)
+                    )
                 }
+            } catch {
+                logger.error("❌ [METRICS] Failed to decode JSON: \(error.localizedDescription)")
+            }
+        } else {
+            logger.error("❌ [METRICS] No data found for key 'DAReportLatest' in App Group")
+            
+            // Also check legacy key as fallback
+            if let legacyDict = shared.dictionary(forKey: "DeviceActivityData") {
+                logger.info("🔄 [METRICS] Trying legacy key...")
+                // Legacy doesn't have todayScreenSeconds, use totalDuration as fallback
+                let totalDuration = legacyDict["totalDuration"] as? TimeInterval ?? 0
+                let lastUpdated = legacyDict["lastUpdated"] as? TimeInterval ?? Date().timeIntervalSince1970
+                
+                return MetricsData(
+                    todayScreenSeconds: totalDuration,
+                    updatedAt: Date(timeIntervalSince1970: lastUpdated)
+                )
             }
         }
         
-        // Fast calculations
-        let todayOffScreenTime = max(0, elapsedToday - todayScreenTime)
-        let savedTime = UserDefaults.standard.double(forKey: "zenloop.savedSeconds")
-        
-        let metrics = MetricsData(
-            todayScreenSeconds: todayScreenTime,
-            todayOffScreenSeconds: todayOffScreenTime,
-            savedSeconds: savedTime,
-            updatedAt: now
-        )
-        
-        // Single save operation
-        saveMetricsToAppGroup(
-            screenTime: todayScreenTime,
-            offScreenTime: todayOffScreenTime,
-            savedTime: savedTime,
-            updatedAt: now
-        )
-        
-        return metrics
-    }
-    
-    private func loadCachedMetrics() -> MetricsData {
-        guard let shared = UserDefaults(suiteName: "group.com.app.zenloop"),
-              let cachedData = shared.dictionary(forKey: "TodayMetrics") else {
-            return createDefaultMetrics()
-        }
-        
-        let screenTime = cachedData["todayScreenSeconds"] as? Double ?? 0
-        let offScreenTime = cachedData["todayOffScreenSeconds"] as? Double ?? 0
-        let savedTime = cachedData["savedSeconds"] as? Double ?? 0
-        let updatedAt = Date(timeIntervalSince1970: cachedData["updatedAt"] as? Double ?? 0)
-        
-        return MetricsData(
-            todayScreenSeconds: screenTime,
-            todayOffScreenSeconds: offScreenTime,
-            savedSeconds: savedTime,
-            updatedAt: updatedAt
-        )
+        logger.info("🔄 [METRICS] Using default metrics (0m)")
+        return createDefaultMetrics()
     }
     
     private func createDefaultMetrics() -> MetricsData {
         let now = Date()
-        let savedTime = UserDefaults.standard.double(forKey: "zenloop.savedSeconds")
         
         return MetricsData(
             todayScreenSeconds: 0,
-            todayOffScreenSeconds: 0,
-            savedSeconds: savedTime,
             updatedAt: now
         )
     }
@@ -125,35 +94,17 @@ struct MetricsWidget: DeviceActivityReportScene {
 
 struct MetricsData {
     let todayScreenSeconds: TimeInterval
-    let todayOffScreenSeconds: TimeInterval
-    let savedSeconds: TimeInterval
     let updatedAt: Date
     
-    // Structure pour StatsView
-    var metricsForUI: [MetricUIData] {
-        [
-            MetricUIData(
-                title: "Temps d'écran",
-                value: todayScreenSeconds,
-                icon: "iphone",
-                color: .blue,
-                subtitle: "aujourd'hui"
-            ),
-            MetricUIData(
-                title: "Temps focus",
-                value: todayOffScreenSeconds,
-                icon: "leaf.fill",
-                color: .green,
-                subtitle: "hors écran"
-            ),
-            MetricUIData(
-                title: "Temps économisé",
-                value: savedSeconds,
-                icon: "star.fill",
-                color: .orange,
-                subtitle: "par Zenloop"
-            )
-        ]
+    // Métrique unique simplifiée pour StatsView
+    var screenTimeMetric: MetricUIData {
+        MetricUIData(
+            title: "Temps d'écran",
+            value: todayScreenSeconds,
+            icon: "iphone",
+            color: .blue,
+            subtitle: "aujourd'hui"
+        )
     }
 }
 
@@ -177,71 +128,35 @@ struct MetricUIData: Identifiable, Hashable {
 struct MetricsView: View {
     let metricsData: MetricsData
     
-    @State private var selectedMetricIndex = 0
-    @State private var dragOffset: CGFloat = 0
     @State private var isLoading = false
     
-    // Cached computed property to avoid recalculation
-    private var metrics: [MetricUIData] {
-        metricsData.metricsForUI
+    // Single metric - no array needed
+    private var metric: MetricUIData {
+        metricsData.screenTimeMetric
     }
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Indicateurs verticaux compacts optimisés
-            VStack(spacing: 6) {
-                ForEach(metrics.indices, id: \.self) { index in
-                    IndicatorButton(
-                        isSelected: index == selectedMetricIndex,
-                        color: metrics[index].color,
-                        onTap: {
-                            withAnimation(.spring(duration: 0.2)) {
-                                selectedMetricIndex = index
-                            }
-                        }
-                    )
-                }
+        // Affichage simple d'une seule métrique - temps d'écran réel
+        ZStack {
+            if isLoading {
+                LoadingMetricCard()
+                    .transition(.opacity)
+            } else {
+                MetricDisplayCard(metric: metric)
+                    .transition(.opacity)
             }
-            
-            // Affichage compact de la métrique avec indicateur de chargement
-            ZStack {
-                if isLoading {
-                    LoadingMetricCard()
-                        .transition(.opacity)
-                } else {
-                    MetricDisplayCard(metric: metrics[selectedMetricIndex])
-                        .transition(.asymmetric(
-                            insertion: .move(edge: dragOffset > 0 ? .bottom : .top).combined(with: .opacity),
-                            removal: .move(edge: dragOffset > 0 ? .top : .bottom).combined(with: .opacity)
-                        ))
-                        .id(selectedMetricIndex)
-                }
-            }
-            .frame(minHeight: 90)
-            .clipped()
-            .gesture(
-                DragGesture(minimumDistance: 15)
-                    .onChanged { value in
-                        dragOffset = value.translation.height
-                    }
-                    .onEnded { value in
-                        let threshold: CGFloat = 25
-                        
-                        withAnimation(.spring(duration: 0.25)) {
-                            if value.translation.height > threshold {
-                                selectedMetricIndex = max(0, selectedMetricIndex - 1)
-                            } else if value.translation.height < -threshold {
-                                selectedMetricIndex = min(metrics.count - 1, selectedMetricIndex + 1)
-                            }
-                            dragOffset = 0
-                        }
-                    }
-            )
-            .scaleEffect(dragOffset == 0 ? 1.0 : 0.98)
-            .animation(.spring(duration: 0.15), value: dragOffset)
         }
+        .frame(minHeight: 90)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .background {
+            LinearGradient(
+                colors: [Color.black.opacity(0.8), Color.gray.opacity(0.6)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear {
             checkForDataUpdates()
         }
@@ -374,35 +289,9 @@ private struct LoadingMetricCard: View {
 }
 
 
-// MARK: - App Group Persistence
-private func saveMetricsToAppGroup(
-    screenTime: TimeInterval,
-    offScreenTime: TimeInterval, 
-    savedTime: TimeInterval,
-    updatedAt: Date
-) {
-    let logger = Logger(subsystem: "com.app.zenloop.activity", category: "MetricsWidget")
-    
-    guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
-        logger.error("❌ [METRICS] App Group indisponible")
-        return
-    }
-    
-    // Structure simple pour les métriques d'aujourd'hui
-    let metricsData: [String: Any] = [
-        "todayScreenSeconds": screenTime,
-        "todayOffScreenSeconds": offScreenTime,
-        "savedSeconds": savedTime,
-        "updatedAt": updatedAt.timeIntervalSince1970
-    ]
-    
-    shared.set(metricsData, forKey: "TodayMetrics")
-    shared.synchronize()
-    
-    logger.info("💾 [METRICS] Données sauvegardées dans App Group")
-}
 
 // MARK: - Context Extension
 extension DeviceActivityReport.Context {
     static let metrics = Self("Metrics")
 }
+

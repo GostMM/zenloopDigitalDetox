@@ -33,18 +33,11 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override init() {
         super.init()
         
-        // DEBUGGING: Marquer dans App Group que l'extension est initialisée
+        // Marquer dans App Group que l'extension est initialisée
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")
         suite?.set(Date().timeIntervalSince1970, forKey: "extension_initialized_timestamp")
         suite?.set("ZenloopDeviceActivityMonitor initialized", forKey: "extension_status")
         suite?.synchronize()
-        
-        // DEBUGGING: Notification dès que l'extension est chargée
-        scheduleNotification(
-            title: "🚀 EXTENSION INITIALISÉE",
-            body: "ZenloopDeviceActivityMonitor a été chargé par le système",
-            identifier: "extension_initialized_\(Date().timeIntervalSince1970)"
-        )
         
         print("🚀 [DeviceActivity] Extension ZenloopDeviceActivityMonitor initialized")
     }
@@ -52,11 +45,12 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
         
+        print("🚀 [DeviceActivity] ===== EXTENSION DÉCLENCHÉE =====")
+        print("🎯 [DeviceActivity] Session démarrée: \(activity.rawValue)")
+        print("🕐 [DeviceActivity] Heure de déclenchement: \(Date())")
+        
         // CRUCIAL: Appliquer le blocage des apps depuis l'extension
         applyShield(for: activity)
-        
-        // Logique quand un défi commence
-        print("🎯 [DeviceActivity] Défi commencé: \(activity)")
         
         // CRUCIAL: Signaler à l'app qu'une session doit être activée
         activateSessionInMainApp(for: activity)
@@ -64,12 +58,14 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // Notifier l'app principale
         notifyMainApp(event: "intervalDidStart", activity: activity.rawValue)
         
-        // Envoyer une notification locale
-        scheduleNotification(
-            title: "Défi Zenloop démarré",
-            body: "Votre défi de bien-être numérique a commencé. Restez concentré !",
-            identifier: "challenge_started_\(activity.rawValue)"
-        )
+        print("✅ [DeviceActivity] ===== EXTENSION SETUP TERMINÉ =====")
+        
+        // Challenge started - notification removed
+        // scheduleNotification(
+        //     title: "Défi Zenloop démarré",
+        //     body: "Votre défi de bien-être numérique a commencé. Restez concentré !",
+        //     identifier: "challenge_started_\(activity.rawValue)"
+        // )
     }
     
     override func intervalDidEnd(for activity: DeviceActivityName) {
@@ -87,12 +83,12 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // Notifier l'app principale
         notifyMainApp(event: "intervalDidEnd", activity: activity.rawValue)
         
-        // Envoyer une notification de félicitations
-        scheduleNotification(
-            title: "Défi Zenloop terminé !",
-            body: "Félicitations ! Vous avez réussi votre défi de bien-être numérique.",
-            identifier: "challenge_completed_\(activity.rawValue)"
-        )
+        // Challenge completed - notification removed
+        // scheduleNotification(
+        //     title: "Défi Zenloop terminé !",
+        //     body: "Félicitations ! Vous avez réussi votre défi de bien-être numérique.",
+        //     identifier: "challenge_completed_\(activity.rawValue)"
+        // )
         
         // Sauvegarder les statistiques
         saveChallengeCompletion(activityName: activity)
@@ -123,11 +119,12 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // Notifier l'app principale
         notifyMainApp(event: "thresholdReached", activity: activity.rawValue, eventName: event.rawValue)
         
-        scheduleNotification(
-            title: "Limite atteinte",
-            body: "Vous avez atteint votre limite d'utilisation. Temps de faire une pause !",
-            identifier: "threshold_reached_\(event.rawValue)"
-        )
+        // Threshold reached - notification removed
+        // scheduleNotification(
+        //     title: "Limite atteinte",
+        //     body: "Vous avez atteint votre limite d'utilisation. Temps de faire une pause !",
+        //     identifier: "threshold_reached_\(event.rawValue)"
+        // )
     }
     
     // Note: eventWillReachThresholdWarning n'est pas disponible non plus
@@ -137,38 +134,24 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     private func applyShield(for activity: DeviceActivityName) {
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")
         
-        // DEBUGGING: Notification pour confirmer que l'extension fonctionne
-        scheduleNotification(
-            title: "🔥 Extension ACTIVE!",
-            body: "L'extension DeviceActivity tente de bloquer pour: \(activity.rawValue)",
-            identifier: "extension_debug_\(activity.rawValue)"
-        )
+        // Extension is now active for this activity
         
-        // DEBUG: Vérifier l'App Group
+        // Vérifier l'App Group
         guard let suite = suite else {
-            scheduleNotification(
-                title: "❌ App Group FAIL",
-                body: "Cannot access App Group 'group.com.app.zenloop'",
-                identifier: "app_group_fail_\(activity.rawValue)"
-            )
+            print("❌ [DeviceActivity] Cannot access App Group 'group.com.app.zenloop'")
             return
         }
         
         let expectedKey = "payload_\(activity.rawValue)"
         print("🔍 [DeviceActivity] Looking for key: \(expectedKey)")
         
-        // DEBUG: Lister toutes les clés disponibles
+        // Lister toutes les clés disponibles pour debug console
         let allKeys = suite.dictionaryRepresentation().keys
         print("📋 [DeviceActivity] Available keys in App Group: \(Array(allKeys))")
         
         // Vérifier si c'est un test ou un vrai payload
         if let testPayload = suite.string(forKey: expectedKey) {
             // C'est un test payload simple
-            scheduleNotification(
-                title: "✅ PAYLOAD TROUVÉ (TEST)",
-                body: "Extension trouve le test payload: \(testPayload)",
-                identifier: "test_payload_found_\(activity.rawValue)"
-            )
             print("✅ [DeviceActivity] Test payload found: \(testPayload)")
             return
         }
@@ -178,11 +161,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             let payload = try? JSONDecoder().decode(SelectionPayload.self, from: data)
         else {
             print("⚠️ [DeviceActivity] No payload found for key: \(expectedKey)")
-            scheduleNotification(
-                title: "❌ Pas de payload",
-                body: "Extension ne trouve pas les apps à bloquer pour: \(expectedKey). Keys: \(allKeys.count)",
-                identifier: "no_payload_\(activity.rawValue)"
-            )
             return
         }
 
@@ -196,12 +174,7 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             store.shield.applications = Set(payload.apps)
             print("🛡️ [DeviceActivity] Blocked \(payload.apps.count) apps")
             
-            // Notification de confirmation
-            scheduleNotification(
-                title: "🛡️ APPS BLOQUÉES!",
-                body: "\(payload.apps.count) applications sont maintenant bloquées",
-                identifier: "apps_blocked_\(activity.rawValue)"
-            )
+            // Apps blocked successfully
         }
 
         // Bloquer les catégories sélectionnées  
@@ -209,20 +182,11 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             store.shield.applicationCategories = .specific(Set(payload.categories))
             print("🛡️ [DeviceActivity] Blocked \(payload.categories.count) categories")
             
-            // Notification de confirmation
-            scheduleNotification(
-                title: "🛡️ CATÉGORIES BLOQUÉES!",
-                body: "\(payload.categories.count) catégories sont maintenant bloquées",
-                identifier: "cats_blocked_\(activity.rawValue)"
-            )
+            // Categories blocked successfully
         }
         
         if payload.apps.isEmpty && payload.categories.isEmpty {
-            scheduleNotification(
-                title: "⚠️ Rien à bloquer",
-                body: "Payload trouvé mais aucune app/catégorie à bloquer",
-                identifier: "nothing_to_block_\(activity.rawValue)"
-            )
+            print("⚠️ [DeviceActivity] Payload found but nothing to block")
         }
         
         print("✅ [DeviceActivity] Shield applied for \(activity.rawValue)")
@@ -240,6 +204,8 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     
     // MARK: - Helper Methods
     
+    // Extension notifications disabled - function commented out
+    /*
     private func scheduleNotification(title: String, body: String, identifier: String) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -256,6 +222,7 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             }
         }
     }
+    */
     
     private func saveChallengeCompletion(activityName: DeviceActivityName) {
         // Utiliser App Groups pour partager les données avec l'app principale
@@ -346,17 +313,18 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // NOUVEAU: Gestion des sessions multiples - utiliser un système de queue
         let activationId = "\(activity.rawValue)_\(Date().timeIntervalSince1970)"
         
-        // Créer un challenge actif avec ID unique
+        // Créer un challenge actif avec ID unique et timing correct
         let activeChallenge: [String: Any] = [
             "id": sessionInfo.sessionId,
             "title": sessionInfo.title,
             "duration": sessionInfo.duration,
-            "startTime": Date().timeIntervalSince1970, // Commence maintenant
+            "startTime": sessionInfo.startTime.timeIntervalSince1970, // CORRIGÉ: Utiliser l'heure programmée réelle
             "isActive": true,
             "isScheduled": true, // Marquer comme session programmée
             "originalStartTime": sessionInfo.startTime.timeIntervalSince1970,
             "activationId": activationId, // ID unique pour éviter les collisions
-            "extensionTriggeredAt": Date().timeIntervalSince1970
+            "extensionTriggeredAt": Date().timeIntervalSince1970, // Quand l'extension s'est déclenchée
+            "sessionPayloadKey": "payload_\(activity.rawValue)" // Référence aux apps à bloquer
         ]
         
         // NOUVEAU: Ajouter à une queue au lieu d'écraser

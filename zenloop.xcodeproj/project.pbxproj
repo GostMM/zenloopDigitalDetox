@@ -14,6 +14,9 @@
 		DEAC3EAD2E3E167500007D9D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */; };
 		DEAC3EAF2E3E167500007D9D /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */; };
 		DEAC3EB72E3E167500007D9D /* zenloopshieldconfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DEC60E842E60473900B4B061 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEC60E832E60473900B4B061 /* WidgetKit.framework */; };
+		DEC60E862E60473900B4B061 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEC60E852E60473900B4B061 /* SwiftUI.framework */; };
+		DEC60E972E60473A00B4B061 /* zenloopwidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEC60E822E60473900B4B061 /* zenloopwidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +48,13 @@
 			remoteGlobalIDString = DEAC3EAB2E3E167500007D9D;
 			remoteInfo = zenloopshieldconfig;
 		};
+		DEC60E952E60473A00B4B061 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DE4F56782E3D18EC0014A5D1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DEC60E812E60473900B4B061;
+			remoteInfo = zenloopwidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -66,6 +76,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				DEC60E972E60473A00B4B061 /* zenloopwidgetExtension.appex in Embed Foundation Extensions */,
 				DEAC3EB72E3E167500007D9D /* zenloopshieldconfig.appex in Embed Foundation Extensions */,
 				DEAC3EA32E3E162400007D9D /* zenloopshieldaction.appex in Embed Foundation Extensions */,
 			);
@@ -84,6 +95,10 @@
 		DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopshieldconfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = Library/Frameworks/ManagedSettingsUI.framework; sourceTree = DEVELOPER_DIR; };
+		DEC60E822E60473900B4B061 /* zenloopwidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = zenloopwidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEC60E832E60473900B4B061 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DEC60E852E60473900B4B061 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		DEC60E9C2E60474700B4B061 /* zenloopwidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = zenloopwidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -114,6 +129,13 @@
 				Info.plist,
 			);
 			target = DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */;
+		};
+		DEC60E982E60473A00B4B061 /* Exceptions for "zenloopwidget" folder in "zenloopwidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DEC60E812E60473900B4B061 /* zenloopwidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -153,6 +175,14 @@
 				DEAC3EB82E3E167500007D9D /* Exceptions for "zenloopshieldconfig" folder in "zenloopshieldconfig" target */,
 			);
 			path = zenloopshieldconfig;
+			sourceTree = "<group>";
+		};
+		DEC60E872E60473900B4B061 /* zenloopwidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DEC60E982E60473A00B4B061 /* Exceptions for "zenloopwidget" folder in "zenloopwidgetExtension" target */,
+			);
+			path = zenloopwidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -196,18 +226,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DEC60E7F2E60473900B4B061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DEC60E862E60473900B4B061 /* SwiftUI.framework in Frameworks */,
+				DEC60E842E60473900B4B061 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		DE4F56772E3D18EC0014A5D1 = {
 			isa = PBXGroup;
 			children = (
+				DEC60E9C2E60474700B4B061 /* zenloopwidgetExtension.entitlements */,
 				DE205E982E49057C0010FD1A /* Products.storekit */,
 				DE4F56822E3D18EC0014A5D1 /* zenloop */,
 				DE4F56992E3D19CC0014A5D1 /* zenloopmonitor */,
 				DE4F56C52E3D1B7B0014A5D1 /* zenloopactivity */,
 				DEAC3E9C2E3E162400007D9D /* zenloopshieldaction */,
 				DEAC3EB02E3E167500007D9D /* zenloopshieldconfig */,
+				DEC60E872E60473900B4B061 /* zenloopwidget */,
 				DE4F56AC2E3D1B560014A5D1 /* Frameworks */,
 				DE4F56812E3D18EC0014A5D1 /* Products */,
 			);
@@ -221,6 +262,7 @@
 				DE4F56C42E3D1B7B0014A5D1 /* zenloopactivity.appex */,
 				DEAC3E992E3E162400007D9D /* zenloopshieldaction.appex */,
 				DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */,
+				DEC60E822E60473900B4B061 /* zenloopwidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -231,6 +273,8 @@
 				DE4F56AD2E3D1B560014A5D1 /* UniformTypeIdentifiers.framework */,
 				DEAC3E9A2E3E162400007D9D /* ManagedSettings.framework */,
 				DEAC3EAE2E3E167500007D9D /* ManagedSettingsUI.framework */,
+				DEC60E832E60473900B4B061 /* WidgetKit.framework */,
+				DEC60E852E60473900B4B061 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -255,6 +299,7 @@
 				DE4F56CF2E3D1B7B0014A5D1 /* PBXTargetDependency */,
 				DEAC3EA22E3E162400007D9D /* PBXTargetDependency */,
 				DEAC3EB62E3E167500007D9D /* PBXTargetDependency */,
+				DEC60E962E60473A00B4B061 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DE4F56822E3D18EC0014A5D1 /* zenloop */,
@@ -354,6 +399,28 @@
 			productReference = DEAC3EAC2E3E167500007D9D /* zenloopshieldconfig.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		DEC60E812E60473900B4B061 /* zenloopwidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DEC60E992E60473A00B4B061 /* Build configuration list for PBXNativeTarget "zenloopwidgetExtension" */;
+			buildPhases = (
+				DEC60E7E2E60473900B4B061 /* Sources */,
+				DEC60E7F2E60473900B4B061 /* Frameworks */,
+				DEC60E802E60473900B4B061 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DEC60E872E60473900B4B061 /* zenloopwidget */,
+			);
+			name = zenloopwidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = zenloopwidgetExtension;
+			productReference = DEC60E822E60473900B4B061 /* zenloopwidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -377,6 +444,9 @@
 						CreatedOnToolsVersion = 16.2;
 					};
 					DEAC3EAB2E3E167500007D9D = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					DEC60E812E60473900B4B061 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -403,6 +473,7 @@
 				DE4F56C32E3D1B7B0014A5D1 /* zenloopactivity */,
 				DEAC3E982E3E162400007D9D /* zenloopshieldaction */,
 				DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */,
+				DEC60E812E60473900B4B061 /* zenloopwidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -437,6 +508,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DEAC3EAA2E3E167500007D9D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEC60E802E60473900B4B061 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -481,6 +559,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DEC60E7E2E60473900B4B061 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -503,6 +588,11 @@
 			isa = PBXTargetDependency;
 			target = DEAC3EAB2E3E167500007D9D /* zenloopshieldconfig */;
 			targetProxy = DEAC3EB52E3E167500007D9D /* PBXContainerItemProxy */;
+		};
+		DEC60E962E60473A00B4B061 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DEC60E812E60473900B4B061 /* zenloopwidgetExtension */;
+			targetProxy = DEC60E952E60473A00B4B061 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -931,6 +1021,67 @@
 			};
 			name = Release;
 		};
+		DEC60E9A2E60473A00B4B061 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = zenloopwidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopwidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopwidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DEC60E9B2E60473A00B4B061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = zenloopwidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BJN2XLBCFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = zenloopwidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = zenloopwidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.app.zenloop.zenloopwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -984,6 +1135,15 @@
 			buildConfigurations = (
 				DEAC3EBA2E3E167500007D9D /* Debug */,
 				DEAC3EBB2E3E167500007D9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DEC60E992E60473A00B4B061 /* Build configuration list for PBXNativeTarget "zenloopwidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DEC60E9A2E60473A00B4B061 /* Debug */,
+				DEC60E9B2E60473A00B4B061 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

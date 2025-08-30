@@ -291,7 +291,7 @@ struct StatsView: View {
             }
             
             // Métrique principale compacte avec vraies données
-            DeviceActivityReport(.init("Metrics"), filter: screenTimeManager.currentFilter)
+            DeviceActivityReport(screenTimeManager.metricsContext, filter: screenTimeManager.currentFilter)
                 .id("metrics-\(reportInstanceID)")
                 .frame(height: 110)
         }
@@ -390,13 +390,13 @@ struct StatsView: View {
     private var appsSection: some View {
         VStack(spacing: DS.spacing.m) {
             ModernCard(title: "Applications les plus utilisées", icon: "square.grid.3x3.fill", color: DS.Color.screenTime) {
-                DeviceActivityReport(.init("TopApps"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.topAppsContext, filter: screenTimeManager.currentFilter)
                     .id("topapps-\(reportInstanceID)")
                     .frame(minHeight: 160)
             }
             
             ModernCard(title: "Résumé des applications", icon: "app.badge.fill", color: DS.Color.focusTime) {
-                DeviceActivityReport(.init("AppSummary"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.appSummaryContext, filter: screenTimeManager.currentFilter)
                     .id("appsummary-\(reportInstanceID)")
                     .frame(minHeight: 120)
             }
@@ -406,13 +406,13 @@ struct StatsView: View {
     private var categoriesSection: some View {
         VStack(spacing: DS.spacing.m) {
             ModernCard(title: "Distribution par catégories", icon: "chart.pie.fill", color: DS.Color.social) {
-                DeviceActivityReport(.init("CategoryDistribution"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.categoryDistributionContext, filter: screenTimeManager.currentFilter)
                     .id("categories-\(reportInstanceID)")
                     .frame(minHeight: 180)
             }
             
             ModernCard(title: "Top catégories", icon: "folder.badge.plus", color: DS.Color.entertainment) {
-                DeviceActivityReport(.init("TopCategoriesCompact"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.topCategoriesCompactContext, filter: screenTimeManager.currentFilter)
                     .id("topcategories-\(reportInstanceID)")
                     .frame(minHeight: 100)
             }
@@ -422,13 +422,13 @@ struct StatsView: View {
     private var patternsSection: some View {
         VStack(spacing: DS.spacing.m) {
             ModernCard(title: "Usage quotidien", icon: "chart.bar.fill", color: DS.Color.productivity) {
-                DeviceActivityReport(.init("DailyUsage"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.dailyUsageContext, filter: screenTimeManager.currentFilter)
                     .id("dailyusage-\(reportInstanceID)")
                     .frame(minHeight: 160)
             }
             
             ModernCard(title: "Semaine vs Weekend", icon: "calendar.badge.clock", color: DS.Color.accent) {
-                DeviceActivityReport(.init("TimeComparison"), filter: screenTimeManager.currentFilter)
+                DeviceActivityReport(screenTimeManager.timeComparisonContext, filter: screenTimeManager.currentFilter)
                     .id("timecomparison-\(reportInstanceID)")
                     .frame(minHeight: 140)
             }
@@ -886,7 +886,16 @@ final class RealScreenTimeManager: ObservableObject {
     @Published var selectedPeriod: StatsView.TimePeriod = .today
     
     private let authorizationCenter = AuthorizationCenter.shared
+    
+    // All contexts used in StatsView - mapped 1:1 with zenloopactivity extension
     let reportContext = DeviceActivityReport.Context("TotalActivity")
+    let metricsContext = DeviceActivityReport.Context("Metrics")
+    let topAppsContext = DeviceActivityReport.Context("TopApps")
+    let appSummaryContext = DeviceActivityReport.Context("AppSummary")
+    let categoryDistributionContext = DeviceActivityReport.Context("CategoryDistribution")
+    let topCategoriesCompactContext = DeviceActivityReport.Context("TopCategoriesCompact")
+    let dailyUsageContext = DeviceActivityReport.Context("DailyUsage")
+    let timeComparisonContext = DeviceActivityReport.Context("TimeComparison")
     
     var currentFilter: DeviceActivityFilter {
         let interval = selectedPeriod.dateInterval(now: Date(), cal: .current)

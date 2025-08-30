@@ -9,6 +9,7 @@ import SwiftUI
 import FamilyControls
 import DeviceActivity
 import ManagedSettings
+import WidgetKit
 import os
 
 // MARK: - Application States & Models
@@ -558,6 +559,9 @@ class ZenloopManager: ObservableObject {
             // NOUVEAU: Surveiller les sessions activées par l'extension
             self?.startExtensionSessionMonitoring()
             
+            // Initialiser les données du widget au démarrage
+            self?.updateWidgetData()
+            
             #if DEBUG
             self?.logger.debug("✅ [ZENLOOP] Initialisation complète terminée")
             #endif
@@ -578,8 +582,15 @@ class ZenloopManager: ObservableObject {
             self.currentTimeRemaining = challenge.timeRemaining
             self.currentProgress = challenge.safeProgress
             
+            // CRUCIAL: Ne pas réappliquer les restrictions si c'est une session programmée
             if self.isAuthorized && self.isAppsSelectionValid() {
-                self.applyRestrictions()
+                if isScheduledSession(challenge) {
+                    print("⚠️ [ZENLOOP] Session programmée restaurée - restrictions gérées par l'extension")
+                    // Ne pas appliquer les restrictions car l'extension les gère déjà
+                } else {
+                    // Session manuelle - appliquer les restrictions normalement
+                    self.applyRestrictions()
+                }
             } else if self.isAuthorized {
                 #if DEBUG
                 self.logger.warning("⚠️ [ZENLOOP] Apps doivent être re-sélectionnées")
@@ -1050,6 +1061,9 @@ class ZenloopManager: ObservableObject {
                 continue
             }
             
+            // extensionTriggeredAt est optionnel (rétrocompatibilité)
+            let extensionTriggeredAt = sessionData["extensionTriggeredAt"] as? TimeInterval
+            
             // Vérifier si cette activation a déjà été traitée
             let processedActivations = suite?.array(forKey: "processed_activation_ids") as? [String] ?? []
             if processedActivations.contains(activationId) {
@@ -1059,8 +1073,23 @@ class ZenloopManager: ObservableObject {
             
             print("🔥 [ZENLOOP] Processing session from queue: \(title) (\(index + 1)/\(activationQueue.count))")
             
-            // Créer un challenge actif depuis les données de l'extension
-            let startTime = Date(timeIntervalSince1970: startTimeInterval)
+            // CRUCIAL: Utiliser l'heure réelle où l'extension s'est déclenchée (si disponible)
+            let realStartTime: Date
+            if let extensionTime = extensionTriggeredAt {
+                realStartTime = Date(timeIntervalSince1970: extensionTime)
+                print("🕘 [ZENLOOP] Utilisation heure réelle extension: \(realStartTime)")
+            } else {
+                // Fallback pour rétrocompatibilité
+                realStartTime = Date(timeIntervalSince1970: startTimeInterval)
+                print("🕘 [ZENLOOP] Fallback - utilisation heure programmée: \(realStartTime)")
+            }
+            
+            let originalStartTime = Date(timeIntervalSince1970: startTimeInterval)
+            
+            print("🕘 [ZENLOOP] Timing analysis:")
+            print("   Programmée pour: \(originalStartTime)")
+            print("   Extension déclenchée: \(realStartTime)")
+            print("   Maintenant: \(Date())")
             
             let activeChallenge = ZenloopChallenge(
                 id: sessionId,
@@ -1068,7 +1097,7 @@ class ZenloopManager: ObservableObject {
                 description: "Session programmée déclenchée automatiquement",
                 duration: duration,
                 difficulty: .medium,
-                startTime: startTime,
+                startTime: realStartTime, // Utiliser l'heure réelle de l'extension ou fallback
                 isActive: true
             )
             
@@ -1113,20 +1142,110 @@ class ZenloopManager: ObservableObject {
             return
         }
         
-        // Activer la session proprement
-        currentChallenge = challenge
-        currentState = .active
+        // CORRIGÉ: Calculer le temps déjà écoulé depuis le vrai démarrage
+        let now = Date()
+        let elapsedTime = now.timeIntervalSince(startTime)
+        let remainingTime = challenge.duration - elapsedTime
         
-        // Démarrer le timer de la session
-        challengeStateManager.startChallenge(challenge)
+        print("⏱️ [ZENLOOP] Session timing:")
+        print("   Programmée pour: \(startTime)")
+        print("   Maintenant: \(now)")  
+        print("   Temps écoulé: \(Int(elapsedTime))s")
+        print("   Temps restant: \(Int(remainingTime))s")
+        
+        // Vérifier que la session n'est pas déjà expirée
+        guard remainingTime > 0 else {
+            print("❌ [ZENLOOP] Session already expired, ignoring")
+            return
+        }
+        
+        // CRUCIAL: Créer un nouveau challenge avec l'heure réelle de l'extension
+        var synchronizedChallenge = challenge
+        synchronizedChallenge.startTime = startTime // CORRIGÉ: Heure réelle de l'extension
+        synchronizedChallenge.isActive = true
+        
+        // CORRIGÉ: Activer la session avec le challenge synchronisé
+        currentChallenge = synchronizedChallenge
+        currentState = .active
+        currentTimeRemaining = formatTime(remainingTime)
+        currentProgress = elapsedTime / challenge.duration
+        
+        challengeStateManager.startChallenge(synchronizedChallenge)
+        
+        // CORRIGÉ: Charger les apps spécifiques à cette session programmée
+        loadAppsForScheduledSession(challenge)
         
         print("✅ [ZENLOOP] Scheduled session activated: \(challenge.title)")
+        
+        // Mettre à jour le widget avec les nouvelles données
+        updateWidgetData()
         
         // Envoyer une notification de confirmation
         notificationManager.notifySessionStarted(
             sessionTitle: challenge.title,
             sessionId: challenge.id
         )
+    }
+    
+    private func loadAppsForScheduledSession(_ challenge: ZenloopChallenge) {
+        // IMPORTANT: Ne pas écraser les restrictions de l'extension qui sont déjà actives
+        // L'extension a déjà appliqué le blocage via ManagedSettings
+        // On charge seulement les infos pour l'UI, pas pour réappliquer les restrictions
+        
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop"),
+              let payloadData = suite.data(forKey: "payload_\(challenge.id)") else {
+            print("⚠️ [ZENLOOP] No payload found for scheduled session: \(challenge.id)")
+            return
+        }
+        
+        do {
+            let payload = try JSONDecoder().decode(SelectionPayload.self, from: payloadData)
+            
+            // Créer une FamilyActivitySelection pour l'UI seulement
+            var selection = FamilyActivitySelection()
+            selection.applicationTokens = Set(payload.apps)
+            selection.categoryTokens = Set(payload.categories)
+            
+            // CRUCIAL: Mettre à jour seulement les variables UI SANS réappliquer les restrictions
+            // L'extension gère déjà les restrictions via son propre ManagedSettingsStore nommé
+            
+            // Mettre à jour seulement les propriétés pour l'affichage UI
+            selectedAppsCount = payload.apps.count + payload.categories.count
+            
+            // Ne PAS appeler updateAppsSelection() qui réappliquerait les restrictions
+            // et interfèrerait avec le ManagedSettingsStore de l'extension
+            
+            let appsCount = payload.apps.count
+            let categoriesCount = payload.categories.count
+            print("📱 [ZENLOOP] Apps synchronisées pour UI (session programmée):")
+            print("   Applications: \(appsCount)")
+            print("   Catégories: \(categoriesCount)")
+            print("   ⚠️  Restrictions PAS réappliquées - Extension les gère")
+            
+        } catch {
+            print("❌ [ZENLOOP] Failed to decode payload for session: \(challenge.id) - \(error)")
+        }
+    }
+    
+    private func isScheduledSession(_ challenge: ZenloopChallenge) -> Bool {
+        // Une session programmée a un ID qui commence par "scheduled_"
+        // ou est marquée comme session programmée dans les données
+        return challenge.id.hasPrefix("scheduled_") || 
+               challenge.description.contains("programmée déclenchée automatiquement")
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let totalMinutes = Int(timeInterval) / 60
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        
+        if hours > 0 {
+            return String(format: "%02d:%02d", hours, minutes)
+        } else {
+            return String(format: "00:%02d", minutes)
+        }
     }
     
     private func resolveSessionConflict(existing: ZenloopChallenge, new: ZenloopChallenge) {
@@ -1206,14 +1325,28 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
         // Synchroniser avec la persistance
         persistence.persistCurrentStateDebounced(state: state, challenge: challenge)
         
+        // Mettre à jour le widget quand l'état change
+        updateWidgetData()
+        
         // Gérer les restrictions selon l'état
         switch state {
         case .active:
             if appRestrictionCoordinator.isAuthorized {
-                appRestrictionCoordinator.applyRestrictions()
+                // CRUCIAL: Ne pas réappliquer les restrictions pour les sessions programmées
+                // car l'extension les gère déjà via son propre ManagedSettingsStore
+                if let challenge = challenge, isScheduledSession(challenge) {
+                    print("⚠️ [ZENLOOP] Session programmée détectée - restrictions gérées par l'extension")
+                    // Ne pas appeler applyRestrictions() pour éviter d'écraser l'extension
+                } else {
+                    // Session manuelle - appliquer les restrictions normalement
+                    appRestrictionCoordinator.applyRestrictions()
+                }
             }
             if let challenge = challenge {
-                deviceActivityCoordinator.startMonitoring(for: challenge)
+                // Pour les sessions programmées, le monitoring est déjà actif via l'extension
+                if !isScheduledSession(challenge) {
+                    deviceActivityCoordinator.startMonitoring(for: challenge)
+                }
             }
         case .idle, .completed, .paused:
             appRestrictionCoordinator.removeRestrictions()
@@ -1254,6 +1387,63 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
         totalSavedTime = statisticsCoordinator.totalSavedTime
         completedChallengesTotal = statisticsCoordinator.completedChallengesTotal
         currentStreakCount = statisticsCoordinator.currentStreakCount
+        
+        // Mettre à jour le widget après completion
+        updateWidgetData()
+    }
+    
+    // MARK: - Widget Data Updates
+    
+    func updateWidgetData() {
+        // Mettre à jour les données du widget via App Groups directement
+        // Au lieu d'utiliser les types du widget, utiliser des UserDefaults simples
+        
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [ZENLOOP] Cannot access App Group for widget update")
+            return
+        }
+        
+        // Mapper l'état pour le widget
+        let widgetState = mapStateToString(currentState)
+        
+        suite.set(widgetState, forKey: "widget_current_state")
+        suite.set(currentChallenge?.title, forKey: "widget_session_title")
+        suite.set(currentState == .active ? currentTimeRemaining : nil, forKey: "widget_time_remaining")
+        suite.set(currentProgress, forKey: "widget_progress")
+        suite.set(completedChallengesTotal, forKey: "widget_sessions_completed")
+        suite.set(currentStreakCount, forKey: "widget_streak")
+        
+        // Prochaine session programmée
+        if let nextSession = nextScheduledSession {
+            suite.set(nextSession.title, forKey: "widget_next_session_title")
+            suite.set(nextSession.startTime, forKey: "widget_next_session_start")
+            suite.set(nextSession.duration, forKey: "widget_next_session_duration")
+        } else {
+            suite.removeObject(forKey: "widget_next_session_title")
+            suite.removeObject(forKey: "widget_next_session_start")
+            suite.removeObject(forKey: "widget_next_session_duration")
+        }
+        
+        suite.set(Date(), forKey: "widget_last_updated")
+        suite.synchronize()
+        
+        print("📱 [ZENLOOP] Widget data updated: \(widgetState)")
+        
+        // Forcer la mise à jour du widget
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    
+    private func mapStateToString(_ state: ZenloopState) -> String {
+        switch state {
+        case .idle:
+            return "idle"
+        case .active:
+            return "active"
+        case .paused:
+            return "paused"
+        case .completed:
+            return "completed"
+        }
     }
 }
 

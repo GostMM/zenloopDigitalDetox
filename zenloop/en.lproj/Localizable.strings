@@ -597,3 +597,74 @@
 "morning_action_tip" = "Try starting with 25 minutes of focused work before checking social media.";
 "afternoon_action_tip" = "Consider taking a 10-minute break from screens to reset your attention.";
 "evening_action_tip" = "Set a screen curfew 1 hour before bed for better sleep quality.";
+
+// Session Planning
+"session_planning" = "Session Planning";
+"schedule_focus_sessions" = "Schedule your focus sessions";
+"schedule_sessions" = "Schedule Sessions";
+"plan_focus_sessions_description" = "Plan and schedule focus sessions to block specific apps during your most productive hours";
+"popular_sessions" = "Popular Sessions";
+"schedule" = "Schedule";
+
+// Popular Session Titles
+"no_tiktok_8h" = "No TikTok 8h";
+"no_instagram_8h" = "No Instagram 8h";
+"no_social_8h" = "No Soc Med 8h";
+"no_chatgpt_8h" = "No AI Tools 8h";
+"study_mode_4h" = "Study Mode 4h";
+
+// Popular Session Descriptions
+"block_tiktok_8h_desc" = "Block TikTok and short videos for 8 hours of deep focus";
+"block_instagram_8h_desc" = "Block Instagram and visual distractions for productive work";
+"block_all_social_8h_desc" = "Block all social media platforms for maximum concentration";
+"block_chatgpt_8h_desc" = "Block AI assistants and tools to focus on your own thinking";
+"study_mode_desc" = "Perfect for studying with entertainment apps blocked";
+
+// Session Categories
+"social_media" = "Social Media";
+"productivity" = "Productivity";
+"entertainment" = "Entertainment";
+"ai_tools" = "AI Tools";
+"mixed" = "Mixed";
+
+// Schedule Configuration
+"schedule_session" = "Schedule Session";
+"schedule_configuration" = "Schedule Configuration";
+"start_date" = "Start Date";
+"start_time" = "Start Time";
+"frequency" = "Frequency";
+"repeat_on_days" = "Repeat on Days";
+"selected_apps" = "Selected Apps";
+"items" = "items";
+"tap_to_select_apps" = "Tap to select apps to block";
+
+// Frequency Options
+"once" = "Once";
+"daily" = "Daily";
+"weekly" = "Weekly";
+
+// Weekdays
+"monday" = "Monday";
+"tuesday" = "Tuesday";
+"wednesday" = "Wednesday";
+"thursday" = "Thursday";
+"friday" = "Friday";
+"saturday" = "Saturday";
+"sunday" = "Sunday";
+
+// Weekdays Short
+"mon" = "Mon";
+"tue" = "Tue";
+"wed" = "Wed";
+"thu" = "Thu";
+"fri" = "Fri";
+"sat" = "Sat";
+"sun" = "Sun";
+
+// Configuration Status
+"configured" = "Ready";
+"clear" = "Clear";
+"next" = "Next";
+
+// Session Progress
+"session_progress" = "Session Progress";

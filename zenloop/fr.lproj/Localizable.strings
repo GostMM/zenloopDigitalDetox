@@ -599,3 +599,74 @@
 "morning_action_tip" = "Essayez de commencer par 25 minutes de travail concentré avant de consulter les réseaux sociaux.";
 "afternoon_action_tip" = "Envisagez de prendre 10 minutes de pause écran pour recentrer votre attention.";
 "evening_action_tip" = "Fixez un couvre-feu numérique 1h avant le coucher pour mieux dormir.";
+
+// Planification de Sessions
+"session_planning" = "Planification de Sessions";
+"schedule_focus_sessions" = "Planifiez vos sessions de concentration";
+"schedule_sessions" = "Planifier des Sessions";
+"plan_focus_sessions_description" = "Planifiez et programmez des sessions de focus pour bloquer des apps spécifiques durant vos heures les plus productives";
+"popular_sessions" = "Sessions Populaires";
+"schedule" = "Planifier";
+
+// Titres de Sessions Populaires
+"no_tiktok_8h" = "Pas de TikTok 8h";
+"no_instagram_8h" = "Pas d'Instagram 8h";
+"no_social_8h" = "Pas de Réseaux Sociaux 8h";
+"no_chatgpt_8h" = "Pas d'Outils IA 8h";
+"study_mode_4h" = "Mode Étude 4h";
+
+// Descriptions de Sessions Populaires
+"block_tiktok_8h_desc" = "Bloquez TikTok et les vidéos courtes pour 8h de concentration profonde";
+"block_instagram_8h_desc" = "Bloquez Instagram et les distractions visuelles pour un travail productif";
+"block_all_social_8h_desc" = "Bloquez tous les réseaux sociaux pour une concentration maximale";
+"block_chatgpt_8h_desc" = "Bloquez les assistants et outils IA pour vous concentrer sur votre propre réflexion";
+"study_mode_desc" = "Parfait pour étudier avec les apps de divertissement bloquées";
+
+// Catégories de Sessions
+"social_media" = "Réseaux Sociaux";
+"productivity" = "Productivité";
+"entertainment" = "Divertissement";
+"ai_tools" = "Outils IA";
+"mixed" = "Mixte";
+
+// Configuration de Planification
+"schedule_session" = "Planifier Session";
+"schedule_configuration" = "Configuration de Planification";
+"start_date" = "Date de Début";
+"start_time" = "Heure de Début";
+"frequency" = "Fréquence";
+"repeat_on_days" = "Répéter les Jours";
+"selected_apps" = "Apps Sélectionnées";
+"items" = "éléments";
+"tap_to_select_apps" = "Appuyez pour sélectionner les apps à bloquer";
+
+// Options de Fréquence
+"once" = "Une Fois";
+"daily" = "Quotidien";
+"weekly" = "Hebdomadaire";
+
+// Jours de la Semaine
+"monday" = "Lundi";
+"tuesday" = "Mardi";
+"wednesday" = "Mercredi";
+"thursday" = "Jeudi";
+"friday" = "Vendredi";
+"saturday" = "Samedi";
+"sunday" = "Dimanche";
+
+// Jours de la Semaine Courts
+"mon" = "Lun";
+"tue" = "Mar";
+"wed" = "Mer";
+"thu" = "Jeu";
+"fri" = "Ven";
+"sat" = "Sam";
+"sun" = "Dim";
+
+// Statut de Configuration
+"configured" = "Prêt";
+"clear" = "Effacer";
+"next" = "Prochaine";
+
+// Progression de Session
+"session_progress" = "Progression de Session";

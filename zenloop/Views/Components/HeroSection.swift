@@ -373,10 +373,6 @@ struct ModernQuickActionsRow: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            // Indicateur de sessions programmées (en haut)
-            if zenloopManager.hasActiveScheduledSessions {
-                ScheduledSessionIndicator(zenloopManager: zenloopManager)
-            }
             
             // Header homogénéisé avec les autres sections
             HStack {
@@ -920,69 +916,6 @@ struct CompactMoreIndicator: View {
     }
 }
 
-
-// MARK: - Scheduled Session Indicator
-
-struct ScheduledSessionIndicator: View {
-    @ObservedObject var zenloopManager: ZenloopManager
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icône animée
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.cyan.opacity(0.1))
-                    .frame(width: 32, height: 32)
-                
-                Image(systemName: "clock.badge")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.cyan)
-            }
-            
-            // Informations de session
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Sessions programmées")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                if let nextSession = zenloopManager.nextScheduledSession {
-                    Text("Prochaine: \(nextSession.title) à \(formatTime(nextSession.startTime))")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.cyan.opacity(0.8))
-                } else {
-                    Text("Plusieurs sessions actives")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.cyan.opacity(0.8))
-                }
-            }
-            
-            Spacer()
-            
-            // Badge du nombre de sessions
-            let count = zenloopManager.hasActiveScheduledSessions ? BlockScheduler.shared.getActiveSchedules().count : 0
-            if count > 0 {
-                Text("\(count)")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 20, height: 20)
-                    .background(.cyan, in: Circle())
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.cyan.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(.cyan.opacity(0.2), lineWidth: 1)
-        )
-    }
-    
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-}
 
 #Preview {
     HeroSection(
