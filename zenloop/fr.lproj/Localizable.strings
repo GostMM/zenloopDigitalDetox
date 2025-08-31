@@ -139,9 +139,19 @@
 "concentration_meditation_desc" = "Calme mental et paix intérieure";
 "concentration_work_desc" = "Productivité maximum pour tes projets";
 
+// Descriptions courtes pour la grille 2x2
+"deep_focus_short" = "Max focus";
+"creativity_short" = "Créativité";
+"study_short" = "Étudier";
+"meditation_short" = "Méditer";
+"work_short" = "Travailler";
+
 // Expand/Collapse buttons
 "less" = "Moins";
 "more" = "Plus";
+
+// Selection indicator
+"selected" = "Sélectionné";
 
 // Date formatting
 "today_at" = "Aujourd'hui à %@";
@@ -609,11 +619,11 @@
 "schedule" = "Planifier";
 
 // Titres de Sessions Populaires
-"no_tiktok_8h" = "Pas de TikTok 8h";
-"no_instagram_8h" = "Pas d'Instagram 8h";
-"no_social_8h" = "Pas de Réseaux Sociaux 8h";
-"no_chatgpt_8h" = "Pas d'Outils IA 8h";
-"study_mode_4h" = "Mode Étude 4h";
+"no_tiktok_8h" = "Anti-TikTok 8h";
+"no_instagram_8h" = "Anti-Insta 8h";
+"no_social_8h" = "Anti-Social 8h";
+"no_chatgpt_8h" = "Anti-IA 8h";
+"study_mode_4h" = "Focus Étude 4h";
 
 // Descriptions de Sessions Populaires
 "block_tiktok_8h_desc" = "Bloquez TikTok et les vidéos courtes pour 8h de concentration profonde";

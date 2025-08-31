@@ -104,6 +104,11 @@ struct MinimalHeader: View {
             .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isScheduled)
             */
             
+            // Section badges d'évolution
+            BadgeEvolutionView(showContent: showContent)
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : -10)
+            
             // Badge PRO si premium
             if isPremium {
                 ProBadge()
@@ -259,6 +264,92 @@ struct ProBadge: View {
             )
             .shadow(color: .purple.opacity(0.3), radius: 2, x: 0, y: 1)
     }
+}
+
+// MARK: - Badge Evolution View
+
+struct BadgeEvolutionView: View {
+    let showContent: Bool
+    @State private var currentBadgeIndex = 0
+    
+    // Simulations de badges d'évolution - à remplacer par de vraies données
+    private let badges = [
+        BadgeData(icon: "flame.fill", color: .orange, title: "+5 Streak", isNew: true),
+        BadgeData(icon: "target", color: .green, title: "Goal", isNew: false),
+        BadgeData(icon: "crown.fill", color: .yellow, title: "Master", isNew: false),
+        BadgeData(icon: "star.fill", color: .purple, title: "Expert", isNew: true)
+    ]
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(badges.indices, id: \.self) { index in
+                BadgeItem(
+                    badge: badges[index],
+                    isActive: index == currentBadgeIndex,
+                    showContent: showContent
+                )
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        currentBadgeIndex = index
+                    }
+                }
+            }
+        }
+        .onAppear {
+            startBadgeRotation()
+        }
+    }
+    
+    private func startBadgeRotation() {
+        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                currentBadgeIndex = (currentBadgeIndex + 1) % badges.count
+            }
+        }
+    }
+}
+
+struct BadgeItem: View {
+    let badge: BadgeData
+    let isActive: Bool
+    let showContent: Bool
+    
+    var body: some View {
+        ZStack {
+            // Badge principal
+            Image(systemName: badge.icon)
+                .font(.system(size: isActive ? 16 : 12, weight: .semibold))
+                .foregroundColor(badge.color)
+                .frame(width: isActive ? 28 : 20, height: isActive ? 28 : 20)
+                .background(
+                    Circle()
+                        .fill(badge.color.opacity(isActive ? 0.2 : 0.1))
+                        .overlay(
+                            Circle()
+                                .stroke(badge.color.opacity(isActive ? 0.4 : 0.2), lineWidth: isActive ? 1.5 : 1)
+                        )
+                )
+                .scaleEffect(isActive ? 1.0 : 0.8)
+            
+            // Indicateur "nouveau" si applicable
+            if badge.isNew && isActive {
+                Circle()
+                    .fill(.red)
+                    .frame(width: 6, height: 6)
+                    .offset(x: 10, y: -10)
+                    .scaleEffect(showContent ? 1.0 : 0)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.5), value: showContent)
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isActive)
+    }
+}
+
+struct BadgeData {
+    let icon: String
+    let color: Color
+    let title: String
+    let isNew: Bool
 }
 
 // TODO: Schedule notification dot to be implemented in future version

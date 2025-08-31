@@ -11,6 +11,14 @@ struct ConcentrationTypePickerView: View {
     @Binding var selectedType: ConcentrationType
     @Environment(\.dismiss) private var dismiss
     
+    // Grid simple et robuste - 2 colonnes fixes avec espacement calculé
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 8),
+            GridItem(.flexible(), spacing: 8)
+        ]
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -37,19 +45,23 @@ struct ConcentrationTypePickerView: View {
                                 .foregroundColor(.white.opacity(0.7))
                         }
                         
-                        // Grid des types de concentration
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 1), spacing: 16) {
+                        // Grid simple des types de concentration
+                        LazyVGrid(columns: gridColumns, spacing: 12) {
                             ForEach(ConcentrationType.allCases) { type in
                                 ConcentrationTypeCard(
                                     type: type,
                                     isSelected: selectedType == type
                                 ) {
+                                    // Retour haptique immédiat
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                                    impactFeedback.impactOccurred()
+                                    
                                     withAnimation(.spring()) {
                                         selectedType = type
                                     }
                                     
-                                    // Fermer après sélection
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    // Fermer après sélection avec un léger délai pour apprécier l'animation
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                                         dismiss()
                                     }
                                 }
@@ -90,89 +102,108 @@ struct ConcentrationTypeCard: View {
     let type: ConcentrationType
     let isSelected: Bool
     let onTap: () -> Void
+    @State private var isPressed = false
     
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                // Background image depuis les assets
-                Image(getBackgroundImageForType())
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 80)
-                    .clipped()
-                
-                // Overlay gradient
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        type.primaryColor.opacity(0.6),
-                        type.primaryColor.opacity(0.8)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                
-                // Content
-                VStack(spacing: 8) {
-                    Spacer()
-                    
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) {
-                                Image(systemName: type.icon)
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.white)
-                                
-                                Text(type.title)
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Text(type.description)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
-                                .lineLimit(2)
-                        }
+            VStack(spacing: 16) {
+                // Section supérieure avec icône
+                VStack(spacing: 12) {
+                    // Icône principale
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        type.primaryColor.opacity(0.3),
+                                        type.primaryColor.opacity(0.1)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 50, height: 50)
                         
-                        Spacer()
-                        
-                        // Indicateur de sélection
-                        if isSelected {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(type.accentColor)
-                                .background(.white, in: Circle())
-                        }
+                        Image(systemName: type.icon)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(type.primaryColor)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                isSelected ? type.accentColor : type.primaryColor.opacity(0.3), 
+                                lineWidth: isSelected ? 3 : 2
+                            )
+                    )
+                    
+                    // Titre
+                    Text(type.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                
+                // Section inférieure avec description
+                VStack(spacing: 8) {
+                    Text(type.shortDescription)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    // Indicateur de sélection
+                    if isSelected {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(type.accentColor)
+                            
+                            Text(String(localized: "selected"))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(type.accentColor)
+                        }
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .padding(.horizontal, 16)
+            .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? type.accentColor : .white.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                isSelected ? type.accentColor : .white.opacity(0.15), 
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
             )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .shadow(color: isSelected ? type.accentColor.opacity(0.3) : .black.opacity(0.2), radius: isSelected ? 8 : 4)
-            .animation(.spring(response: 0.3), value: isSelected)
+            .scaleEffect(isPressed ? 0.95 : (isSelected ? 1.02 : 1.0))
+            .shadow(
+                color: isSelected ? type.accentColor.opacity(0.4) : .black.opacity(0.1), 
+                radius: isSelected ? 12 : 6, 
+                x: 0, 
+                y: isSelected ? 6 : 3
+            )
         }
-        .buttonStyle(ScaleButtonStyle())
-    }
-    
-    private func getBackgroundImageForType() -> String {
-        switch type {
-        case .deep:
-            return "focus"
-        case .creative:
-            return "creativite"  
-        case .study:
-            return "study"
-        case .meditation:
-            return "meditation"
-        case .work:
-            return "focus"
-        }
+        .buttonStyle(PlainButtonStyle())
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isSelected)
+        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = pressing
+            }
+            
+            // Retour haptique léger au press
+            if pressing {
+                let lightImpact = UIImpactFeedbackGenerator(style: .light)
+                lightImpact.impactOccurred()
+            }
+        }, perform: {})
     }
 }
 

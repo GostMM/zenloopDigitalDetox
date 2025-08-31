@@ -36,6 +36,16 @@ enum ConcentrationType: String, CaseIterable, Identifiable {
         }
     }
     
+    var shortDescription: String {
+        switch self {
+        case .deep: return String(localized: "deep_focus_short")
+        case .creative: return String(localized: "creativity_short")
+        case .study: return String(localized: "study_short")
+        case .meditation: return String(localized: "meditation_short")
+        case .work: return String(localized: "work_short")
+        }
+    }
+    
     var icon: String {
         switch self {
         case .deep: return "brain.head.profile"

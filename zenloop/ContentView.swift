@@ -19,16 +19,11 @@ struct ContentView: View {
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var isOnboardingComplete = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var selectedTab = 0
-    @State private var isAppLoaded = false
     @State private var isManagerReady = false
     
     var body: some View {
         ZStack {
-            if !isAppLoaded {
-                // Écran de chargement discret
-                SplashScreen()
-                    .zIndex(2) // Priorité d'affichage
-            } else if showOnboarding && !isOnboardingComplete {
+            if showOnboarding && !isOnboardingComplete {
                 OnboardingView(isOnboardingComplete: $isOnboardingComplete)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.95)),
@@ -36,7 +31,6 @@ struct ContentView: View {
                     ))
                     .zIndex(1)
             } else {
-                // Pré-charger l'interface en arrière-plan pour transition fluide
                 if isManagerReady {
                     mainInterface
                         .transition(.asymmetric(
@@ -45,23 +39,16 @@ struct ContentView: View {
                         ))
                         .zIndex(0)
                 } else {
-                    // Interface de chargement temporaire si le manager n'est pas prêt
                     loadingInterface
                         .zIndex(0)
                 }
             }
         }
-        .animation(.easeOut(duration: 0.4), value: isAppLoaded)
         .animation(.easeOut(duration: 0.4), value: showOnboarding)
         .onAppear {
-            // Initialisation en arrière-plan pendant le splash
             Task {
                 await initializeManagerAsync()
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SplashCompleted"))) { _ in
-            // Transition immédiate et fluide
-            isAppLoaded = true
         }
         .onChange(of: isOnboardingComplete) { _, isComplete in
             if isComplete {

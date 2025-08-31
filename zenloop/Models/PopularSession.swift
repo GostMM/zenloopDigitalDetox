@@ -141,7 +141,7 @@ class SessionPlanningManager: ObservableObject {
                 title: String(localized: "no_instagram_8h"),
                 description: String(localized: "block_instagram_8h_desc"),
                 duration: 8 * 60 * 60,
-                iconName: "photo.slash",
+                iconName: "camera.fill.badge.ellipsis",
                 imageName: "instagram",
                 accentColor: .purple,
                 targetedApps: ["Instagram", "Stories"],

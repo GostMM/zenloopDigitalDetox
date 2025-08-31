@@ -200,14 +200,20 @@ struct DailyReportModal: View {
             )
             
             // DeviceActivityReport pour les métriques réelles - même que StatsView
-            DeviceActivityReport(metricsContext, filter: todayFilter)
-                .frame(height: 100)
-                .background(UI.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: UI.cornerRadius)
-                        .stroke(UI.cardBorder, lineWidth: 1)
-                )
+            if #available(iOS 15.0, macOS 13.0, *) {
+                DeviceActivityReport(metricsContext, filter: todayFilter)
+                    .frame(height: 100)
+                    .background(UI.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: UI.cornerRadius)
+                            .stroke(UI.cardBorder, lineWidth: 1)
+                    )
+            } else {
+                Text("Données non disponibles")
+                    .frame(height: 100)
+                    .foregroundColor(UI.textSecondary)
+            }
         }
     }
     
@@ -220,14 +226,20 @@ struct DailyReportModal: View {
             )
             
             // DeviceActivityReport pour les catégories réelles - même que StatsView
-            DeviceActivityReport(topCategoriesCompactContext, filter: todayFilter)
-                .frame(height: 150)
-                .background(UI.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: UI.cornerRadius)
-                        .stroke(UI.cardBorder, lineWidth: 1)
-                )
+            if #available(iOS 15.0, macOS 13.0, *) {
+                DeviceActivityReport(topCategoriesCompactContext, filter: todayFilter)
+                    .frame(height: 150)
+                    .background(UI.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: UI.cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: UI.cornerRadius)
+                            .stroke(UI.cardBorder, lineWidth: 1)
+                    )
+            } else {
+                Text("Données non disponibles")
+                    .frame(height: 150)
+                    .foregroundColor(UI.textSecondary)
+            }
         }
     }
     

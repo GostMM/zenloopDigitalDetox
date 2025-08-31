@@ -139,9 +139,19 @@
 "concentration_meditation_desc" = "Mental calm and inner peace";
 "concentration_work_desc" = "Maximum productivity for your projects";
 
+// Short descriptions for 2x2 grid
+"deep_focus_short" = "Max focus";
+"creativity_short" = "Creativity";
+"study_short" = "Study";
+"meditation_short" = "Meditate";
+"work_short" = "Work";
+
 // Expand/Collapse buttons
 "less" = "Less";
 "more" = "More";
+
+// Selection indicator
+"selected" = "Selected";
 
 // Date formatting
 "today_at" = "Today at %@";
@@ -607,11 +617,11 @@
 "schedule" = "Schedule";
 
 // Popular Session Titles
-"no_tiktok_8h" = "No TikTok 8h";
-"no_instagram_8h" = "No Instagram 8h";
-"no_social_8h" = "No Soc Med 8h";
-"no_chatgpt_8h" = "No AI Tools 8h";
-"study_mode_4h" = "Study Mode 4h";
+"no_tiktok_8h" = "Anti-TikTok 8h";
+"no_instagram_8h" = "Anti-Insta 8h";
+"no_social_8h" = "Anti-Social 8h";
+"no_chatgpt_8h" = "Anti-AI 8h";
+"study_mode_4h" = "Study Focus 4h";
 
 // Popular Session Descriptions
 "block_tiktok_8h_desc" = "Block TikTok and short videos for 8 hours of deep focus";
