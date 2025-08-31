@@ -405,8 +405,12 @@
 "priority_support_desc" = "Assistance premium 24/7";
 
 // Pricing Plans
+"lifetime" = "À vie";
 "yearly" = "Annuel";
 "monthly" = "Mensuel";
+"one_payment_forever" = "Un paiement, à vie";
+"free_trial_7_days_yearly" = "7 jours gratuits, puis facturation annuelle";
+"free_trial_7_days_monthly" = "7 jours gratuits, puis facturation mensuelle";
 "save_60_percent" = "Économise 60%";
 "maximum_flexibility" = "Flexibilité maximale";
 "popular" = "POPULAIRE";

@@ -12,11 +12,13 @@ import SwiftUI
 // MARK: - PricingPlan Enum
 
 enum PricingPlan: CaseIterable {
+    case lifetime
     case yearly
     case monthly
     
     var title: String {
         switch self {
+        case .lifetime: return String(localized: "lifetime")
         case .yearly: return String(localized: "yearly")
         case .monthly: return String(localized: "monthly")
         }
@@ -24,27 +26,31 @@ enum PricingPlan: CaseIterable {
     
     var subtitle: String {
         switch self {
-        case .yearly: return String(localized: "save_60_percent")
-        case .monthly: return String(localized: "maximum_flexibility")
+        case .lifetime: return String(localized: "one_payment_forever")
+        case .yearly: return String(localized: "free_trial_7_days_yearly")
+        case .monthly: return String(localized: "free_trial_7_days_monthly")
         }
     }
     
     var price: String {
         switch self {
-        case .yearly: return "3,99€/mois"
-        case .monthly: return "9,99€/mois"
+        case .lifetime: return "99,99€"
+        case .yearly: return "47,99€/an" // Fallback seulement
+        case .monthly: return "9,99€/mois" // Fallback seulement
         }
     }
     
     var oldPrice: String? {
         switch self {
-        case .yearly: return "9,99€/mois"
+        case .lifetime: return "119,99€"
+        case .yearly: return nil
         case .monthly: return nil
         }
     }
     
     var color: Color {
         switch self {
+        case .lifetime: return Color(red: 1.0, green: 0.84, blue: 0.0)
         case .yearly: return .cyan
         case .monthly: return .purple
         }
@@ -55,6 +61,7 @@ enum PricingPlan: CaseIterable {
 extension PricingPlan {
     var productIdentifier: String {
         switch self {
+        case .lifetime: return "com.app.zenloop.lifetime"
         case .yearly: return "com.app.zenloop.premium.yearly"
         case .monthly: return "com.app.zenloop.premium.monthly"
         }
@@ -62,6 +69,7 @@ extension PricingPlan {
     
     var displayName: String {
         switch self {
+        case .lifetime: return "Zenloop Premium Lifetime"
         case .monthly: return "Zenloop Premium Monthly"
         case .yearly: return "Zenloop Premium Yearly"
         }
@@ -69,8 +77,9 @@ extension PricingPlan {
     
     var fallbackPrice: String {
         switch self {
-        case .monthly: return "$9.99"
-        case .yearly: return "$47.99"
+        case .lifetime: return "$99.99"
+        case .monthly: return "$9.99/month"
+        case .yearly: return "$47.99/year"
         }
     }
 }
@@ -146,6 +155,7 @@ class PurchaseManager: ObservableObject {
     
     // MARK: - Private Properties
     private let productIdentifiers: Set<String> = [
+        "com.app.zenloop.lifetime",
         "com.app.zenloop.premium.monthly",
         "com.app.zenloop.premium.yearly"
     ]
@@ -246,8 +256,10 @@ class PurchaseManager: ObservableObject {
             NSLog("📦 Product: \(product.id) - \(product.displayName) - \(product.displayPrice)")
         }
         
-        // Trier les produits : yearly en premier
+        // Trier les produits : lifetime > yearly > monthly
         let sortedProducts = storeProducts.sorted { product1, product2 in
+            if product1.id.contains("lifetime") && !product2.id.contains("lifetime") { return true }
+            if !product1.id.contains("lifetime") && product2.id.contains("lifetime") { return false }
             if product1.id.contains("yearly") && !product2.id.contains("yearly") { return true }
             if !product1.id.contains("yearly") && product2.id.contains("yearly") { return false }
             return product1.price < product2.price
@@ -412,6 +424,10 @@ class PurchaseManager: ObservableObject {
     }
     
     // MARK: - Product Helpers
+    func lifetimeProduct() -> Product? {
+        return products.first { $0.id.contains("lifetime") }
+    }
+    
     func monthlyProduct() -> Product? {
         return products.first { $0.id.contains("monthly") }
     }
@@ -453,10 +469,20 @@ class PurchaseManager: ObservableObject {
     func priceForPlan(_ plan: PricingPlan) -> String {
         guard let product = products.first(where: { $0.id == plan.productIdentifier }) else {
             NSLog("⚠️ Product not found for plan: \(plan.productIdentifier), using fallback price")
-            return plan.fallbackPrice
+            return plan.fallbackPrice // Utilise le fallback price au bon format
         }
         
+        // Utilise le prix dynamique de StoreKit
         return product.displayPrice
+    }
+    
+    private func hasFreeTrial(_ product: Product) -> Bool {
+        // Vérifier si le produit a une période d'essai gratuit
+        if #available(iOS 15.0, *) {
+            return product.subscription?.introductoryOffer?.paymentMode == .freeTrial
+        }
+        // Pour les abonnements, on assume qu'ils ont un essai gratuit de 7 jours
+        return product.id.contains("monthly") || product.id.contains("yearly")
     }
     
     func oldPriceForPlan(_ plan: PricingPlan) -> String? {
@@ -545,6 +571,10 @@ class PurchaseManager: ObservableObject {
 
 // MARK: - Product Extensions
 extension Product {
+    var isLifetime: Bool {
+        return id.contains("lifetime")
+    }
+    
     var isMonthly: Bool {
         return id.contains("monthly")
     }
@@ -554,6 +584,7 @@ extension Product {
     }
     
     var planType: PricingPlan {
+        if isLifetime { return .lifetime }
         return isYearly ? .yearly : .monthly
     }
 }

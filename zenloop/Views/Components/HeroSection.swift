@@ -14,6 +14,8 @@ struct HeroSection: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
     
+    private let horizontalPadding: CGFloat = 16
+    
     var body: some View {
         ZStack(alignment: .topTrailing) {
             // Actions contextuelles prennent tout l'espace
@@ -21,7 +23,7 @@ struct HeroSection: View {
                 currentState: currentState,
                 zenloopManager: zenloopManager
             )
-            .padding(.horizontal, 20)
+            .padding(.horizontal, horizontalPadding)
             
             // Indicateur d'état compact dans le coin
             CompactStateIndicator(
@@ -29,7 +31,7 @@ struct HeroSection: View {
                 zenloopManager: zenloopManager
             )
             .padding(.top, 10)
-            .padding(.trailing, 30)
+            .padding(.trailing, horizontalPadding + 14)
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 50)
@@ -113,7 +115,7 @@ struct StateDetailsSheet: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 // Indicateur visuel principal
                 StateVisualIndicator(currentState: currentState)
                 
@@ -240,18 +242,18 @@ struct StateInfoSection: View {
     let currentState: ZenloopState
     
     var body: some View {
-        VStack(spacing: 8) { // Espacement réduit
+        VStack(spacing: 6) { // Espacement encore plus réduit
             Text(stateTitle)
-                .font(.system(size: 22, weight: .bold)) // Police réduite
+                .font(.system(size: 20, weight: .bold)) // Police réduite de 22 à 20
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             
             Text(stateDescription)
-                .font(.system(size: 13, weight: .medium)) // Police réduite
-                .foregroundColor(.white.opacity(0.75))
+                .font(.system(size: 11, weight: .medium)) // Police réduite de 13 à 11
+                .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .lineLimit(2) // Moins de lignes
-                .padding(.horizontal, 4) // Padding réduit
+                .padding(.horizontal, 2) // Padding encore plus réduit
         }
     }
     
@@ -371,67 +373,104 @@ struct ModernQuickActionsRow: View {
     @State private var showingAppSelection = false
     @State private var pendingAction: (() -> Void)? = nil
     
+    private let horizontalPadding: CGFloat = 16
+    
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 18) {
             
-            // Header homogénéisé avec les autres sections
+            // Header premium avec design moderne
             HStack {
-                HStack(spacing: 12) {
-                    // Icône pour Sessions
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.blue)
-                        .frame(width: 40, height: 40)
-                        .background(.blue.opacity(0.15), in: Circle())
+                HStack(spacing: 16) {
+                    // Container d'icône avec effet de glow
+                    ZStack {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        Color.blue.opacity(0.4),
+                                        Color.blue.opacity(0.2),
+                                        Color.blue.opacity(0.05)
+                                    ],
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: 25
+                                )
+                            )
+                            .frame(width: 50, height: 50)
+                        
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .shadow(color: .blue.opacity(0.4), radius: 6, x: 0, y: 2)
+                    }
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(String(localized: "sessions"))
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.white)
                         
                         Text(String(localized: "choose_concentration_type"))
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
+                            .lineLimit(2)
                     }
                 }
                 
                 Spacer()
                 
-                // Badge streak
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.orange)
+                // Badge streak amélioré avec animation
+                HStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(.orange.opacity(0.2))
+                            .frame(width: 20, height: 20)
+                        
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.orange)
+                    }
                     
                     Text("3")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
                     Capsule()
-                        .stroke(.orange.opacity(0.3), lineWidth: 1)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Capsule()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [.orange.opacity(0.6), .orange.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
                 )
+                .shadow(color: .orange.opacity(0.3), radius: 4, x: 0, y: 2)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, horizontalPadding)
             
-            // Actions en grid avec dimensions fixes
+            // Actions en grid avec design premium - largeur cohérente
             let screenWidth = UIScreen.main.bounds.width
-            let cardWidth = (screenWidth - 64) / 2 // 64 = padding + spacing (12*2 + 16 spacing)
+            let cardWidth = (screenWidth - (horizontalPadding * 2) - 24) / 2 // Padding cohérent + spacing
             
             LazyVGrid(
                 columns: [
-                    GridItem(.fixed(cardWidth)),
-                    GridItem(.fixed(cardWidth))
+                    GridItem(.flexible(minimum: cardWidth)),
+                    GridItem(.flexible(minimum: cardWidth))
                 ], 
-                spacing: 16
+                spacing: 24
             ) {
-                ModernQuickActionButton(
+                PremiumQuickActionButton(
                     imageAsset: "focus",
                     title: String(localized: "deep_focus"),
                     subtitle: String(localized: "maximum_concentration"),
+                    duration: "60min",
                     color: .indigo,
                     action: { 
                         handleQuickAction {
@@ -441,10 +480,11 @@ struct ModernQuickActionsRow: View {
                     }
                 )
                 
-                ModernQuickActionButton(
+                PremiumQuickActionButton(
                     imageAsset: "study",
                     title: String(localized: "study"),
                     subtitle: String(localized: "efficient_learning"),
+                    duration: "45min",
                     color: .blue,
                     action: { 
                         handleQuickAction {
@@ -454,10 +494,11 @@ struct ModernQuickActionsRow: View {
                     }
                 )
                 
-                ModernQuickActionButton(
+                PremiumQuickActionButton(
                     imageAsset: "creativite",
                     title: String(localized: "creativity"),
                     subtitle: String(localized: "artistic_expression"),
+                    duration: "90min",
                     color: .purple,
                     action: { 
                         handleQuickAction {
@@ -467,10 +508,11 @@ struct ModernQuickActionsRow: View {
                     }
                 )
                 
-                ModernQuickActionButton(
+                PremiumQuickActionButton(
                     imageAsset: "meditation",
                     title: String(localized: "meditation"),
                     subtitle: String(localized: "mindfulness"),
+                    duration: "20min",
                     color: .green,
                     action: { 
                         handleQuickAction {
@@ -480,10 +522,10 @@ struct ModernQuickActionsRow: View {
                     }
                 )
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, horizontalPadding)
             
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
         .familyActivityPicker(isPresented: $showingAppSelection, selection: Binding(
             get: { zenloopManager.getAppsSelection() },
             set: { selection in
@@ -529,7 +571,162 @@ struct ModernQuickActionsRow: View {
     }
 }
 
-// MARK: - Modern Quick Action Button
+// MARK: - Premium Quick Action Button
+
+struct PremiumQuickActionButton: View {
+    let imageAsset: String
+    let title: String
+    let subtitle: String
+    let duration: String
+    let color: Color
+    let action: () -> Void
+    @State private var isPressed = false
+    @State private var shimmerOffset: CGFloat = -200
+    
+    private let horizontalPadding: CGFloat = 16
+    
+    var body: some View {
+        Button(action: {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            action()
+        }) {
+            ZStack {
+                // Background container avec bordures
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.clear)
+                    .overlay(
+                        // Background image avec clipping strict
+                        Image(imageAsset)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: (UIScreen.main.bounds.width - (horizontalPadding * 2) - 24) / 2, height: 140)
+                            .clipped()
+                            .overlay(
+                                // Gradient overlay sophistiqué
+                                LinearGradient(
+                                    colors: [
+                                        Color.black.opacity(0.1),
+                                        Color.black.opacity(0.3),
+                                        Color.black.opacity(0.5),
+                                        color.opacity(0.7),
+                                        color.opacity(0.9)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                
+                // Effet shimmer subtil avec clipping
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color.white.opacity(0.1),
+                                Color.clear
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .rotationEffect(.degrees(45))
+                    .offset(x: shimmerOffset)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: false)) {
+                            shimmerOffset = 200
+                        }
+                    }
+                
+                // Layout organisé avec gestion précise de l'espace
+                VStack(spacing: 0) {
+                    // Section header avec badge durée
+                    HStack {
+                        Spacer()
+                        Text(duration)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(color)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(color.opacity(0.4), lineWidth: 1)
+                                    )
+                            )
+                            .shadow(color: color.opacity(0.3), radius: 2, x: 0, y: 1)
+                    }
+                    .frame(height: 32) // Hauteur fixe pour cohérence
+                    
+                    // Zone centrale - espace flexible réduit
+                    Spacer(minLength: 12)
+                    
+                    // Section footer avec informations - hauteur augmentée
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .truncationMode(.tail)
+                            .multilineTextAlignment(.leading)
+                            .shadow(color: .black.opacity(0.6), radius: 4, x: 0, y: 2)
+                        
+                        Text(subtitle)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .lineLimit(2)
+                            .truncationMode(.tail)
+                            .multilineTextAlignment(.leading)
+                            .shadow(color: .black.opacity(0.4), radius: 3, x: 0, y: 1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 62) // Hauteur augmentée pour plus d'espace
+                    .clipped() // Empêche le débordement du texte
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, 12)
+                .frame(width: (UIScreen.main.bounds.width - (horizontalPadding * 2) - 24) / 2, height: 140)
+                .clipped() // Clipping du contenu global
+            }
+            .frame(width: (UIScreen.main.bounds.width - (horizontalPadding * 2) - 24) / 2, height: 140)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                color.opacity(isPressed ? 0.8 : 0.5),
+                                color.opacity(isPressed ? 0.4 : 0.2)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isPressed ? 2.5 : 1.5
+                    )
+            )
+            .shadow(
+                color: color.opacity(isPressed ? 0.5 : 0.3),
+                radius: isPressed ? 16 : 10,
+                x: 0,
+                y: isPressed ? 10 : 6
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .brightness(isPressed ? -0.05 : 0.0)
+        }
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+}
+
+// MARK: - Legacy Modern Quick Action Button (maintenu pour compatibilité)
 
 struct ModernQuickActionButton: View {
     let imageAsset: String

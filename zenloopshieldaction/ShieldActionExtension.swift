@@ -99,16 +99,34 @@ final class ShieldActionExtension: ShieldActionDelegate {
     }
 
     private func handlePauseRequest(context: String) {
-        // Comptabiliser la tentative d’ouverture
+        // Comptabiliser la tentative d'ouverture
         recordAppOpenAttempt(appName: extractAppName(from: context))
+        
+        // Déterminer le type d'action secondaire basé sur le contexte
+        let actionType = determineSecondaryAction(context: context)
+        
+        // Notifier l'app principale avec l'action spécifique
+        notifyMainApp(action: actionType, context: context)
 
-        // Notifier l’app principale (elle décidera d’accorder ou non la pause)
-        notifyMainApp(action: "request_pause_5min", context: context)
+        // Sauvegarder la requête selon le type
+        saveSecondaryAction(action: actionType, context: context)
 
-        // Sauvegarder la requête de pause (flag urgent)
-        savePauseRequest(context: context)
-
-        debugLog("⏸️ [SHIELD ACTION] Pause 5 min — \(context)")
+        debugLog("🔧 [SHIELD ACTION] \(actionType) — \(context)")
+    }
+    
+    private func determineSecondaryAction(context: String) -> String {
+        // Analyser le contexte pour déterminer l'action appropriée
+        if context.contains("focus") || context.contains("Focus") {
+            return "open_pause_options"
+        } else if context.contains("challenge") || context.contains("Défi") {
+            return "open_challenge_settings"
+        } else if context.contains("detox") || context.contains("Detox") {
+            return "open_exception_request"
+        } else if context.contains("flow") || context.contains("Flow") {
+            return "open_flow_adjustments"
+        } else {
+            return "open_session_options" // Fallback générique
+        }
     }
 
     // MARK: - Réponse UI du Shield
@@ -116,12 +134,16 @@ final class ShieldActionExtension: ShieldActionDelegate {
     private func response(for action: ShieldAction) -> ShieldActionResponse {
         switch action {
         case .primaryButtonPressed:
-            // Souvent: on ferme le shield après "continuer"
+            // Bouton unique: fermer le shield avec motivation
+            debugLog("💪 User chose to stay focused - closing shield")
+            incrementMotivationStats() // Compter comme victoire de discipline
             return .close
         case .secondaryButtonPressed:
-            // Souvent: on laisse le shield, le temps que l’app décide (ou affiche une notif)
-            return .defer
+            // Plus de bouton secondaire, mais on garde le case pour compatibilité
+            debugLog("⚠️ Secondary button pressed but should not exist")
+            return .none
         @unknown default:
+            debugLog("❓ Unknown action - no response")
             return .none
         }
     }
@@ -139,7 +161,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
             "context": context,
             "timestamp": stamp,
             "source": "shield_action_extension",
-            "processed": false
+            "processed": false,
+            "requiresAppOpen": shouldOpenApp(for: action)
         ]
 
         defaults?.set(payload, forKey: StoreKey.pendingAction)
@@ -152,10 +175,61 @@ final class ShieldActionExtension: ShieldActionDelegate {
 
         defaults?.synchronize()
 
-        // Ping l’app via Darwin notification (à écouter dans l’app)
+        // Ping l'app via Darwin notification (à écouter dans l'app)
         postDarwinNotification(DarwinNotify.name)
+        
+        // Si l'action nécessite d'ouvrir l'app, créer un deep link
+        if shouldOpenApp(for: action) {
+            triggerAppDeepLink(action: action, context: context)
+        }
 
-        debugLog("📱 Action envoyée à l’app: \(action) | \(context)")
+        debugLog("📱 Action envoyée à l'app: \(action) | \(context) | OpenApp: \(shouldOpenApp(for: action))")
+    }
+    
+    private func shouldOpenApp(for action: String) -> Bool {
+        // Actions qui nécessitent d'ouvrir l'app pour interaction utilisateur
+        return action.hasPrefix("open_")
+    }
+    
+    private func triggerAppDeepLink(action: String, context: String) {
+        let deepLinkURL = createDeepLinkURL(action: action, context: context)
+        
+        // Ouvrir l'app via URL scheme
+        if let url = URL(string: deepLinkURL) {
+            // iOS 16+: utiliser les API d'ouverture depuis l'extension
+            DispatchQueue.main.async {
+                if #available(iOS 16.0, *) {
+                    // Sauvegarder la demande d'ouverture
+                    self.defaults?.set([
+                        "url": deepLinkURL,
+                        "timestamp": Date().timeIntervalSince1970
+                    ], forKey: "pendingDeepLink")
+                    
+                    // Notifier que l'app doit être ouverte
+                    self.postDarwinNotification("com.app.zenloop.openApp")
+                    
+                    self.debugLog("🔗 Deep link créé: \(deepLinkURL)")
+                }
+            }
+        }
+    }
+    
+    private func createDeepLinkURL(action: String, context: String) -> String {
+        let baseURL = "zenloop://"
+        let encodedContext = context.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        
+        switch action {
+        case "open_pause_options":
+            return "\(baseURL)pause?context=\(encodedContext)"
+        case "open_challenge_settings":
+            return "\(baseURL)challenge/settings?context=\(encodedContext)"
+        case "open_exception_request":
+            return "\(baseURL)exception?context=\(encodedContext)"
+        case "open_flow_adjustments":
+            return "\(baseURL)flow/settings?context=\(encodedContext)"
+        default:
+            return "\(baseURL)session?action=\(action)&context=\(encodedContext)"
+        }
     }
 
     private func incrementMotivationStats() {
@@ -165,20 +239,30 @@ final class ShieldActionExtension: ShieldActionDelegate {
         debugLog("📊 Motivation clicks: \(current + 1)")
     }
 
-    private func savePauseRequest(context: String) {
+    private func saveSecondaryAction(action: String, context: String) {
         let count = (defaults?.integer(forKey: StoreKey.pauseRequestsCount) ?? 0) + 1
         defaults?.set(count, forKey: StoreKey.pauseRequestsCount)
 
         let data: [String: Any] = [
+            "action": action,
             "context": context,
             "timestamp": Date().timeIntervalSince1970,
             "date": ISO8601DateFormatter().string(from: Date()),
-            "urgent": true
+            "urgent": action == "request_pause_5min",
+            "count": count
         ]
         defaults?.set(data, forKey: StoreKey.urgentPause)
 
+        // Sauvegarder aussi dans l'historique des actions secondaires
+        var secondaryHistory = defaults?.array(forKey: "secondaryActionHistory") as? [[String: Any]] ?? []
+        secondaryHistory.append(data)
+        if secondaryHistory.count > 50 { 
+            secondaryHistory = Array(secondaryHistory.suffix(50)) 
+        }
+        defaults?.set(secondaryHistory, forKey: "secondaryActionHistory")
+
         defaults?.synchronize()
-        debugLog("🚨 Pause demandée (#\(count)) — \(context)")
+        debugLog("🔧 Action secondaire (#\(count)): \(action) — \(context)")
     }
 
     private func recordAppOpenAttempt(appName: String?) {

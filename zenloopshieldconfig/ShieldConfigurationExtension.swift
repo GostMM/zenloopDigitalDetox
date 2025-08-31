@@ -15,9 +15,12 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     private lazy var baseLogo: UIImage? = (UIImage(named: "zenloopLogo") ?? createZenloopLogo())
     private lazy var premiumIconCache = NSCache<NSString, UIImage>() // key = "size@bundleId"
 
-    // MARK: - Labels (API: text + color)
+    // MARK: - Labels (API: text + color) avec validation
     private func label(_ text: String, _ color: UIColor) -> ShieldConfiguration.Label {
-        ShieldConfiguration.Label(text: text, color: color)
+        // Validation et nettoyage du texte
+        let cleanedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        debugLog("📝 Creating label: '\(cleanedText)' with color: \(color)")
+        return ShieldConfiguration.Label(text: cleanedText, color: color)
     }
 
     // MARK: - Accent premium (stable par bundleId)
@@ -58,13 +61,8 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         return new
     }
 
-    // MARK: - Texte explicatif (raison + urgence)
-    private func explanationText() -> String {
-        """
-        Cette application est bloquée pour préserver votre concentration.
-        En cas d’urgence, ouvrez l’app Zenloop pour gérer une exception.
-        """
-    }
+    // MARK: - Messages contextuels dynamiques
+    // Supprimé - remplacé par le système de motivation plus complet
 
     // MARK: - Récupération icône app (via App Group, fallback logo)
     /// Option 1: via UserDefaults(suiteName:) clé "appicon.<bundleId>" contenant Data PNG/JPEG
@@ -227,51 +225,167 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         }
     }
 
-    // MARK: - Fabrique Shield
+    // MARK: - Shield Premium avec Design Motivationnel
     private func makeShield(
         tint: UIColor,
         title: String,
         appName: String,
         bundleId: String,
         appIcon: UIImage?,
-        showSecondary: Bool = false
+        context: ShieldContext
     ) -> ShieldConfiguration {
 
         let attempts = incrementAttempts(for: bundleId)
-        let subtitle = "App : \(appName)\nTentatives d’ouverture : \(attempts)"
-        let explanation = explanationText()
-
-        let icon = premiumIcon(size: 128, bundleId: bundleId, appIcon: appIcon)
-
+        
+        // Titre motivationnel grand et impactant
+        let motivationalTitle = createMotivationalTitle(for: context)
+        
+        // Message motivationnel détaillé et bien structuré
+        let fullMessage = createFullMotivationalMessage(
+            appName: appName, 
+            attempts: attempts, 
+            context: context
+        )
+        
+        // Icône premium plus grande
+        let icon: UIImage? = {
+            if let premiumIcon = premiumIcon(size: 140, bundleId: bundleId, appIcon: appIcon) {
+                return premiumIcon
+            } else if let systemIcon = UIImage(systemName: "brain.head.profile") {
+                let config = UIImage.SymbolConfiguration(pointSize: 70, weight: .bold)
+                return systemIcon.withConfiguration(config).withTintColor(tint, renderingMode: .alwaysOriginal)
+            }
+            return nil
+        }()
+        
+        debugLog("🛡️ Shield Premium:")
+        debugLog("   Title: \(motivationalTitle)")
+        debugLog("   Message length: \(fullMessage.count)")
+        debugLog("   App: \(appName)")
+        debugLog("   Attempts: \(attempts)")
+        
         return ShieldConfiguration(
-            backgroundBlurStyle: .systemThinMaterial,
-            backgroundColor: backgroundColor(),
+            backgroundBlurStyle: .systemUltraThinMaterial,
+            backgroundColor: UIColor.black.withAlphaComponent(0.8),
             icon: icon,
-            title: label(title.uppercased(), tint),
-            // Sous-titre + explication (pourquoi bloqué + urgence Zenloop)
-            subtitle: label(subtitle + "\n\n" + explanation, .label),
-            // ✅ Un seul mot pour le bouton principal
-            primaryButtonLabel: label("CONTINUER", .white),
-            primaryButtonBackgroundColor: tint,
-            // Secondaire minimal
-            secondaryButtonLabel: showSecondary ? label("MODIFIER", tint) : nil
+            title: ShieldConfiguration.Label(
+                text: motivationalTitle, 
+                color: UIColor.white
+            ),
+            subtitle: ShieldConfiguration.Label(
+                text: fullMessage, 
+                color: UIColor.white.withAlphaComponent(0.95)
+            ),
+            primaryButtonLabel: ShieldConfiguration.Label(
+                text: "FOCUS", 
+                color: UIColor.white
+            ),
+            primaryButtonBackgroundColor: tint
+            // Pas de bouton secondaire - interface épurée
         )
     }
+    
+    // Titre motivationnel impactant
+    private func createMotivationalTitle(for context: ShieldContext) -> String {
+        switch context {
+        case .focusSession:
+            return "VOTRE FORCE"
+        case .challengeActive:
+            return "DÉFI EN COURS"
+        case .digitalDetox:
+            return "DIGITAL DETOX"
+        case .flowZone:
+            return "ZONE DE FLOW"
+        }
+    }
+    
+    // Message motivationnel complet et structuré
+    private func createFullMotivationalMessage(appName: String, attempts: Int, context: ShieldContext) -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let timeMotivation = getTimeBasedMotivation(hour: hour)
+        let contextMotivation = getContextMotivation(for: context)
+        let progressMessage = getProgressMessage(attempts: attempts)
+        
+        return """
+\(timeMotivation)
+
+\(contextMotivation)
+
+Application bloquée : \(appName)
+\(progressMessage)
+
+Chaque moment de résistance renforce votre discipline mentale. Vous développez une capacité précieuse de concentration profonde.
+
+Continuez - votre futur vous remerciera.
+"""
+    }
+    
+    private func getTimeBasedMotivation(hour: Int) -> String {
+        switch hour {
+        case 6..<12:
+            return "🌅 EXCELLENT DÉBUT DE JOURNÉE\nVotre cerveau est au maximum de ses capacités."
+        case 12..<14:
+            return "☀️ MOMENTUM DE MI-JOURNÉE\nGardez cette énergie productive."
+        case 14..<18:
+            return "⚡ APRÈS-MIDI DE PERFORMANCE\nC'est maintenant que vous faites la différence."
+        case 18..<22:
+            return "🌙 SOIRÉE DE MAÎTRISE\nFinissez la journée en force."
+        default:
+            return "🌟 SESSION NOCTURNE DÉDIÉE\nVotre engagement tard le soir montre votre détermination."
+        }
+    }
+    
+    private func getContextMotivation(for context: ShieldContext) -> String {
+        switch context {
+        case .focusSession:
+            return "Votre session de focus profond transforme votre cerveau. Chaque minute compte."
+        case .challengeActive:
+            return "Ce défi vous pousse vers une version améliorée de vous-même."
+        case .digitalDetox:
+            return "Vous reprenez le contrôle de votre attention. C'est un superpouvoir moderne."
+        case .flowZone:
+            return "Dans cette zone de flow, vous atteignez votre plein potentiel."
+        }
+    }
+    
+    private func getProgressMessage(attempts: Int) -> String {
+        switch attempts {
+        case 1:
+            return "Première tentative - normal d'avoir envie d'ouvrir l'app."
+        case 2...3:
+            return "Tentative #\(attempts) - votre cerveau teste votre résolution."
+        case 4...6:
+            return "Tentative #\(attempts) - vous résistez mieux que la moyenne."
+        default:
+            return "Tentative #\(attempts) - votre discipline devient exceptionnelle."
+        }
+    }
+    
+    private func debugLog(_ message: String) {
+        #if DEBUG
+        print(message)
+        #endif
+    }
+    
+    // Supprimé - remplacé par createSimpleSubtitle
+    
+    // Supprimé - plus besoin des labels secondaires
+    // Interface épurée avec un seul bouton clair
 
     // MARK: - Configs
     override func configuration(shielding application: Application) -> ShieldConfiguration {
         let appName = application.localizedDisplayName ?? application.bundleIdentifier ?? "App"
         let bundleId = application.bundleIdentifier ?? "unknown"
         let tint = premiumAccent(for: bundleId)
-        let appIcon = sharedAppIcon(for: bundleId) // récupérée depuis App Group si dispo
+        let appIcon = sharedAppIcon(for: bundleId)
 
         return makeShield(
             tint: tint,
-            title: "Focus activé 🔒",
+            title: "Session Focus Active",
             appName: appName,
             bundleId: bundleId,
             appIcon: appIcon,
-            showSecondary: false
+            context: .focusSession
         )
     }
 
@@ -283,11 +397,11 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         return makeShield(
             tint: tint,
-            title: "Défi en cours ⚡️",
+            title: "Défi en Cours",
             appName: appName,
             bundleId: bundleId,
             appIcon: appIcon,
-            showSecondary: true
+            context: .challengeActive
         )
     }
 
@@ -298,11 +412,11 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         return makeShield(
             tint: tint,
-            title: "Digital Detox 🌿",
+            title: "Digital Detox",
             appName: domain,
             bundleId: id,
-            appIcon: nil, // pas d'icône d’app pour un domaine
-            showSecondary: false
+            appIcon: nil,
+            context: .digitalDetox
         )
     }
 
@@ -313,11 +427,20 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         return makeShield(
             tint: tint,
-            title: "Zone de flow 🎯",
+            title: "Zone de Flow",
             appName: domain,
             bundleId: id,
             appIcon: nil,
-            showSecondary: true
+            context: .flowZone
         )
     }
+}
+
+// MARK: - Shield Context Types
+
+private enum ShieldContext {
+    case focusSession
+    case challengeActive
+    case digitalDetox
+    case flowZone
 }

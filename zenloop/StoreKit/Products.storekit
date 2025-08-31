@@ -14,7 +14,21 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "50.99",
+      "familyShareable" : false,
+      "internalID" : "E549D0E0",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.app.zenloop.lifetime",
+      "referenceName" : "Zenloop Lifetime Premium",
+      "type" : "NonConsumable"
+    }
   ],
   "settings" : {
     "_failTransactionsEnabled" : false,
@@ -89,11 +103,16 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "9.99",
+          "displayPrice" : "6.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "C31571DA",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "displayPrice" : "0.99",
+            "internalID" : "532EC314",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Get unlimited access to all premium features including advanced app blocking, custom challenges, detailed analytics, and priority support.",
@@ -117,11 +136,15 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "47.99",
+          "displayPrice" : "29.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "74EF65D3",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "5221A423",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Get unlimited access to all premium features with 60% savings compared to monthly subscription. Includes advanced app blocking, custom challenges, detailed analytics, priority support, and exclusive yearly features.",

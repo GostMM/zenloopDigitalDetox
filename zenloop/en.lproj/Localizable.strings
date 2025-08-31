@@ -405,8 +405,12 @@
 "priority_support_desc" = "Premium 24/7 assistance";
 
 // Pricing Plans
+"lifetime" = "Lifetime";
 "yearly" = "Yearly";
 "monthly" = "Monthly";
+"one_payment_forever" = "One payment, forever";
+"free_trial_7_days_yearly" = "7 days free, then billed annually";
+"free_trial_7_days_monthly" = "7 days free, then billed monthly";
 "save_60_percent" = "Save 60%";
 "maximum_flexibility" = "Maximum flexibility";
 "popular" = "POPULAR";

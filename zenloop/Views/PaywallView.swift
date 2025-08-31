@@ -14,7 +14,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var purchaseManager = PurchaseManager.shared
     @State private var showContent = false
-    @State private var selectedPlan: PricingPlan = .yearly
+    @State private var selectedPlan: PricingPlan = .lifetime
     @State private var isPurchasing = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var rotationAngle: Double = 0
@@ -150,9 +150,21 @@ struct PaywallView: View {
                     
                     Spacer()
                     
-                    // Section des plans compacte
+                    // Section des plans compacte - 3 offres en vertical
                     VStack(spacing: 12) {
-                        // Plans côte à côte
+                        // Plan Lifetime (priorité haute)
+                        PremiumPlanCard(
+                            plan: .lifetime,
+                            isSelected: selectedPlan == .lifetime,
+                            isCompact: false,
+                            purchaseManager: purchaseManager,
+                            onSelect: { 
+                                impactMedium.impactOccurred()
+                                selectedPlan = .lifetime 
+                            }
+                        )
+                        
+                        // Plans récurrents côte à côte
                         HStack(spacing: 12) {
                             // Plan annuel
                             PremiumPlanCard(
@@ -467,16 +479,41 @@ struct PremiumPlanCard: View {
     var body: some View {
         Button(action: onSelect) {
             VStack(spacing: 8) {
-                // Badge popular si annuel
-                if plan == .yearly {
-                    Text("POPULAIRE")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(.orange, in: Capsule())
-                } else {
-                    Spacer().frame(height: 16) // Espace pour alignement
+                // Badge spécial selon le plan
+                Group {
+                    if plan == .lifetime {
+                        Text("MEILLEURE OFFRE")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color(red: 1.0, green: 0.84, blue: 0.0), in: Capsule())
+                    } else if plan == .yearly {
+                        HStack(spacing: 4) {
+                            Text("7 JOURS GRATUITS")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.green, in: Capsule())
+                            
+                            Text("POPULAIRE")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.orange, in: Capsule())
+                        }
+                    } else if plan == .monthly {
+                        Text("7 JOURS GRATUITS")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.green, in: Capsule())
+                    } else {
+                        Spacer().frame(height: 16) // Espace pour alignement
+                    }
                 }
                 
                 VStack(spacing: 4) {
