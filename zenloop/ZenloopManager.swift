@@ -526,16 +526,8 @@ class ZenloopManager: ObservableObject {
                 }
             }
             
-            // Gérer l'autorisation si nécessaire
-            group.addTask { [weak self] in
-                await MainActor.run { [weak self] in
-                    if !(self?.isAuthorized ?? false) {
-                        Task {
-                            await self?.requestAuthorization()
-                        }
-                    }
-                }
-            }
+            // REMOVED: Ne plus demander autorisation automatiquement
+            // L'autorisation sera demandée seulement dans l'onboarding
             
             // Restaurer la session active si nécessaire
             group.addTask { [weak self] in

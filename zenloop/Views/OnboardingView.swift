@@ -107,25 +107,11 @@ struct OnboardingView: View {
     }
     
     private func requestAllPermissionsBeforePaywall() async {
-        print("🚀 [ONBOARDING] Starting final permissions request before paywall")
+        print("🚀 [ONBOARDING] Opening paywall - permissions already handled")
         
-        // 1. Demander Screen Time si pas encore accordé
-        if onboardingManager.screenTimeStatus != .granted {
-            print("🔒 [ONBOARDING] Requesting Screen Time permission before paywall")
-            let _ = await onboardingManager.requestScreenTimePermission()
-        }
+        // Les permissions ont déjà été gérées sur leurs pages respectives
+        // Plus besoin de les redemander ici
         
-        // 2. Demander Notifications si pas encore accordé
-        if onboardingManager.notificationStatus != .granted {
-            print("🔔 [ONBOARDING] Requesting Notifications permission before paywall")
-            let granted = await onboardingManager.requestNotificationPermission()
-            if granted {
-                await SessionNotificationManager.shared.setupDailyWellnessNotifications()
-                print("✅ [ONBOARDING] Wellness notification system activated")
-            }
-        }
-        
-        // 3. Aller au paywall maintenant
         await MainActor.run {
             print("💰 [ONBOARDING] Opening paywall")
             showPaywall = true
@@ -404,9 +390,24 @@ struct OnboardingBottomActions: View {
         } else if currentPage == totalPages - 1 {
             text = String(localized: "get_started")
         } else if currentPage_.isPermissionPage {
-            // Toujours "Continuer" sur les pages de permissions
-            // Les permissions seront demandées à la fin
-            text = String(localized: "continue")
+            switch currentPage_.permissionType {
+            case .screenTime:
+                // Bouton pour demander Screen Time
+                if onboardingManager.screenTimeStatus == .granted {
+                    text = String(localized: "continue")
+                } else {
+                    text = "Autoriser Screen Time"
+                }
+            case .notifications:
+                // Bouton pour demander Notifications
+                if onboardingManager.notificationStatus == .granted {
+                    text = String(localized: "continue")
+                } else {
+                    text = "Activer les notifications"
+                }
+            default:
+                text = String(localized: "continue")
+            }
         } else {
             text = String(localized: "continue")
         }
@@ -438,12 +439,49 @@ struct OnboardingBottomActions: View {
         
         switch currentPage_.permissionType {
         case .screenTime:
-            print("🔍 [ONBOARDING] Screen Time page - just continuing to next page")
-            onNext()
+            if onboardingManager.screenTimeStatus == .granted {
+                print("🔍 [ONBOARDING] Screen Time already granted - continuing to next page")
+                onNext()
+            } else {
+                print("🔍 [ONBOARDING] Requesting Screen Time permission")
+                isRequesting = true
+                Task {
+                    let granted = await onboardingManager.requestScreenTimePermission()
+                    await MainActor.run {
+                        isRequesting = false
+                        if granted {
+                            // Permission accordée, passer à la page suivante
+                            onNext()
+                        } else {
+                            // Permission refusée, on peut quand même continuer
+                            // L'utilisateur pourra réessayer plus tard
+                            onNext()
+                        }
+                    }
+                }
+            }
             
         case .notifications:
-            print("🔍 [ONBOARDING] Notifications page - just continuing to next page")
-            onNext()
+            if onboardingManager.notificationStatus == .granted {
+                print("🔍 [ONBOARDING] Notifications already granted - continuing to next page")
+                onNext()
+            } else {
+                print("🔍 [ONBOARDING] Requesting Notifications permission")
+                isRequesting = true
+                Task {
+                    let granted = await onboardingManager.requestNotificationPermission()
+                    await MainActor.run {
+                        isRequesting = false
+                        // Continuer dans tous les cas
+                        onNext()
+                    }
+                    
+                    if granted {
+                        await SessionNotificationManager.shared.setupDailyWellnessNotifications()
+                        print("✅ [ONBOARDING] Wellness notification system activated")
+                    }
+                }
+            }
             
         default:
             print("⚠️ [ONBOARDING] Unknown permission type, calling onNext()")

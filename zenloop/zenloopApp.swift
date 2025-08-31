@@ -25,8 +25,8 @@ struct zenloopApp: App {
                         print("🎯 PurchaseManager instance created: \(manager)")
                         print("🎯 Current products count: \(manager.products.count)")
                         
-                        // Demander autorisation Screen Time de manière asynchrone
-                        await AppUsageManager.shared.requestAuthorization()
+                        // REMOVED: Ne plus demander autorisation Screen Time automatiquement
+                        // Les permissions seront demandées dans l'onboarding uniquement
                         
                         // NOUVEAU: Précharger les données stats en arrière-plan
                         preloadStatsData()
