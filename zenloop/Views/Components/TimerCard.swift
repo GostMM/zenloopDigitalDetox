@@ -19,6 +19,7 @@ struct TimerCard: View {
     @State private var selectedConcentrationType: ConcentrationType = .deep
     @State private var showingConcentrationPicker = false
     @State private var isExpanded = false // Nouvel état pour l'expansion
+    @StateObject private var gatekeeper = PremiumGatekeeper.shared
     
     private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 55]
     private let availableHours = Array(0...24)
@@ -111,6 +112,7 @@ struct TimerCard: View {
                 zenloopManager.updateAppsSelection(FamilyActivitySelection())
             }
         }
+        .premiumGated()
     }
     
     // MARK: - Compact View
@@ -649,27 +651,30 @@ struct TimerCard: View {
     }
     
     private func startSession() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-        impactFeedback.impactOccurred()
-        
-        let totalMinutes = selectedHours * 60 + selectedMinutes
-        
-        let title = "\(selectedConcentrationType.title) - \(formattedDuration)"
-        let duration = TimeInterval(totalMinutes * 60)
-        let difficulty: DifficultyLevel = totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard
-        
-        print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
-        
-        // Démarrer immédiatement la session
-        if hasSelectedApps {
-            zenloopManager.startCustomChallenge(
-                title: title,
-                duration: duration,
-                difficulty: difficulty,
-                apps: selectedApps
-            )
-        } else {
-            zenloopManager.startQuickChallenge(duration: duration)
+        // Vérifier si l'utilisateur peut lancer une session
+        gatekeeper.performIfAllowed(.startCustomSession) {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+            
+            let totalMinutes = selectedHours * 60 + selectedMinutes
+            
+            let title = "\(selectedConcentrationType.title) - \(formattedDuration)"
+            let duration = TimeInterval(totalMinutes * 60)
+            let difficulty: DifficultyLevel = totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard
+            
+            print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
+            
+            // Démarrer immédiatement la session
+            if hasSelectedApps {
+                zenloopManager.startCustomChallenge(
+                    title: title,
+                    duration: duration,
+                    difficulty: difficulty,
+                    apps: selectedApps
+                )
+            } else {
+                zenloopManager.startQuickChallenge(duration: duration)
+            }
         }
     }
     

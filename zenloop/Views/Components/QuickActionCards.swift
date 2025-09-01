@@ -17,6 +17,7 @@ struct QuickActionCards: View {
     @State private var showingAppSelection = false
     @State private var selectedApps = FamilyActivitySelection()
     @State private var pendingPreset: QuickPreset? = nil
+    @StateObject private var gatekeeper = PremiumGatekeeper.shared
     
     init(showContent: Bool, zenloopManager: ZenloopManager, onSessionStarted: (() -> Void)? = nil) {
         self.showContent = showContent
@@ -147,6 +148,7 @@ struct QuickActionCards: View {
         .onAppear {
             selectedApps = zenloopManager.getAppsSelection()
         }
+        .premiumGated()
     }
     
     private func selectAndStart(_ preset: QuickPreset) {
@@ -204,28 +206,30 @@ struct QuickActionCards: View {
     }
     
     private func startQuickChallengeWithSelectedApps(_ preset: QuickPreset) {
-        // Animation de sélection
-        withAnimation(.easeInOut(duration: 0.2)) {
-            selectedCard = preset.id
-        }
-        
-        // Feedback haptique
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
-        
-        // Feedback visuel immédiat
-        withAnimation(.easeInOut(duration: 0.5)) {
-            showStartedFeedback = true
-        }
-        
-        // Démarrage avec les apps sélectionnées
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            zenloopManager.startCustomChallenge(
-                title: preset.title,
-                duration: preset.duration,
-                difficulty: preset.difficulty,
-                apps: zenloopManager.getAppsSelection()
-            )
+        // Vérifier si l'utilisateur peut lancer une session
+        gatekeeper.performIfAllowed(.startQuickSession) {
+            // Animation de sélection
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedCard = preset.id
+            }
+            
+            // Feedback haptique
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Feedback visuel immédiat
+            withAnimation(.easeInOut(duration: 0.5)) {
+                showStartedFeedback = true
+            }
+            
+            // Démarrage avec les apps sélectionnées
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                zenloopManager.startCustomChallenge(
+                    title: preset.title,
+                    duration: preset.duration,
+                    difficulty: preset.difficulty,
+                    apps: zenloopManager.getAppsSelection()
+                )
             selectedCard = nil
             
             // Feedback de succès
@@ -243,6 +247,7 @@ struct QuickActionCards: View {
                     showStartedFeedback = false
                 }
             }
+        }
         }
     }
     

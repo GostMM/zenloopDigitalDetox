@@ -9,6 +9,12 @@ import Foundation
 import StoreKit
 import SwiftUI
 
+// MARK: - Debug Configuration
+struct PurchaseConfig {
+    static let isTestEnvironment = true // Changez à false pour production
+    static let enableSandboxMode = true
+}
+
 // MARK: - PricingPlan Enum
 
 enum PricingPlan: CaseIterable {
@@ -61,9 +67,9 @@ enum PricingPlan: CaseIterable {
 extension PricingPlan {
     var productIdentifier: String {
         switch self {
-        case .lifetime: return "com.app.zenloop.lifetime"
-        case .yearly: return "com.app.zenloop.premium.yearly"
-        case .monthly: return "com.app.zenloop.premium.monthly"
+        case .lifetime: return "com.app.zenloop.premium.lifetime.v2"
+        case .yearly: return "com.app.zenloop.premium.yearly.v2"
+        case .monthly: return "com.app.zenloop.premium.monthly.v2"
         }
     }
     
@@ -77,9 +83,9 @@ extension PricingPlan {
     
     var fallbackPrice: String {
         switch self {
-        case .lifetime: return "$99.99"
-        case .monthly: return "$9.99/month"
-        case .yearly: return "$47.99/year"
+        case .lifetime: return "99,99€"
+        case .monthly: return "9,99€/mois"
+        case .yearly: return "47,99€/an"
         }
     }
 }
@@ -155,9 +161,9 @@ class PurchaseManager: ObservableObject {
     
     // MARK: - Private Properties
     private let productIdentifiers: Set<String> = [
-        "com.app.zenloop.lifetime",
-        "com.app.zenloop.premium.monthly",
-        "com.app.zenloop.premium.yearly"
+        "com.app.zenloop.premium.lifetime.v2",
+        "com.app.zenloop.premium.monthly.v2",
+        "com.app.zenloop.premium.yearly.v2"
     ]
     
     private var transactionListener: Task<Void, Error>?
@@ -307,9 +313,24 @@ class PurchaseManager: ObservableObject {
     }
     
     func purchasePlan(_ plan: PricingPlan) async throws {
+        NSLog("🛒 [PURCHASE] Attempting to purchase plan: \(plan.title) (\(plan.productIdentifier))")
+        NSLog("🛒 [PURCHASE] Available products: \(products.map { "\($0.id): \($0.type)" })")
+        
         guard let product = products.first(where: { $0.id == plan.productIdentifier }) else {
+            NSLog("❌ [PURCHASE] Product not found: \(plan.productIdentifier)")
+            NSLog("❌ [PURCHASE] Available product IDs: \(products.map(\.id))")
             throw PurchaseError.productNotFound
         }
+        
+        NSLog("🛒 [PURCHASE] Found product: \(product.id) - Type: \(product.type) - Price: \(product.displayPrice)")
+        
+        if PurchaseConfig.isTestEnvironment {
+            NSLog("🧪 [PURCHASE] Test environment - Product type: \(product.type)")
+            if product.type == .autoRenewable {
+                NSLog("⚠️ [PURCHASE] Auto-renewable subscription in TestFlight may not work without App Store approval")
+            }
+        }
+        
         try await purchase(product)
     }
     
@@ -394,6 +415,9 @@ class PurchaseManager: ObservableObject {
         // Déterminer si l'utilisateur est premium
         let wasPremium = self.isPremium
         self.isPremium = !newPurchasedProducts.isEmpty
+        
+        // Synchroniser avec les UserDefaults partagés pour les widgets
+        syncPremiumStatusWithSharedDefaults()
         
         // Mettre à jour les statuts
         self.hasExpiredSubscription = !expiredProducts.isEmpty
@@ -566,6 +590,16 @@ class PurchaseManager: ObservableObject {
         } catch {
             NSLog("❌ Failed to reload products: \(error)")
         }
+    }
+    
+    // MARK: - Widget Synchronization
+    
+    private func syncPremiumStatusWithSharedDefaults() {
+        let shared = UserDefaults(suiteName: "group.com.app.zenloop") ?? UserDefaults.standard
+        shared.set(isPremium, forKey: "isPremium")
+        shared.synchronize()
+        
+        NSLog("🔄 Premium status synced with widgets: \(isPremium)")
     }
 }
 

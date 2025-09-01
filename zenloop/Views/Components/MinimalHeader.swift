@@ -12,6 +12,9 @@ struct MinimalHeader: View {
     let currentState: ZenloopState
     let isPremium: Bool
     @ObservedObject var zenloopManager: ZenloopManager
+    @StateObject private var purchaseManager = PurchaseManager.shared
+    @State private var subscriptionStatus: SubscriptionStatus = .none
+    @State private var showSubscriptionStatus = false
     
     // TODO: Schedule functionality to be implemented in future version
     // @State private var showingSchedulePicker = false
@@ -109,11 +112,19 @@ struct MinimalHeader: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : -10)
             
-            // Badge PRO si premium
+            // Badge PRO si premium ou indicateur de statut d'abonnement
             if isPremium {
                 ProBadge()
                     .opacity(showContent ? 1 : 0)
                     .offset(y: showContent ? 0 : -10)
+            } else {
+                // Indicateur de statut d'abonnement pour utilisateurs non premium
+                SubscriptionStatusIndicator(
+                    status: subscriptionStatus,
+                    showContent: showContent
+                ) {
+                    showSubscriptionStatus = true
+                }
             }
             
             // Indicateur d'état minimal
@@ -134,6 +145,12 @@ struct MinimalHeader: View {
                 .opacity(showContent ? 1 : 0)
         }
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
+        .sheet(isPresented: $showSubscriptionStatus) {
+            SubscriptionStatusView()
+        }
+        .task {
+            await updateSubscriptionStatus()
+        }
         // TODO: Schedule picker to be implemented in future version
         /*
         .sheet(isPresented: $showingSchedulePicker) {
@@ -239,6 +256,12 @@ struct MinimalHeader: View {
         return formatter.string(from: date)
     }
     */
+    
+    // MARK: - Subscription Status Methods
+    
+    private func updateSubscriptionStatus() async {
+        subscriptionStatus = await purchaseManager.getSubscriptionStatus()
+    }
 }
 
 struct ProBadge: View {
@@ -263,6 +286,79 @@ struct ProBadge: View {
                     )
             )
             .shadow(color: .purple.opacity(0.3), radius: 2, x: 0, y: 1)
+    }
+}
+
+// MARK: - Subscription Status Indicator
+
+struct SubscriptionStatusIndicator: View {
+    let status: SubscriptionStatus
+    let showContent: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 4) {
+                statusIcon
+                    .font(.system(size: 10, weight: .bold))
+                
+                if shouldShowText {
+                    Text(statusText)
+                        .font(.system(size: 8, weight: .bold))
+                        .lineLimit(1)
+                }
+            }
+            .foregroundColor(status.color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(status.color.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(status.color.opacity(0.3), lineWidth: 0.5)
+                    )
+            )
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : -10)
+    }
+    
+    private var statusIcon: some View {
+        Group {
+            switch status {
+            case .expiringSoon:
+                Image(systemName: "exclamationmark.triangle.fill")
+            case .expired:
+                Image(systemName: "xmark.circle.fill")
+            case .refunded:
+                Image(systemName: "arrow.uturn.backward.circle.fill")
+            case .none:
+                Image(systemName: "crown")
+            default:
+                Image(systemName: "crown")
+            }
+        }
+    }
+    
+    private var statusText: String {
+        switch status {
+        case .expiringSoon: return "Expire"
+        case .expired: return "Expiré"
+        case .refunded: return "Remb."
+        case .none: return "Premium"
+        default: return ""
+        }
+    }
+    
+    private var shouldShowText: Bool {
+        // Afficher le texte seulement pour les statuts critiques ou si pas d'abonnement
+        switch status {
+        case .expiringSoon, .expired, .refunded, .none:
+            return true
+        default:
+            return false
+        }
     }
 }
 

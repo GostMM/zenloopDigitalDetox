@@ -25,7 +25,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.app.zenloop.lifetime",
+      "productID" : "com.app.zenloop.premium.lifetime.v2",
       "referenceName" : "Zenloop Lifetime Premium",
       "type" : "NonConsumable"
     }
@@ -108,7 +108,6 @@
           "groupNumber" : 1,
           "internalID" : "C31571DA",
           "introductoryOffer" : {
-            "displayPrice" : "0.99",
             "internalID" : "532EC314",
             "paymentMode" : "free",
             "subscriptionPeriod" : "P1W"
@@ -120,7 +119,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.app.zenloop.premium.monthly",
+          "productID" : "com.app.zenloop.premium.monthly.v2",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Zenloop Premium Monthly",
           "subscriptionGroupID" : "F921B1DB",
@@ -152,7 +151,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.app.zenloop.premium.yearly",
+          "productID" : "com.app.zenloop.premium.yearly.v2",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Zenloop Premium Yearly",
           "subscriptionGroupID" : "F921B1DB",

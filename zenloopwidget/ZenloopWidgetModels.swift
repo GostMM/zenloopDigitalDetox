@@ -314,6 +314,14 @@ class ZenloopWidgetDataProvider {
     // MARK: - Session Control Methods with Synchronization
     
     func startSession(duration: Int, origin: ActiveSessionData.SessionOrigin = .quickStart) {
+        // Vérifier si l'utilisateur est Premium avant d'autoriser le lancement de session
+        if !isPremiumUser() {
+            print("🚫 [WIDGET] Session bloquée - utilisateur non Premium")
+            // Stocker l'intent pour rediriger vers le paywall
+            storePendingSessionForPaywall(duration: duration, origin: origin)
+            return
+        }
+        
         let currentData = getCurrentData()
         let sessionId = UUID().uuidString
         

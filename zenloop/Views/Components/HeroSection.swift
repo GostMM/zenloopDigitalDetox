@@ -372,6 +372,7 @@ struct ModernQuickActionsRow: View {
     @ObservedObject var zenloopManager: ZenloopManager
     @State private var showingAppSelection = false
     @State private var pendingAction: (() -> Void)? = nil
+    @StateObject private var gatekeeper = PremiumGatekeeper.shared
     
     private let horizontalPadding: CGFloat = 16
     
@@ -549,24 +550,28 @@ struct ModernQuickActionsRow: View {
                 }
             }
         ))
+        .premiumGated()
     }
     
     private func handleQuickAction(_ action: @escaping () -> Void) {
-        // Vérifier si des apps sont réellement sélectionnées
-        let selection = zenloopManager.getAppsSelection()
-        let hasApps = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
-        
-        print("🔍 [HERO] handleQuickAction - hasApps: \(hasApps), appTokens: \(selection.applicationTokens.count), categoryTokens: \(selection.categoryTokens.count)")
-        
-        if hasApps {
-            // Apps déjà sélectionnées, lancer directement la session
-            print("✅ [HERO] Apps sélectionnées, lancement direct de la session")
-            action()
-        } else {
-            // Aucune app sélectionnée, ouvrir la sélection d'apps
-            print("⚠️ [HERO] Aucune app sélectionnée, ouverture du sélecteur")
-            pendingAction = action
-            showingAppSelection = true
+        // D'abord vérifier si l'utilisateur peut lancer une session
+        gatekeeper.performIfAllowed(.startQuickSession) {
+            // Vérifier si des apps sont réellement sélectionnées
+            let selection = zenloopManager.getAppsSelection()
+            let hasApps = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+            
+            print("🔍 [HERO] handleQuickAction - hasApps: \(hasApps), appTokens: \(selection.applicationTokens.count), categoryTokens: \(selection.categoryTokens.count)")
+            
+            if hasApps {
+                // Apps déjà sélectionnées, lancer directement la session
+                print("✅ [HERO] Apps sélectionnées, lancement direct de la session")
+                action()
+            } else {
+                // Aucune app sélectionnée, ouvrir la sélection d'apps
+                print("⚠️ [HERO] Aucune app sélectionnée, ouverture du sélecteur")
+                pendingAction = action
+                showingAppSelection = true
+            }
         }
     }
 }

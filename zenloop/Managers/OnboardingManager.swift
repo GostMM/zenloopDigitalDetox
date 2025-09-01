@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import UserNotifications
+import UIKit
 #if canImport(FamilyControls)
 import FamilyControls
 #endif
@@ -217,17 +218,55 @@ final class OnboardingManager: ObservableObject {
     }
     
     func requestNotificationPermission() async -> Bool {
+        print("🚨 [ONBOARDING] requestNotificationPermission() started")
+        
+        // Vérifier d'abord le statut actuel
+        let currentSettings = await UNUserNotificationCenter.current().notificationSettings()
+        print("🚨 [ONBOARDING] Current notification status: \(currentSettings.authorizationStatus.rawValue)")
+        
+        // Si déjà refusé, rediriger vers les réglages
+        if currentSettings.authorizationStatus == .denied {
+            print("🚨 [ONBOARDING] Permission previously denied, opening Settings")
+            await MainActor.run {
+                #if canImport(UIKit)
+                if let settingsUrl = URL(string: "App-Prefs:NOTIFICATIONS") {
+                    if UIApplication.shared.canOpenURL(settingsUrl) {
+                        UIApplication.shared.open(settingsUrl)
+                    } else {
+                        // Fallback vers les réglages généraux
+                        if let generalSettings = URL(string: "App-Prefs:root") {
+                            UIApplication.shared.open(generalSettings)
+                        }
+                    }
+                }
+                #endif
+            }
+            return false
+        }
+        
+        // Si déjà accordé, retourner true
+        if currentSettings.authorizationStatus == .authorized {
+            await MainActor.run {
+                notificationStatus = .granted
+            }
+            return true
+        }
+        
         do {
+            print("🚨 [ONBOARDING] About to call UNUserNotificationCenter.requestAuthorization()")
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
+            print("🚨 [ONBOARDING] UNUserNotificationCenter.requestAuthorization() returned: \(granted)")
             
             await MainActor.run {
                 notificationStatus = granted ? .granted : .denied
+                print("🚨 [ONBOARDING] Updated notificationStatus to: \(notificationStatus)")
             }
             
             logger.info("✅ [ONBOARDING] Notification permission: \(granted)")
             return granted
         } catch {
+            print("🚨 [ONBOARDING] Exception in requestNotificationPermission: \(error)")
             logger.error("❌ [ONBOARDING] Notification permission failed: \(error)")
             await MainActor.run {
                 notificationStatus = .denied

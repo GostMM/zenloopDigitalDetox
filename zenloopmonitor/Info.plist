@@ -6,8 +6,6 @@
 	<dict>
 		<key>EXExtensionPointIdentifier</key>
 		<string>com.apple.deviceactivity.monitor-extension</string>
-		<key>EXExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).ZenloopDeviceActivityMonitor</string>
 	</dict>
 	<key>NSExtension</key>
 	<dict>

@@ -33,8 +33,8 @@ struct StartQuickSessionIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult {
-        // Update widget data and start session
-        ZenloopWidgetDataProvider.shared.startSession(duration: duration)
+        // Update widget data and start session (with Premium check)
+        ZenloopWidgetDataProvider.shared.startSessionIfPremium(duration: duration)
         return .result()
     }
 }
@@ -74,7 +74,7 @@ struct StartNewSessionIntent: AppIntent {
     static var description: IntentDescription { "Start a new focus session" }
     
     func perform() async throws -> some IntentResult {
-        ZenloopWidgetDataProvider.shared.startNewSession()
+        ZenloopWidgetDataProvider.shared.startNewSessionIfPremium()
         return .result()
     }
 }
