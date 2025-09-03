@@ -14,5 +14,6 @@ struct zenloopwidgetBundle: WidgetBundle {
         zenloopwidget()
         zenloopwidgetControl()
         zenloopwidgetLiveActivity()
+        InteractiveZenloopWidget() // New interactive widget
     }
 }

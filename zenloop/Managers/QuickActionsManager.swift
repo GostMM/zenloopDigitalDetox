@@ -161,15 +161,45 @@ class QuickActionsManager: ObservableObject {
             return
         }
         
-        print("🎯 [QUICK_ACTIONS] Handling action: \(actionType.title)")
+        let source = shortcutItem.userInfo?["source"] as? String ?? "shortcut"
+        print("🎯 [QUICK_ACTIONS] Handling action: \(actionType.title) (source: \(source))")
         
         // Store the action to be processed when the app is fully loaded
         pendingAction = actionType
         
-        // Process immediately if manager is available
+        // Process immediately if manager is available, otherwise wait for app to be ready
         if zenloopManager != nil {
             processAction(actionType)
+        } else {
+            // App is cold starting - set up a timer to retry processing
+            setupColdStartProcessing(for: actionType)
         }
+    }
+    
+    private func setupColdStartProcessing(for actionType: QuickActionType) {
+        print("🔄 [QUICK_ACTIONS] Setting up cold start processing for: \(actionType.title)")
+        
+        var retryCount = 0
+        let maxRetries = 20 // 10 seconds maximum (0.5s * 20)
+        
+        // Retry processing every 0.5 seconds until ZenloopManager is available
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            retryCount += 1
+            
+            if let manager = self.zenloopManager {
+                print("✅ [QUICK_ACTIONS] Manager available after \(retryCount) retries, processing action")
+                self.processAction(actionType)
+                timer.invalidate()
+            } else if retryCount >= maxRetries {
+                print("❌ [QUICK_ACTIONS] Timeout waiting for manager after \(retryCount) retries")
+                timer.invalidate()
+            } else {
+                print("⏳ [QUICK_ACTIONS] Still waiting for manager... (\(retryCount)/\(maxRetries))")
+            }
+        }
+        
+        // Store timer reference to be able to invalidate it if needed
+        // (In a real implementation, you might want to store this in an instance variable)
     }
     
     func processPendingAction() {

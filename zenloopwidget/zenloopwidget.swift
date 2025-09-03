@@ -37,7 +37,7 @@ struct ZenloopTimelineProvider: TimelineProvider {
         print("🔄 [WIDGET] getSnapshot called")
         let data = ZenloopWidgetDataProvider.shared.getCurrentData()
         let entry = ZenloopWidgetEntry(date: Date(), data: data)
-        print("📊 [WIDGET] Snapshot data: state=\(data.currentState.rawValue), title=\(data.sessionTitle ?? "nil")")
+        print("📊 [WIDGET] Snapshot data: state=\(data.currentState?.rawValue ?? "nil"), title=\(data.currentSessionTitle)")
         completion(entry)
     }
 
@@ -46,58 +46,22 @@ struct ZenloopTimelineProvider: TimelineProvider {
         let currentData = ZenloopWidgetDataProvider.shared.getCurrentData()
         let currentDate = Date()
         
-        print("📊 [WIDGET] Timeline data: state=\(currentData.currentState.rawValue)")
+        print("📊 [WIDGET] Timeline data: state=\(currentData.currentState?.rawValue ?? "nil")")
         
         var entries: [ZenloopWidgetEntry] = []
         
         // Entry actuelle
         entries.append(ZenloopWidgetEntry(date: currentDate, data: currentData))
         
-        // Mise à jour selon l'état de la session
-        let refreshInterval: TimeInterval
-        switch currentData.currentState {
-        case .active:
-            refreshInterval = 60 // 1 minute pour les sessions actives
-        case .paused:
-            refreshInterval = 300 // 5 minutes pour les sessions en pause
-        case .completed:
-            refreshInterval = 300 // 5 minutes après completion
-        case .idle:
-            refreshInterval = 1800 // 30 minutes en idle
-        }
+        // Mise à jour chaque seconde pour toutes les vues
+        let refreshInterval: TimeInterval = 1 // 1 seconde pour toutes les vues
         
-        // Créer plusieurs entries pour un refresh régulier
-        let numberOfEntries = currentData.currentState == .active ? 10 : 5
+        // Créer plusieurs entries pour refresh continu chaque seconde
+        let numberOfEntries = 60 // 60 entries = 1 minute de données
         for i in 1...numberOfEntries {
             let entryDate = currentDate.addingTimeInterval(TimeInterval(i) * refreshInterval)
-            
-            // Pour les sessions actives, simuler la progression du timer
-            var updatedData = currentData
-            if currentData.currentState == .active {
-                let newTimeRemaining = max(0, (currentData.timeRemaining?.timeIntervalFromString() ?? 0) - TimeInterval(i * 60))
-                // Créer une session active mise à jour
-                let updatedActiveSession = ActiveSessionData(
-                    id: currentData.activeSession?.id ?? UUID().uuidString,
-                    title: currentData.activeSession?.title ?? "Focus Session",
-                    timeRemaining: newTimeRemaining > 0 ? newTimeRemaining.formattedTime() : "00:00",
-                    progress: currentData.progress + (0.1 * Double(i)),
-                    origin: currentData.activeSession?.origin ?? .quickStart,
-                    startTime: currentData.activeSession?.startTime ?? Date(),
-                    originalDuration: currentData.activeSession?.originalDuration ?? 1500
-                )
-                
-                updatedData = ZenloopWidgetData(
-                    currentState: newTimeRemaining > 0 ? .active : .completed,
-                    activeSession: newTimeRemaining > 0 ? updatedActiveSession : nil,
-                    sessionsCompleted: currentData.sessionsCompleted,
-                    streak: currentData.streak,
-                    nextScheduledSession: currentData.nextScheduledSession,
-                    cancelledScheduledSessions: currentData.cancelledScheduledSessions,
-                    lastUpdated: entryDate
-                )
-            }
-            
-            entries.append(ZenloopWidgetEntry(date: entryDate, data: updatedData))
+            // Utiliser les données exactement comme reçues de l'app, sans simulation
+            entries.append(ZenloopWidgetEntry(date: entryDate, data: currentData))
         }
         
         let timeline = Timeline(entries: entries, policy: .atEnd)
@@ -142,7 +106,7 @@ struct ZenloopWidgetView: View {
             }
         }
         .widgetBackground(
-            ZenloopWidgetBackground(state: entry.data.currentState)
+            ZenloopWidgetBackground(state: entry.data.currentState ?? .idle)
         )
     }
 }
@@ -154,16 +118,22 @@ struct SmallZenloopWidget: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            // Header compact
+            // Header compact with logo
             HStack {
-                Text("Zenloop")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white)
+                HStack(spacing: 4) {
+                    Image("zenloop")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 12, height: 12)
+                    Text("Zenloop")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                }
                 
                 Spacer()
                 
-                Text(data.currentState.emoji)
-                    .font(.system(size: 16))
+                Text(data.currentState?.emoji ?? "🎯")
+                    .font(.system(size: 14))
             }
             
             Spacer()
@@ -179,6 +149,8 @@ struct SmallZenloopWidget: View {
                     pausedContent
                 case .completed:
                     completedContent
+                case nil:
+                    idleContent
                 }
             }
             
@@ -207,30 +179,36 @@ struct SmallZenloopWidget: View {
     @ViewBuilder
     private var activeSessionContent: some View {
         VStack(spacing: 4) {
-            Text(data.sessionTitle ?? "Focus Session")
-                .font(.system(size: 11, weight: .semibold))
+            // Time remaining (primary focus)
+            Text(data.timeRemaining)
+                .font(.system(size: 20, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
             
-            Text(data.timeRemaining ?? "00:00")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
+            // Session title (compact)
+            Text(data.currentSessionTitle.isEmpty ? "Focus Session" : data.currentSessionTitle)
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+                .lineLimit(1)
             
             // Progress bar
             ProgressView(value: data.progress)
                 .progressViewStyle(LinearProgressViewStyle(tint: .orange))
                 .scaleEffect(y: 2)
+                .padding(.vertical, 2)
             
-            // Action button
+            // Action button (compact)
             Button(intent: PauseSessionIntent()) {
-                Text("Pause")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.3))
-                    .cornerRadius(4)
+                HStack(spacing: 2) {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 8))
+                    Text("Pause")
+                        .font(.system(size: 8, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.orange.opacity(0.8))
+                .cornerRadius(5)
             }
             .buttonStyle(.plain)
         }
@@ -238,31 +216,37 @@ struct SmallZenloopWidget: View {
     
     @ViewBuilder
     private var idleContent: some View {
-        VStack(spacing: 4) {
-            Text("Ready")
+        VStack(spacing: 6) {
+            // Status message
+            Text("Ready to Focus")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
             
+            // Next session info (if available)
             if let nextSession = data.nextScheduledSession {
                 Text("Next: \(nextSession.formattedStartTime)")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.cyan)
             }
             
-            // Quick start suggestions
-            HStack(spacing: 4) {
+            // Quick start buttons (prominent and stacked)
+            VStack(spacing: 4) {
                 Button(intent: {
                     var intent = StartQuickSessionIntent()
                     intent.duration = 25
                     return intent
                 }()) {
-                    Text("25m")
-                        .font(.system(size: 7, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.3))
-                        .cornerRadius(3)
+                    HStack {
+                        Image(systemName: "timer")
+                            .font(.system(size: 10))
+                        Text("Start 25min")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
                 
@@ -271,81 +255,107 @@ struct SmallZenloopWidget: View {
                     intent.duration = 60
                     return intent
                 }()) {
-                    Text("1h")
-                        .font(.system(size: 7, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.3))
-                        .cornerRadius(3)
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.system(size: 10))
+                        Text("Start 1 hour")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.8))
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(.horizontal, 4)
     }
     
     @ViewBuilder
     private var pausedContent: some View {
         VStack(spacing: 4) {
-            Text("Paused")
+            // Paused status
+            Text("Session Paused")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
             
-            Text(data.timeRemaining ?? "00:00")
-                .font(.system(size: 11, weight: .bold))
+            // Time remaining
+            Text(data.timeRemaining)
+                .font(.system(size: 18, weight: .bold, design: .monospaced))
                 .foregroundColor(.cyan)
             
-            // Resume/Stop buttons
-            HStack(spacing: 4) {
+            // Action buttons (prominent and stacked)
+            VStack(spacing: 3) {
                 Button(intent: ResumeSessionIntent()) {
-                    Text("Resume")
-                        .font(.system(size: 7, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.3))
-                        .cornerRadius(3)
+                    HStack {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 9))
+                        Text("Resume")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(5)
                 }
                 .buttonStyle(.plain)
                 
                 Button(intent: StopSessionIntent()) {
-                    Text("Stop")
-                        .font(.system(size: 7, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.red.opacity(0.3))
-                        .cornerRadius(3)
+                    HStack {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 9))
+                        Text("Stop")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.8))
+                    .cornerRadius(5)
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(.horizontal, 4)
     }
     
     @ViewBuilder
     private var completedContent: some View {
         VStack(spacing: 4) {
+            // Celebration
+            Text("🎉")
+                .font(.system(size: 24))
+            
             Text("Well Done!")
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.white)
             
-            Text(data.sessionTitle ?? "Session")
+            Text(data.currentSessionTitle.isEmpty ? "Session completed!" : "\(data.currentSessionTitle) completed!")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(.green)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
             
-            // Start new session button
+            // New session button (prominent)
             Button(intent: StartNewSessionIntent()) {
-                Text("New Session")
-                    .font(.system(size: 7, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color.green.opacity(0.3))
-                    .cornerRadius(3)
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 10))
+                    Text("Start New Session")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(Color.green.opacity(0.8))
+                .cornerRadius(6)
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 4)
     }
 }
 
@@ -355,101 +365,339 @@ struct MediumZenloopWidget: View {
     let data: ZenloopWidgetData
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Section gauche - Info principale
-            VStack(alignment: .leading, spacing: 8) {
-                // Header
-                HStack(spacing: 8) {
+        VStack(spacing: 0) {
+            // Header compact mais complet
+            HStack {
+                HStack(spacing: 4) {
+                    Image("zenloop")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 14, height: 14)
                     Text("Zenloop")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
-                    
-                    Text(data.currentState.emoji)
-                        .font(.system(size: 16))
-                    
-                    Spacer()
-                }
-                
-                // État principal
-                Text(data.currentState.displayTitle)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                // Contenu spécifique à l'état
-                Group {
-                    switch data.currentState {
-                    case .active:
-                        activeSessionDetails
-                    case .idle:
-                        idleDetails
-                    case .paused:
-                        pausedDetails
-                    case .completed:
-                        completedDetails
-                    }
                 }
                 
                 Spacer()
+                
+                // Stats compactes dans le header
+                HStack(spacing: 12) {
+                    HStack(spacing: 3) {
+                        Text("\(data.streak)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                    }
+                    
+                    HStack(spacing: 3) {
+                        Text("\(data.sessionsCompleted ?? 0)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.green)
+                    }
+                }
+                
+                Text(data.currentState?.emoji ?? "🎯")
+                    .font(.system(size: 16))
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            
+            // Contenu principal optimisé
+            Group {
+                switch data.currentState {
+                case .active:
+                    mediumActiveContent
+                case .idle:
+                    mediumIdleContent
+                case .paused:
+                    mediumPausedContent
+                case .completed:
+                    mediumCompletedContent
+                case nil:
+                    mediumIdleContent
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
+    
+    // MARK: - Medium Widget Content Views
+    
+    @ViewBuilder
+    private var mediumActiveContent: some View {
+        HStack(spacing: 16) {
+            // Section gauche - Timer et progress
+            VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Focus Session")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    if !data.currentSessionTitle.isEmpty {
+                        Text(data.currentSessionTitle)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    }
+                }
+                
+                Text(data.timeRemaining)
+                    .font(.system(size: 28, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                
+                // Progress bar épaisse
+                ProgressView(value: data.progress)
+                    .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                    .scaleEffect(y: 4)
+                    .padding(.vertical, 4)
             }
             
             Spacer()
             
-            // Section droite - Stats et prochaine session
-            VStack(alignment: .trailing, spacing: 8) {
-                // Stats compactes
-                VStack(alignment: .trailing, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.orange)
-                        Text("\(data.streak)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
+            // Section droite - Action + info
+            VStack(spacing: 6) {
+                // Progress percentage
+                Text("\(Int((data.progress) * 100))%")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.orange)
+                
+                // Action button (compact)
+                Button(intent: PauseSessionIntent()) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 12))
+                        Text("Pause")
+                            .font(.system(size: 11, weight: .semibold))
                     }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var mediumIdleContent: some View {
+        VStack(spacing: 10) {
+            // Section du haut - Message et prochaine session
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ready to Focus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                     
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 10))
-                            .foregroundColor(.green)
-                        Text("\(data.sessionsCompleted)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+                    Text("Choose a session duration to start")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 
                 Spacer()
                 
-                // Prochaine session (si applicable)
-                if let nextSession = data.nextScheduledSession, data.currentState == .idle {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Next")
+                // Next session info if available
+                if let nextSession = data.nextScheduledSession {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("Scheduled")
                             .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                        
+                            .foregroundColor(.white.opacity(0.5))
                         Text(nextSession.formattedStartTime)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.cyan)
-                        
                         Text(nextSession.title)
                             .font(.system(size: 8, weight: .medium))
                             .foregroundColor(.cyan.opacity(0.8))
                             .lineLimit(1)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan.opacity(0.15))
+                    .cornerRadius(6)
                 }
             }
+            
+            // Section du bas - Boutons d'action (compacts)
+            HStack(spacing: 8) {
+                Button(intent: {
+                    var intent = StartQuickSessionIntent()
+                    intent.duration = 25
+                    return intent
+                }()) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "timer")
+                            .font(.system(size: 14))
+                        Text("25min")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 38)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                
+                Button(intent: {
+                    var intent = StartQuickSessionIntent()
+                    intent.duration = 60
+                    return intent
+                }()) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 14))
+                        Text("1 hour")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 38)
+                    .background(Color.blue.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                
+                Button(intent: {
+                    var intent = StartQuickSessionIntent()
+                    intent.duration = 120
+                    return intent
+                }()) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "hourglass")
+                            .font(.system(size: 14))
+                        Text("2 hours")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 38)
+                    .background(Color.purple.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .padding(12)
+    }
+    
+    @ViewBuilder
+    private var mediumPausedContent: some View {
+        HStack(spacing: 16) {
+            // Section gauche - Timer
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Session Paused")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Text("Take a break, then resume when ready")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                Text(data.timeRemaining)
+                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .foregroundColor(.cyan)
+            }
+            
+            Spacer()
+            
+            // Section droite - Actions (compactes)
+            HStack(spacing: 6) {
+                Button(intent: ResumeSessionIntent()) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 11))
+                        Text("Resume")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                
+                Button(intent: StopSessionIntent()) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 11))
+                        Text("Stop")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.red.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private var mediumCompletedContent: some View {
+        HStack(spacing: 16) {
+            // Section gauche - Célébration
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("🎉")
+                        .font(.system(size: 24))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Well Done!")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Session completed successfully")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                
+                if !data.currentSessionTitle.isEmpty {
+                    Text("✓ \(data.currentSessionTitle)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.green)
+                        .lineLimit(2)
+                        .padding(.top, 2)
+                }
+            }
+            
+            Spacer()
+            
+            // Section droite - Action (compacte)
+            VStack(spacing: 8) {
+                Button(intent: StartNewSessionIntent()) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 12))
+                        Text("New Session")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.green.opacity(0.8))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
     
     @ViewBuilder
     private var activeSessionDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(data.sessionTitle ?? "Focus Session")
+            Text(data.currentSessionTitle.isEmpty ? "Focus Session" : data.currentSessionTitle)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(2)
             
-            Text(data.timeRemaining ?? "00:00")
+            Text(data.timeRemaining)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.white)
             
@@ -480,7 +728,7 @@ struct MediumZenloopWidget: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
             
-            Text(data.timeRemaining ?? "00:00")
+            Text(data.timeRemaining)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.cyan)
         }
@@ -493,7 +741,7 @@ struct MediumZenloopWidget: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.green)
             
-            Text(data.sessionTitle ?? "Great job!")
+            Text(data.currentSessionTitle.isEmpty ? "Great job!" : data.currentSessionTitle)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(1)
@@ -504,7 +752,7 @@ struct MediumZenloopWidget: View {
 // MARK: - Widget Background
 
 struct ZenloopWidgetBackground: View {
-    let state: ZenloopWidgetData.WidgetState
+    let state: WidgetState
     @State private var animateGlow = false
     
     var body: some View {

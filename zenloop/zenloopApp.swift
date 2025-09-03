@@ -205,19 +205,98 @@ struct zenloopApp: App {
             return
         }
         
+        // Handle special widget actions with parameters
+        if components.host == "quickfocus" {
+            // Check for duration parameter
+            let queryItems = components.queryItems ?? []
+            let duration = queryItems.first(where: { $0.name == "duration" })?.value
+            let sessionName = queryItems.first(where: { $0.name == "name" })?.value
+            
+            handleQuickFocusWithParameters(duration: duration, sessionName: sessionName)
+            return
+        }
+        
+        // Map URL hosts to Quick Action types
+        let actionType: QuickActionType?
+        
         switch components.host {
-        case "quickfocus":
-            quickActionsManager.handleQuickAction(UIApplicationShortcutItem(
-                type: QuickActionType.quickFocus.rawValue,
-                localizedTitle: "Quick Focus"
-            ))
-        case "stats":
-            quickActionsManager.handleQuickAction(UIApplicationShortcutItem(
-                type: QuickActionType.viewStats.rawValue,
-                localizedTitle: "View Stats"
-            ))
+        case "startscheduled":
+            actionType = .startScheduled
+        case "stats", "viewstats":
+            actionType = .viewStats
+        case "emergency":
+            actionType = .emergency
+        case "dontdelete", "retention":
+            actionType = .dontDelete
         default:
-            break
+            actionType = nil
+        }
+        
+        guard let action = actionType else {
+            print("❌ [DEEP_LINK] Unknown URL host: \(components.host ?? "nil")")
+            return
+        }
+        
+        // Create shortcut item for the action
+        let shortcutItem = UIApplicationShortcutItem(
+            type: action.rawValue,
+            localizedTitle: action.title,
+            localizedSubtitle: action.subtitle,
+            icon: action.iconType,
+            userInfo: ["source": "deeplink"] as [String: NSSecureCoding]
+        )
+        
+        // Handle the action through the Quick Actions system
+        quickActionsManager.handleQuickAction(shortcutItem)
+    }
+    
+    func handleQuickFocusWithParameters(duration: String?, sessionName: String?) {
+        print("🎯 [WIDGET_ACTION] Quick Focus with duration: \(duration ?? "nil"), name: \(sessionName ?? "nil")")
+        
+        let focusDuration = Int(duration ?? "25") ?? 25
+        let title = sessionName ?? "Widget Focus Session"
+        
+        // Create a custom challenge with widget parameters
+        let widgetChallenge = ZenloopChallenge(
+            id: "widget-focus-\(UUID().uuidString)",
+            title: title,
+            description: "Session démarrée depuis le widget",
+            duration: TimeInterval(focusDuration * 60), // Convert to seconds
+            difficulty: .medium,
+            startTime: Date(),
+            isActive: true
+        )
+        
+        // Delay execution to ensure ZenloopManager is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            ZenloopManager.shared.startSavedCustomChallenge(widgetChallenge)
+            
+            // Send haptic feedback for widget interaction
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+    }
+    
+    func checkForWidgetActions() {
+        // Check for pending widget actions in App Group
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        if let widgetAction = suite?.object(forKey: "widget_pending_action") as? [String: Any],
+           let actionURL = widgetAction["url"] as? String,
+           let timestamp = widgetAction["timestamp"] as? TimeInterval {
+            
+            // Check if action is recent (less than 30 seconds old)
+            let actionAge = Date().timeIntervalSince1970 - timestamp
+            if actionAge < 30 {
+                print("🔄 [WIDGET_ACTION] Processing pending action: \(actionURL)")
+                
+                // Clear the action and process it
+                suite?.removeObject(forKey: "widget_pending_action")
+                suite?.synchronize()
+                
+                if let url = URL(string: actionURL) {
+                    handleURL(url)
+                }
+            }
         }
     }
 }

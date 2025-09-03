@@ -572,6 +572,9 @@ class ZenloopManager: ObservableObject {
             // Synchroniser avec les propriétés de ZenloopManager 
             self.currentState = .active
             self.currentTimeRemaining = challenge.timeRemaining
+            
+            // Update widget immediately when session starts
+            self.updateWidgetData()
             self.currentProgress = challenge.safeProgress
             
             // CRUCIAL: Ne pas réappliquer les restrictions si c'est une session programmée
@@ -847,6 +850,9 @@ class ZenloopManager: ObservableObject {
         updated.isCompleted = true
         self.currentChallenge = updated
         self.currentState = .completed
+        
+        // Update widget when session completes
+        self.updateWidgetData()
         
         // Notifier la fin de session
         self.notificationManager.notifySessionCompleted(sessionTitle: challenge.title, sessionId: challenge.id)
@@ -1173,6 +1179,9 @@ class ZenloopManager: ObservableObject {
         currentTimeRemaining = formatTime(remainingTime)
         currentProgress = elapsedTime / challenge.duration
         
+        // Update widget when session becomes active
+        self.updateWidgetData()
+        
         challengeStateManager.startChallenge(synchronizedChallenge)
         
         // CORRIGÉ: Charger les apps spécifiques à cette session programmée
@@ -1421,22 +1430,43 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
             return
         }
         
-        // Mapper l'état pour le widget
+        // Mapper l'état pour le widget (nouvelle structure)
         let widgetState = mapStateToString(currentState)
         
         suite.set(widgetState, forKey: "widget_current_state")
-        suite.set(currentChallenge?.title, forKey: "widget_session_title")
-        suite.set(currentState == .active ? currentTimeRemaining : nil, forKey: "widget_time_remaining")
-        suite.set(currentProgress, forKey: "widget_progress")
         suite.set(completedChallengesTotal, forKey: "widget_sessions_completed")
         suite.set(currentStreakCount, forKey: "widget_streak")
         
-        // Prochaine session programmée
+        // Session active (nouvelle structure)
+        if currentState == .active || currentState == .paused, let challenge = currentChallenge {
+            let sessionId = UUID().uuidString
+            suite.set(sessionId, forKey: "widget_active_session_id")
+            suite.set(challenge.title, forKey: "widget_active_session_title")
+            suite.set(currentTimeRemaining, forKey: "widget_active_session_time_remaining")
+            suite.set(currentProgress, forKey: "widget_active_session_progress")
+            suite.set("manual", forKey: "widget_active_session_origin")
+            suite.set(Date(), forKey: "widget_active_session_start_time")
+            suite.set(challenge.duration, forKey: "widget_active_session_duration")
+        } else {
+            // Clear active session data
+            suite.removeObject(forKey: "widget_active_session_id")
+            suite.removeObject(forKey: "widget_active_session_title")
+            suite.removeObject(forKey: "widget_active_session_time_remaining")
+            suite.removeObject(forKey: "widget_active_session_progress")
+            suite.removeObject(forKey: "widget_active_session_origin")
+            suite.removeObject(forKey: "widget_active_session_start_time")
+            suite.removeObject(forKey: "widget_active_session_duration")
+        }
+        
+        // Prochaine session programmée (nouvelle structure)
         if let nextSession = nextScheduledSession {
+            let nextSessionId = UUID().uuidString
+            suite.set(nextSessionId, forKey: "widget_next_session_id")
             suite.set(nextSession.title, forKey: "widget_next_session_title")
             suite.set(nextSession.startTime, forKey: "widget_next_session_start")
             suite.set(nextSession.duration, forKey: "widget_next_session_duration")
         } else {
+            suite.removeObject(forKey: "widget_next_session_id")
             suite.removeObject(forKey: "widget_next_session_title")
             suite.removeObject(forKey: "widget_next_session_start")
             suite.removeObject(forKey: "widget_next_session_duration")

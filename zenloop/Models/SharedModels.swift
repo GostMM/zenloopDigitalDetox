@@ -130,8 +130,14 @@ final class SharedActivityStore: ObservableObject {
             resetToDefaults()
         }
         
-        // Chargement local sécurisé
+        // Chargement local sécurisé avec sync App Group
         savedSeconds = UserDefaults.standard.double(forKey: savedKey)
+        
+        // Sync savedSeconds to App Group for widget access
+        if let appGroupSuite = UserDefaults(suiteName: appGroup) {
+            appGroupSuite.set(savedSeconds, forKey: savedKey)
+            appGroupSuite.synchronize()
+        }
         isLoading = false
         print("✅ [SHARED_STORE] Data loaded successfully")
     }
@@ -151,5 +157,11 @@ final class SharedActivityStore: ObservableObject {
         let v = max(0, savedSeconds + seconds)
         savedSeconds = v
         UserDefaults.standard.set(v, forKey: savedKey)
+        
+        // Also save to App Group for widget access
+        if let appGroupSuite = UserDefaults(suiteName: appGroup) {
+            appGroupSuite.set(v, forKey: savedKey)
+            appGroupSuite.synchronize()
+        }
     }
 }

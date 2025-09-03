@@ -22,7 +22,45 @@ class QuickActionsBridge: NSObject, ObservableObject {
     func handleShortcutItem(_ shortcutItem: UIApplicationShortcutItem) {
         DispatchQueue.main.async {
             self.pendingShortcutItem = shortcutItem
+            
+            // Handle directly through QuickActionsManager
+            // The deep link system is a backup for when this doesn't work
             QuickActionsManager.shared.handleQuickAction(shortcutItem)
+        }
+    }
+    
+    private func triggerDeepLink(for shortcutItem: UIApplicationShortcutItem) {
+        // Convert Quick Action type to deep link URL
+        let urlString: String
+        
+        switch shortcutItem.type {
+        case QuickActionType.quickFocus.rawValue:
+            urlString = "zenloop://quickfocus"
+        case QuickActionType.startScheduled.rawValue:
+            urlString = "zenloop://startscheduled"
+        case QuickActionType.viewStats.rawValue:
+            urlString = "zenloop://stats"
+        case QuickActionType.emergency.rawValue:
+            urlString = "zenloop://emergency"
+        case QuickActionType.dontDelete.rawValue:
+            urlString = "zenloop://retention"
+        default:
+            print("❌ [QUICK_ACTIONS_BRIDGE] Unknown shortcut type: \(shortcutItem.type)")
+            return
+        }
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ [QUICK_ACTIONS_BRIDGE] Invalid URL: \(urlString)")
+            return
+        }
+        
+        // Trigger the deep link after a small delay to ensure app is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                windowScene.open(url, options: nil) { success in
+                    print(success ? "✅ [DEEP_LINK] Triggered: \(urlString)" : "❌ [DEEP_LINK] Failed: \(urlString)")
+                }
+            }
         }
     }
     

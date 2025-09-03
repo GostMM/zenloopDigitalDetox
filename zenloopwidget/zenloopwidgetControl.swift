@@ -53,8 +53,8 @@ extension zenloopwidgetControl {
         func currentValue(configuration: FocusSessionConfiguration) async throws -> Value {
             let currentData = ZenloopWidgetDataProvider.shared.getCurrentData()
             return zenloopwidgetControl.Value(
-                isSessionActive: currentData.currentState == .active,
-                sessionTitle: currentData.sessionTitle ?? "Focus Session",
+                isSessionActive: currentData.isSessionActive,
+                sessionTitle: currentData.currentSessionTitle.isEmpty ? "Focus Session" : currentData.currentSessionTitle,
                 timeRemaining: currentData.timeRemaining
             )
         }

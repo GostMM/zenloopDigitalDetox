@@ -9,21 +9,73 @@ import Foundation
 
 // MARK: - Widget Data Models
 
+// Interactive Widget Data Structure (for new App Intents widgets)
 struct ZenloopWidgetData: Codable {
-    let currentState: WidgetState
-    let activeSession: ActiveSessionData?
-    let sessionsCompleted: Int
+    let isSessionActive: Bool
+    let currentSessionTitle: String
+    let timeRemaining: String
+    let progress: Double
+    let totalFocusTime: String
     let streak: Int
+    let isPremium: Bool
+    
+    // Legacy structure for backward compatibility
+    let currentState: WidgetState?
+    let activeSession: ActiveSessionData?
+    let sessionsCompleted: Int?
     let nextScheduledSession: ScheduledSessionData?
-    let cancelledScheduledSessions: [String] // Session IDs that were cancelled
-    let lastUpdated: Date
+    let cancelledScheduledSessions: [String]?
+    let lastUpdated: Date?
     
-    // Computed properties for backward compatibility
-    var sessionTitle: String? { activeSession?.title }
-    var timeRemaining: String? { activeSession?.timeRemaining }
-    var progress: Double { activeSession?.progress ?? 0.0 }
+    // Convenience initializer for interactive widgets
+    init(isSessionActive: Bool, currentSessionTitle: String, timeRemaining: String, progress: Double, totalFocusTime: String, streak: Int, isPremium: Bool) {
+        self.isSessionActive = isSessionActive
+        self.currentSessionTitle = currentSessionTitle
+        self.timeRemaining = timeRemaining
+        self.progress = progress
+        self.totalFocusTime = totalFocusTime
+        self.streak = streak
+        self.isPremium = isPremium
+        
+        // Default legacy values
+        self.currentState = isSessionActive ? .active : .idle
+        self.activeSession = nil
+        self.sessionsCompleted = 0
+        self.nextScheduledSession = nil
+        self.cancelledScheduledSessions = []
+        self.lastUpdated = Date()
+    }
     
-    enum WidgetState: String, Codable, CaseIterable {
+    // Legacy initializer for backward compatibility
+    init(currentState: WidgetState, activeSession: ActiveSessionData?, sessionsCompleted: Int, streak: Int, nextScheduledSession: ScheduledSessionData?, cancelledScheduledSessions: [String], lastUpdated: Date) {
+        self.currentState = currentState
+        self.activeSession = activeSession
+        self.sessionsCompleted = sessionsCompleted
+        self.nextScheduledSession = nextScheduledSession
+        self.cancelledScheduledSessions = cancelledScheduledSessions
+        self.lastUpdated = lastUpdated
+        
+        // Derive interactive widget values from legacy structure with proper data
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        let isPremiumValue = suite?.bool(forKey: "isPremium") ?? false
+        let savedSeconds = suite?.double(forKey: "zenloop.savedSeconds") ?? 0
+        
+        self.isSessionActive = (currentState == .active || currentState == .paused)
+        self.currentSessionTitle = activeSession?.title ?? ""
+        self.timeRemaining = activeSession?.timeRemaining ?? "25:00"
+        self.progress = activeSession?.progress ?? 0.0
+        self.streak = streak
+        self.isPremium = isPremiumValue
+        // Format total focus time inline
+        let hours = Int(savedSeconds) / 3600
+        let minutes = Int(savedSeconds) / 60 % 60
+        self.totalFocusTime = hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+    }
+}
+
+// MARK: - Widget State Enum
+
+enum WidgetState: String, Codable, CaseIterable {
         case idle = "idle"
         case active = "active" 
         case paused = "paused"
@@ -82,6 +134,22 @@ struct ZenloopWidgetData: Codable {
             }
         }
     }
+
+// MARK: - Legacy Widget Data Structure
+
+struct LegacyZenloopWidgetData: Codable {
+    let currentState: WidgetState
+    let activeSession: ActiveSessionData?
+    let sessionsCompleted: Int
+    let streak: Int
+    let nextScheduledSession: ScheduledSessionData?
+    let cancelledScheduledSessions: [String] // Session IDs that were cancelled
+    let lastUpdated: Date
+    
+    // Computed properties for backward compatibility
+    var sessionTitle: String? { activeSession?.title }
+    var timeRemaining: String? { activeSession?.timeRemaining }
+    var progress: Double { activeSession?.progress ?? 0.0 }
 }
 
 // MARK: - Session Data Models
@@ -142,10 +210,17 @@ class ZenloopWidgetDataProvider {
         
         // Lire les données depuis App Groups avec la nouvelle structure
         let currentStateRaw = suite.string(forKey: "widget_current_state") ?? "idle"
-        let currentState = ZenloopWidgetData.WidgetState(rawValue: currentStateRaw) ?? .idle
+        let currentState = WidgetState(rawValue: currentStateRaw) ?? .idle
         
         let sessionsCompleted = suite.integer(forKey: "widget_sessions_completed")
         let streak = suite.integer(forKey: "widget_streak")
+        
+        // Check premium status
+        let isPremium = suite.bool(forKey: "isPremium")
+        
+        // Calculate total focus time from saved seconds (from App Group)
+        let savedSeconds = suite.double(forKey: "zenloop.savedSeconds")
+        let totalFocusTime = formatTotalFocusTime(savedSeconds)
         
         // Lire les données de session active
         var activeSession: ActiveSessionData?
@@ -220,11 +295,15 @@ class ZenloopWidgetDataProvider {
         let lastUpdated = suite.object(forKey: "widget_last_updated") as? Date ?? Date()
         
         print("📱 [WIDGET] Data read:")
-        print("   State: \(currentStateRaw)")
+        print("   State: \(currentStateRaw) -> \(currentState.rawValue)")
         print("   Active Session: \(activeSession?.title ?? "none")")
         print("   Next Scheduled: \(nextScheduledSession?.title ?? "none")")
+        print("   Premium: \(isPremium)")
+        print("   Total Focus: \(totalFocusTime)")
         print("   Cancelled Sessions: \(cancelledSessions.count)")
+        print("   Final isSessionActive: \(currentState == .active || currentState == .paused)")
         
+        // Create widget data structure with full state preservation
         return ZenloopWidgetData(
             currentState: currentState,
             activeSession: activeSession,
@@ -236,41 +315,48 @@ class ZenloopWidgetDataProvider {
         )
     }
     
+    private func formatTotalFocusTime(_ savedSeconds: Double) -> String {
+        let hours = Int(savedSeconds) / 3600
+        let minutes = Int(savedSeconds) / 60 % 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
     private func createDefaultData() -> ZenloopWidgetData {
         print("📱 [WIDGET] Using default data - no App Group access")
         return ZenloopWidgetData(
-            currentState: .idle,
-            activeSession: nil,
-            sessionsCompleted: 3,
+            isSessionActive: false,
+            currentSessionTitle: "",
+            timeRemaining: "25:00",
+            progress: 0.0,
+            totalFocusTime: "2h 30m",
             streak: 2,
-            nextScheduledSession: ScheduledSessionData(
-                id: UUID().uuidString,
-                title: "Example Session",
-                startTime: Calendar.current.date(byAdding: .hour, value: 2, to: Date()) ?? Date(),
-                duration: 8 * 60 * 60
-            ),
-            cancelledScheduledSessions: [],
-            lastUpdated: Date()
+            isPremium: false
         )
     }
     
     func updateWidgetData(_ data: ZenloopWidgetData) {
         guard let suite = suite else { return }
         
-        // Save basic state
-        suite.set(data.currentState.rawValue, forKey: "widget_current_state")
-        suite.set(data.sessionsCompleted, forKey: "widget_sessions_completed")
+        // Save interactive widget structure
+        let currentState: WidgetState = data.isSessionActive ? .active : .idle
+        suite.set(currentState.rawValue, forKey: "widget_current_state")
         suite.set(data.streak, forKey: "widget_streak")
         
-        // Save active session data
-        if let activeSession = data.activeSession {
-            suite.set(activeSession.id, forKey: "widget_active_session_id")
-            suite.set(activeSession.title, forKey: "widget_active_session_title")
-            suite.set(activeSession.timeRemaining, forKey: "widget_active_session_time_remaining")
-            suite.set(activeSession.progress, forKey: "widget_active_session_progress")
-            suite.set(activeSession.origin.rawValue, forKey: "widget_active_session_origin")
-            suite.set(activeSession.startTime, forKey: "widget_active_session_start_time")
-            suite.set(activeSession.originalDuration, forKey: "widget_active_session_duration")
+        // Save active session data if session is active
+        if data.isSessionActive {
+            let sessionId = UUID().uuidString
+            suite.set(sessionId, forKey: "widget_active_session_id")
+            suite.set(data.currentSessionTitle, forKey: "widget_active_session_title")
+            suite.set(data.timeRemaining, forKey: "widget_active_session_time_remaining")
+            suite.set(data.progress, forKey: "widget_active_session_progress")
+            suite.set("quickStart", forKey: "widget_active_session_origin")
+            suite.set(Date(), forKey: "widget_active_session_start_time")
+            suite.set(data.timeRemaining.timeIntervalFromString(), forKey: "widget_active_session_duration")
         } else {
             // Clear active session data
             suite.removeObject(forKey: "widget_active_session_id")
@@ -282,33 +368,16 @@ class ZenloopWidgetDataProvider {
             suite.removeObject(forKey: "widget_active_session_duration")
         }
         
-        // Save scheduled session data
-        if let nextSession = data.nextScheduledSession {
-            suite.set(nextSession.id, forKey: "widget_next_session_id")
-            suite.set(nextSession.title, forKey: "widget_next_session_title")
-            suite.set(nextSession.startTime, forKey: "widget_next_session_start")
-            suite.set(nextSession.duration, forKey: "widget_next_session_duration")
-        } else {
-            suite.removeObject(forKey: "widget_next_session_id")
-            suite.removeObject(forKey: "widget_next_session_title")
-            suite.removeObject(forKey: "widget_next_session_start")
-            suite.removeObject(forKey: "widget_next_session_duration")
-        }
+        // Update premium status
+        suite.set(data.isPremium, forKey: "isPremium")
         
-        // Save cancelled sessions list
-        suite.set(data.cancelledScheduledSessions, forKey: "widget_cancelled_sessions")
-        
-        // Legacy data cleanup - remove old keys
-        suite.removeObject(forKey: "widget_session_title")
-        suite.removeObject(forKey: "widget_time_remaining")
-        suite.removeObject(forKey: "widget_progress")
-        
-        suite.set(data.lastUpdated, forKey: "widget_last_updated")
+        suite.set(Date(), forKey: "widget_last_updated")
         suite.synchronize()
         
-        print("💾 [WIDGET] Data updated in App Group with new structure")
-        print("   Active Session: \(data.activeSession?.id ?? "none")")
-        print("   Cancelled Sessions: \(data.cancelledScheduledSessions.count)")
+        print("💾 [WIDGET] Data updated in App Group with interactive structure")
+        print("   Session Active: \(data.isSessionActive)")
+        print("   Session Title: \(data.currentSessionTitle)")
+        print("   Premium: \(data.isPremium)")
     }
     
     // MARK: - Session Control Methods with Synchronization
@@ -323,154 +392,66 @@ class ZenloopWidgetDataProvider {
         }
         
         let currentData = getCurrentData()
-        let sessionId = UUID().uuidString
-        
-        // If this overrides a scheduled session, mark it as cancelled
-        var cancelledSessions = currentData.cancelledScheduledSessions
-        if let nextScheduled = currentData.nextScheduledSession,
-           origin == .manual || origin == .quickStart {
-            cancelledSessions.append(nextScheduled.id)
-            print("🚫 [SESSION] Cancelled scheduled session: \(nextScheduled.id)")
-        }
-        
-        let activeSession = ActiveSessionData(
-            id: sessionId,
-            title: "Quick Session \(duration)m",
-            timeRemaining: "\(duration):00",
-            progress: 0.0,
-            origin: origin,
-            startTime: Date(),
-            originalDuration: TimeInterval(duration * 60)
-        )
         
         let newData = ZenloopWidgetData(
-            currentState: .active,
-            activeSession: activeSession,
-            sessionsCompleted: currentData.sessionsCompleted,
+            isSessionActive: true,
+            currentSessionTitle: "Quick Session \(duration)m",
+            timeRemaining: "\(duration):00",
+            progress: 0.0,
+            totalFocusTime: currentData.totalFocusTime,
             streak: currentData.streak,
-            nextScheduledSession: origin == .scheduled ? nil : currentData.nextScheduledSession,
-            cancelledScheduledSessions: cancelledSessions,
-            lastUpdated: Date()
+            isPremium: currentData.isPremium
         )
         
-        print("✅ [SESSION] Started \(origin.rawValue) session: \(sessionId)")
+        print("✅ [SESSION] Started \(origin.rawValue) session: \(duration)m")
         updateWidgetData(newData)
     }
     
     func pauseSession() {
         let currentData = getCurrentData()
-        guard let activeSession = currentData.activeSession else {
+        if !currentData.isSessionActive {
             print("❌ [SESSION] No active session to pause")
             return
         }
         
-        let pausedData = ZenloopWidgetData(
-            currentState: .paused,
-            activeSession: activeSession,
-            sessionsCompleted: currentData.sessionsCompleted,
-            streak: currentData.streak,
-            nextScheduledSession: currentData.nextScheduledSession,
-            cancelledScheduledSessions: currentData.cancelledScheduledSessions,
-            lastUpdated: Date()
-        )
-        
-        print("⏸️ [SESSION] Paused session: \(activeSession.id)")
-        updateWidgetData(pausedData)
+        // For now, just stop the session (can enhance pause logic later)
+        stopSession()
     }
     
     func resumeSession() {
         let currentData = getCurrentData()
-        guard let activeSession = currentData.activeSession else {
-            print("❌ [SESSION] No session to resume")
+        if currentData.isSessionActive {
+            print("❌ [SESSION] Session already active")
             return
         }
         
-        let resumedData = ZenloopWidgetData(
-            currentState: .active,
-            activeSession: activeSession,
-            sessionsCompleted: currentData.sessionsCompleted,
-            streak: currentData.streak,
-            nextScheduledSession: currentData.nextScheduledSession,
-            cancelledScheduledSessions: currentData.cancelledScheduledSessions,
-            lastUpdated: Date()
-        )
-        
-        print("▶️ [SESSION] Resumed session: \(activeSession.id)")
-        updateWidgetData(resumedData)
+        // For now, start a new session (can enhance resume logic later)
+        startSession(duration: 25)
     }
     
     func stopSession() {
         let currentData = getCurrentData()
-        guard let activeSession = currentData.activeSession else {
+        if !currentData.isSessionActive {
             print("❌ [SESSION] No session to stop")
             return
         }
         
-        // If stopping a scheduled session, mark it as cancelled to prevent restart
-        var cancelledSessions = currentData.cancelledScheduledSessions
-        if activeSession.origin == .scheduled,
-           let nextScheduled = currentData.nextScheduledSession {
-            cancelledSessions.append(nextScheduled.id)
-            print("🚫 [SESSION] Marked scheduled session as cancelled: \(nextScheduled.id)")
-        }
-        
         let stoppedData = ZenloopWidgetData(
-            currentState: .idle,
-            activeSession: nil,
-            sessionsCompleted: currentData.sessionsCompleted,
+            isSessionActive: false,
+            currentSessionTitle: "",
+            timeRemaining: "25:00",
+            progress: 0.0,
+            totalFocusTime: currentData.totalFocusTime,
             streak: currentData.streak,
-            nextScheduledSession: currentData.nextScheduledSession,
-            cancelledScheduledSessions: cancelledSessions,
-            lastUpdated: Date()
+            isPremium: currentData.isPremium
         )
         
-        print("🛑 [SESSION] Stopped session: \(activeSession.id)")
+        print("🛑 [SESSION] Stopped session")
         updateWidgetData(stoppedData)
     }
     
     func startNewSession() {
         startSession(duration: 25, origin: .manual)
-    }
-    
-    // MARK: - Scheduling Logic
-    
-    func canStartScheduledSession(_ scheduledSession: ScheduledSessionData) -> Bool {
-        let currentData = getCurrentData()
-        
-        // Check if this scheduled session was cancelled
-        if currentData.cancelledScheduledSessions.contains(scheduledSession.id) {
-            print("🚫 [SCHEDULE] Session \(scheduledSession.id) was cancelled - not starting")
-            return false
-        }
-        
-        // Check if there's already an active session
-        if currentData.activeSession != nil {
-            print("🚫 [SCHEDULE] Already have active session - not starting scheduled")
-            return false
-        }
-        
-        print("✅ [SCHEDULE] Can start scheduled session: \(scheduledSession.id)")
-        return true
-    }
-    
-    func cleanupCancelledSessions() {
-        let currentData = getCurrentData()
-        let now = Date()
-        
-        // Remove cancelled sessions older than 24h to prevent memory bloat
-        let oneDayAgo = now.addingTimeInterval(-24 * 60 * 60)
-        let cleanedData = ZenloopWidgetData(
-            currentState: currentData.currentState,
-            activeSession: currentData.activeSession,
-            sessionsCompleted: currentData.sessionsCompleted,
-            streak: currentData.streak,
-            nextScheduledSession: currentData.nextScheduledSession,
-            cancelledScheduledSessions: [], // Clear old cancellations
-            lastUpdated: now
-        )
-        
-        updateWidgetData(cleanedData)
-        print("🧹 [SCHEDULE] Cleaned up old cancelled sessions")
     }
 }
 
