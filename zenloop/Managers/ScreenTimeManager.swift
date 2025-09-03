@@ -106,18 +106,20 @@ class ScreenTimeManager: ObservableObject {
             )
             
             // 🔒 ÉTAPE 1: Activer le blocage immédiat avec ManagedSettings
-            let managedSettings = ManagedSettingsStore()
+            // Utiliser un store nommé pour éviter les conflits avec les sessions programmées
+            let storeIdentifier = challengeId.hasPrefix("scheduled_") ? challengeId : "manual_\(challengeId)"
+            let managedSettings = ManagedSettingsStore(named: ManagedSettingsStore.Name(storeIdentifier))
             
             // Bloquer les applications sélectionnées
             if !selectedApps.applicationTokens.isEmpty {
                 managedSettings.shield.applications = selectedApps.applicationTokens
-                print("🛡️ [MANAGED_SETTINGS] Blocked \(selectedApps.applicationTokens.count) applications")
+                print("🛡️ [MANAGED_SETTINGS] Blocked \(selectedApps.applicationTokens.count) applications in store: \(storeIdentifier)")
             }
             
             // Bloquer les catégories sélectionnées
             if !selectedApps.categoryTokens.isEmpty {
                 managedSettings.shield.applicationCategories = .specific(selectedApps.categoryTokens)
-                print("🛡️ [MANAGED_SETTINGS] Blocked \(selectedApps.categoryTokens.count) categories")
+                print("🛡️ [MANAGED_SETTINGS] Blocked \(selectedApps.categoryTokens.count) categories in store: \(storeIdentifier)")
             }
             
             // 📊 ÉTAPE 2: Démarrer le monitoring pour statistiques (optionnel)
@@ -206,19 +208,20 @@ class ScreenTimeManager: ObservableObject {
         }
         
         do {
-            // 🔓 ÉTAPE 1: Supprimer le blocage ManagedSettings
-            let managedSettings = ManagedSettingsStore()
+            // 🔓 ÉTAPE 1: Supprimer le blocage ManagedSettings du bon store
+            let storeIdentifier = challengeId.hasPrefix("scheduled_") ? challengeId : "manual_\(challengeId)"
+            let managedSettings = ManagedSettingsStore(named: ManagedSettingsStore.Name(storeIdentifier))
             
             // Supprimer le blocage des applications
             if !session.selectedApps.applicationTokens.isEmpty {
                 managedSettings.shield.applications = nil
-                print("🔓 [MANAGED_SETTINGS] Unblocked \(session.selectedApps.applicationTokens.count) applications")
+                print("🔓 [MANAGED_SETTINGS] Unblocked \(session.selectedApps.applicationTokens.count) applications from store: \(storeIdentifier)")
             }
             
             // Supprimer le blocage des catégories
             if !session.selectedApps.categoryTokens.isEmpty {
                 managedSettings.shield.applicationCategories = nil
-                print("🔓 [MANAGED_SETTINGS] Unblocked \(session.selectedApps.categoryTokens.count) categories")
+                print("🔓 [MANAGED_SETTINGS] Unblocked \(session.selectedApps.categoryTokens.count) categories from store: \(storeIdentifier)")
             }
             
             // 📊 ÉTAPE 2: Arrêter le monitoring
@@ -266,12 +269,22 @@ class ScreenTimeManager: ObservableObject {
     
     func stopAllBlocking() async {
         let allActivityNames = activeBlockingSessions.values.map { $0.activityName }
+        let allChallengeIds = Array(activeBlockingSessions.keys)
         
         if !allActivityNames.isEmpty {
-            // Supprimer tous les blocages ManagedSettings
-            let managedSettings = ManagedSettingsStore()
-            managedSettings.shield.applications = nil
-            managedSettings.shield.applicationCategories = nil
+            // Supprimer tous les blocages ManagedSettings de chaque store nommé
+            for challengeId in allChallengeIds {
+                let storeIdentifier = challengeId.hasPrefix("scheduled_") ? challengeId : "manual_\(challengeId)"
+                let managedSettings = ManagedSettingsStore(named: ManagedSettingsStore.Name(storeIdentifier))
+                managedSettings.shield.applications = nil
+                managedSettings.shield.applicationCategories = nil
+                print("🔓 [MANAGED_SETTINGS] Cleared restrictions from store: \(storeIdentifier)")
+            }
+            
+            // Aussi nettoyer le store par défaut au cas où
+            let defaultStore = ManagedSettingsStore()
+            defaultStore.shield.applications = nil
+            defaultStore.shield.applicationCategories = nil
             
             deviceActivityCenter.stopMonitoring(allActivityNames)
             
@@ -280,7 +293,7 @@ class ScreenTimeManager: ObservableObject {
             }
             
             print("🔓 [SCREEN_TIME] Stopped all blocking sessions (\(allActivityNames.count))")
-            print("✅ [MANAGED_SETTINGS] Cleared all app restrictions")
+            print("✅ [MANAGED_SETTINGS] Cleared all app restrictions from all stores")
         }
     }
     
@@ -438,16 +451,17 @@ class ScreenTimeManager: ObservableObject {
             }
             
             // 🔒 ÉTAPE 1: Réactiver le blocage ManagedSettings immédiatement
-            let managedSettings = ManagedSettingsStore()
+            let storeIdentifier = session.challengeId.hasPrefix("scheduled_") ? session.challengeId : "manual_\(session.challengeId)"
+            let managedSettings = ManagedSettingsStore(named: ManagedSettingsStore.Name(storeIdentifier))
             
             if !session.selectedApps.applicationTokens.isEmpty {
                 managedSettings.shield.applications = session.selectedApps.applicationTokens
-                print("🛡️ [MANAGED_SETTINGS] Restored blocking for \(session.selectedApps.applicationTokens.count) applications")
+                print("🛡️ [MANAGED_SETTINGS] Restored blocking for \(session.selectedApps.applicationTokens.count) applications in store: \(storeIdentifier)")
             }
             
             if !session.selectedApps.categoryTokens.isEmpty {
                 managedSettings.shield.applicationCategories = .specific(session.selectedApps.categoryTokens)
-                print("🛡️ [MANAGED_SETTINGS] Restored blocking for \(session.selectedApps.categoryTokens.count) categories")
+                print("🛡️ [MANAGED_SETTINGS] Restored blocking for \(session.selectedApps.categoryTokens.count) categories in store: \(storeIdentifier)")
             }
             
             // 📊 ÉTAPE 2: Recréer le schedule avec le temps restant

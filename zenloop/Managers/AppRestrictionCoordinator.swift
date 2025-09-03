@@ -28,6 +28,17 @@ final class AppRestrictionCoordinator: ObservableObject {
     private let store = ManagedSettingsStore()
     private var blockedAppsSelection = FamilyActivitySelection()
     
+    // Helper pour obtenir le store approprié selon le contexte
+    private func getManagedStore(for sessionId: String? = nil) -> ManagedSettingsStore {
+        if let sessionId = sessionId {
+            // Utiliser un store nommé pour les sessions programmées
+            return ManagedSettingsStore(named: ManagedSettingsStore.Name("scheduled_\(sessionId)"))
+        } else {
+            // Utiliser le store par défaut pour les sessions manuelles
+            return store
+        }
+    }
+    
     weak var delegate: AppRestrictionCoordinatorDelegate?
     
     #if DEBUG
@@ -104,7 +115,7 @@ final class AppRestrictionCoordinator: ObservableObject {
     
     // MARK: - Restriction Application
     
-    func applyRestrictions() {
+    func applyRestrictions(for sessionId: String? = nil) {
         guard isAuthorized else { 
             #if DEBUG
             logger.warning("⚠️ [AppRestriction] Cannot apply restrictions - not authorized")
@@ -112,26 +123,58 @@ final class AppRestrictionCoordinator: ObservableObject {
             return 
         }
         
+        // Ne pas appliquer de restrictions si une session programmée est active
+        if hasActiveScheduledSession() && sessionId == nil {
+            #if DEBUG
+            logger.debug("⚠️ [AppRestriction] Skipping manual restrictions - scheduled session active")
+            #endif
+            return
+        }
+        
+        let targetStore = getManagedStore(for: sessionId)
         let appTokens = blockedAppsSelection.applicationTokens
-        store.shield.applications = appTokens
+        targetStore.shield.applications = appTokens
         
         if !blockedAppsSelection.categoryTokens.isEmpty {
-            store.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
+            targetStore.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
                 .specific(blockedAppsSelection.categoryTokens)
         }
         
         #if DEBUG
-        self.logger.debug("🛡️ [AppRestriction] Restrictions applied: \(appTokens.count) apps, \(self.blockedAppsSelection.categoryTokens.count) categories")
+        let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"
+        self.logger.debug("🛡️ [AppRestriction] Restrictions applied to \(storeType): \(appTokens.count) apps, \(self.blockedAppsSelection.categoryTokens.count) categories")
         #endif
     }
     
-    func removeRestrictions() {
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
+    func removeRestrictions(for sessionId: String? = nil) {
+        let targetStore = getManagedStore(for: sessionId)
+        targetStore.shield.applications = nil
+        targetStore.shield.applicationCategories = nil
         
         #if DEBUG
-        logger.debug("🔓 [AppRestriction] All restrictions removed")
+        let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"
+        logger.debug("🔓 [AppRestriction] Restrictions removed from \(storeType)")
         #endif
+    }
+    
+    // Vérifier s'il y a des sessions programmées actives
+    private func hasActiveScheduledSession() -> Bool {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        
+        // Vérifier la queue d'activation des extensions
+        if let activationQueue = suite?.array(forKey: "extension_activation_queue") as? [[String: Any]],
+           !activationQueue.isEmpty {
+            
+            let now = Date().timeIntervalSince1970
+            for session in activationQueue {
+                if let triggerTime = session["extensionTriggeredAt"] as? Double,
+                   (now - triggerTime) < 300 { // Moins de 5 minutes
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
     
     // MARK: - App Details & Names
