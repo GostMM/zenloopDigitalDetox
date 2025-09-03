@@ -12,7 +12,10 @@ import Firebase
 
 @main
 struct zenloopApp: App {
+    @UIApplicationDelegateAdaptor(ZenloopAppDelegate.self) var appDelegate
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var quickActionsManager = QuickActionsManager.shared
+    @StateObject private var quickActionsBridge = QuickActionsBridge.shared
     
     init() {
         FirebaseApp.configure()
@@ -21,6 +24,7 @@ struct zenloopApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(quickActionsBridge)
                 .onAppear {
                     // Initialisation asynchrone pour éviter les lags au démarrage
                     Task {
@@ -51,12 +55,16 @@ struct zenloopApp: App {
                     switch newPhase {
                     case .background:
                         print("📱 App entered background")
+                        // Update Quick Actions when app goes to background
+                        quickActionsManager.updateOnAppBackground()
                         // Programmer une notification depuis l'extension pour tester
                         scheduleAppTerminationTest()
                     case .inactive:
                         print("📱 App became inactive")
                     case .active:
                         print("📱 App became active")
+                        // Process any pending Quick Actions
+                        quickActionsManager.processPendingAction()
                         // Firebase: Mettre à jour lastSeen
                         Task {
                             await FirebaseManager.shared.updateLastSeen()
@@ -64,6 +72,10 @@ struct zenloopApp: App {
                     @unknown default:
                         break
                     }
+                }
+                .onOpenURL { url in
+                    // Handle URL schemes if needed for Quick Actions
+                    handleURL(url)
                 }
         }
     }
@@ -180,6 +192,32 @@ struct zenloopApp: App {
             let _ = UserDefaults.standard.double(forKey: savedKey) // Charge en cache
             
             print("📊 [PRELOAD] Données stats UserDefaults préchargées")
+        }
+    }
+    
+    func handleURL(_ url: URL) {
+        print("🔗 [APP] Received URL: \(url.absoluteString)")
+        
+        // Handle URL schemes for Quick Actions or deep linking
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme,
+              scheme == "zenloop" else {
+            return
+        }
+        
+        switch components.host {
+        case "quickfocus":
+            quickActionsManager.handleQuickAction(UIApplicationShortcutItem(
+                type: QuickActionType.quickFocus.rawValue,
+                localizedTitle: "Quick Focus"
+            ))
+        case "stats":
+            quickActionsManager.handleQuickAction(UIApplicationShortcutItem(
+                type: QuickActionType.viewStats.rawValue,
+                localizedTitle: "View Stats"
+            ))
+        default:
+            break
         }
     }
 }

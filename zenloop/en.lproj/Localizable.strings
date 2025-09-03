@@ -800,3 +800,40 @@
 "expired_short" = "Expired";
 "refunded_short" = "Refund";
 "premium_short" = "Premium";
+
+// MARK: - Quick Actions
+"quick_action_quick_focus_title" = "🚀 Quick Focus";
+"quick_action_quick_focus_subtitle" = "Start a 25-min focus session";
+"quick_action_start_scheduled_title" = "⏰ Start Scheduled";
+"quick_action_start_scheduled_subtitle" = "Begin your planned session";
+"quick_action_view_stats_title" = "📊 View Stats";
+"quick_action_view_stats_subtitle" = "Check your progress";
+"quick_action_emergency_title" = "🛟 Emergency Break";
+"quick_action_emergency_subtitle" = "Need a distraction break?";
+"quick_action_dont_delete_title" = "🫢 Wait! Don't delete me!";
+"quick_action_dont_delete_subtitle" = "You're on your way to digital wellness!";
+
+// MARK: - Retention Modal
+"retention_modal_title_active_session" = "Wait! You're in a session! 🫢";
+"retention_modal_title_no_session" = "Don't delete me yet! 🫢";
+"retention_modal_message_active_session" = "You're currently crushing it in a focus session! Deleting now would interrupt your amazing progress. Are you really sure?";
+"retention_modal_message_no_session" = "You're on an incredible journey to digital freedom! Here's why keeping Zenloop will transform your life:";
+"retention_modal_current_session" = "Current Session";
+"retention_modal_motivation" = "💪 You've come this far - don't give up now!";
+
+// Retention Modal - Benefits
+"retention_benefit_1_title" = "Track Your Transformation";
+"retention_benefit_1_description" = "See exactly how many hours you've reclaimed from distractions!";
+"retention_benefit_2_title" = "Build Laser Focus";
+"retention_benefit_2_description" = "Develop unbreakable concentration habits that boost your success";
+"retention_benefit_3_title" = "Earn Epic Achievements";
+"retention_benefit_3_description" = "Unlock exclusive badges and build impressive streaks";
+"retention_benefit_4_title" = "Supercharge Productivity";
+"retention_benefit_4_description" = "Plan smart sessions that multiply your daily output";
+
+// Retention Modal - Buttons
+"retention_button_stop_session" = "Yes, Stop Session";
+"retention_button_keep_going" = "Keep Going! 💪";
+"retention_button_try_quick_focus" = "Try a Quick 5-Min Focus!";
+"retention_button_keep_app" = "I'll Keep Zenloop! 💚";
+"retention_button_maybe_later" = "Maybe Later";

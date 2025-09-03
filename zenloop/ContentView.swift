@@ -16,10 +16,13 @@ extension Notification.Name {
 
 struct ContentView: View {
     @StateObject private var zenloopManager = ZenloopManager.shared
+    @StateObject private var quickActionsManager = QuickActionsManager.shared
+    @EnvironmentObject private var quickActionsBridge: QuickActionsBridge
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var isOnboardingComplete = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var selectedTab = 0
     @State private var isManagerReady = false
+    @State private var showRetentionModal = false
     
     var body: some View {
         ZStack {
@@ -45,9 +48,13 @@ struct ContentView: View {
             }
         }
         .animation(.easeOut(duration: 0.4), value: showOnboarding)
+        .fullScreenCover(isPresented: $showRetentionModal) {
+            RetentionModal(zenloopManager: zenloopManager)
+        }
         .onAppear {
             Task {
                 await initializeManagerAsync()
+                setupQuickActionsListeners()
             }
         }
         .onChange(of: isOnboardingComplete) { _, isComplete in
@@ -55,6 +62,18 @@ struct ContentView: View {
                 UserDefaults.standard.set(true, forKey: "has_completed_onboarding")
                 withAnimation(.easeOut(duration: 0.3)) {
                     showOnboarding = false
+                }
+            }
+        }
+        .onChange(of: zenloopManager.currentState) { _, _ in
+            // Update Quick Actions when state changes
+            quickActionsManager.updateOnStateChange()
+        }
+        .onChange(of: quickActionsBridge.pendingShortcutItem) { _, shortcutItem in
+            // Process quick actions when they arrive
+            if shortcutItem != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    quickActionsBridge.clearPendingShortcut()
                 }
             }
         }
@@ -69,6 +88,12 @@ struct ContentView: View {
             // Simulation d'initialisation asynchrone
             await MainActor.run {
                 zenloopManager.initialize()
+                
+                // Configure Quick Actions Manager with ZenloopManager
+                quickActionsManager.configure(with: zenloopManager)
+                
+                // Log current Quick Actions for debugging
+                quickActionsManager.logCurrentQuickActions()
             }
             
             // Petit délai pour s'assurer que l'initialisation est complète
@@ -77,6 +102,38 @@ struct ContentView: View {
         
         // Marquer comme prêt
         isManagerReady = true
+    }
+    
+    private func setupQuickActionsListeners() {
+        // Listen for Quick Action navigation requests
+        NotificationCenter.default.addObserver(
+            forName: .quickActionNavigateToStats,
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Navigate to stats tab (tab 2)
+            selectedTab = 2
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .quickActionEmergencyBreak,
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Could show emergency break screen or breathing exercise
+            // For now, just navigate to home to show the paused state
+            selectedTab = 0
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .quickActionShowRetention,
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Show retention modal instead of just navigating
+            showRetentionModal = true
+            print("💚 [RETENTION] Showing retention modal...")
+        }
     }
     
     // MARK: - Loading Interface

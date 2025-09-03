@@ -802,3 +802,40 @@
 "expired_short" = "Expiré";
 "refunded_short" = "Remb.";
 "premium_short" = "Premium";
+
+// MARK: - Quick Actions
+"quick_action_quick_focus_title" = "🚀 Focus Rapide";
+"quick_action_quick_focus_subtitle" = "Démarre une session focus de 25 min";
+"quick_action_start_scheduled_title" = "⏰ Démarrer Programmé";
+"quick_action_start_scheduled_subtitle" = "Lance ta session planifiée";
+"quick_action_view_stats_title" = "📊 Voir Stats";
+"quick_action_view_stats_subtitle" = "Vérifie tes progrès";
+"quick_action_emergency_title" = "🛟 Pause Urgence";
+"quick_action_emergency_subtitle" = "Besoin d'une pause distraction ?";
+"quick_action_dont_delete_title" = "🫢 Attends ! Ne me supprime pas !";
+"quick_action_dont_delete_subtitle" = "Tu es sur la voie du bien-être numérique !";
+
+// MARK: - Retention Modal
+"retention_modal_title_active_session" = "Attends ! Tu es en session ! 🫢";
+"retention_modal_title_no_session" = "Ne me supprime pas encore ! 🫢";
+"retention_modal_message_active_session" = "Tu cartonnеs actuellement dans une session focus ! Supprimer maintenant interromprait tes incroyables progrès. Tu es vraiment sûr·e ?";
+"retention_modal_message_no_session" = "Tu es sur un incroyable voyage vers la liberté numérique ! Voici pourquoi garder Zenloop va transformer ta vie :";
+"retention_modal_current_session" = "Session Actuelle";
+"retention_modal_motivation" = "💪 Tu es arrivé·e jusqu'ici - n'abandonne pas maintenant !";
+
+// Retention Modal - Benefits
+"retention_benefit_1_title" = "Suis Ta Transformation";
+"retention_benefit_1_description" = "Vois exactement combien d'heures tu as récupérées des distractions !";
+"retention_benefit_2_title" = "Développe Un Focus Laser";
+"retention_benefit_2_description" = "Crée des habitudes de concentration inébranlables qui boostent ton succès";
+"retention_benefit_3_title" = "Gagne Des Succès Épiques";
+"retention_benefit_3_description" = "Débloque des badges exclusifs et construis des séries impressionnantes";
+"retention_benefit_4_title" = "Booste Ta Productivité";
+"retention_benefit_4_description" = "Planifie des sessions intelligentes qui multiplient ton rendement quotidien";
+
+// Retention Modal - Buttons
+"retention_button_stop_session" = "Oui, Arrêter la Session";
+"retention_button_keep_going" = "Continue ! 💪";
+"retention_button_try_quick_focus" = "Essaie un Focus Rapide de 5 Min !";
+"retention_button_keep_app" = "Je Garde Zenloop ! 💚";
+"retention_button_maybe_later" = "Peut-être Plus Tard";
