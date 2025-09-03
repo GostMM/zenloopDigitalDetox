@@ -99,11 +99,11 @@ struct MetricsData {
     // Métrique unique simplifiée pour StatsView
     var screenTimeMetric: MetricUIData {
         MetricUIData(
-            title: "Temps d'écran",
+            title: String(localized: "screen_time"),
             value: todayScreenSeconds,
             icon: "iphone",
             color: .blue,
-            subtitle: "aujourd'hui"
+            subtitle: String(localized: "today")
         )
     }
 }
@@ -263,7 +263,7 @@ private struct LoadingMetricCard: View {
                 .frame(width: 36, height: 36)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Chargement...")
+                Text(String(localized: "loading"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white.opacity(0.7))
                 
@@ -276,7 +276,7 @@ private struct LoadingMetricCard: View {
                         }
                     }
                 
-                Text("mise à jour...")
+                Text(String(localized: "updating"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.5))
             }

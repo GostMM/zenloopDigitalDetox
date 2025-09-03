@@ -101,11 +101,11 @@ enum SubscriptionStatus {
     
     var displayText: String {
         switch self {
-        case .none: return "Aucun abonnement"
-        case .active: return "Abonnement actif"
-        case .expiringSoon: return "Expire bientôt"
-        case .expired: return "Abonnement expiré"
-        case .refunded: return "Abonnement remboursé"
+        case .none: return String(localized: "no_subscription")
+        case .active: return String(localized: "subscription_active")
+        case .expiringSoon: return String(localized: "subscription_expiring_soon_short")
+        case .expired: return String(localized: "subscription_expired_short")
+        case .refunded: return String(localized: "subscription_refunded_short")
         }
     }
     
@@ -291,6 +291,8 @@ class PurchaseManager: ObservableObject {
             let transaction = try checkVerified(verificationResult)
             print("✅ Transaction verified: \(transaction.productID)")
             
+            // Transaction réussie - sera trackée depuis PaywallView
+            
             // Mettre à jour les produits achetés
             await updatePurchasedProducts()
             
@@ -300,15 +302,15 @@ class PurchaseManager: ObservableObject {
             
         case .userCancelled:
             print("❌ User cancelled the purchase")
-            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Achat annulé par l'utilisateur"]))
+            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 1, userInfo: [NSLocalizedDescriptionKey: String(localized: "purchase_cancelled_by_user")]))
             
         case .pending:
             print("⏳ Purchase is pending (e.g., parental approval)")
-            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Achat en attente d'autorisation"]))
+            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 2, userInfo: [NSLocalizedDescriptionKey: String(localized: "purchase_pending_approval")]))
             
         @unknown default:
             print("❓ Unknown purchase result")
-            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "Résultat d'achat inconnu"]))
+            throw PurchaseError.system(NSError(domain: "PurchaseManager", code: 3, userInfo: [NSLocalizedDescriptionKey: String(localized: "purchase_unknown_result")]))
         }
     }
     

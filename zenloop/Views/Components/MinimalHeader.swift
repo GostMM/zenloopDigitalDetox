@@ -23,25 +23,31 @@ struct MinimalHeader: View {
     // @State private var scheduledDuration = 25
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(currentGreeting)
-                    .font(.system(size: 24, weight: .light, design: .rounded))
-                    .foregroundColor(.white)
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : -20)
+        GeometryReader { geometry in
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(currentGreeting)
+                        .font(.system(size: adaptiveGreetingSize(width: geometry.size.width), weight: .light, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : -20)
+                    
+                    Text(statusText)
+                        .font(.system(size: adaptiveStatusSize(width: geometry.size.width), weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : -10)
+                }
+                .frame(maxWidth: adaptiveTextMaxWidth(totalWidth: geometry.size.width))
                 
-                Text(statusText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : -10)
-            }
-            
-            Spacer()
-            
-            // TODO: Schedule button to be implemented in future version
-            /*
+                Spacer(minLength: 8)
+                
+                // TODO: Schedule button to be implemented in future version
+                /*
             // Bouton de programmation compact
             Button(action: {
                 if isScheduled {
@@ -103,47 +109,49 @@ struct MinimalHeader: View {
                 )
             }
             .opacity(showContent ? 1 : 0)
-            .offset(y: showContent ? 0 : -10)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isScheduled)
-            */
-            
-            // Section badges d'évolution
-            BadgeEvolutionView(showContent: showContent)
-                .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : -10)
-            
-            // Badge PRO si premium ou indicateur de statut d'abonnement
-            if isPremium {
-                ProBadge()
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isScheduled)
+                */
+                
+                // Section badges d'évolution
+                BadgeEvolutionView(showContent: showContent)
                     .opacity(showContent ? 1 : 0)
                     .offset(y: showContent ? 0 : -10)
-            } else {
-                // Indicateur de statut d'abonnement pour utilisateurs non premium
-                SubscriptionStatusIndicator(
-                    status: subscriptionStatus,
-                    showContent: showContent
-                ) {
-                    showSubscriptionStatus = true
+                
+                // Badge PRO si premium ou indicateur de statut d'abonnement
+                if isPremium {
+                    ProBadge()
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : -10)
+                } else {
+                    // Indicateur de statut d'abonnement pour utilisateurs non premium
+                    SubscriptionStatusIndicator(
+                        status: subscriptionStatus,
+                        showContent: showContent
+                    ) {
+                        showSubscriptionStatus = true
+                    }
                 }
+                
+                // Indicateur d'état minimal
+                Circle()
+                    .fill(stateColor)
+                    .frame(width: 12, height: 12)
+                    .overlay(
+                        Circle()
+                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                    )
+                    .scaleEffect(currentState == .active ? 1.3 : 1.0)
+                    .animation(
+                        currentState == .active ?
+                        .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
+                        .easeOut(duration: 0.3),
+                        value: currentState
+                    )
+                    .opacity(showContent ? 1 : 0)
             }
-            
-            // Indicateur d'état minimal
-            Circle()
-                .fill(stateColor)
-                .frame(width: 12, height: 12)
-                .overlay(
-                    Circle()
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                )
-                .scaleEffect(currentState == .active ? 1.3 : 1.0)
-                .animation(
-                    currentState == .active ?
-                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
-                    .easeOut(duration: 0.3),
-                    value: currentState
-                )
-                .opacity(showContent ? 1 : 0)
         }
+        .frame(height: 44) // Hauteur optimisée pour réduire l'espacement
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
         .sheet(isPresented: $showSubscriptionStatus) {
             SubscriptionStatusView()
@@ -190,6 +198,34 @@ struct MinimalHeader: View {
         case .paused: return .mint
         case .completed: return .purple
         }
+    }
+    
+    // MARK: - Adaptive Layout Functions
+    
+    private func adaptiveGreetingSize(width: CGFloat) -> CGFloat {
+        switch width {
+        case 0..<320: return 18 // iPhone SE
+        case 320..<375: return 20 // iPhone 8
+        case 375..<414: return 22 // iPhone 8 Plus
+        case 414...: return 24 // iPhone Pro Max et plus grand
+        default: return 22
+        }
+    }
+    
+    private func adaptiveStatusSize(width: CGFloat) -> CGFloat {
+        switch width {
+        case 0..<320: return 10
+        case 320..<375: return 11
+        case 375..<414: return 12
+        case 414...: return 13
+        default: return 12
+        }
+    }
+    
+    private func adaptiveTextMaxWidth(totalWidth: CGFloat) -> CGFloat {
+        // Réserver de l'espace pour les badges et indicateurs à droite
+        let reservedSpace: CGFloat = 120 // Espace pour badges + PRO + circle
+        return max(totalWidth * 0.6, totalWidth - reservedSpace)
     }
     
     // TODO: Schedule functions to be implemented in future version
@@ -343,10 +379,10 @@ struct SubscriptionStatusIndicator: View {
     
     private var statusText: String {
         switch status {
-        case .expiringSoon: return "Expire"
-        case .expired: return "Expiré"
-        case .refunded: return "Remb."
-        case .none: return "Premium"
+        case .expiringSoon: return String(localized: "expires_short")
+        case .expired: return String(localized: "expired_short")
+        case .refunded: return String(localized: "refunded_short")
+        case .none: return String(localized: "premium_short")
         default: return ""
         }
     }

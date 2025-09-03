@@ -483,3 +483,18 @@
 "show_more" = "Show %d more";
 "app_singular" = "app";
 "apps_plural" = "apps";
+
+// zenloopactivity Extension strings
+"screen_time" = "Screen Time";
+"updating" = "updating...";
+"category_distribution" = "Category Distribution";
+"health" = "Health";
+"productivity" = "Productivity";
+"recent_days" = "Recent days";
+"weekday_vs_weekend" = "Weekday vs Weekend";
+"weekend" = "Weekend";
+"more_active_weekend" = "More active on weekends";
+"more_active_weekday" = "More active on weekdays";
+"average" = "Average";
+"favorite_app" = "Favorite app";
+"daily_average" = "Daily average";

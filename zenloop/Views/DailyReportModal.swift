@@ -17,17 +17,17 @@ enum DailyTimeOfDay: String, CaseIterable {
     
     var greeting: String {
         switch self {
-        case .morning: return "Bonjour !"
-        case .afternoon: return "Bon après-midi !"
-        case .evening: return "Bonsoir !"
+        case .morning: return String(localized: "good_morning")
+        case .afternoon: return String(localized: "good_afternoon")
+        case .evening: return String(localized: "good_evening")
         }
     }
     
     var subtitle: String {
         switch self {
-        case .morning: return "Comment commencer la journée du bon pied"
-        case .afternoon: return "Votre bilan de mi-journée"
-        case .evening: return "Récapitulatif de votre journée"
+        case .morning: return String(localized: "how_to_start_day_right")
+        case .afternoon: return String(localized: "your_midday_summary")
+        case .evening: return String(localized: "your_day_recap")
         }
     }
     
@@ -41,17 +41,17 @@ enum DailyTimeOfDay: String, CaseIterable {
     
     var motivationalMessage: String {
         switch self {
-        case .morning: return "Une nouvelle journée commence ! Définissez vos priorités et créez des moments sans écran."
-        case .afternoon: return "Vous êtes à mi-parcours. Prenez une pause et reconnectez-vous avec le monde réel."
-        case .evening: return "Bravo pour cette journée ! Réfléchissez à vos accomplissements et préparez demain."
+        case .morning: return String(localized: "morning_motivational_message")
+        case .afternoon: return String(localized: "afternoon_motivational_message")
+        case .evening: return String(localized: "evening_motivational_message")
         }
     }
     
     var actionTip: String {
         switch self {
-        case .morning: return "💡 Conseil: Commencez par 30 minutes sans téléphone"
-        case .afternoon: return "💡 Conseil: Faites une promenade de 10 minutes"
-        case .evening: return "💡 Conseil: Éteignez les écrans 1h avant de dormir"
+        case .morning: return String(localized: "morning_action_tip")
+        case .afternoon: return String(localized: "afternoon_action_tip")
+        case .evening: return String(localized: "evening_action_tip")
         }
     }
 }
@@ -194,7 +194,7 @@ struct DailyReportModal: View {
     private var realScreenTimeSection: some View {
         VStack(alignment: .leading, spacing: UI.itemSpacing) {
             sectionTitle(
-                title: "Temps d'écran aujourd'hui",
+                title: String(localized: "screen_time_today"),
                 icon: "clock.fill",
                 color: .cyan
             )
@@ -210,7 +210,7 @@ struct DailyReportModal: View {
                             .stroke(UI.cardBorder, lineWidth: 1)
                     )
             } else {
-                Text("Données non disponibles")
+                Text(String(localized: "data_not_available"))
                     .frame(height: 100)
                     .foregroundColor(UI.textSecondary)
             }
@@ -220,7 +220,7 @@ struct DailyReportModal: View {
     private var realTopAppsSection: some View {
         VStack(alignment: .leading, spacing: UI.itemSpacing) {
             sectionTitle(
-                title: "Top 3 catégories aujourd'hui",
+                title: String(localized: "top_3_categories_today"),
                 icon: "apps.iphone",
                 color: .orange
             )
@@ -236,7 +236,7 @@ struct DailyReportModal: View {
                             .stroke(UI.cardBorder, lineWidth: 1)
                     )
             } else {
-                Text("Données non disponibles")
+                Text(String(localized: "data_not_available"))
                     .frame(height: 150)
                     .foregroundColor(UI.textSecondary)
             }
@@ -350,7 +350,7 @@ struct DailyReportModal: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
                     
-                    Text("J'ai vu mon rapport")
+                    Text(String(localized: "i_saw_my_report"))
                         .font(.system(size: 16, weight: .semibold))
                 }
                 .foregroundColor(.white)

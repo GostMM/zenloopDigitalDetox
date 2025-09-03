@@ -74,19 +74,19 @@ struct DailyUsageView: View {
             // Métriques principales
             HStack(spacing: 12) {
                 MetricBox(
-                    title: "Total",
+                    title: String(localized: "total"),
                     value: formatTime(dailyUsageData.totalDuration),
                     color: .blue
                 )
                 
                 MetricBox(
-                    title: "Moyenne/jour",
+                    title: String(localized: "daily_average"),
                     value: formatTime(dailyUsageData.dailyAverage),
                     color: .green
                 )
                 
                 MetricBox(
-                    title: "Jours",
+                    title: String(localized: "days"),
                     value: "\(dailyUsageData.days.count)",
                     color: .orange
                 )
@@ -95,7 +95,7 @@ struct DailyUsageView: View {
             // Graphique des derniers jours (max 7)
             if !dailyUsageData.days.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Derniers jours")
+                    Text(String(localized: "recent_days"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.white.opacity(0.8))
                     
@@ -252,7 +252,7 @@ struct TimeComparisonView: View {
     var body: some View {
         VStack(spacing: 12) {
             // Titre
-            Text("Semaine vs Weekend")
+            Text(String(localized: "weekday_vs_weekend"))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white.opacity(0.9))
             
@@ -260,7 +260,7 @@ struct TimeComparisonView: View {
             HStack(spacing: 16) {
                 // Semaine
                 ComparisonItem(
-                    title: "Semaine",
+                    title: String(localized: "weekdays"),
                     time: formatTime(timeComparisonData.weekdayAverage),
                     color: .blue,
                     isHigher: !isWeekendHigher && difference != 0
@@ -282,7 +282,7 @@ struct TimeComparisonView: View {
                 
                 // Weekend
                 ComparisonItem(
-                    title: "Weekend",
+                    title: String(localized: "weekend"),
                     time: formatTime(timeComparisonData.weekendAverage),
                     color: .orange,
                     isHigher: isWeekendHigher && difference != 0
@@ -291,7 +291,7 @@ struct TimeComparisonView: View {
             
             // Message contextuel
             if abs(difference) > 1800 { // Plus de 30 minutes de différence
-                Text(isWeekendHigher ? "Plus actif le weekend" : "Plus actif en semaine")
+                Text(isWeekendHigher ? String(localized: "more_active_weekend") : String(localized: "more_active_weekday"))
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(isWeekendHigher ? .orange : .blue)
                     .padding(.horizontal, 8)

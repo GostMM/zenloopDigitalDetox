@@ -69,6 +69,10 @@ struct PaywallView: View {
                         
                         Button(action: { 
                             impactLight.impactOccurred()
+                            // Firebase: Tracker la fermeture du paywall
+                            Task {
+                                await FirebaseManager.shared.trackPaywallAction(action: .dismissed)
+                            }
                             dismiss() 
                         }) {
                             Image(systemName: "xmark")
@@ -254,6 +258,9 @@ struct PaywallView: View {
                             Button("Restaurer les achats") {
                                 impactLight.impactOccurred()
                                 Task {
+                                    // Firebase: Tracker la restauration
+                                    await FirebaseManager.shared.trackPaywallAction(action: .restorePurchases)
+                                    
                                     do {
                                         try await purchaseManager.restorePurchases()
                                         if purchaseManager.isPremium {
@@ -281,6 +288,13 @@ struct PaywallView: View {
             // Feedback haptique d'entrée
             impactMedium.impactOccurred()
             startAnimations()
+            
+            // Firebase: Tracker l'affichage du paywall
+            Task {
+                print("📱 [PAYWALL] PaywallView appeared - tracking viewed action")
+                await FirebaseManager.shared.trackPaywallAction(action: .viewed)
+                print("📱 [PAYWALL] Tracking call completed")
+            }
             
             // Force reload products si nécessaire
             Task {
@@ -336,8 +350,32 @@ struct PaywallView: View {
         purchaseError = nil
         
         Task {
+            // Firebase: Tracker la tentative d'achat
+            await FirebaseManager.shared.trackPaywallAction(
+                action: .purchaseAttempted,
+                productId: product.id,
+                price: product.displayPrice
+            )
+            
             do {
                 try await purchaseManager.purchase(product)
+                
+                // Firebase: Tracker l'achat réussi
+                await FirebaseManager.shared.trackPaywallAction(
+                    action: .purchaseCompleted,
+                    productId: product.id,
+                    price: product.displayPrice
+                )
+                
+                await FirebaseManager.shared.trackSubscriptionPurchase(
+                    productId: product.id,
+                    price: product.displayPrice.replacingOccurrences(of: "€", with: "")
+                )
+                
+                await FirebaseManager.shared.trackSubscriptionEvent(
+                    event: .subscribed,
+                    productId: product.id
+                )
                 
                 // Succès de l'achat - feedback de succès
                 await MainActor.run {
@@ -348,6 +386,18 @@ struct PaywallView: View {
                 }
                 
             } catch {
+                // Firebase: Tracker l'échec ou annulation de l'achat
+                let errorDescription = error.localizedDescription.lowercased()
+                let action: PaywallAction = errorDescription.contains("annulé") || errorDescription.contains("cancelled") 
+                    ? .purchaseCanceled 
+                    : .purchaseFailed
+                
+                await FirebaseManager.shared.trackPaywallAction(
+                    action: action,
+                    productId: product.id,
+                    price: product.displayPrice
+                )
+                
                 await MainActor.run {
                     notificationFeedback.notificationOccurred(.error)
                     isPurchasing = false

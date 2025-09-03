@@ -42,13 +42,13 @@ struct SubscriptionStatusView: View {
                     .font(.title2)
                     .foregroundColor(.yellow)
                 
-                Text("Statut Premium")
+                Text(String(localized: "premium_status"))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
             }
             
-            Text("Gérez votre abonnement Zenloop")
+            Text(String(localized: "manage_zenloop_subscription"))
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -113,12 +113,12 @@ struct SubscriptionStatusView: View {
         switch subscriptionStatus {
         case .expiringSoon:
             VStack(spacing: 8) {
-                Text("⚠️ Votre abonnement expire bientôt")
+                Text(String(localized: "subscription_expiring_soon"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.orange)
                 
-                Text("Renouvelez maintenant pour éviter toute interruption de service")
+                Text(String(localized: "renew_to_avoid_interruption"))
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -128,12 +128,12 @@ struct SubscriptionStatusView: View {
             
         case .expired:
             VStack(spacing: 8) {
-                Text("❌ Abonnement expiré")
+                Text(String(localized: "subscription_expired"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.red)
                 
-                Text("Renouvelez votre abonnement pour continuer à utiliser toutes les fonctionnalités Premium")
+                Text(String(localized: "renew_to_continue_premium"))
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -143,12 +143,12 @@ struct SubscriptionStatusView: View {
             
         case .refunded:
             VStack(spacing: 8) {
-                Text("🔄 Abonnement remboursé")
+                Text(String(localized: "subscription_refunded"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.red)
                 
-                Text("Votre abonnement a été remboursé. Vous pouvez souscrire à nouveau si vous le souhaitez")
+                Text(String(localized: "subscription_refunded_description"))
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -220,7 +220,7 @@ struct SubscriptionStatusView: View {
                         .font(.system(size: 14, weight: .semibold))
                 }
                 
-                Text("Actualiser")
+                Text(String(localized: "refresh"))
                     .font(.system(size: 16, weight: .medium))
             }
             .foregroundColor(.white.opacity(0.8))
@@ -234,15 +234,15 @@ struct SubscriptionStatusView: View {
     private var renewButtonText: String {
         switch subscriptionStatus {
         case .expiringSoon:
-            return "Renouveler maintenant"
+            return String(localized: "renew_now")
         case .expired:
-            return "Réactiver Premium"
+            return String(localized: "reactivate_premium")
         case .refunded:
-            return "Souscrire à nouveau"
+            return String(localized: "subscribe_again")
         case .none:
-            return "Devenir Premium"
+            return String(localized: "become_premium")
         default:
-            return "Renouveler"
+            return String(localized: "renew")
         }
     }
     
@@ -309,12 +309,12 @@ struct RenewalPaywallView: View {
             }
             .padding(20)
             .background(backgroundGradient)
-            .navigationTitle("Renouveler Premium")
+            .navigationTitle(String(localized: "renew_premium"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Fermer") {
+                    Button(String(localized: "close")) {
                         dismiss()
                     }
                     .foregroundColor(.white)
@@ -329,13 +329,13 @@ struct RenewalPaywallView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.yellow)
             
-            Text("Continuez votre expérience Premium")
+            Text(String(localized: "continue_premium_experience"))
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             
-            Text("Choisissez votre plan et continuez à profiter de toutes les fonctionnalités Premium de Zenloop")
+            Text(String(localized: "choose_plan_continue_premium"))
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -358,15 +358,15 @@ struct RenewalPaywallView: View {
     
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("✨ Fonctionnalités incluses :")
+            Text(String(localized: "included_features"))
                 .font(.headline)
                 .foregroundColor(.white)
             
             VStack(alignment: .leading, spacing: 4) {
-                BenefitRow(icon: "apps.iphone", text: "Blocage d'apps illimité")
-                BenefitRow(icon: "target", text: "Sessions de focus personnalisées")
-                BenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Statistiques détaillées")
-                BenefitRow(icon: "bell.badge", text: "Notifications intelligentes")
+                BenefitRow(icon: "apps.iphone", text: String(localized: "unlimited_app_blocking"))
+                BenefitRow(icon: "target", text: String(localized: "personalized_focus_sessions"))
+                BenefitRow(icon: "chart.line.uptrend.xyaxis", text: String(localized: "detailed_statistics"))
+                BenefitRow(icon: "bell.badge", text: String(localized: "smart_notifications"))
             }
         }
         .padding()
@@ -384,7 +384,7 @@ struct RenewalPaywallView: View {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 16, weight: .semibold))
                     
-                    Text("Renouveler maintenant")
+                    Text(String(localized: "renew_now"))
                         .font(.system(size: 18, weight: .semibold))
                 }
             }
@@ -410,7 +410,7 @@ struct RenewalPaywallView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.red)
                 
-                Text("Erreur de paiement")
+                Text(String(localized: "payment_error"))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.red)
@@ -421,7 +421,7 @@ struct RenewalPaywallView: View {
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
-            Button("Réessayer") {
+            Button(String(localized: "retry")) {
                 purchaseError = nil
                 purchaseSelected()
             }
@@ -446,7 +446,7 @@ struct RenewalPaywallView: View {
     
     private func purchaseSelected() {
         guard let product = purchaseManager.product(for: selectedPlan) else {
-            purchaseError = "Produit non trouvé"
+            purchaseError = String(localized: "product_not_found")
             return
         }
         

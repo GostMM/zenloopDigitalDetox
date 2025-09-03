@@ -108,6 +108,10 @@ struct TotalActivityReport: DeviceActivityReportScene {
     private let appGroupSuite = "group.com.app.zenloop" // ← adapte si besoin
     
     func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ExtensionActivityReport {
+        logger.critical("🚀 [REPORT] === TotalActivityReport makeConfiguration CALLED ===")
+        logger.critical("🚀 [REPORT] Context: \(context.rawValue)")
+        logger.critical("🚀 [REPORT] App Group Suite: \(appGroupSuite)")
+        
         var totalDuration: TimeInterval = 0
         
         // Agrégations
@@ -124,7 +128,7 @@ struct TotalActivityReport: DeviceActivityReportScene {
         var globalEnd: Date?
         
         let cal = Calendar.current
-        logger.info("🔍 [REPORT] Start processing DeviceActivity…")
+        logger.critical("🔍 [REPORT] Start processing DeviceActivity data...")
         
         for await datum in data {
             for await segment in datum.activitySegments {
@@ -312,15 +316,30 @@ private func distribute(segment: DateInterval,
 
 private func persistSharedReport(_ payload: SharedReportPayload) {
     let logger = Logger(subsystem: "com.app.zenloop.activity", category: "TotalActivityReport")
+    logger.critical("💾 [REPORT] === PERSIST SHARED REPORT CALLED ===")
+    logger.critical("💾 [REPORT] Payload totalSeconds: \(payload.totalSeconds)")
+    logger.critical("💾 [REPORT] Payload todayScreenSeconds: \(payload.todayScreenSeconds)")
+    
     guard let shared = UserDefaults(suiteName: "group.com.app.zenloop") else {
         logger.error("❌ [REPORT] App Group indisponible")
         return
     }
+    
+    logger.critical("💾 [REPORT] App Group UserDefaults OK")
+    
     do {
         let data = try JSONEncoder().encode(payload)
         shared.set(data, forKey: "DAReportLatest")
-        shared.synchronize()
-        logger.info("💾 [REPORT] JSON écrit (DAReportLatest)")
+        let success = shared.synchronize()
+        logger.critical("💾 [REPORT] JSON written to DAReportLatest, sync success: \(success)")
+        
+        // Test read back immediately
+        if let readBack = shared.data(forKey: "DAReportLatest") {
+            logger.critical("✅ [REPORT] Verification: Data read back successfully, size: \(readBack.count) bytes")
+        } else {
+            logger.error("❌ [REPORT] Verification failed: Cannot read back data!")
+        }
+        
     } catch {
         logger.error("❌ [REPORT] Encodage JSON: \(error.localizedDescription, privacy: .public)")
     }

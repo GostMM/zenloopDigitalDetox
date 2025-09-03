@@ -15,72 +15,7 @@ import Foundation
 private typealias SRPCategory = SharedReportCategory
 private typealias SRPDayPoint = SharedReportDayPoint
 
-// MARK: - Store (App Group + temps économisé)
-final class SharedActivityStore: ObservableObject {
-    struct DayPoint: Identifiable { let id = UUID(); let date: Date; let seconds: Double }
-    struct CategorySlice: Identifiable { let id = UUID(); let name: String; let seconds: Double; let appCount: Int }
-    
-    @Published var interval: DateInterval = .init(start: Date(), end: Date())
-    @Published var totalSeconds: Double = 0
-    @Published var averageDailySeconds: Double = 0
-    @Published var days: [DayPoint] = []
-    @Published var topCategories: [CategorySlice] = []
-    @Published var updatedAt: Date = Date()
-    @Published var savedSeconds: Double = 0
-    @Published var todayScreenSeconds: Double = 0
-    @Published var todayOffScreenSeconds: Double = 0
-    
-    private let appGroup = AppGroupConfig.suiteName
-    private let reportKey = AppGroupConfig.Keys.deviceActivityReport
-    private let savedKey  = "zenloop.savedSeconds"
-    
-    func load() {
-        // Utilisation sécurisée de UserDefaults avec gestion d'erreurs et fallback
-        do {
-            // Essayer d'abord l'App Group, avec fallback vers UserDefaults standard
-            let shared = UserDefaults(suiteName: appGroup) ?? UserDefaults.standard
-            
-            if let data = shared.data(forKey: reportKey) {
-                let p = try JSONDecoder().decode(SharedReportPayload.self, from: data)
-                interval = .init(start: Date(timeIntervalSince1970: p.intervalStart),
-                                 end:   Date(timeIntervalSince1970: p.intervalEnd))
-                totalSeconds        = p.totalSeconds
-                averageDailySeconds = p.averageDailySeconds
-                updatedAt           = Date(timeIntervalSince1970: p.updatedAt)
-                todayScreenSeconds  = p.todayScreenSeconds
-                todayOffScreenSeconds = p.todayOffScreenSeconds
-                days = p.days.map { .init(date: Date(timeIntervalSince1970: $0.dayStart), seconds: $0.seconds) }
-                topCategories = p.topCategories.map { .init(name: $0.name, seconds: $0.seconds, appCount: $0.appCount) }
-            } else {
-                // Si pas de données de l'extension, tout à zéro
-                resetToDefaults()
-            }
-        } catch {
-            resetToDefaults()
-        }
-        
-        // Chargement local sécurisé
-        savedSeconds = UserDefaults.standard.double(forKey: savedKey)
-    }
-    
-    private func resetToDefaults() {
-        interval = .init(start: Calendar.current.startOfDay(for: Date()), end: Date())
-        totalSeconds = 0
-        averageDailySeconds = 0
-        todayScreenSeconds = 0
-        todayOffScreenSeconds = 0
-        days = []
-        topCategories = []
-        updatedAt = Date()
-    }
-    
-    
-    func addSaved(seconds: Double) {
-        let v = max(0, savedSeconds + seconds)
-        savedSeconds = v
-        UserDefaults.standard.set(v, forKey: savedKey)
-    }
-}
+// NOTE: SharedActivityStore is now defined in SharedModels.swift for reuse
 
 // MARK: - Design System Moderne
 private enum DS {
@@ -155,9 +90,9 @@ struct StatsView: View {
         
         var title: String {
             switch self {
-            case .apps: return "Applications"
-            case .categories: return "Catégories"
-            case .patterns: return "Tendances"
+            case .apps: return String(localized: "applications")
+            case .categories: return String(localized: "categories")
+            case .patterns: return String(localized: "trends")
             }
         }
         
@@ -245,6 +180,7 @@ struct StatsView: View {
                 hasInitiallyLoaded = true
                 loadInitialData()
             } else {
+                // Ne recharge que si nécessaire (pas trop récent)
                 store.load()
             }
         }
@@ -261,7 +197,7 @@ struct StatsView: View {
             // Titre et contrôles
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Statistiques")
+                    Text(String(localized: "statistics"))
                         .font(.system(size: DS.heroSize, weight: .bold, design: .rounded))
                         .foregroundColor(DS.Color.text)
                     
@@ -358,13 +294,13 @@ struct StatsView: View {
     
     private var appsSection: some View {
         VStack(spacing: DS.spacing.m) {
-            ModernCard(title: "Applications les plus utilisées", icon: "square.grid.3x3.fill", color: DS.Color.screenTime) {
+            ModernCard(title: String(localized: "most_used_apps"), icon: "square.grid.3x3.fill", color: DS.Color.screenTime) {
                 DeviceActivityReport(screenTimeManager.topAppsContext, filter: screenTimeManager.currentFilter)
                     .id("topapps-\(reportInstanceID)")
                     .frame(minHeight: 160)
             }
             
-            ModernCard(title: "Résumé des applications", icon: "app.badge.fill", color: DS.Color.focusTime) {
+            ModernCard(title: String(localized: "apps_summary"), icon: "app.badge.fill", color: DS.Color.focusTime) {
                 DeviceActivityReport(screenTimeManager.appSummaryContext, filter: screenTimeManager.currentFilter)
                     .id("appsummary-\(reportInstanceID)")
                     .frame(minHeight: 120)
@@ -374,13 +310,13 @@ struct StatsView: View {
     
     private var categoriesSection: some View {
         VStack(spacing: DS.spacing.m) {
-            ModernCard(title: "Distribution par catégories", icon: "chart.pie.fill", color: DS.Color.social) {
+            ModernCard(title: String(localized: "categories_distribution"), icon: "chart.pie.fill", color: DS.Color.social) {
                 DeviceActivityReport(screenTimeManager.categoryDistributionContext, filter: screenTimeManager.currentFilter)
                     .id("categories-\(reportInstanceID)")
                     .frame(minHeight: 180)
             }
             
-            ModernCard(title: "Top catégories", icon: "folder.badge.plus", color: DS.Color.entertainment) {
+            ModernCard(title: String(localized: "top_categories"), icon: "folder.badge.plus", color: DS.Color.entertainment) {
                 DeviceActivityReport(screenTimeManager.topCategoriesCompactContext, filter: screenTimeManager.currentFilter)
                     .id("topcategories-\(reportInstanceID)")
                     .frame(minHeight: 100)
@@ -390,13 +326,13 @@ struct StatsView: View {
     
     private var patternsSection: some View {
         VStack(spacing: DS.spacing.m) {
-            ModernCard(title: "Usage quotidien", icon: "chart.bar.fill", color: DS.Color.productivity) {
+            ModernCard(title: String(localized: "daily_usage"), icon: "chart.bar.fill", color: DS.Color.productivity) {
                 DeviceActivityReport(screenTimeManager.dailyUsageContext, filter: screenTimeManager.currentFilter)
                     .id("dailyusage-\(reportInstanceID)")
                     .frame(minHeight: 160)
             }
             
-            ModernCard(title: "Semaine vs Weekend", icon: "calendar.badge.clock", color: DS.Color.accent) {
+            ModernCard(title: String(localized: "weekday_vs_weekend"), icon: "calendar.badge.clock", color: DS.Color.accent) {
                 DeviceActivityReport(screenTimeManager.timeComparisonContext, filter: screenTimeManager.currentFilter)
                     .id("timecomparison-\(reportInstanceID)")
                     .frame(minHeight: 140)
@@ -414,11 +350,11 @@ struct StatsView: View {
                     .foregroundColor(DS.Color.accent)
                 
                 VStack(spacing: DS.spacing.s) {
-                    Text("Débloquer les statistiques")
+                    Text(String(localized: "unlock_statistics"))
                         .font(.system(size: DS.titleSize, weight: .bold, design: .rounded))
                         .foregroundColor(DS.Color.text)
                     
-                    Text("Autorise l'accès au temps d'écran pour découvrir tes habitudes numériques détaillées.")
+                    Text(String(localized: "authorize_screen_time_access_description"))
                         .font(.system(size: DS.bodySize, weight: .medium))
                         .foregroundColor(DS.Color.textSecondary)
                         .multilineTextAlignment(.center)
@@ -435,7 +371,7 @@ struct StatsView: View {
                     Image(systemName: "lock.open.fill")
                         .font(.system(size: DS.bodySize, weight: .semibold))
                     
-                    Text("Autoriser l'accès")
+                    Text(String(localized: "authorize_access"))
                         .font(.system(size: DS.bodySize, weight: .semibold))
                 }
                 .foregroundColor(.black)
@@ -464,7 +400,7 @@ struct StatsView: View {
     // MARK: - Helper Methods
     private func periodLabel(_ period: TimePeriod) -> String {
         switch period {
-        case .today: return "Auj."
+        case .today: return String(localized: "today_short")
         case .week: return "7j"
         case .month: return "30j"
         }
@@ -476,13 +412,13 @@ struct StatsView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.impactOccurred()
         
+        // Un seul appel coordonné au lieu de multiples
         refreshReport()
-        store.load()
         
-        // Intelligent retry
+        // Intelligent retry seulement si nécessaire
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if store.totalSeconds == 0 && store.days.isEmpty {
-                store.load()
+                store.load(force: true) // Force si pas de données
                 refreshReport()
             }
         }
@@ -523,21 +459,30 @@ struct StatsView: View {
     // Cette section n'est plus nécessaire - les métriques sont dans le header
     
     private func loadInitialData() {
-        // Chargement immédiat
-        store.load()
+        print("🚀 [STATS] Loading initial data...")
         
-        // Si pas de données, retry avec délai progressif
+        // Chargement initial avec force
+        store.load(force: true)
+        
+        // Rafraîchir le rapport pour déclencher les extensions
+        refreshReport()
+        
+        // Si pas de données après chargement initial, retry avec report refresh
         Task {
-            var retryCount = 0
-            while retryCount < 3 && store.totalSeconds == 0 && store.days.isEmpty {
-                retryCount += 1
-                let delay = Double(retryCount) * 0.5 // 0.5s, 1s, 1.5s
-                
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                
-                await MainActor.run {
-                    store.load()
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s pour laisser temps aux extensions
+            
+            await MainActor.run {
+                if store.totalSeconds == 0 && store.days.isEmpty {
+                    print("🔄 [STATS] No data found - refreshing report and retrying")
                     refreshReport()
+                    
+                    // Attendre un peu puis recharger
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        await MainActor.run {
+                            store.load(force: true)
+                        }
+                    }
                 }
             }
         }
@@ -547,7 +492,7 @@ struct StatsView: View {
         formatter.locale = .current
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
-            .replacingOccurrences(of: "il y a ", with: "mis à jour ")
+            .replacingOccurrences(of: String(localized: "ago_prefix"), with: String(localized: "updated_prefix"))
     }
     
     private func dateRange(_ i: DateInterval) -> String {
@@ -782,14 +727,14 @@ private struct WeeklyPattern: View {
                     .font(.system(size: 24, weight: .light))
                     .foregroundColor(DS.Color.textTertiary)
                 
-                Text("Aucune donnée disponible")
+                Text(String(localized: "no_data_available"))
                     .font(.system(size: DS.captionSize, weight: .medium))
                     .foregroundColor(DS.Color.textTertiary)
             }
             .frame(maxWidth: .infinity, minHeight: 80)
         } else {
             VStack(alignment: .leading, spacing: DS.spacing.s) {
-                Text("Derniers 7 jours")
+                Text(String(localized: "last_7_days"))
                     .font(.system(size: DS.captionSize, weight: .semibold))
                     .foregroundColor(DS.Color.textSecondary)
                 

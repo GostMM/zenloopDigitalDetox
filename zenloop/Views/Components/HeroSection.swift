@@ -1015,7 +1015,7 @@ struct SelectedAppsDisplaySection: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.cyan.opacity(0.8))
                 
-                Text("Apps bloquées")
+                Text(String(localized: "blocked_apps"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
             }

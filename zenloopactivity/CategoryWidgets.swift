@@ -107,7 +107,7 @@ struct CategoryDistributionView: View {
         VStack(spacing: 10) {
             // Titre
             HStack {
-                Text("Distribution par catégorie")
+                Text(String(localized: "category_distribution"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white.opacity(0.9))
                 Spacer()
@@ -373,9 +373,9 @@ private func humanizeEnumCase(_ s: String) -> String {
     switch result {
     case "Socialnetworking": return "Social"
     case "Photovideo": return "Photo & Video"
-    case "Healthfitness": return "Santé"
+    case "Healthfitness": return String(localized: "health")
     case "Entertainment": return "Divertissement"
-    case "Productivity": return "Productivité"
+    case "Productivity": return String(localized: "productivity")
     default: return result
     }
 }

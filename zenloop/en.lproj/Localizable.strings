@@ -682,3 +682,121 @@
 
 // Session Progress
 "session_progress" = "Session Progress";
+
+// HeroSection
+"blocked_apps" = "Blocked Apps";
+
+// Subscription Status
+"premium_status" = "Premium Status";
+"manage_zenloop_subscription" = "Manage your Zenloop subscription";
+"subscription_expiring_soon" = "⚠️ Your subscription expires soon";
+"renew_to_avoid_interruption" = "Renew now to avoid service interruption";
+"subscription_expired" = "❌ Subscription expired";
+"renew_to_continue_premium" = "Renew your subscription to continue using all Premium features";
+"subscription_refunded" = "🔄 Subscription refunded";
+"subscription_refunded_description" = "Your subscription has been refunded. You can subscribe again if you wish";
+"refresh" = "Refresh";
+"renew_now" = "Renew Now";
+"reactivate_premium" = "Reactivate Premium";
+"subscribe_again" = "Subscribe Again";
+"become_premium" = "Become Premium";
+"renew" = "Renew";
+"continue_premium_experience" = "Continue your Premium experience";
+"choose_plan_continue_premium" = "Choose your plan and continue enjoying all Zenloop Premium features";
+"included_features" = "✨ Included features:";
+"payment_error" = "Payment Error";
+"renew_premium" = "Renew Premium";
+"retry" = "Retry";
+"product_not_found" = "Product not found";
+"unlimited_app_blocking" = "Unlimited app blocking";
+"personalized_focus_sessions" = "Personalized focus sessions";
+"detailed_statistics" = "Detailed statistics";
+"smart_notifications" = "Smart notifications";
+
+// Purchase Manager strings
+"no_subscription" = "No Subscription";
+"subscription_active" = "Active Subscription";
+"subscription_expiring_soon_short" = "Expiring Soon";
+"subscription_expired_short" = "Subscription Expired";
+"subscription_refunded_short" = "Subscription Refunded";
+"purchase_cancelled_by_user" = "Purchase cancelled by user";
+"purchase_pending_approval" = "Purchase pending approval";
+"purchase_unknown_result" = "Unknown purchase result";
+
+// StatsView strings
+"categories" = "Categories";
+"most_used_apps" = "Most Used Apps";
+"apps_summary" = "Apps Summary";
+"categories_distribution" = "Categories Distribution";
+"daily_usage" = "Daily Usage";
+"unlock_statistics" = "Unlock Statistics";
+"authorize_screen_time_access_description" = "Authorize screen time access to discover your detailed digital habits.";
+"authorize_access" = "Authorize Access";
+"today_short" = "Today";
+"ago_prefix" = "ago ";
+"updated_prefix" = "updated ";
+"no_data_available" = "No data available";
+"last_7_days" = "Last 7 days";
+
+// DailyReportModal strings
+"good_morning" = "Good morning!";
+"good_afternoon" = "Good afternoon!";
+"good_evening" = "Good evening!";
+"how_to_start_day_right" = "How to start the day right";
+"your_midday_summary" = "Your midday summary";
+"your_day_recap" = "Your day recap";
+"morning_motivational_message" = "A new day begins! Set your priorities and create screen-free moments.";
+"afternoon_motivational_message" = "You're halfway through. Take a break and reconnect with the real world.";
+"evening_motivational_message" = "Well done for this day! Reflect on your accomplishments and prepare tomorrow.";
+"morning_action_tip" = "💡 Tip: Start with 30 minutes phone-free";
+"afternoon_action_tip" = "💡 Tip: Take a 10-minute walk";
+"evening_action_tip" = "💡 Tip: Turn off screens 1h before sleeping";
+"screen_time_today" = "Screen time today";
+"data_not_available" = "Data not available";
+"top_3_categories_today" = "Top 3 categories today";
+"i_saw_my_report" = "I saw my report";
+"daily_motivation" = "Daily motivation";
+
+// Additional StatsView strings
+"applications" = "Applications";
+"trends" = "Trends";
+
+// PremiumGatekeeper strings
+"start_session" = "Start session";
+"create_custom_challenge" = "Create custom challenge";
+"schedule_session" = "Schedule session";
+"use_widgets" = "Use widgets";
+"subscription_expired_renew_message" = "Your subscription has expired. Renew to continue using %@.";
+"subscription_refunded_subscribe_message" = "Your subscription has been refunded. Subscribe again to access %@.";
+"discover_premium_message" = "Discover Zenloop Premium to access %@ and much more!";
+"premium_required_message" = "Zenloop Premium required for %@.";
+"renew_premium" = "Renew Premium";
+"reactivate_premium" = "Reactivate Premium";
+"discover_premium" = "Discover Premium";
+"quick_session" = "Quick session";
+"custom_session" = "Custom session";
+"scheduled_session" = "Scheduled session";
+"custom_challenge" = "Custom challenge";
+"widget" = "Widget";
+"advanced_statistics" = "Advanced statistics";
+"this_feature" = "this feature";
+"blocked_feature" = "Blocked feature";
+"feature_requires_premium" = "« %@ » requires Zenloop Premium";
+"with_premium_unlock" = "With Premium, unlock:";
+"advanced_app_blocking" = "Advanced app blocking";
+"custom_challenges" = "Custom challenges";
+"detailed_statistics" = "Detailed statistics";
+"scheduled_sessions" = "Scheduled sessions";
+"control_widgets" = "Control widgets";
+"per_year" = "per year";
+"per_month" = "per month";
+
+// Additional PremiumGatekeeper strings
+"unlock_premium_now" = "UNLOCK YOUR PREMIUM NOW";
+"flexible" = "FLEXIBLE";
+
+// MinimalHeader adaptive strings
+"expires_short" = "Expires";
+"expired_short" = "Expired";
+"refunded_short" = "Refund";
+"premium_short" = "Premium";

@@ -233,19 +233,19 @@ struct AppSummaryView: View {
             // Statistiques principales
             HStack(spacing: 16) {
                 StatItem(
-                    title: "Apps",
+                    title: String(localized: "apps"),
                     value: "\(appSummaryData.appCount)",
                     color: .blue
                 )
                 
                 StatItem(
-                    title: "Total",
+                    title: String(localized: "total"),
                     value: formatTime(appSummaryData.totalDuration),
                     color: .purple
                 )
                 
                 StatItem(
-                    title: "Moyenne",
+                    title: String(localized: "average"),
                     value: formatTime(appSummaryData.averageTime),
                     color: .green
                 )
@@ -273,7 +273,7 @@ struct AppSummaryView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("App favorite")
+                        Text(String(localized: "favorite_app"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                         

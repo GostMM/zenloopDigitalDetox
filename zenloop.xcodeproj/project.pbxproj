@@ -18,6 +18,9 @@
 		DEC60E862E60473900B4B061 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEC60E852E60473900B4B061 /* SwiftUI.framework */; };
 		DEC60E972E60473A00B4B061 /* zenloopwidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DEC60E822E60473900B4B061 /* zenloopwidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DEC60EA02E6346FA00B4B061 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DEC60E9F2E6346FA00B4B061 /* Launch Screen.storyboard */; };
+		DED4451C2E6804330026AD04 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DED4451B2E6804330026AD04 /* FirebaseAuth */; };
+		DED4451E2E6804330026AD04 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DED4451D2E6804330026AD04 /* FirebaseFirestore */; };
+		DED445202E68044B0026AD04 /* GoogleService-Info (4).plist in Resources */ = {isa = PBXBuildFile; fileRef = DED4451F2E68044B0026AD04 /* GoogleService-Info (4).plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +104,7 @@
 		DEC60E852E60473900B4B061 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		DEC60E9C2E60474700B4B061 /* zenloopwidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = zenloopwidgetExtension.entitlements; sourceTree = "<group>"; };
 		DEC60E9F2E6346FA00B4B061 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		DED4451F2E68044B0026AD04 /* GoogleService-Info (4).plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info (4).plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -194,6 +198,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DED4451C2E6804330026AD04 /* FirebaseAuth in Frameworks */,
+				DED4451E2E6804330026AD04 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +260,7 @@
 				DEC60E872E60473900B4B061 /* zenloopwidget */,
 				DE4F56AC2E3D1B560014A5D1 /* Frameworks */,
 				DE4F56812E3D18EC0014A5D1 /* Products */,
+				DED4451F2E68044B0026AD04 /* GoogleService-Info (4).plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -309,6 +316,8 @@
 			);
 			name = zenloop;
 			packageProductDependencies = (
+				DED4451B2E6804330026AD04 /* FirebaseAuth */,
+				DED4451D2E6804330026AD04 /* FirebaseFirestore */,
 			);
 			productName = zenloop;
 			productReference = DE4F56802E3D18EC0014A5D1 /* zenloop.app */;
@@ -465,6 +474,7 @@
 			mainGroup = DE4F56772E3D18EC0014A5D1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				DED4451A2E6804330026AD04 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DE4F56812E3D18EC0014A5D1 /* Products */;
@@ -486,6 +496,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DED445202E68044B0026AD04 /* GoogleService-Info (4).plist in Resources */,
 				DEC60EA02E6346FA00B4B061 /* Launch Screen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1153,6 +1164,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DED4451A2E6804330026AD04 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DED4451B2E6804330026AD04 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DED4451A2E6804330026AD04 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		DED4451D2E6804330026AD04 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DED4451A2E6804330026AD04 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DE4F56782E3D18EC0014A5D1 /* Project object */;
 }

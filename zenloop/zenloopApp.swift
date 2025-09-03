@@ -8,10 +8,15 @@
 import SwiftUI
 import DeviceActivity
 import UserNotifications
+import Firebase
 
 @main
 struct zenloopApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    
+    init() {
+        FirebaseApp.configure()
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -19,6 +24,9 @@ struct zenloopApp: App {
                 .onAppear {
                     // Initialisation asynchrone pour éviter les lags au démarrage
                     Task {
+                        // Firebase: Enregistrer le device au premier lancement
+                        await FirebaseManager.shared.registerDeviceOnFirstLaunch()
+                        
                         // DEBUG: Test PurchaseManager initialization (background)
                         print("🎯 App started - Testing PurchaseManager...")
                         let manager = PurchaseManager.shared
@@ -49,6 +57,10 @@ struct zenloopApp: App {
                         print("📱 App became inactive")
                     case .active:
                         print("📱 App became active")
+                        // Firebase: Mettre à jour lastSeen
+                        Task {
+                            await FirebaseManager.shared.updateLastSeen()
+                        }
                     @unknown default:
                         break
                     }
