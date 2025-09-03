@@ -829,7 +829,18 @@ class ZenloopManager: ObservableObject {
     func completeCurrentChallenge() {
         guard let challenge = self.currentChallenge, self.currentState == .active else { return }
         
-        self.removeRestrictions()
+        // CRUCIAL: Ne supprimer que les restrictions de cette session spécifique
+        if isScheduledSession(challenge) {
+            // Pour les sessions programmées, supprimer du store nommé correspondant
+            appRestrictionCoordinator.removeRestrictions(for: challenge.id)
+        } else {
+            // Pour les sessions manuelles, vérifier qu'aucune session programmée n'est active
+            if !appRestrictionCoordinator.hasActiveScheduledSession() {
+                appRestrictionCoordinator.removeRestrictions()
+            } else {
+                print("⚠️ [ZENLOOP] Sessions programmées actives - ne pas supprimer toutes les restrictions")
+            }
+        }
         
         var updated = challenge
         updated.isActive = false
@@ -890,8 +901,8 @@ class ZenloopManager: ObservableObject {
         appRestrictionCoordinator.applyRestrictions()
     }
     
-    private func removeRestrictions() {
-        appRestrictionCoordinator.removeRestrictions()
+    private func removeRestrictions(for sessionId: String? = nil) {
+        appRestrictionCoordinator.removeRestrictions(for: sessionId)
     }
     
     // MARK: - Ticker (1 Hz) - Délégation aux managers
@@ -1341,9 +1352,24 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                 }
             }
         case .idle, .completed, .paused:
-            appRestrictionCoordinator.removeRestrictions()
+            // CRUCIAL: Vérification complète avant suppression des restrictions
+            let hasScheduledSessions = appRestrictionCoordinator.hasActiveScheduledSession()
+            let isScheduledChallenge = challenge != nil && isScheduledSession(challenge!)
+            
+            if !hasScheduledSessions && !isScheduledChallenge {
+                appRestrictionCoordinator.removeRestrictions()
+                print("🔓 [ZENLOOP] Aucune session programmée - restrictions supprimées")
+            } else {
+                print("⚠️ [ZENLOOP] Sessions programmées actives détectées - restrictions préservées")
+                print("   hasScheduledSessions: \(hasScheduledSessions)")
+                print("   isScheduledChallenge: \(isScheduledChallenge)")
+            }
+            
             if let challenge = challenge {
-                deviceActivityCoordinator.stopMonitoring(for: challenge)
+                // Ne pas arrêter le monitoring pour les sessions programmées
+                if !isScheduledSession(challenge) {
+                    deviceActivityCoordinator.stopMonitoring(for: challenge)
+                }
             }
         }
     }

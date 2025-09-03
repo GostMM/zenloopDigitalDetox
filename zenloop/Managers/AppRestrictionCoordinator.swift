@@ -157,8 +157,8 @@ final class AppRestrictionCoordinator: ObservableObject {
         #endif
     }
     
-    // Vérifier s'il y a des sessions programmées actives
-    private func hasActiveScheduledSession() -> Bool {
+    // Vérifier s'il y a des sessions programmées actives (accessible publiquement)
+    func hasActiveScheduledSession() -> Bool {
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")
         
         // Vérifier la queue d'activation des extensions

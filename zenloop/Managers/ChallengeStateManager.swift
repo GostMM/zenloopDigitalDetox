@@ -64,7 +64,14 @@ final class ChallengeStateManager: ObservableObject {
         guard currentState == .idle else { return }
         
         var startingChallenge = challenge
-        startingChallenge.startTime = Date()
+        
+        // CORRIGÉ: Ne pas écraser startTime si c'est une session programmée qui a déjà commencé
+        if startingChallenge.startTime == nil {
+            // Session manuelle - utiliser l'heure actuelle
+            startingChallenge.startTime = Date()
+        }
+        // Sinon, conserver l'heure de démarrage réelle de l'extension
+        
         startingChallenge.isActive = true
         startingChallenge.isCompleted = false
         
