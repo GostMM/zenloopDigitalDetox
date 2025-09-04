@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (French)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Titres Motivationnels
+"shield.title.focus" = "VOTRE FORCE";
+"shield.title.challenge" = "DÉFI EN COURS";
+"shield.title.detox" = "DIGITAL DETOX";
+"shield.title.flow" = "ZONE DE FLOW";
+
+// MARK: - Boutons
+"shield.button.primary" = "FOCUS";
+
+// MARK: - Messages Temporels
+"shield.time.morning" = "🌅 EXCELLENT DÉBUT DE JOURNÉE\nVotre cerveau est au maximum de ses capacités.";
+"shield.time.midday" = "☀️ MOMENTUM DE MI-JOURNÉE\nGardez cette énergie productive.";
+"shield.time.afternoon" = "⚡ APRÈS-MIDI DE PERFORMANCE\nC'est maintenant que vous faites la différence.";
+"shield.time.evening" = "🌙 SOIRÉE DE MAÎTRISE\nFinissez la journée en force.";
+"shield.time.night" = "🌟 SESSION NOCTURNE DÉDIÉE\nVotre engagement tard le soir montre votre détermination.";
+
+// MARK: - Messages Contextuels
+"shield.context.focus" = "Votre session de focus profond transforme votre cerveau. Chaque minute compte.";
+"shield.context.challenge" = "Ce défi vous pousse vers une version améliorée de vous-même.";
+"shield.context.detox" = "Vous reprenez le contrôle de votre attention. C'est un superpouvoir moderne.";
+"shield.context.flow" = "Dans cette zone de flow, vous atteignez votre plein potentiel.";
+
+// MARK: - Messages de Progression
+"shield.attempts.first" = "Première tentative - normal d'avoir envie d'ouvrir l'app.";
+"shield.attempts.few" = "Tentative #%d - votre cerveau teste votre résolution.";
+"shield.attempts.good" = "Tentative #%d - vous résistez mieux que la moyenne.";
+"shield.attempts.excellent" = "Tentative #%d - votre discipline devient exceptionnelle.";
+
+// MARK: - Message d'encouragement
+"shield.encouragement" = "Chaque moment de résistance renforce votre discipline mentale. Vous développez une capacité précieuse de concentration profonde.\n\nContinuez - votre futur vous remerciera.";
+
+// MARK: - Template de message complet
+"shield.message.template" = "Application bloquée : %@";

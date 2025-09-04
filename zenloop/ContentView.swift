@@ -147,7 +147,7 @@ struct ContentView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     .scaleEffect(1.2)
                 
-                Text("Chargement...")
+               Text(String(localized: "loading"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
             }

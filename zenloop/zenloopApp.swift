@@ -65,6 +65,8 @@ struct zenloopApp: App {
                         print("📱 App became active")
                         // Process any pending Quick Actions
                         quickActionsManager.processPendingAction()
+                        // Process any pending widget actions
+                        checkForWidgetActions()
                         // Firebase: Mettre à jour lastSeen
                         Task {
                             await FirebaseManager.shared.updateLastSeen()
@@ -216,6 +218,24 @@ struct zenloopApp: App {
             return
         }
         
+        // Handle session control actions directly
+        switch components.host {
+        case "pause":
+            handleSessionControl(.pause)
+            return
+        case "resume":
+            handleSessionControl(.resume)
+            return
+        case "stop":
+            handleSessionControl(.stop)
+            return
+        case "newsession":
+            handleSessionControl(.start)
+            return
+        default:
+            break
+        }
+        
         // Map URL hosts to Quick Action types
         let actionType: QuickActionType?
         
@@ -299,4 +319,44 @@ struct zenloopApp: App {
             }
         }
     }
+    
+    enum SessionControlAction {
+        case start, pause, resume, stop
+    }
+    
+    func handleSessionControl(_ action: SessionControlAction) {
+        print("🎮 [SESSION_CONTROL] Handling action: \(action)")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let manager = ZenloopManager.shared
+            
+            switch action {
+            case .start:
+                // Start a new quick session
+                let quickChallenge = ZenloopChallenge(
+                    id: "widget-quick-\(UUID().uuidString)",
+                    title: "Widget Quick Session",
+                    description: "Session démarrée depuis le widget",
+                    duration: 25 * 60, // 25 minutes in seconds
+                    difficulty: .medium,
+                    startTime: Date(),
+                    isActive: true
+                )
+                manager.startSavedCustomChallenge(quickChallenge)
+                
+            case .pause:
+                manager.requestPause()
+                
+            case .resume:
+                manager.resumeChallenge()
+                
+            case .stop:
+                manager.stopCurrentChallenge()
+            }
+            
+            // Haptic feedback
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+    }
+    
 }

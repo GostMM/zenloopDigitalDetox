@@ -1,6 +1,7 @@
 import ManagedSettings
 import ManagedSettingsUI
 import UIKit
+import Foundation
 
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
@@ -14,6 +15,31 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     // MARK: - Logo / Cache
     private lazy var baseLogo: UIImage? = (UIImage(named: "zenloopLogo") ?? createZenloopLogo())
     private lazy var premiumIconCache = NSCache<NSString, UIImage>() // key = "size@bundleId"
+
+    // MARK: - Traduction
+    private func localizedString(_ key: String, _ args: CVarArg...) -> String {
+        // Utiliser le Bundle de l'extension Shield plutôt que Bundle.main
+        let bundle = Bundle(for: type(of: self))
+        let format = bundle.localizedString(forKey: key, value: key, table: nil)
+        return String(format: format, arguments: args)
+    }
+    
+    // MARK: - Deep Link Helper
+    private func triggerDeepLink(_ urlString: String) {
+        // Stocker le deep link dans App Group pour que l'app principale le traite
+        if let suite = UserDefaults(suiteName: appGroupId) {
+            let action = [
+                "action": "deep_link",
+                "url": urlString,
+                "timestamp": Date().timeIntervalSince1970,
+                "source": "shield"
+            ] as [String: Any]
+            
+            suite.set(action, forKey: "shield_pending_action")
+            suite.synchronize()
+            debugLog("🔗 Shield deep link stored: \(urlString)")
+        }
+    }
 
     // MARK: - Labels (API: text + color) avec validation
     private func label(_ text: String, _ color: UIColor) -> ShieldConfiguration.Label {
@@ -277,11 +303,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: UIColor.white.withAlphaComponent(0.95)
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
-                text: "FOCUS", 
+                text: localizedString("shield.button.primary"), 
                 color: UIColor.white
             ),
             primaryButtonBackgroundColor: tint
-            // Pas de bouton secondaire - interface épurée
         )
     }
     
@@ -289,13 +314,13 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     private func createMotivationalTitle(for context: ShieldContext) -> String {
         switch context {
         case .focusSession:
-            return "VOTRE FORCE"
+            return localizedString("shield.title.focus")
         case .challengeActive:
-            return "DÉFI EN COURS"
+            return localizedString("shield.title.challenge")
         case .digitalDetox:
-            return "DIGITAL DETOX"
+            return localizedString("shield.title.detox")
         case .flowZone:
-            return "ZONE DE FLOW"
+            return localizedString("shield.title.flow")
         }
     }
     
@@ -311,53 +336,51 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
 \(contextMotivation)
 
-Application bloquée : \(appName)
+\(localizedString("shield.message.template", appName))
 \(progressMessage)
 
-Chaque moment de résistance renforce votre discipline mentale. Vous développez une capacité précieuse de concentration profonde.
-
-Continuez - votre futur vous remerciera.
+\(localizedString("shield.encouragement"))
 """
     }
     
     private func getTimeBasedMotivation(hour: Int) -> String {
         switch hour {
         case 6..<12:
-            return "🌅 EXCELLENT DÉBUT DE JOURNÉE\nVotre cerveau est au maximum de ses capacités."
+            return localizedString("shield.time.morning")
         case 12..<14:
-            return "☀️ MOMENTUM DE MI-JOURNÉE\nGardez cette énergie productive."
+            return localizedString("shield.time.midday")
         case 14..<18:
-            return "⚡ APRÈS-MIDI DE PERFORMANCE\nC'est maintenant que vous faites la différence."
+            return localizedString("shield.time.afternoon")
         case 18..<22:
-            return "🌙 SOIRÉE DE MAÎTRISE\nFinissez la journée en force."
+            return localizedString("shield.time.evening")
         default:
-            return "🌟 SESSION NOCTURNE DÉDIÉE\nVotre engagement tard le soir montre votre détermination."
+            return localizedString("shield.time.night")
         }
     }
     
     private func getContextMotivation(for context: ShieldContext) -> String {
         switch context {
         case .focusSession:
-            return "Votre session de focus profond transforme votre cerveau. Chaque minute compte."
+            return localizedString("shield.context.focus")
         case .challengeActive:
-            return "Ce défi vous pousse vers une version améliorée de vous-même."
+            return localizedString("shield.context.challenge")
         case .digitalDetox:
-            return "Vous reprenez le contrôle de votre attention. C'est un superpouvoir moderne."
+            return localizedString("shield.context.detox")
         case .flowZone:
-            return "Dans cette zone de flow, vous atteignez votre plein potentiel."
+            return localizedString("shield.context.flow")
         }
     }
     
     private func getProgressMessage(attempts: Int) -> String {
         switch attempts {
         case 1:
-            return "Première tentative - normal d'avoir envie d'ouvrir l'app."
+            return localizedString("shield.attempts.first")
         case 2...3:
-            return "Tentative #\(attempts) - votre cerveau teste votre résolution."
+            return localizedString("shield.attempts.few", attempts)
         case 4...6:
-            return "Tentative #\(attempts) - vous résistez mieux que la moyenne."
+            return localizedString("shield.attempts.good", attempts)
         default:
-            return "Tentative #\(attempts) - votre discipline devient exceptionnelle."
+            return localizedString("shield.attempts.excellent", attempts)
         }
     }
     
