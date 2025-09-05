@@ -86,7 +86,7 @@ struct CategoryChallengesRow: View {
                 VStack(spacing: 16) {
                     // Header avec bouton de config discrète
                     HStack {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 4) {
                             Image(systemName: "target")
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.purple)
@@ -95,11 +95,11 @@ struct CategoryChallengesRow: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(String(localized: "8h_challenges"))
-                                    .font(.system(size: 22, weight: .bold))
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.white)
                                 
                                 Text(String(localized: "choose_daily_challenge"))
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.6))
                             }
                         }

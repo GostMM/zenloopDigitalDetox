@@ -110,8 +110,10 @@ struct SessionPlanningRow: View {
                             session: session,
                             hasAppsConfigured: hasAppsForSession(session.sessionId),
                             onSchedule: {
+                                print("🎯 [SESSION_ROW] Ouverture modal pour session: \(session.sessionId)")
                                 selectedSession = session
                                 showingScheduleModal = true
+                                print("✅ [SESSION_ROW] Modal state: selectedSession=\(selectedSession?.sessionId ?? "nil"), showingModal=\(showingScheduleModal)")
                             }
                         )
                     }
@@ -129,26 +131,58 @@ struct SessionPlanningRow: View {
             }
         }
         .sheet(isPresented: $showingScheduleModal) {
-            if let session = selectedSession {
-                ScheduleConfigurationModal(
-                    session: session, 
-                    zenloopManager: zenloopManager,
-                    initialAppsSelection: getAppsForSession(session.sessionId),
-                    onAppsSelected: { apps in
-                        saveAppsForSession(session.sessionId, apps: apps)
-                    },
-                    onAppsClear: {
-                        clearAppsForSession(session.sessionId)
+            Group {
+                if let session = selectedSession {
+                    ScheduleConfigurationModal(
+                        session: session, 
+                        zenloopManager: zenloopManager,
+                        initialAppsSelection: getAppsForSession(session.sessionId),
+                        onAppsSelected: { apps in
+                            saveAppsForSession(session.sessionId, apps: apps)
+                        },
+                        onAppsClear: {
+                            clearAppsForSession(session.sessionId)
+                        }
+                    )
+                    .onAppear {
+                        print("📱 [SESSION_ROW] Sheet présentée pour session: \(session.sessionId)")
                     }
-                )
-                .onDisappear {
-                    selectedSession = nil
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.orange)
+                        
+                        Text("Session non trouvée")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        
+                        Button("Fermer") {
+                            showingScheduleModal = false
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.black)
+                    .onAppear {
+                        print("❌ [SESSION_ROW] Sheet présentée mais selectedSession est nil!")
+                    }
                 }
             }
         }
         .onAppear {
             sessionPlanningManager.refreshSessions()
             loadPersistedSelections()
+        }
+        .onChange(of: showingScheduleModal) { oldValue, newValue in
+            print("🔄 [SESSION_ROW] showingScheduleModal changé: \(oldValue) -> \(newValue)")
+            if !newValue {
+                // Réinitialiser selectedSession quand le modal se ferme
+                print("🔄 [SESSION_ROW] Modal fermé, réinitialisation selectedSession")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    selectedSession = nil
+                }
+            }
         }
     }
     

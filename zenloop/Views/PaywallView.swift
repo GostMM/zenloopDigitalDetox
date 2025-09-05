@@ -88,7 +88,7 @@ struct PaywallView: View {
                     Spacer()
                     
                     // Centre hypnotique
-                    VStack(spacing: 24) {
+                    VStack(spacing: 30) {
                         // Cercle central hypnotique
                         ZStack {
                             // Anneaux animés
@@ -155,7 +155,7 @@ struct PaywallView: View {
                     Spacer()
                     
                     // Section des plans compacte - 3 offres en vertical
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         // Plan Lifetime (priorité haute)
                         PremiumPlanCard(
                             plan: .lifetime,
@@ -169,7 +169,7 @@ struct PaywallView: View {
                         )
                         
                         // Plans récurrents côte à côte
-                        HStack(spacing: 12) {
+                        HStack(spacing: 16) {
                             // Plan annuel
                             PremiumPlanCard(
                                 plan: .yearly,
@@ -279,8 +279,8 @@ struct PaywallView: View {
                         }
                         .opacity(showContent ? 1 : 0)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 30)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 40)
                 }
             }
         }
@@ -526,14 +526,23 @@ struct PremiumPlanCard: View {
     let purchaseManager: PurchaseManager
     let onSelect: () -> Void
     
+    private var fontSizeTitle: CGFloat { isCompact ? 14 : 16 }
+    private var fontSizePrice: CGFloat { isCompact ? 18 : 20 }
+    private var fontSizeSubtitle: CGFloat { isCompact ? 9 : 10 }
+    private var fontSizeBadge: CGFloat { isCompact ? 8 : 9 }
+    private var fontSizeOldPrice: CGFloat { isCompact ? 10 : 11 }
+    private var circleSize: CGFloat { isCompact ? 14 : 16 }
+    private var paddingVertical: CGFloat { isCompact ? 12 : 16 }
+    private var paddingHorizontal: CGFloat { isCompact ? 8 : 12 }
+    
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 // Badge spécial selon le plan
                 Group {
                     if plan == .lifetime {
                         Text("MEILLEURE OFFRE")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: fontSizeBadge, weight: .bold))
                             .foregroundColor(.black)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
@@ -541,14 +550,14 @@ struct PremiumPlanCard: View {
                     } else if plan == .yearly {
                         HStack(spacing: 4) {
                             Text("7 JOURS GRATUITS")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: fontSizeBadge, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(.green, in: Capsule())
                             
                             Text("POPULAIRE")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: fontSizeBadge, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -556,7 +565,7 @@ struct PremiumPlanCard: View {
                         }
                     } else if plan == .monthly {
                         Text("7 JOURS GRATUITS")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: fontSizeBadge, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
@@ -566,24 +575,24 @@ struct PremiumPlanCard: View {
                     }
                 }
                 
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
                     Text(plan.title)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: fontSizeTitle, weight: .bold))
                         .foregroundColor(.white)
                     
                     Text(realPrice)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: fontSizePrice, weight: .bold))
                         .foregroundColor(plan.color)
                     
                     if let oldPrice = realOldPrice {
                         Text(oldPrice)
-                            .font(.system(size: 11))
+                            .font(.system(size: fontSizeOldPrice))
                             .foregroundColor(.white.opacity(0.5))
                             .strikethrough()
                     }
                     
                     Text(plan.subtitle)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: fontSizeSubtitle, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
                 }
@@ -591,7 +600,7 @@ struct PremiumPlanCard: View {
                 // Indicateur de sélection
                 Circle()
                     .fill(isSelected ? plan.color : .clear)
-                    .frame(width: 16, height: 16)
+                    .frame(width: circleSize, height: circleSize)
                     .overlay(
                         Circle()
                             .stroke(plan.color, lineWidth: 2)
@@ -604,21 +613,21 @@ struct PremiumPlanCard: View {
                     )
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 12)
+            .padding(.vertical, paddingVertical)
+            .padding(.horizontal, paddingHorizontal)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 20)
                         .fill(.ultraThinMaterial)
                     
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(
                             isSelected ? plan.color : .white.opacity(0.2),
                             lineWidth: isSelected ? 2 : 1
                         )
                     
                     if isSelected {
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: 20)
                             .fill(plan.color.opacity(0.1))
                     }
                 }

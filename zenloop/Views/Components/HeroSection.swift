@@ -381,7 +381,7 @@ struct ModernQuickActionsRow: View {
             
             // Header premium avec design moderne
             HStack {
-                HStack(spacing: 16) {
+                HStack(spacing: 4) {
                     // Container d'icône avec effet de glow
                     ZStack {
                         Circle()
@@ -405,14 +405,14 @@ struct ModernQuickActionsRow: View {
                             .shadow(color: .blue.opacity(0.4), radius: 6, x: 0, y: 2)
                     }
                     
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(String(localized: "sessions"))
-                            .font(.system(size: 26, weight: .bold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
                         Text(String(localized: "choose_concentration_type"))
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white.opacity(0.75))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
                             .lineLimit(2)
                     }
                 }

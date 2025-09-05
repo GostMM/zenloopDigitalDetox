@@ -7,7 +7,9 @@
 
 import SwiftUI
 import FamilyControls
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct ScheduleConfigurationModal: View {
     let session: PopularSession
@@ -23,6 +25,26 @@ struct ScheduleConfigurationModal: View {
     @State private var showingAppSelection = false
     @State private var selectedApps = FamilyActivitySelection()
     @State private var showContent = false
+    @State private var isAppearing = false
+    @State private var hasInitialized = false
+    
+    init(session: PopularSession, 
+         zenloopManager: ZenloopManager, 
+         initialAppsSelection: FamilyActivitySelection,
+         onAppsSelected: @escaping (FamilyActivitySelection) -> Void,
+         onAppsClear: @escaping () -> Void) {
+        self.session = session
+        self.zenloopManager = zenloopManager
+        self.initialAppsSelection = initialAppsSelection
+        self.onAppsSelected = onAppsSelected
+        self.onAppsClear = onAppsClear
+        
+        // Initialiser l'état pour affichage immédiat
+        self._showContent = State(initialValue: true)
+        self._hasInitialized = State(initialValue: true)
+        
+        print("🚀 [MODAL] Init pour session: \(session.sessionId) - showContent: true")
+    }
     
     var body: some View {
         NavigationView {
@@ -57,7 +79,7 @@ struct ScheduleConfigurationModal: View {
                 .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 24) {
+                    VStack(spacing: 24) {
                         // Header avec session info
                         sessionHeaderSection
                         
@@ -88,19 +110,49 @@ struct ScheduleConfigurationModal: View {
             }
             .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
             .onAppear {
-                // Initialiser l'heure de début à demain matin 8h
-                selectedStartTime = calculateNextOptimalTime()
+                print("🔄 [MODAL] onAppear pour session: \(session.sessionId)")
+                print("🔄 [MODAL] hasInitialized: \(hasInitialized), showContent: \(showContent)")
                 
-                // Charger la sélection spécifique à cette session
+                // Toujours réinitialiser à l'ouverture pour garantir l'affichage
+                isAppearing = true
+                
+                // Initialisation immédiate des données
+                selectedStartTime = calculateNextOptimalTime()
                 selectedApps = initialAppsSelection
                 
-                withAnimation(.easeOut(duration: 1.0)) {
-                    showContent = true
-                }
+                print("🎯 [MODAL] Données initialisées pour '\(session.title)'")
+                print("   - Apps sélectionnées: \(selectedApps.applicationTokens.count + selectedApps.categoryTokens.count)")
+                
+                // Forcer l'affichage immédiat sans délai
+                showContent = true
+                hasInitialized = true
+                
+                print("✨ [MODAL] Contenu affiché immédiatement")
+            }
+            .onDisappear {
+                print("👋 [MODAL] onDisappear")
+                isAppearing = false
+                // NE PAS réinitialiser hasInitialized et showContent ici
+                // Cela permet de garder l'état pour les prochaines ouvertures
             }
             .onChange(of: selectedApps) { oldSelection, newSelection in
                 // Sauvegarder la sélection pour cette session spécifique
                 onAppsSelected(newSelection)
+            }
+            .onChange(of: session.sessionId) { oldSessionId, newSessionId in
+                // Réinitialiser l'état quand on change de session
+                print("🔄 [MODAL] Session changée: \(oldSessionId) -> \(newSessionId)")
+                hasInitialized = false
+                showContent = false
+                
+                // Réinitialiser les données pour la nouvelle session
+                DispatchQueue.main.async {
+                    selectedStartTime = calculateNextOptimalTime()
+                    selectedApps = initialAppsSelection
+                    showContent = true
+                    hasInitialized = true
+                    print("✅ [MODAL] Nouvelle session initialisée")
+                }
             }
         }
     }
@@ -146,8 +198,7 @@ struct ScheduleConfigurationModal: View {
             }
         }
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : -20)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .animation(.easeOut(duration: 0.3), value: showContent)
     }
     
     // MARK: - Schedule Configuration Section
@@ -182,8 +233,7 @@ struct ScheduleConfigurationModal: View {
                 .stroke(session.accentColor.color.opacity(0.3), lineWidth: 1)
         )
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
+        .animation(.easeOut(duration: 0.3), value: showContent)
     }
     
     private var startTimeSelectionRow: some View {
@@ -370,8 +420,7 @@ struct ScheduleConfigurationModal: View {
                 .stroke(session.accentColor.color.opacity(0.3), lineWidth: 1)
         )
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3), value: showContent)
+        .animation(.easeOut(duration: 0.3), value: showContent)
     }
     
     private var appSelectionPreview: some View {
@@ -479,8 +528,7 @@ struct ScheduleConfigurationModal: View {
             .shadow(color: session.accentColor.color.opacity(0.3), radius: canSchedule ? 8 : 0, x: 0, y: 4)
         }
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.4), value: showContent)
+        .animation(.easeOut(duration: 0.3), value: showContent)
     }
     
     // MARK: - Computed Properties
@@ -525,8 +573,10 @@ struct ScheduleConfigurationModal: View {
         )
         
         // Feedback haptique
+        #if canImport(UIKit)
         let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
         impactFeedback.impactOccurred()
+        #endif
         
         // Fermer le modal
         dismiss()
@@ -630,12 +680,14 @@ struct WeekdayToggle: View {
     }
 }
 
+// Preview temporairement désactivé pour éviter les erreurs de compilation
+/*
 #Preview {
     ScheduleConfigurationModal(
         session: PopularSession(
             sessionId: "no_tiktok_8h",
             title: "No TikTok 8h",
-            description: "Block TikTok and short videos",
+            description: "Block TikTok and short videos", 
             duration: 8 * 60 * 60,
             iconName: "video.slash",
             imageName: "tiktok",
@@ -649,3 +701,4 @@ struct WeekdayToggle: View {
         onAppsClear: { }
     )
 }
+*/

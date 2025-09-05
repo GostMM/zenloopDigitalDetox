@@ -50,7 +50,7 @@ struct MotivationSection: View {
         VStack(spacing: 20) {
             // Header homogénéisé avec les autres sections
             HStack {
-                HStack(spacing: 12) {
+                HStack(spacing: 4) {
                     // Icône pour Motivation
                     Image(systemName: "heart.fill")
                         .font(.system(size: 20, weight: .semibold))
@@ -60,11 +60,11 @@ struct MotivationSection: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(String(localized: "motivation"))
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                         
                         Text(String(localized: "a_little_word_for_you"))
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                     }
                 }

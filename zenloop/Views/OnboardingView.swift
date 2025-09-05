@@ -316,44 +316,6 @@ struct OnboardingPageView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
                 .background(backgroundColorForStatus.opacity(0.15), in: Capsule())
-                
-                // Bouton d'activation des notifications
-                if onboardingManager.notificationStatus != .granted {
-                    Button(action: {
-                        Task {
-                            print("🔔 [NOTIFICATION] Activating notifications from page button")
-                            let granted = await onboardingManager.requestNotificationPermission()
-                            if granted {
-                                await SessionNotificationManager.shared.setupDailyWellnessNotifications()
-                                print("✅ [NOTIFICATION] Notifications activated successfully")
-                            }
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: onboardingManager.notificationStatus == .denied ? "gear" : "bell.badge.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                            
-                            Text(onboardingManager.notificationStatus == .denied ? "Ouvrir Réglages" : "Activer maintenant")
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            LinearGradient(
-                                colors: [.orange, .orange.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: RoundedRectangle(cornerRadius: 20)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(.white.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 3)
-                    }
-                }
             }
         }
     }
@@ -400,10 +362,7 @@ struct OnboardingBottomActions: View {
                 print("🚨🚨 [ONBOARDING] IsPermissionPage: \(currentPage_.isPermissionPage)")
                 print("🚨🚨 [ONBOARDING] PermissionType: \(String(describing: currentPage_.permissionType))")
                 
-                if currentPage == totalPages - 1 {
-                    print("🚨🚨 [ONBOARDING] Last page - calling onGetStarted()")
-                    onGetStarted()
-                } else if currentPage_.isPermissionPage {
+                if currentPage_.isPermissionPage {
                     print("🚨🚨 [ONBOARDING] Permission page - calling handlePermissionAction()")
                     handlePermissionAction()
                 } else {
@@ -463,8 +422,6 @@ struct OnboardingBottomActions: View {
         let text: String
         if isRequesting {
             text = String(localized: "processing")
-        } else if currentPage == totalPages - 1 {
-            text = String(localized: "get_started")
         } else if currentPage_.isPermissionPage {
             switch currentPage_.permissionType {
             case .screenTime:
@@ -538,10 +495,24 @@ struct OnboardingBottomActions: View {
             
         case .notifications:
             print("🔍 [ONBOARDING] Notification permission action - Status: \(onboardingManager.notificationStatus)")
-            // Maintenant le bouton principal "Continuer" passe toujours à la page suivante
-            // La demande de permission se fait via le bouton orange dédié
-            print("🔍 [ONBOARDING] Moving to next page (permission handled by dedicated button)")
-            onNext()
+            if onboardingManager.notificationStatus == .granted {
+                print("🔍 [ONBOARDING] Notifications already granted - continuing")
+                onNext()
+            } else {
+                print("🔍 [ONBOARDING] Requesting notification permission")
+                isRequesting = true
+                Task {
+                    let granted = await onboardingManager.requestNotificationPermission()
+                    if granted {
+                        await SessionNotificationManager.shared.setupDailyWellnessNotifications()
+                        print("✅ [NOTIFICATION] Notifications activated successfully")
+                    }
+                    await MainActor.run {
+                        isRequesting = false
+                        onNext()
+                    }
+                }
+            }
             
         default:
             print("⚠️ [ONBOARDING] Unknown permission type, calling onNext()")

@@ -84,13 +84,13 @@ enum WidgetState: String, Codable, CaseIterable {
         var displayTitle: String {
             switch self {
             case .idle:
-                return "Ready to Focus"
+                return String(localized: "state_ready_to_focus", bundle: .main)
             case .active:
-                return "In Session"
+                return String(localized: "state_in_session", bundle: .main)
             case .paused:
-                return "Paused"
+                return String(localized: "state_paused", bundle: .main)
             case .completed:
-                return "Completed!"
+                return String(localized: "state_completed", bundle: .main)
             }
         }
         
@@ -395,7 +395,7 @@ class ZenloopWidgetDataProvider {
         
         let newData = ZenloopWidgetData(
             isSessionActive: true,
-            currentSessionTitle: "Quick Session \(duration)m",
+            currentSessionTitle: String(localized: "quick_session_title", bundle: .main).replacingOccurrences(of: "%d", with: "\(duration)"),
             timeRemaining: "\(duration):00",
             progress: 0.0,
             totalFocusTime: currentData.totalFocusTime,
@@ -515,7 +515,7 @@ extension TimeInterval {
     provider.canStartScheduledSession(scheduledSession) {
     provider.startSession(duration: Int(scheduledSession.duration/60), origin: .scheduled)
  } else {
-    print("Session was cancelled or conflict exists")
+    print(String(localized: "session_cancelled_conflict", bundle: .main))
  }
  
  // Pour les actions manuelles, les sessions programmées sont automatiquement annulées :

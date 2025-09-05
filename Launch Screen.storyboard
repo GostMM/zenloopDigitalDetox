@@ -4,6 +4,7 @@
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -15,102 +16,117 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <!-- Gradient Background Elements -->
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gradient-accent-1">
-                                <rect key="frame" x="0" y="0" width="200" height="200"/>
-                                <color key="backgroundColor" red="0.3" green="0.2" blue="0.8" alpha="0.15" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="200" id="accent-1-height"/>
-                                    <constraint firstAttribute="width" constant="200" id="accent-1-width"/>
-                                </constraints>
-                            </view>
-                            
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gradient-accent-2">
-                                <rect key="frame" x="293" y="652" width="150" height="150"/>
-                                <color key="backgroundColor" red="0.8" green="0.3" blue="0.4" alpha="0.12" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="150" id="accent-2-height"/>
-                                    <constraint firstAttribute="width" constant="150" id="accent-2-width"/>
-                                </constraints>
-                            </view>
-                            
-                            <!-- Premium Logo Container with Subtle Glow Effect -->
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="logo-container">
-                                <rect key="frame" x="146.5" y="331" width="100" height="100"/>
+                                <rect key="frame" x="136.66666666666666" y="266" width="119.99999999999997" height="120"/>
                                 <subviews>
-                                    <!-- Background Circle for Glow Effect -->
-                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="logo-glow">
-                                        <rect key="frame" x="10" y="10" width="80" height="80"/>
-                                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="0.08" colorSpace="custom" customColorSpace="sRGB"/>
-                                        <constraints>
-                                            <constraint firstAttribute="height" constant="80" id="glow-height"/>
-                                            <constraint firstAttribute="width" constant="80" id="glow-width"/>
-                                        </constraints>
-                                    </view>
-                                    
-                                    <!-- Main App Icon -->
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="zenloop" translatesAutoresizingMaskIntoConstraints="NO" id="app-icon">
-                                        <rect key="frame" x="20" y="20" width="60" height="60"/>
+                                        <rect key="frame" x="20" y="20" width="80" height="80"/>
                                         <constraints>
-                                            <constraint firstAttribute="height" constant="60" id="app-icon-height"/>
-                                            <constraint firstAttribute="width" constant="60" id="app-icon-width"/>
+                                            <constraint firstAttribute="height" constant="80" id="app-icon-height"/>
+                                            <constraint firstAttribute="width" constant="80" id="app-icon-width"/>
                                         </constraints>
                                     </imageView>
                                 </subviews>
-                                <color key="backgroundColor" white="0" alpha="0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="100" id="container-height"/>
-                                    <constraint firstAttribute="width" constant="100" id="container-width"/>
-                                    <!-- Glow positioning -->
-                                    <constraint firstItem="logo-glow" firstAttribute="centerX" secondItem="logo-container" secondAttribute="centerX" id="glow-centerX"/>
-                                    <constraint firstItem="logo-glow" firstAttribute="centerY" secondItem="logo-container" secondAttribute="centerY" id="glow-centerY"/>
-                                    <!-- Icon positioning -->
+                                    <constraint firstAttribute="height" constant="120" id="container-height"/>
+                                    <constraint firstAttribute="width" constant="120" id="container-width"/>
                                     <constraint firstItem="app-icon" firstAttribute="centerX" secondItem="logo-container" secondAttribute="centerX" id="icon-centerX"/>
                                     <constraint firstItem="app-icon" firstAttribute="centerY" secondItem="logo-container" secondAttribute="centerY" id="icon-centerY"/>
                                 </constraints>
                             </view>
-                            
-                            <!-- Premium Title with Refined Typography -->
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Zenloop" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" minimumFontSize="20" translatesAutoresizingMaskIntoConstraints="NO" id="main-title">
-                                <rect key="frame" x="40" y="461" width="313" height="40"/>
-                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Medium" family=".AppleSystemUIFontRounded" pointSize="34"/>
+                                <rect key="frame" x="40" y="406" width="313" height="45.666666666666686"/>
+                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Bold" family=".AppleSystemUIFontRounded" pointSize="38"/>
                                 <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            
-                            <!-- Subtle Tagline -->
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Digital Wellness" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="tagline">
-                                <rect key="frame" x="40" y="511" width="313" height="20"/>
-                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Light" family=".AppleSystemUIFontRounded" pointSize="16"/>
-                                <color key="textColor" red="1" green="1" blue="1" alpha="0.7" colorSpace="custom" customColorSpace="sRGB"/>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Digital Wellness Reimagined" textAlignment="center" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="tagline">
+                                <rect key="frame" x="40" y="461.66666666666669" width="313" height="19.333333333333314"/>
+                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Regular" family=".AppleSystemUIFontRounded" pointSize="16"/>
+                                <color key="textColor" red="1" green="1" blue="1" alpha="0.80000000000000004" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="equalSpacing" alignment="center" spacing="16" translatesAutoresizingMaskIntoConstraints="NO" id="features-stack">
+                                <rect key="frame" x="40" y="501" width="313" height="104"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="feature1-stack">
+                                        <rect key="frame" x="77.666666666666686" y="0.0" width="158" height="24"/>
+                                        <subviews>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="target" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="feature1-icon">
+                                                <rect key="frame" x="0.0" y="0.66666666666666607" width="24" height="22.666666666666671"/>
+                                                <color key="tintColor" systemColor="systemCyanColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="24" id="feature1-icon-height"/>
+                                                    <constraint firstAttribute="width" constant="24" id="feature1-icon-width"/>
+                                                </constraints>
+                                            </imageView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Focus Sessions" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="feature1-label">
+                                                <rect key="frame" x="31.999999999999986" y="1.3333333333333144" width="126.00000000000001" height="21.666666666666668"/>
+                                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Medium" family=".AppleSystemUIFontRounded" pointSize="18"/>
+                                                <color key="textColor" red="1" green="1" blue="1" alpha="0.90000000000000002" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                    </stackView>
+                                    <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="feature2-stack">
+                                        <rect key="frame" x="87.000000000000014" y="40" width="139.33333333333337" height="24"/>
+                                        <subviews>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="lock.shield" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="feature2-icon">
+                                                <rect key="frame" x="0.0" y="0.99999999999999822" width="24" height="22.666666666666664"/>
+                                                <color key="tintColor" systemColor="systemCyanColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="24" id="feature2-icon-height"/>
+                                                    <constraint firstAttribute="width" constant="24" id="feature2-icon-width"/>
+                                                </constraints>
+                                            </imageView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App Blocking" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="feature2-label">
+                                                <rect key="frame" x="31.999999999999993" y="1.3333333333333712" width="107.33333333333331" height="21.666666666666668"/>
+                                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Medium" family=".AppleSystemUIFontRounded" pointSize="18"/>
+                                                <color key="textColor" red="1" green="1" blue="1" alpha="0.90000000000000002" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                    </stackView>
+                                    <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="feature3-stack">
+                                        <rect key="frame" x="70.000000000000014" y="80" width="173.33333333333337" height="24"/>
+                                        <subviews>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="lightbulb" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="feature3-icon">
+                                                <rect key="frame" x="0.0" y="-0.66666666666666785" width="24" height="25"/>
+                                                <color key="tintColor" systemColor="systemCyanColor"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="24" id="feature3-icon-height"/>
+                                                    <constraint firstAttribute="width" constant="24" id="feature3-icon-width"/>
+                                                </constraints>
+                                            </imageView>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Wellness Insights" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="feature3-label">
+                                                <rect key="frame" x="32" y="1.3333333333333712" width="141.33333333333334" height="21.666666666666668"/>
+                                                <fontDescription key="fontDescription" name=".AppleSystemUIFontRounded-Medium" family=".AppleSystemUIFontRounded" pointSize="18"/>
+                                                <color key="textColor" red="1" green="1" blue="1" alpha="0.90000000000000002" colorSpace="custom" customColorSpace="sRGB"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                            </stackView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.05" green="0.05" blue="0.15" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.050000000000000003" green="0.050000000000000003" blue="0.14999999999999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <!-- Gradient Accents -->
-                            <constraint firstItem="gradient-accent-1" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-50" id="accent-1-top"/>
-                            <constraint firstItem="gradient-accent-1" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-50" id="accent-1-leading"/>
-                            
-                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="bottom" secondItem="gradient-accent-2" secondAttribute="bottom" constant="50" id="accent-2-bottom"/>
-                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="trailing" secondItem="gradient-accent-2" secondAttribute="trailing" constant="50" id="accent-2-trailing"/>
-                            
-                            <!-- Logo Container Centered -->
                             <constraint firstItem="logo-container" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="container-centerX"/>
-                            <constraint firstItem="logo-container" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-45" id="container-centerY"/>
-                            
-                            <!-- Main Title Below Logo -->
-                            <constraint firstItem="main-title" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="title-centerX"/>
-                            <constraint firstItem="main-title" firstAttribute="top" secondItem="logo-container" secondAttribute="bottom" constant="30" id="title-top"/>
-                            <constraint firstItem="main-title" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="40" id="title-leading"/>
-                            <constraint firstItem="main-title" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" constant="-40" id="title-trailing"/>
-                            
-                            <!-- Tagline Below Title -->
+                            <constraint firstItem="logo-container" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-100" id="container-centerY"/>
+                            <constraint firstItem="features-stack" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="features-centerX"/>
+                            <constraint firstItem="features-stack" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="40" id="features-leading"/>
+                            <constraint firstItem="features-stack" firstAttribute="top" secondItem="tagline" secondAttribute="bottom" constant="20" id="features-top"/>
+                            <constraint firstItem="features-stack" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" constant="-40" id="features-trailing"/>
                             <constraint firstItem="tagline" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="tagline-centerX"/>
-                            <constraint firstItem="tagline" firstAttribute="top" secondItem="main-title" secondAttribute="bottom" constant="10" id="tagline-top"/>
                             <constraint firstItem="tagline" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="40" id="tagline-leading"/>
+                            <constraint firstItem="tagline" firstAttribute="top" secondItem="main-title" secondAttribute="bottom" constant="10" id="tagline-top"/>
                             <constraint firstItem="tagline" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" constant="-40" id="tagline-trailing"/>
+                            <constraint firstItem="main-title" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="title-centerX"/>
+                            <constraint firstItem="main-title" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="40" id="title-leading"/>
+                            <constraint firstItem="main-title" firstAttribute="top" secondItem="logo-container" secondAttribute="bottom" constant="20" id="title-top"/>
+                            <constraint firstItem="main-title" firstAttribute="trailing" secondItem="Bcu-3y-fUS" secondAttribute="trailing" constant="-40" id="title-trailing"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -120,6 +136,12 @@
         </scene>
     </scenes>
     <resources>
+        <image name="lightbulb" catalog="system" width="92" height="128"/>
+        <image name="lock.shield" catalog="system" width="121" height="128"/>
+        <image name="target" catalog="system" width="128" height="123"/>
         <image name="zenloop" width="1024" height="1024"/>
+        <systemColor name="systemCyanColor">
+            <color red="0.1960784314" green="0.67843137249999996" blue="0.90196078430000004" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
     </resources>
 </document>

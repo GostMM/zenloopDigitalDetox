@@ -85,8 +85,8 @@ struct zenloopwidget: Widget {
         StaticConfiguration(kind: kind, provider: ZenloopTimelineProvider()) { entry in
             ZenloopWidgetView(entry: entry)
         }
-        .configurationDisplayName("Zenloop Focus")
-        .description("Track your focus sessions and digital wellness progress")
+        .configurationDisplayName(String(localized: "widget.title", bundle: .main))
+        .description(String(localized: "widget.description", bundle: .main))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -125,7 +125,7 @@ struct SmallZenloopWidget: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 12, height: 12)
-                    Text("Zenloop")
+                    Text(String(localized: "zenloop", bundle: .main))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -185,7 +185,7 @@ struct SmallZenloopWidget: View {
                 .foregroundColor(.white)
             
             // Session title (compact)
-            Text(data.currentSessionTitle.isEmpty ? "Focus Session" : data.currentSessionTitle)
+            Text(data.currentSessionTitle.isEmpty ? String(localized: "focus_session_placeholder", bundle: .main) : data.currentSessionTitle)
                 .font(.system(size: 8, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
                 .lineLimit(1)
@@ -201,7 +201,7 @@ struct SmallZenloopWidget: View {
                 HStack(spacing: 2) {
                     Image(systemName: "pause.fill")
                         .font(.system(size: 8))
-                    Text("Pause")
+                    Text(String(localized: "pause", bundle: .main))
                         .font(.system(size: 8, weight: .semibold))
                 }
                 .foregroundColor(.white)
@@ -218,13 +218,13 @@ struct SmallZenloopWidget: View {
     private var idleContent: some View {
         VStack(spacing: 6) {
             // Status message
-            Text("Ready to Focus")
+            Text(String(localized: "ready_to_focus", bundle: .main))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
             
             // Next session info (if available)
             if let nextSession = data.nextScheduledSession {
-                Text("Next: \(nextSession.formattedStartTime)")
+                Text("\(String(localized: "next", bundle: .main)) \(nextSession.formattedStartTime)")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.cyan)
             }
@@ -239,7 +239,7 @@ struct SmallZenloopWidget: View {
                     HStack {
                         Image(systemName: "timer")
                             .font(.system(size: 10))
-                        Text("Start 25min")
+                        Text(String(localized: "start_25min", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -258,7 +258,7 @@ struct SmallZenloopWidget: View {
                     HStack {
                         Image(systemName: "clock")
                             .font(.system(size: 10))
-                        Text("Start 1 hour")
+                        Text(String(localized: "start_1_hour", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -277,7 +277,7 @@ struct SmallZenloopWidget: View {
     private var pausedContent: some View {
         VStack(spacing: 4) {
             // Paused status
-            Text("Session Paused")
+            Text(String(localized: "session_paused", bundle: .main))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
             
@@ -292,7 +292,7 @@ struct SmallZenloopWidget: View {
                     HStack {
                         Image(systemName: "play.fill")
                             .font(.system(size: 9))
-                        Text("Resume")
+                        Text(String(localized: "resume", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -307,7 +307,7 @@ struct SmallZenloopWidget: View {
                     HStack {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 9))
-                        Text("Stop")
+                        Text(String(localized: "stop", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -329,11 +329,11 @@ struct SmallZenloopWidget: View {
             Text("🎉")
                 .font(.system(size: 24))
             
-            Text("Well Done!")
+            Text(String(localized: "well_done", bundle: .main))
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.white)
             
-            Text(data.currentSessionTitle.isEmpty ? "Session completed!" : "\(data.currentSessionTitle) completed!")
+            Text(data.currentSessionTitle.isEmpty ? String(localized: "session_completed_placeholder", bundle: .main) : "\(data.currentSessionTitle) completed!")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(.green)
                 .lineLimit(2)
@@ -344,7 +344,7 @@ struct SmallZenloopWidget: View {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 10))
-                    Text("Start New Session")
+                    Text(String(localized: "start_new_session", bundle: .main))
                         .font(.system(size: 10, weight: .bold))
                 }
                 .foregroundColor(.white)
@@ -373,7 +373,7 @@ struct MediumZenloopWidget: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 14, height: 14)
-                    Text("Zenloop")
+                    Text(String(localized: "zenloop", bundle: .main))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -436,7 +436,7 @@ struct MediumZenloopWidget: View {
             // Section gauche - Timer et progress
             VStack(alignment: .leading, spacing: 6) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Focus Session")
+                    Text(String(localized: "focus_session", bundle: .main))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white)
                     
@@ -473,7 +473,7 @@ struct MediumZenloopWidget: View {
                     HStack(spacing: 3) {
                         Image(systemName: "pause.fill")
                             .font(.system(size: 12))
-                        Text("Pause")
+                        Text(String(localized: "pause", bundle: .main))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -493,11 +493,11 @@ struct MediumZenloopWidget: View {
             // Section du haut - Message et prochaine session
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Ready to Focus")
+                    Text(String(localized: "ready_to_focus", bundle: .main))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    Text("Choose a session duration to start")
+                    Text(String(localized: "choose_session_duration", bundle: .main))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -507,7 +507,7 @@ struct MediumZenloopWidget: View {
                 // Next session info if available
                 if let nextSession = data.nextScheduledSession {
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text("Scheduled")
+                        Text(String(localized: "scheduled", bundle: .main))
                             .font(.system(size: 8, weight: .medium))
                             .foregroundColor(.white.opacity(0.5))
                         Text(nextSession.formattedStartTime)
@@ -535,7 +535,7 @@ struct MediumZenloopWidget: View {
                     VStack(spacing: 2) {
                         Image(systemName: "timer")
                             .font(.system(size: 14))
-                        Text("25min")
+                        Text(String(localized: "25min", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -553,7 +553,7 @@ struct MediumZenloopWidget: View {
                     VStack(spacing: 2) {
                         Image(systemName: "clock")
                             .font(.system(size: 14))
-                        Text("1 hour")
+                        Text(String(localized: "1_hour", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -571,7 +571,7 @@ struct MediumZenloopWidget: View {
                     VStack(spacing: 2) {
                         Image(systemName: "hourglass")
                             .font(.system(size: 14))
-                        Text("2 hours")
+                        Text(String(localized: "start_2_hours", bundle: .main))
                             .font(.system(size: 10, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -589,11 +589,11 @@ struct MediumZenloopWidget: View {
         HStack(spacing: 16) {
             // Section gauche - Timer
             VStack(alignment: .leading, spacing: 4) {
-                Text("Session Paused")
+                Text(String(localized: "session_paused", bundle: .main))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text("Take a break, then resume when ready")
+                Text(String(localized: "take_break_resume", bundle: .main))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
                 
@@ -610,7 +610,7 @@ struct MediumZenloopWidget: View {
                     HStack(spacing: 3) {
                         Image(systemName: "play.fill")
                             .font(.system(size: 11))
-                        Text("Resume")
+                        Text(String(localized: "resume", bundle: .main))
                             .font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -625,7 +625,7 @@ struct MediumZenloopWidget: View {
                     HStack(spacing: 3) {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 11))
-                        Text("Stop")
+                        Text(String(localized: "stop", bundle: .main))
                             .font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -649,10 +649,10 @@ struct MediumZenloopWidget: View {
                     Text("🎉")
                         .font(.system(size: 24))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Well Done!")
+                        Text(String(localized: "well_done", bundle: .main))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Session completed successfully")
+                        Text(String(localized: "session_completed_successfully", bundle: .main))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.white.opacity(0.7))
                     }
@@ -675,7 +675,7 @@ struct MediumZenloopWidget: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 12))
-                        Text("New Session")
+                        Text(String(localized: "new_session", bundle: .main))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -692,7 +692,7 @@ struct MediumZenloopWidget: View {
     @ViewBuilder
     private var activeSessionDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(data.currentSessionTitle.isEmpty ? "Focus Session" : data.currentSessionTitle)
+            Text(data.currentSessionTitle.isEmpty ? String(localized: "focus_session_placeholder", bundle: .main) : data.currentSessionTitle)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(2)
@@ -711,11 +711,11 @@ struct MediumZenloopWidget: View {
     @ViewBuilder
     private var idleDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Ready to focus")
+            Text(String(localized: "ready_to_focus_tap", bundle: .main))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
             
-            Text("Tap to start session")
+            Text(String(localized: "tap_to_start_session", bundle: .main))
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
         }
@@ -724,7 +724,7 @@ struct MediumZenloopWidget: View {
     @ViewBuilder
     private var pausedDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Session paused")
+            Text(String(localized: "session_paused", bundle: .main))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
             
@@ -737,11 +737,11 @@ struct MediumZenloopWidget: View {
     @ViewBuilder
     private var completedDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Session completed!")
+            Text(String(localized: "session_completed", bundle: .main))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.green)
             
-            Text(data.currentSessionTitle.isEmpty ? "Great job!" : data.currentSessionTitle)
+            Text(data.currentSessionTitle.isEmpty ? String(localized: "great_job", bundle: .main) : data.currentSessionTitle)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.white.opacity(0.8))
                 .lineLimit(1)
