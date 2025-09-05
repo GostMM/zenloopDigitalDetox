@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (Arabic)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "قوتك";
+"shield.title.challenge" = "التحدي نشط";
+"shield.title.detox" = "ديتوكس رقمي";
+"shield.title.flow" = "منطقة التدفق";
+
+// MARK: - Buttons
+"shield.button.primary" = "التركيز";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 بداية ممتازة لليوم\nعقلك في أعلى قدراته.";
+"shield.time.midday" = "☀️ زخم منتصف النهار\nحافظ على هذه الطاقة الإنتاجية.";
+"shield.time.afternoon" = "⚡ أداء بعد الظهر\nهذا هو الوقت الذي تحدث فيه الفارق.";
+"shield.time.evening" = "🌙 إتقان المساء\nأنهِ اليوم بقوة.";
+"shield.time.night" = "🌟 جلسة ليلية مخصصة\nالتزامك المتأخر يظهر عزيمتك.";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "جلسة التركيز العميق تحول عقلك. كل دقيقة تحتسب.";
+"shield.context.challenge" = "هذا التحدي يدفعك نحو نسخة محسنة من نفسك.";
+"shield.context.detox" = "أنت تستعيد السيطرة على انتباهك. إنها قوة عظمى حديثة.";
+"shield.context.flow" = "في منطقة التدفق هذه، تصل إلى إمكاناتك الكاملة.";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "المحاولة الأولى - من الطبيعي أن ترغب في فتح التطبيق.";
+"shield.attempts.few" = "المحاولة #%d - عقلك يختبر عزيمتك.";
+"shield.attempts.good" = "المحاولة #%d - أنت تقاوم أفضل من المتوسط.";
+"shield.attempts.excellent" = "المحاولة #%d - انضباطك يصبح استثنائياً.";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "كل لحظة مقاومة تقوي انضباطك العقلي. أنت تطور قدرة قيمة على التركيز العميق.\n\nاستمر - ستشكرك نفسك في المستقبل.";
+
+// MARK: - Complete message template
+"shield.message.template" = "التطبيق المحجوب: %@";

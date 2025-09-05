@@ -1,0 +1,504 @@
+// Italian (Italiano) Localizable.strings
+// zenloopactivity Extension
+
+// Tab Bar
+"home" = "Home";
+"challenges" = "Sfide";
+"stats" = "Statistiche";
+
+// Splash Screen
+"app_name" = "Zenloop";
+"take_control" = "Riprendi il controllo";
+"one_session" = "Una sessione alla volta";
+
+// Common
+"loading" = "Caricamento...";
+"cancel" = "Annulla";
+"ok" = "OK";
+"save" = "Salva";
+"delete" = "Elimina";
+"edit" = "Modifica";
+"done" = "Fatto";
+"next" = "Avanti";
+"previous" = "Indietro";
+"continue" = "Continua";
+
+// Home - HeroSection
+"progression" = "PROGRESSO";
+"time_remaining" = "TEMPO RIMANENTE";
+"sessions" = "Sessioni";
+"choose_concentration_type" = "Scegli il tuo tipo di concentrazione";
+"session_in_progress" = "Sessione in Corso";
+"session_paused" = "Sessione in Pausa";
+"resume_when_ready" = "Riprendi quando sei pronto";
+"congratulations" = "Congratulazioni! 🎉";
+"session_completed_successfully" = "Sessione completata con successo";
+
+// State titles
+"you_can_do_it" = "Puoi farcela";
+"you_are_focused" = "Sei concentrato!";
+"little_break" = "Piccola pausa";
+"well_done" = "Ben fatto!";
+
+// Navigation
+"session_state" = "Stato Sessione";
+"close" = "Chiudi";
+
+// Action states
+"ready_to_focus" = "Pronto a Concentrarti";
+"in_concentration" = "In Concentrazione";
+"active_pause" = "Pausa Attiva";
+"mission_accomplished" = "Missione Compiuta!";
+
+// Action descriptions
+"choose_concentration_start_session" = "Scegli il tuo tipo di concentrazione e inizia una sessione";
+"stay_focused_progress" = "Resta concentrato, stai progredendo verso il tuo obiettivo";
+"take_time_resume_ready" = "Prenditi il tempo necessario, riprendi quando sei pronto";
+"excellent_work_completed" = "Lavoro eccellente! Hai completato con successo la tua sessione";
+
+// Quick actions
+"deep_focus" = "Concentrazione Profonda";
+"maximum_concentration" = "Massima concentrazione";
+"study" = "Studio";
+"efficient_learning" = "Apprendimento efficiente";
+"creativity" = "Creatività";
+"artistic_expression" = "Espressione artistica";
+"meditation" = "Meditazione";
+"mindfulness" = "Mindfulness";
+
+// Action buttons
+"pause" = "Pausa";
+"stop" = "Stop";
+"resume" = "Riprendi";
+"finish" = "Termina";
+"new_session" = "Nuova Sessione";
+
+// Timer Card
+"take_your_time" = "Prenditi il tuo tempo";
+"everything_ready" = "Tutto è pronto per te";
+"select_apps" = "Seleziona app";
+"start_session" = "Inizia Sessione";
+"apps_blocked" = "App bloccate:";
+"type" = "Tipo";
+"duration" = "Durata";
+"hours" = "Ore";
+"minutes" = "Minuti";
+"apps_to_block" = "App da bloccare";
+"scheduling" = "Programmazione";
+
+// Category Challenges
+"custom_challenges" = "Sfide Personalizzate";
+"tap_to_configure" = "Tocca per configurare";
+"config" = "Config";
+"8h_challenges" = "Sfide 8h";
+"choose_daily_challenge" = "Scegli la tua sfida quotidiana";
+"no_restriction" = "NO";
+"apps" = "app";
+"challenges_by_category" = "Sfide per Categoria";
+"personalize_categories_discover" = "Personalizza le tue categorie per scoprire sfide adatte a te";
+"launch_challenge_add_universes" = "Lancia una sfida o aggiungi nuovi universi da esplorare";
+"configuration" = "Configurazione";
+"challenges" = "sfide";
+"tap_to_personalize" = "Tocca per personalizzare";
+
+// Missing texts
+"first_choose_distractions" = "Prima, scegli le tue distrazioni";
+"selected_apps" = "App selezionate";
+"no_app_selected" = "Nessuna app selezionata";
+"select_apps_to_block" = "Seleziona le app da bloccare";
+"modify" = "Modifica";
+"select" = "Seleziona";
+"confirm_selection" = "Conferma selezione";
+"select_distracting_apps" = "Seleziona le app che ti distraggono di più";
+"apps_selected" = "app selezionate";
+"select_your_distractions" = "Seleziona le tue distrazioni";
+"choose_apps_to_block" = "Scegli le app da bloccare";
+"selected_app" = "App selezionata";
+"selected_category" = "Categoria selezionata";
+"select_once_apps_per_category" = "Seleziona le tue app una volta per categoria per sfide rapide";
+"app_singular" = "app";
+"apps_plural" = "app";
+"selected_singular" = "selezionata";
+"selected_plural" = "selezionate";
+
+// Concentration Type Picker
+"concentration_type" = "Tipo di Concentrazione";
+"choose_ideal_ambiance" = "Scegli la tua atmosfera ideale";
+
+// Concentration Types
+"concentration_deep_focus" = "Concentrazione Profonda";
+"concentration_creativity" = "Creatività";
+"concentration_study" = "Studio";
+"concentration_meditation" = "Meditazione";
+"concentration_work" = "Lavoro";
+
+// Concentration Descriptions
+"concentration_deep_focus_desc" = "Concentrazione intensa per compiti complessi";
+"concentration_creativity_desc" = "Scatena la tua creatività e immaginazione";
+"concentration_study_desc" = "Apprendimento e memorizzazione ottimali";
+"concentration_meditation_desc" = "Calma mentale e pace interiore";
+"concentration_work_desc" = "Massima produttività per i tuoi progetti";
+
+// Expand/Collapse buttons
+"less" = "Meno";
+"more" = "Più";
+
+// Selection indicator
+"selected" = "Selezionato";
+
+// Date formatting
+"today_at" = "Oggi alle %@";
+"tomorrow_at" = "Domani alle %@";
+
+// Button texts
+"schedule_your_moment" = "Programma il tuo momento";
+"lets_go" = "Andiamo!";
+
+// Schedule Picker
+"schedule_start" = "Programma inizio";
+"choose_session_start_time" = "Scegli quando iniziare la tua sessione";
+"start_time" = "Ora di inizio";
+"shortcuts" = "Scorciatoie";
+"in_5_min" = "Tra 5 min";
+"in_15_min" = "Tra 15 min";
+"in_30_min" = "Tra 30 min";
+"in_1_hour" = "Tra 1 ora";
+"programming" = "Programmazione";
+"confirm" = "Conferma";
+
+// Motivation Section
+"motivation" = "Motivazione";
+"a_little_word_for_you" = "Una piccola parola per te";
+
+// Motivational Tips
+"tired_of_endless_scrolling" = "Stanco dello scorrimento infinito?";
+"25_min_focus_better_than_2h_lost" = "25 minuti di vero focus sono meglio di 2 ore perse";
+"tell_yourself_why" = "Dì a te stesso perché";
+"before_starting_remember_why_important" = "Prima di iniziare, ricorda perché è importante per te";
+"breathe_a_little" = "Respira un po'";
+"5_min_break_every_25_brain_thanks" = "5 minuti di pausa ogni 25 minuti, il tuo cervello ti ringrazierà";
+"your_cocoon_of_calm" = "Il tuo bozzolo di calma";
+"tidy_desk_turn_off_notifs_create_serenity" = "Riordina la scrivania, spegni le notifiche, crea il tuo spazio di serenità";
+"go_easy" = "Prendila con calma";
+"every_small_step_counts_no_need_perfect" = "Ogni piccolo passo conta, non c'è bisogno di essere perfetti oggi";
+
+// Active Challenge Section
+"active_session" = "Sessione Attiva";
+"started_at" = "Iniziata alle %@";
+"progression" = "Progresso";
+"time_remaining" = "Tempo Rimanente";
+"opening_attempts" = "%d tentativo di apertura";
+"opening_attempts_plural" = "%d tentativi di apertura";
+
+// Category Challenges Modal
+"category_challenges" = "Sfide per Categoria";
+
+// Category Names
+"category_ai_productivity_short" = "AI";
+"category_social_media_short" = "Social";
+"category_games_entertainment_short" = "Giochi";
+"category_ai_productivity_restriction" = "AI";
+"category_social_media_restriction" = "SOCIAL";
+"category_games_entertainment_restriction" = "GIOCHI";
+
+// Stats Insights Section
+"your_progress" = "I Tuoi Progressi";
+"overview" = "Panoramica";
+"see_all" = "Vedi Tutto";
+"current_streak" = "Striscia Attuale";
+"days" = "giorni";
+"time_saved" = "Tempo Risparmiato";
+"hours" = "ore";
+"challenges_completed" = "Sfide Completate";
+"sessions" = "sessioni";
+"badges_earned" = "Badge Guadagnati";
+"badges" = "badge";
+"recent_badges" = "Badge Recenti";
+"your_latest_achievements" = "I tuoi ultimi risultati";
+"collection" = "Collezione";
+
+// Recent Activity Section
+"recent_activity" = "Attività Recente";
+"your_latest_focus_sessions" = "Le tue ultime sessioni di concentrazione";
+"view_complete_history" = "Visualizza cronologia completa";
+"no_recent_activity" = "Nessuna attività recente";
+"launch_first_focus_challenge" = "Lancia la tua prima sfida di concentrazione\nper iniziare a tracciare i tuoi progressi";
+
+// Activity Types
+"started" = "INIZIATO";
+"completed" = "COMPLETATO";
+"paused" = "IN PAUSA";
+"resumed" = "RIPRESO";
+"stopped" = "FERMATO";
+"finished" = "FINITO";
+
+// Date formatting
+"today_at_time" = "Oggi %@";
+"yesterday_at_time" = "Ieri %@";
+
+// Badge Rarities
+"rarity_common" = "Comune";
+"rarity_rare" = "Raro";
+"rarity_epic" = "Epico";
+"rarity_legendary" = "Leggendario";
+
+// Badge Titles
+"badge_first_step" = "Primo Passo";
+"badge_regular" = "Abituale";
+"badge_determined" = "Determinato";
+"badge_champion" = "Campione";
+"badge_focused" = "Concentrato";
+"badge_focus_master" = "Maestro della Concentrazione";
+"badge_concentration_guru" = "Guru della Concentrazione";
+"badge_night_owl" = "Gufo Notturno";
+"badge_early_bird" = "Mattiniero";
+"badge_marathoner" = "Maratoneta";
+"badge_perfect_week" = "Settimana Perfetta";
+"badge_blocking_master" = "Maestro del Blocco";
+"badge_speedster" = "Velocista";
+
+// Badge Descriptions
+"badge_first_step_desc" = "La tua prima sfida completata!";
+"badge_regular_desc" = "5 sfide completate";
+"badge_determined_desc" = "25 sfide completate";
+"badge_champion_desc" = "100 sfide completate";
+"badge_focused_desc" = "10 ore totali di concentrazione";
+"badge_focus_master_desc" = "50 ore totali di concentrazione";
+"badge_concentration_guru_desc" = "200 ore totali di concentrazione";
+"badge_night_owl_desc" = "Sfida completata dopo le 22:00";
+"badge_early_bird_desc" = "Sfida completata prima delle 6:00";
+"badge_marathoner_desc" = "Sfida di 3 ore";
+"badge_perfect_week_desc" = "7 giorni consecutivi";
+"badge_blocking_master_desc" = "Bloccare 10+ app simultaneamente";
+"badge_speedster_desc" = "5 sfide in 24h";
+
+// Badge Requirements
+"requirement_complete_challenges" = "Completa %d sfide";
+"requirement_accumulate_focus_hours" = "Accumula %dh di concentrazione";
+"requirement_consecutive_days" = "%d giorni consecutivi";
+"requirement_perfect_week" = "Una settimana perfetta";
+"requirement_challenge_after_10pm" = "Sfida dopo le 22:00";
+"requirement_challenge_before_6am" = "Sfida prima delle 6:00";
+"requirement_challenge_duration_hours" = "Sfida di %dh+";
+"requirement_block_apps" = "Bloccare %d+ app";
+"requirement_first_challenge" = "Prima sfida";
+"requirement_challenges_in_24h" = "%d sfide in 24h";
+
+// Header Greetings
+"greeting_morning" = "Buongiorno";
+"greeting_afternoon" = "Buon Pomeriggio";
+"greeting_evening" = "Buonasera";
+"greeting_night" = "Buonanotte";
+
+// Status Messages
+"status_ready_new_challenge" = "Pronto per una nuova sfida";
+"status_focus_in_progress" = "Concentrazione in corso";
+"status_active_pause" = "Pausa attiva";
+"status_mission_accomplished" = "Missione compiuta";
+
+// Modern Challenges View
+"challenges_title" = "Sfide";
+"create_personalized_sessions" = "Crea sessioni personalizzate";
+"custom_challenges" = "Sfide Personalizzate";
+"create" = "Crea";
+"no_custom_challenge" = "Nessuna sfida personalizzata";
+"tap_to_create_first_challenge" = "Tocca per creare la tua prima sfida personalizzata";
+
+// Challenge Actions & States
+"started_exclamation" = "Iniziato!";
+"choose_launch" = "Scegli e Lancia";
+"start" = "Inizia";
+
+// Default Challenges
+"morning_focus" = "Focus Mattutino";
+"start_day_with_concentration" = "Inizia la giornata con concentrazione";
+"deep_work" = "Lavoro Profondo";
+"deep_work_session" = "Sessione di lavoro profondo";
+"study_break" = "Pausa Studio";
+"concentrated_revision" = "Ripasso concentrato";
+"creativity" = "Creatività";
+"creative_session_no_distractions" = "Sessione creativa senza distrazioni";
+
+// Create Challenge Sheet
+"new_challenge" = "Nuova Sfida";
+"challenge_title" = "Titolo della sfida";
+"challenge_title_placeholder" = "Es: Focus Mattutino";
+"description_optional" = "Descrizione (opzionale)";
+"description_placeholder" = "Es: Sessione di concentrazione";
+"duration" = "Durata";
+"difficulty" = "Difficoltà";
+"icon" = "Icona";
+"color" = "Colore";
+"save" = "Salva";
+"my_challenge" = "La Mia Sfida";
+
+// Time units
+"min" = "min";
+
+// Quick Action Cards
+"quick_sessions" = "Sessioni Rapide";
+"start_instantly_with_optimized_presets" = "Inizia istantaneamente con i nostri preset ottimizzati";
+"popular" = "Popolare";
+
+// Quick Presets
+"pomodoro" = "Pomodoro";
+"classic_concentration_technique" = "Tecnica di concentrazione classica";
+"deep_focus" = "Concentrazione Profonda";
+"deep_continuous_concentration" = "Concentrazione profonda e continua";
+"sprint" = "Sprint";
+"quick_intense_session" = "Sessione rapida e intensa";
+"flow_state" = "Stato di Flusso";
+"total_immersion_creativity" = "Immersione totale e creatività";
+
+// Feedback Messages
+"session_started_exclamation" = "Sessione Iniziata!";
+"return_to_home_to_see_challenge" = "Torna alla home per vedere la tua sfida";
+
+// Onboarding
+"digital_wellness" = "Benessere Digitale";
+"get_started" = "Inizia";
+"continue" = "Continua";
+"skip" = "Salta";
+
+// Onboarding Pages
+"take_back_control" = "Riprendi il Controllo";
+"take_back_control_desc" = "Trasforma la tua relazione con la tecnologia. Zenloop ti aiuta a creare abitudini digitali sane e a riconquistare la tua concentrazione.";
+"focus_sessions" = "Sessioni di Concentrazione";
+"focus_sessions_desc" = "Lancia sessioni di concentrazione personalizzate. Blocca le app che distraggono e rimani nella tua zona di flusso ottimale.";
+"challenges_gamification" = "Sfide e Gamification";
+"challenges_gamification_desc" = "Guadagna badge, sblocca risultati e progredisci verso i tuoi obiettivi di benessere digitale giorno dopo giorno.";
+"advanced_insights" = "Insight Avanzati";
+"advanced_insights_desc" = "Analizza le tue abitudini con statistiche dettagliate e report personalizzati per ottimizzare il tuo tempo schermo.";
+
+// Paywall
+"premium" = "Premium";
+"unlock_your_potential" = "Sblocca il Tuo Potenziale";
+"unlock_your_potential_desc" = "Accedi a tutte le funzionalità premium e trasforma permanentemente le tue abitudini digitali";
+"premium_features" = "Funzionalità Premium";
+"choose_your_plan" = "Scegli il Tuo Piano";
+"start_premium" = "Inizia Premium";
+"processing" = "Elaborazione...";
+"money_back_guarantee" = "Garanzia di rimborso di 7 giorni";
+
+// Premium Features
+"unlimited_sessions" = "Sessioni Illimitate";
+"unlimited_sessions_desc" = "Tutte le sessioni di concentrazione che vuoi";
+"advanced_analytics" = "Analytics Avanzate";
+"advanced_analytics_desc" = "Statistiche dettagliate e insight personalizzati";
+"all_badges" = "Tutti i Badge";
+"all_badges_desc" = "Sblocca tutti i risultati premium";
+"multi_device_sync" = "Sincronizzazione Multi-Dispositivo";
+"multi_device_sync_desc" = "Sincronizzazione su tutti i tuoi dispositivi";
+"premium_themes" = "Temi Premium";
+"premium_themes_desc" = "Personalizza l'app con temi esclusivi";
+"priority_support" = "Supporto Prioritario";
+"priority_support_desc" = "Assistenza premium 24/7";
+
+// Pricing Plans
+"yearly" = "Annuale";
+"monthly" = "Mensile";
+"save_60_percent" = "Risparmia il 60%";
+"maximum_flexibility" = "Massima flessibilità";
+"popular" = "POPOLARE";
+
+// Trust Section
+"app_store" = "App Store";
+"users" = "Utenti";
+"secure_data" = "Sicuro";
+"data" = "Dati";
+"trust_message" = "Unisciti alle migliaia di utenti che hanno già trasformato la loro relazione con la tecnologia";
+
+// Stats View
+"statistics" = "Statistiche";
+"refresh" = "Aggiorna";
+"authorize_screen_time" = "Autorizza Tempo Schermo";
+
+// Stats Screens
+"apple" = "Apple";
+"overview" = "Panoramica";
+"analytics" = "Analytics";
+
+// Time Periods
+"today" = "Oggi";
+"7_days" = "7 giorni";
+"30_days" = "30 giorni";
+
+// Apple Screen
+"authorize_screen_time_detail" = "Autorizza Tempo Schermo per vedere i dettagli Apple.";
+
+// Overview Screen
+"screen" = "Schermo";
+"off_screen" = "Fuori Schermo";
+"saved" = "Risparmiato";
+"you_saved_time_percent" = "Hai risparmiato %@ (%d%%) durante questo periodo.";
+
+// Analytics Screen
+"trend" = "Trend";
+"top_categories" = "Categorie Top";
+"not_enough_data" = "Dati insufficienti.";
+
+// Last Updated
+"updated_maj" = "Agg ";
+
+// Breathing Meditation
+"breathing" = "Respirazione";
+"follow_circle_rhythm" = "Segui il ritmo del cerchio";
+"breathe_deeply_relax" = "Respira profondamente e rilassati";
+
+// Breathing Phases
+"inhale" = "Inspira";
+"hold" = "Trattieni";
+"exhale" = "Espira";
+"pause" = "Pausa";
+
+// Breathing Counts
+"count_inhale" = "1...2...3...4";
+"count_hold" = "Trattieni...";
+"count_exhale" = "1...2...3...4...5...6";
+"count_pause" = "Rilascia...";
+
+// Breathing Decision Sheet
+"breathing_moment_completed" = "Momento di respirazione completato";
+"what_would_you_like_to_do" = "Cosa vorresti fare ora?";
+"continue_session" = "Continua sessione";
+"stop_return_home" = "Ferma e torna alla home";
+
+// Device Activity Report
+"overview" = "Panoramica";
+"applications" = "Applicazioni";
+"daily" = "Giornaliero";
+"weekly" = "Settimanale";
+"total" = "Totale";
+"distribution" = "Distribuzione";
+"top_categories" = "Categorie Top";
+"no_category" = "Nessuna categoria";
+"no_activity_detected" = "Nessuna attività rilevata per questo periodo";
+"others" = "Altri";
+"explore_applications" = "Esplora applicazioni";
+"see_detailed_ranking" = "Vedi classifica dettagliata";
+"no_application" = "Nessuna applicazione";
+"no_apps_found" = "Nessuna app trovata";
+"no_results_for" = "Nessun risultato per '%@'";
+"search" = "Cerca";
+"sort" = "Ordina";
+"sort_by" = "Ordina per";
+"time" = "Tempo";
+"name" = "Nome";
+"show_more" = "Mostra altri %d";
+"app_singular" = "app";
+"apps_plural" = "app";
+
+// zenloopactivity Extension strings
+"screen_time" = "Tempo Schermo";
+"updating" = "aggiornamento...";
+"category_distribution" = "Distribuzione Categorie";
+"health" = "Salute";
+"productivity" = "Produttività";
+"recent_days" = "Giorni recenti";
+"weekday_vs_weekend" = "Giorni feriali vs Weekend";
+"weekend" = "Weekend";
+"more_active_weekend" = "Più attivo nei weekend";
+"more_active_weekday" = "Più attivo nei giorni feriali";
+"average" = "Media";
+"favorite_app" = "App preferita";
+"daily_average" = "Media giornaliera";

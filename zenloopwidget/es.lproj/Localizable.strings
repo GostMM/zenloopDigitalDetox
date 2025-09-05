@@ -1,0 +1,62 @@
+/* 
+   Localizable.strings (Spanish)
+   zenloopwidget
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Widget Configuration
+"widget.title" = "Zenloop Focus";
+"widget.description" = "Rastrea tus sesiones de concentración y progreso de bienestar digital";
+
+// MARK: - Brand Name
+"zenloop" = "Zenloop";
+
+// MARK: - Session States
+"ready_to_focus" = "Listo para Enfocar";
+"focus_session" = "Sesión de Concentración";
+"session_paused" = "Sesión Pausada";
+"well_done" = "¡Bien Hecho!";
+
+// MARK: - Action Buttons
+"pause" = "Pausar";
+"resume" = "Reanudar";
+"stop" = "Detener";
+"start_25min" = "Iniciar 25min";
+"start_1_hour" = "Iniciar 1 hora";
+"start_2_hours" = "2 horas";
+"new_session" = "Nueva Sesión";
+"start_new_session" = "Iniciar Nueva Sesión";
+
+// MARK: - Status Messages
+"choose_session_duration" = "Elige una duración de sesión para comenzar";
+"take_break_resume" = "Toma un descanso, luego reanuda cuando estés listo";
+"session_completed_successfully" = "Sesión completada exitosamente";
+"great_job" = "¡Excelente trabajo!";
+
+// MARK: - Time Formats
+"25min" = "25min";
+"1_hour" = "1 hora";
+
+// MARK: - Scheduled Sessions
+"scheduled" = "Programado";
+"next" = "Siguiente:";
+
+// MARK: - Completion Messages
+"session_completed" = "¡Sesión completada!";
+"ready_to_focus_tap" = "Listo para enfocar";
+"tap_to_start_session" = "Toca para iniciar sesión";
+
+// MARK: - Placeholders
+"focus_session_placeholder" = "Sesión de Concentración";
+"session_completed_placeholder" = "¡Sesión completada!";
+
+// MARK: - Widget States
+"state_ready_to_focus" = "Listo para Enfocar";
+"state_in_session" = "En Sesión";
+"state_paused" = "Pausado";
+"state_completed" = "¡Completado!";
+
+// MARK: - Quick Session
+"quick_session_title" = "Sesión Rápida %dm";
+"session_cancelled_conflict" = "La sesión fue cancelada o existe un conflicto";

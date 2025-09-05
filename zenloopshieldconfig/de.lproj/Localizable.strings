@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (German)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "DEINE STÄRKE";
+"shield.title.challenge" = "HERAUSFORDERUNG AKTIV";
+"shield.title.detox" = "DIGITALE ENTGIFTUNG";
+"shield.title.flow" = "FLOW-ZONE";
+
+// MARK: - Buttons
+"shield.button.primary" = "FOKUS";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 EXZELLENTER START IN DEN TAG\nDein Gehirn ist auf Höchstleistung.";
+"shield.time.midday" = "☀️ MITTAGS-MOMENTUM\nHalte diese produktive Energie aufrecht.";
+"shield.time.afternoon" = "⚡ NACHMITTAGS-PERFORMANCE\nJetzt machst du den Unterschied.";
+"shield.time.evening" = "🌙 ABEND-MEISTERSCHAFT\nBeende den Tag stark.";
+"shield.time.night" = "🌟 ENGAGIERTE NACHTSITZUNG\nDein spätes Engagement zeigt Entschlossenheit.";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "Deine Tiefenkonzentrations-Sitzung transformiert dein Gehirn. Jede Minute zählt.";
+"shield.context.challenge" = "Diese Herausforderung drängt dich zu einer verbesserten Version deiner selbst.";
+"shield.context.detox" = "Du übernimmst wieder die Kontrolle über deine Aufmerksamkeit. Das ist eine moderne Superkraft.";
+"shield.context.flow" = "In dieser Flow-Zone erreichst du dein volles Potenzial.";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "Erster Versuch - es ist normal, die App öffnen zu wollen.";
+"shield.attempts.few" = "Versuch #%d - dein Gehirn testet deine Entschlossenheit.";
+"shield.attempts.good" = "Versuch #%d - du widerstehst besser als der Durchschnitt.";
+"shield.attempts.excellent" = "Versuch #%d - deine Disziplin wird außergewöhnlich.";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "Jeder Moment des Widerstands stärkt deine geistige Disziplin. Du entwickelst eine wertvolle Fähigkeit zur Tiefenkonzentration.\n\nMach weiter - dein zukünftiges Ich wird dir danken.";
+
+// MARK: - Complete message template
+"shield.message.template" = "Blockierte App: %@";

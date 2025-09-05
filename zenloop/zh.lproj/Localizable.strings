@@ -1,0 +1,839 @@
+// Chinese (中文) Localizable.strings
+
+// Tab Bar
+"home" = "首页";
+"challenges" = "挑战";
+"stats" = "统计";
+
+// Splash Screen
+"app_name" = "Zenloop";
+"take_control" = "重新掌控";
+"one_session" = "一次专注一个目标";
+"break_infinite_loop" = "打破无限循环";
+
+// Common
+"loading" = "加载中...";
+"cancel" = "取消";
+"ok" = "确定";
+"save" = "保存";
+"delete" = "删除";
+"edit" = "编辑";
+"done" = "完成";
+"next" = "下一步";
+"previous" = "上一步";
+"continue" = "继续";
+
+// Home - HeroSection
+"progression" = "进度";
+"time_remaining" = "剩余时间";
+"sessions" = "专注时长";
+"choose_concentration_type" = "选择您的专注类型";
+"session_in_progress" = "专注进行中";
+"session_paused" = "专注已暂停";
+"resume_when_ready" = "准备好后继续";
+"congratulations" = "恭喜！🎉";
+"session_completed_successfully" = "专注成功完成";
+
+// State titles
+"you_can_do_it" = "你能做到";
+"you_are_focused" = "你正在专注！";
+"little_break" = "小憩一下";
+"well_done" = "做得好！";
+
+// Navigation
+"session_state" = "专注状态";
+"close" = "关闭";
+
+// Action states
+"ready_to_focus" = "准备专注";
+"in_concentration" = "专注中";
+"active_pause" = "积极休息";
+"mission_accomplished" = "任务完成！";
+
+// Action descriptions
+"choose_concentration_start_session" = "选择您的专注类型并开始专注";
+"stay_focused_progress" = "保持专注，您正在朝目标前进";
+"take_time_resume_ready" = "慢慢来，准备好后继续";
+"excellent_work_completed" = "出色的工作！您成功完成了专注";
+
+// Quick actions
+"deep_focus" = "深度专注";
+"maximum_concentration" = "最大专注力";
+"study" = "学习";
+"efficient_learning" = "高效学习";
+"creativity" = "创意";
+"artistic_expression" = "艺术表达";
+"meditation" = "冥想";
+"mindfulness" = "正念";
+
+// Action buttons
+"pause" = "暂停";
+"stop" = "停止";
+"resume" = "继续";
+"finish" = "完成";
+"new_session" = "新专注";
+
+// Timer Card
+"take_your_time" = "慢慢来";
+"everything_ready" = "一切已为您准备就绪";
+"select_apps" = "选择应用";
+"start_session" = "开始专注";
+"apps_blocked" = "已屏蔽应用：";
+"type" = "类型";
+"duration" = "时长";
+"hours" = "小时";
+"minutes" = "分钟";
+"apps_to_block" = "要屏蔽的应用";
+"scheduling" = "计划安排";
+
+// Category Challenges
+"custom_challenges" = "自定义挑战";
+"tap_to_configure" = "点击配置";
+"config" = "配置";
+"8h_challenges" = "8小时挑战";
+"choose_daily_challenge" = "选择您的每日挑战";
+"no_restriction" = "无";
+"apps" = "应用";
+"challenges_by_category" = "分类挑战";
+"personalize_categories_discover" = "个性化您的分类，发现适合您的挑战";
+"launch_challenge_add_universes" = "发起挑战或添加新领域探索";
+"configuration" = "配置";
+"challenges" = "挑战";
+"tap_to_personalize" = "点击个性化";
+
+// Missing texts
+"first_choose_distractions" = "首先，选择您的干扰源";
+"selected_apps" = "已选应用";
+"no_app_selected" = "未选择应用";
+"select_apps_to_block" = "选择要屏蔽的应用";
+"modify" = "修改";
+"select" = "选择";
+"confirm_selection" = "确认选择";
+"select_distracting_apps" = "选择最让您分心的应用";
+"apps_selected" = "个应用已选择";
+"select_your_distractions" = "选择您的干扰源";
+"choose_apps_to_block" = "选择要屏蔽的应用";
+"selected_app" = "已选应用";
+"selected_category" = "已选分类";
+"select_once_apps_per_category" = "每个分类选择一次应用以进行快速挑战";
+"app_singular" = "应用";
+"apps_plural" = "应用";
+"selected_singular" = "已选择";
+"selected_plural" = "已选择";
+
+// Concentration Type Picker
+"concentration_type" = "专注类型";
+"choose_ideal_ambiance" = "选择您的理想氛围";
+
+// Concentration Types
+"concentration_deep_focus" = "深度专注";
+"concentration_creativity" = "创意";
+"concentration_study" = "学习";
+"concentration_meditation" = "冥想";
+"concentration_work" = "工作";
+
+// Concentration Descriptions
+"concentration_deep_focus_desc" = "复杂任务的深度专注";
+"concentration_creativity_desc" = "释放您的创造力和想象力";
+"concentration_study_desc" = "最佳学习和记忆效果";
+"concentration_meditation_desc" = "心灵平静与内心安宁";
+"concentration_work_desc" = "项目的最高生产力";
+
+// Short descriptions for 2x2 grid
+"deep_focus_short" = "最大专注";
+"creativity_short" = "创意";
+"study_short" = "学习";
+"meditation_short" = "冥想";
+"work_short" = "工作";
+
+// Expand/Collapse buttons
+"less" = "收起";
+"more" = "更多";
+
+// Selection indicator
+"selected" = "已选择";
+
+// Date formatting
+"today_at" = "今天 %@";
+"tomorrow_at" = "明天 %@";
+
+// Button texts
+"schedule_your_moment" = "安排您的时刻";
+"lets_go" = "开始！";
+
+// Schedule Picker
+"schedule_start" = "计划开始";
+"choose_session_start_time" = "选择专注开始时间";
+"start_time" = "开始时间";
+"shortcuts" = "快捷方式";
+"in_5_min" = "5分钟后";
+"in_15_min" = "15分钟后";
+"in_30_min" = "30分钟后";
+"in_1_hour" = "1小时后";
+"programming" = "编程";
+"confirm" = "确认";
+
+// Motivation Section
+"motivation" = "激励";
+"a_little_word_for_you" = "给您的话";
+
+// Motivational Tips
+"tired_of_endless_scrolling" = "厌倦了无休止的滚动？";
+"25_min_focus_better_than_2h_lost" = "25分钟真正的专注胜过浪费的2小时";
+"tell_yourself_why" = "告诉自己为什么";
+"before_starting_remember_why_important" = "开始前，记住为什么这对您很重要";
+"breathe_a_little" = "稍微呼吸一下";
+"5_min_break_every_25_brain_thanks" = "每25分钟休息5分钟，您的大脑会感谢您";
+"your_cocoon_of_calm" = "您的宁静茧房";
+"tidy_desk_turn_off_notifs_create_serenity" = "整理桌面，关闭通知，创造宁静空间";
+"go_easy" = "放轻松";
+"every_small_step_counts_no_need_perfect" = "每一小步都很重要，今天不必完美";
+
+// Active Challenge Section
+"active_session" = "活跃专注";
+"started_at" = "开始于 %@";
+"progression" = "进度";
+"time_remaining" = "剩余时间";
+"opening_attempts" = "%d 次打开尝试";
+"opening_attempts_plural" = "%d 次打开尝试";
+
+// Category Challenges Modal
+"category_challenges" = "分类挑战";
+
+// Category Names
+"category_ai_productivity_short" = "AI";
+"category_social_media_short" = "社交";
+"category_games_entertainment_short" = "游戏";
+"category_ai_productivity_restriction" = "AI";
+"category_social_media_restriction" = "社交";
+"category_games_entertainment_restriction" = "游戏";
+
+// Stats Insights Section
+"your_progress" = "您的进度";
+"overview" = "概览";
+"see_all" = "查看全部";
+"current_streak" = "当前连续";
+"days" = "天";
+"time_saved" = "节省时间";
+"hours" = "小时";
+"challenges_completed" = "完成挑战";
+"sessions" = "专注";
+"badges_earned" = "获得徽章";
+"badges" = "徽章";
+"recent_badges" = "最新徽章";
+"your_latest_achievements" = "您的最新成就";
+"collection" = "收藏";
+
+// Recent Activity Section
+"recent_activity" = "最近活动";
+"your_latest_focus_sessions" = "您最近的专注";
+"view_complete_history" = "查看完整历史";
+"no_recent_activity" = "无最近活动";
+"launch_first_focus_challenge" = "开始您的第一个专注挑战\n开始追踪您的进度";
+
+// Activity Types
+"started" = "已开始";
+"completed" = "已完成";
+"paused" = "已暂停";
+"resumed" = "已恢复";
+"stopped" = "已停止";
+"finished" = "已结束";
+"scheduled" = "已安排";
+
+// Date formatting
+"today_at_time" = "今天 %@";
+"yesterday_at_time" = "昨天 %@";
+
+// Badge Rarities
+"rarity_common" = "普通";
+"rarity_rare" = "稀有";
+"rarity_epic" = "史诗";
+"rarity_legendary" = "传奇";
+
+// Badge Titles
+"badge_first_step" = "第一步";
+"badge_regular" = "常客";
+"badge_determined" = "坚定者";
+"badge_champion" = "冠军";
+"badge_focused" = "专注者";
+"badge_focus_master" = "专注大师";
+"badge_concentration_guru" = "专注大师";
+"badge_night_owl" = "夜猫子";
+"badge_early_bird" = "早起鸟";
+"badge_marathoner" = "马拉松跑者";
+"badge_perfect_week" = "完美一周";
+"badge_blocking_master" = "屏蔽大师";
+"badge_speedster" = "速度之星";
+
+// Badge Descriptions
+"badge_first_step_desc" = "您的第一个挑战完成！";
+"badge_regular_desc" = "完成5个挑战";
+"badge_determined_desc" = "完成25个挑战";
+"badge_champion_desc" = "完成100个挑战";
+"badge_focused_desc" = "总专注时间10小时";
+"badge_focus_master_desc" = "总专注时间50小时";
+"badge_concentration_guru_desc" = "总专注时间200小时";
+"badge_night_owl_desc" = "晚上10点后完成挑战";
+"badge_early_bird_desc" = "早上6点前完成挑战";
+"badge_marathoner_desc" = "3小时挑战";
+"badge_perfect_week_desc" = "连续7天";
+"badge_blocking_master_desc" = "同时屏蔽10+个应用";
+"badge_speedster_desc" = "24小时内5个挑战";
+
+// Badge Requirements
+"requirement_complete_challenges" = "完成 %d 个挑战";
+"requirement_accumulate_focus_hours" = "累积 %d 小时专注";
+"requirement_consecutive_days" = "%d 天连续";
+"requirement_perfect_week" = "完美一周";
+"requirement_challenge_after_10pm" = "晚上10点后挑战";
+"requirement_challenge_before_6am" = "早上6点前挑战";
+"requirement_challenge_duration_hours" = "%d小时+ 挑战";
+"requirement_block_apps" = "屏蔽 %d+ 个应用";
+"requirement_first_challenge" = "第一个挑战";
+"requirement_challenges_in_24h" = "24小时内 %d 个挑战";
+
+// Header Greetings
+"greeting_morning" = "早上好";
+"greeting_afternoon" = "下午好";
+"greeting_evening" = "晚上好";
+"greeting_night" = "晚上好";
+
+// Status Messages
+"status_ready_new_challenge" = "准备新挑战";
+"status_focus_in_progress" = "专注进行中";
+"status_active_pause" = "积极休息";
+"status_mission_accomplished" = "任务完成";
+
+// Modern Challenges View
+"challenges_title" = "挑战";
+"create_personalized_sessions" = "创建个性化专注";
+"custom_challenges" = "自定义挑战";
+"create" = "创建";
+"no_custom_challenge" = "无自定义挑战";
+"tap_to_create_first_challenge" = "点击创建您的第一个自定义挑战";
+
+// Challenge Actions & States
+"started_exclamation" = "已开始！";
+"choose_launch" = "选择并启动";
+"start" = "开始";
+
+// Default Challenges
+"morning_focus" = "晨间专注";
+"start_day_with_concentration" = "专注开始新的一天";
+"deep_work" = "深度工作";
+"deep_work_session" = "深度工作专注";
+"study_break" = "学习休息";
+"concentrated_revision" = "专注复习";
+"creativity" = "创意";
+"creative_session_no_distractions" = "无干扰创意专注";
+
+// Create Challenge Sheet
+"new_challenge" = "新挑战";
+"challenge_title" = "挑战标题";
+"challenge_title_placeholder" = "例：晨间专注";
+"description_optional" = "描述（可选）";
+"description_placeholder" = "例：专注时间";
+"duration" = "时长";
+"difficulty" = "难度";
+"icon" = "图标";
+"color" = "颜色";
+"save" = "保存";
+"my_challenge" = "我的挑战";
+
+// Time units
+"min" = "分钟";
+
+// Quick Action Cards
+"quick_sessions" = "快速专注";
+"start_instantly_with_optimized_presets" = "使用我们优化的预设立即开始";
+"popular" = "热门";
+
+// Quick Presets
+"pomodoro" = "番茄工作法";
+"classic_concentration_technique" = "经典专注技巧";
+"deep_focus" = "深度专注";
+"deep_continuous_concentration" = "深度持续专注";
+"sprint" = "冲刺";
+"quick_intense_session" = "快速强化专注";
+"flow_state" = "心流状态";
+"total_immersion_creativity" = "完全沉浸和创造力";
+
+// Feedback Messages
+"session_started_exclamation" = "专注已开始！";
+"return_to_home_to_see_challenge" = "返回首页查看您的挑战";
+
+// Onboarding
+"digital_wellness" = "数字健康";
+"get_started" = "开始使用";
+"continue" = "继续";
+"skip" = "跳过";
+
+// Onboarding Pages
+"take_back_control" = "重新掌控";
+"take_back_control_desc" = "改变您与科技的关系。Zenloop帮助您创建健康的数字习惯并重获专注力。";
+"focus_sessions" = "专注时间";
+"focus_sessions_desc" = "启动个性化专注。屏蔽干扰应用，保持在最佳心流区域。";
+"focus_sessions_and_insights" = "专注与洞察";
+"focus_sessions_and_insights_desc" = "启动个性化专注，赚取徽章，获得关于数字习惯的详细洞察来优化您的健康。";
+"challenges_gamification" = "挑战与游戏化";
+"challenges_gamification_desc" = "赚取徽章，解锁成就，日复一日朝着数字健康目标前进。";
+"advanced_insights" = "高级洞察";
+"advanced_insights_desc" = "通过详细统计和个性化报告分析您的习惯，优化屏幕时间。";
+
+// Paywall
+"premium" = "高级版";
+"unlock_your_potential" = "释放您的潜能";
+"unlock_your_potential_desc" = "访问所有高级功能，永久改变您的数字习惯";
+"premium_features" = "高级功能";
+"choose_your_plan" = "选择您的计划";
+"start_premium" = "开始高级版";
+"processing" = "处理中...";
+"money_back_guarantee" = "7天退款保证";
+
+// Premium Features
+"unlimited_sessions" = "无限专注";
+"unlimited_sessions_desc" = "想要多少专注时间都可以";
+"advanced_analytics" = "高级分析";
+"advanced_analytics_desc" = "详细统计和个性化洞察";
+"all_badges" = "所有徽章";
+"all_badges_desc" = "解锁所有高级成就";
+"multi_device_sync" = "多设备同步";
+"multi_device_sync_desc" = "所有设备间同步";
+"premium_themes" = "高级主题";
+"premium_themes_desc" = "使用独家主题自定义应用";
+"priority_support" = "优先支持";
+"priority_support_desc" = "高级24/7协助";
+
+// Pricing Plans
+"lifetime" = "终身";
+"yearly" = "年付";
+"monthly" = "月付";
+"one_payment_forever" = "一次付费，终身使用";
+"free_trial_7_days_yearly" = "7天免费，然后年度计费";
+"free_trial_7_days_monthly" = "7天免费，然后月度计费";
+"save_60_percent" = "节省60%";
+"maximum_flexibility" = "最大灵活性";
+"popular" = "热门";
+
+// Trust Section
+"app_store" = "App Store";
+"users" = "用户";
+"secure_data" = "安全";
+"data" = "数据";
+"trust_message" = "加入已经改变与科技关系的数千名用户";
+
+// Stats View
+"statistics" = "统计";
+"refresh" = "刷新";
+"authorize_screen_time" = "授权屏幕使用时间";
+
+// Stats Screens
+"apple" = "Apple";
+"overview" = "概览";
+"analytics" = "分析";
+
+// Time Periods
+"today" = "今天";
+"7_days" = "7天";
+"30_days" = "30天";
+
+// Apple Screen
+"authorize_screen_time_detail" = "授权屏幕使用时间以查看Apple详情。";
+
+// Overview Screen
+"screen" = "屏幕";
+"off_screen" = "离开屏幕";
+"saved" = "已保存";
+"you_saved_time_percent" = "您在此期间节省了 %@ (%d%%)。";
+
+// Analytics Screen
+"trend" = "趋势";
+"top_categories" = "热门分类";
+"not_enough_data" = "数据不足。";
+
+// Last Updated
+"updated_maj" = "更新 ";
+
+// Breathing Meditation
+"breathing" = "呼吸";
+"follow_circle_rhythm" = "跟随圆圈的节奏";
+"breathe_deeply_relax" = "深呼吸放松";
+
+// Breathing Phases
+"inhale" = "吸气";
+"hold" = "屏住";
+"exhale" = "呼气";
+"pause" = "暂停";
+
+// Breathing Counts
+"count_inhale" = "1...2...3...4";
+"count_hold" = "屏住...";
+"count_exhale" = "1...2...3...4...5...6";
+"count_pause" = "释放...";
+
+// Breathing Decision Sheet
+"breathing_moment_completed" = "呼吸时刻完成";
+"what_would_you_like_to_do" = "您现在想做什么？";
+"continue_session" = "继续专注";
+"stop_return_home" = "停止并返回首页";
+
+// Device Activity Report
+"overview" = "概览";
+"applications" = "应用程序";
+"daily" = "每日";
+"weekly" = "每周";
+"total" = "总计";
+"distribution" = "分布";
+"top_categories" = "热门分类";
+"no_category" = "无分类";
+"no_activity_detected" = "此期间未检测到活动";
+"others" = "其他";
+"explore_applications" = "探索应用程序";
+"see_detailed_ranking" = "查看详细排名";
+"no_application" = "无应用程序";
+"no_apps_found" = "未找到应用";
+"no_results_for" = "'%@' 无结果";
+"search" = "搜索";
+"sort" = "排序";
+"sort_by" = "排序依据";
+"time" = "时间";
+"name" = "名称";
+"show_more" = "显示更多 %d 个";
+"app_singular" = "应用";
+"apps_plural" = "应用";
+
+// Paywall Hypnotic Messages
+"hypnotic_unlock_potential" = "释放您的潜能";
+"hypnotic_stop_scrolling" = "停止无尽滚动";
+"hypnotic_focus_master" = "成为专注大师";
+"hypnotic_time_is_gold" = "您的时间是黄金";
+"hypnotic_transform_productivity" = "转变您的生产力";
+"hypnotic_unlock_superpower" = "释放您的超能力";
+"hypnotic_take_control_now" = "现在就掌控";
+"hypnotic_premium_version" = "成为您的高级版本";
+"paywall_ultimate_experience" = "获得终极体验";
+
+// Session Notifications
+"session_starting_soon" = "专注即将开始";
+"session_starts_in_15_minutes" = "%@ 将在15分钟后开始。准备好！";
+"session_starting_now" = "专注现在开始！";
+"session_starts_in_2_minutes" = "%@ 将在2分钟后开始。专注时间到了！";
+"focus_time" = "专注时间！";
+"session_ready_to_start" = "%@ 准备开始！点击开始您的专注。";
+"session_progress_halfway" = "已完成一半！";
+"halfway_through_session" = "您的专注已完成一半。继续加油！";
+"session_complete" = "专注完成！🎉";
+"session_started" = "专注已开始";
+"session_started_successfully" = "%@ 已成功开始！保持专注。";
+"app_blocked" = "应用已屏蔽！🛡️";
+"app_blocked_during_session" = "%@ 在您的专注期间被屏蔽。保持正轨！";
+
+// Daily Tips & Motivational Notifications
+"daily_wellness_tip" = "每日健康小贴士";
+"stay_motivated" = "保持动力";
+"weekly_preparation" = "每周准备";
+"prepare_for_productive_week" = "准备好迎接富有成效的一周？设定您的专注目标并实现它！🎯";
+
+// Tips Content
+"take_regular_breaks_tip" = "定期休息以在一天中保持专注。您的大脑会感谢您！🧠";
+"single_tasking_tip" = "一次专注一项任务。多任务处理是一个会降低生产力40%的神话。";
+"notification_silence_tip" = "在专注时间关闭非必要通知。创造您的深度专注区域。";
+"morning_routine_tip" = "用10分钟的专注仪式开始您的一天。设定意图并为成功做准备。";
+"deep_work_blocks_tip" = "安排90分钟的深度工作块。这与您自然的注意力周期匹配，实现最高生产力。";
+
+// Motivational Reminders
+"small_steps_big_impact" = "小而持续的步骤创造大的转变。您正在构建令人惊叹的东西！✨";
+"consistency_beats_intensity" = "持续胜过强度。继续出现，即使每天只有10分钟。";
+"focus_is_superpower" = "在一个分心的世界里，您深度专注的能力是您的超能力。明智地使用它！🦸‍♀️";
+"digital_wellness_journey" = "每个有意识使用手机的时刻都是您数字健康之旅的胜利。为自己感到骄傲！";
+"proud_of_progress" = "看看您走了多远！您的未来会感谢您今天建立的专注习惯。";
+
+// Permission Onboarding
+"setup_permissions" = "设置权限";
+"screen_time_access" = "屏幕使用时间访问";
+"smart_notifications" = "智能通知";
+"personal_insights" = "个人洞察";
+"screen_time_explanation" = "授权屏幕使用时间访问以有效屏蔽干扰应用并创建个性化专注。";
+"notification_explanation" = "接收智能提醒、每日小贴士和鼓励以维持您的健康数字习惯。";
+"insights_preview_description" = "发现关于您使用情况的个性化洞察，并追踪您朝着最佳数字健康的进展。";
+"block_distracting_apps" = "屏蔽干扰应用";
+"track_usage_patterns" = "追踪您的使用模式";
+"create_focus_sessions" = "创建专注时间";
+"authorize_screen_time" = "授权屏幕使用时间";
+"enable_notifications" = "启用通知";
+"maybe_later" = "稍后再说";
+"start_your_journey" = "开始您的旅程";
+"processing" = "处理中...";
+"daily_average" = "每日平均";
+"trend" = "趋势";
+"insights" = "洞察";
+"unlock_insights_with_screen_time" = "通过启用屏幕使用时间解锁详细洞察，并发现如何优化您的屏幕时间！";
+"high_usage_insight" = "您每天平均在手机上花费 %@。让我们一起优化这个时间！";
+"moderate_usage_insight" = "每天 %@ 的屏幕时间，您走在正确的轨道上！让我们帮助您专注于重要的事情。";
+"low_usage_insight" = "做得好！您每天 %@ 的使用显示了健康的数字习惯。让我们保持这种平衡。";
+"top_category_insight" = "您的热门分类是 %@";
+"enable_screen_time_for_insights" = "启用屏幕使用时间获得个性化洞察";
+
+// Encouragement Messages
+"start_your_digital_wellness_journey" = "开始您的数字健康之旅";
+"great_progress_today" = "今天进展很好！继续保持";
+"time_for_focus_break" = "是时候专注休息并重新连接重要的事情";
+"stay_mindful_of_usage" = "保持对使用的意识，您走在正确的轨道上";
+
+// Daily Insights Card
+"daily_insights" = "每日洞察";
+"your_screen_time_today" = "您今天的屏幕时间";
+"loading_insights" = "加载洞察中...";
+"enable_screen_time_for_detailed_insights" = "在设置中启用屏幕使用时间以获得详细洞察";
+"open_settings" = "打开设置";
+"top_category_today" = "今日热门分类：%@";
+
+// Daily Report Modal
+"good_morning" = "早上好";
+"good_afternoon" = "下午好";
+"good_evening" = "晚上好";
+"morning_report_subtitle" = "这是您开始一天的方式";
+"afternoon_report_subtitle" = "让我们检查您到目前为止的进展";
+"evening_report_subtitle" = "是时候反思您的一天";
+"top_3_apps_today" = "今日前3分类";
+"no_usage_data" = "无使用数据";
+"start_using_apps_to_see_data" = "开始使用您的手机以查看模式";
+"no_screen_time_data" = "无屏幕使用时间数据";
+"daily_motivation" = "每日动力";
+"start_focus_session" = "开始专注";
+
+// Motivational Messages
+"morning_motivation" = "每个新的一天都是建立更好数字习惯的机会。您有能力让今天变得富有成效和有意义。";
+"afternoon_motivation" = "您已经完成了一天的一半！花点时间评估并调整您的专注以获得最大生产力。";
+"evening_motivation" = "当一天接近尾声时，反思您的屏幕时间模式并为宁静的晚间例行公事做准备。";
+
+// Action Tips
+"morning_action_tip" = "尝试在查看社交媒体之前先进行25分钟的专注工作。";
+"afternoon_action_tip" = "考虑从屏幕上休息10分钟以重置您的注意力。";
+"evening_action_tip" = "在睡前1小时设置屏幕宵禁以获得更好的睡眠质量。";
+
+// Session Planning
+"session_planning" = "专注计划";
+"schedule_focus_sessions" = "安排您的专注";
+"schedule_sessions" = "安排专注";
+"plan_focus_sessions_description" = "计划和安排专注以在您最高效的时间屏蔽特定应用";
+"popular_sessions" = "热门专注";
+"schedule" = "安排";
+
+// Popular Session Titles
+"no_tiktok_8h" = "抗TikTok 8小时";
+"no_instagram_8h" = "抗Instagram 8小时";
+"no_social_8h" = "抗社交 8小时";
+"no_chatgpt_8h" = "抗AI 8小时";
+"study_mode_4h" = "学习专注 4小时";
+
+// Popular Session Descriptions
+"block_tiktok_8h_desc" = "屏蔽TikTok和短视频，进行8小时深度专注";
+"block_instagram_8h_desc" = "屏蔽Instagram和视觉干扰，进行高效工作";
+"block_all_social_8h_desc" = "屏蔽所有社交媒体平台以获得最大专注";
+"block_chatgpt_8h_desc" = "屏蔽AI助手和工具以专注于自己的思考";
+"study_mode_desc" = "完美的学习模式，娱乐应用被屏蔽";
+
+// Session Categories
+"social_media" = "社交媒体";
+"productivity" = "生产力";
+"entertainment" = "娱乐";
+"ai_tools" = "AI工具";
+"mixed" = "混合";
+
+// Schedule Configuration
+"schedule_session" = "安排专注";
+"schedule_configuration" = "计划配置";
+"start_date" = "开始日期";
+"start_time" = "开始时间";
+"frequency" = "频率";
+"repeat_on_days" = "重复日期";
+"selected_apps" = "已选应用";
+"items" = "项目";
+"tap_to_select_apps" = "点击选择要屏蔽的应用";
+
+// Frequency Options
+"once" = "一次";
+"daily" = "每天";
+"weekly" = "每周";
+
+// Weekdays
+"monday" = "星期一";
+"tuesday" = "星期二";
+"wednesday" = "星期三";
+"thursday" = "星期四";
+"friday" = "星期五";
+"saturday" = "星期六";
+"sunday" = "星期日";
+
+// Weekdays Short
+"mon" = "周一";
+"tue" = "周二";
+"wed" = "周三";
+"thu" = "周四";
+"fri" = "周五";
+"sat" = "周六";
+"sun" = "周日";
+
+// Configuration Status
+"configured" = "已配置";
+"clear" = "清除";
+"next" = "下一步";
+
+// Session Progress
+"session_progress" = "专注进度";
+
+// HeroSection
+"blocked_apps" = "已屏蔽应用";
+
+// Subscription Status
+"premium_status" = "高级状态";
+"manage_zenloop_subscription" = "管理您的Zenloop订阅";
+"subscription_expiring_soon" = "⚠️ 您的订阅即将到期";
+"renew_to_avoid_interruption" = "立即续费以避免服务中断";
+"subscription_expired" = "❌ 订阅已过期";
+"renew_to_continue_premium" = "续费您的订阅以继续使用所有高级功能";
+"subscription_refunded" = "🔄 订阅已退款";
+"subscription_refunded_description" = "您的订阅已退款。如果您愿意，可以重新订阅";
+"refresh" = "刷新";
+"renew_now" = "立即续费";
+"reactivate_premium" = "重新激活高级版";
+"subscribe_again" = "重新订阅";
+"become_premium" = "成为高级版";
+"renew" = "续费";
+"continue_premium_experience" = "继续您的高级体验";
+"choose_plan_continue_premium" = "选择您的计划并继续享受所有Zenloop高级功能";
+"included_features" = "✨ 包含功能：";
+"payment_error" = "付款错误";
+"renew_premium" = "续费高级版";
+"retry" = "重试";
+"product_not_found" = "未找到产品";
+"unlimited_app_blocking" = "无限应用屏蔽";
+"personalized_focus_sessions" = "个性化专注";
+"detailed_statistics" = "详细统计";
+"smart_notifications" = "智能通知";
+
+// Purchase Manager strings
+"no_subscription" = "无订阅";
+"subscription_active" = "活跃订阅";
+"subscription_expiring_soon_short" = "即将到期";
+"subscription_expired_short" = "订阅已过期";
+"subscription_refunded_short" = "订阅已退款";
+"purchase_cancelled_by_user" = "用户取消购买";
+"purchase_pending_approval" = "购买待批准";
+"purchase_unknown_result" = "未知购买结果";
+
+// StatsView strings
+"categories" = "分类";
+"most_used_apps" = "最常用应用";
+"apps_summary" = "应用摘要";
+"categories_distribution" = "分类分布";
+"daily_usage" = "每日使用";
+"unlock_statistics" = "解锁统计";
+"authorize_screen_time_access_description" = "授权屏幕时间访问以发现您详细的数字习惯。";
+"authorize_access" = "授权访问";
+"today_short" = "今天";
+"ago_prefix" = "之前 ";
+"updated_prefix" = "更新 ";
+"no_data_available" = "无可用数据";
+"last_7_days" = "过去7天";
+
+// DailyReportModal strings
+"good_morning" = "早上好！";
+"good_afternoon" = "下午好！";
+"good_evening" = "晚上好！";
+"how_to_start_day_right" = "如何正确开始一天";
+"your_midday_summary" = "您的中午总结";
+"your_day_recap" = "您的一天回顾";
+"morning_motivational_message" = "新的一天开始了！设定您的优先事项并创造无屏幕时刻。";
+"afternoon_motivational_message" = "您已经完成了一半。休息一下，与现实世界重新连接。";
+"evening_motivational_message" = "这一天做得很好！反思您的成就并准备明天。";
+"morning_action_tip" = "💡 小贴士：从30分钟无手机开始";
+"afternoon_action_tip" = "💡 小贴士：散步10分钟";
+"evening_action_tip" = "💡 小贴士：睡前1小时关闭屏幕";
+"screen_time_today" = "今天的屏幕时间";
+"data_not_available" = "数据不可用";
+"top_3_categories_today" = "今日前3分类";
+"i_saw_my_report" = "我看了我的报告";
+"daily_motivation" = "每日动力";
+
+// Additional StatsView strings
+"applications" = "应用程序";
+"trends" = "趋势";
+
+// PremiumGatekeeper strings
+"start_session" = "开始专注";
+"create_custom_challenge" = "创建自定义挑战";
+"schedule_session" = "安排专注";
+"use_widgets" = "使用小组件";
+"subscription_expired_renew_message" = "您的订阅已过期。续费以继续使用 %@。";
+"subscription_refunded_subscribe_message" = "您的订阅已退款。重新订阅以访问 %@。";
+"discover_premium_message" = "发现Zenloop高级版以访问 %@ 等更多功能！";
+"premium_required_message" = "%@ 需要Zenloop高级版。";
+"renew_premium" = "续费高级版";
+"reactivate_premium" = "重新激活高级版";
+"discover_premium" = "发现高级版";
+"quick_session" = "快速专注";
+"custom_session" = "自定义专注";
+"scheduled_session" = "计划专注";
+"custom_challenge" = "自定义挑战";
+"widget" = "小组件";
+"advanced_statistics" = "高级统计";
+"this_feature" = "此功能";
+"blocked_feature" = "被阻止的功能";
+"feature_requires_premium" = "「%@」需要Zenloop高级版";
+"with_premium_unlock" = "使用高级版，解锁：";
+"advanced_app_blocking" = "高级应用屏蔽";
+"custom_challenges" = "自定义挑战";
+"detailed_statistics" = "详细统计";
+"scheduled_sessions" = "计划专注";
+"control_widgets" = "控制小组件";
+"per_year" = "每年";
+"per_month" = "每月";
+
+// Additional PremiumGatekeeper strings
+"unlock_premium_now" = "立即解锁您的高级版";
+"flexible" = "灵活";
+
+// MinimalHeader adaptive strings
+"expires_short" = "到期";
+"expired_short" = "已过期";
+"refunded_short" = "退款";
+"premium_short" = "高级版";
+
+// MARK: - Quick Actions
+"quick_action_quick_focus_title" = "🚀 快速专注";
+"quick_action_quick_focus_subtitle" = "开始25分钟专注";
+"quick_action_start_scheduled_title" = "⏰ 开始计划";
+"quick_action_start_scheduled_subtitle" = "开始您的计划专注";
+"quick_action_view_stats_title" = "📊 查看统计";
+"quick_action_view_stats_subtitle" = "检查您的进度";
+"quick_action_emergency_title" = "🛟 紧急休息";
+"quick_action_emergency_subtitle" = "需要分心休息？";
+"quick_action_dont_delete_title" = "🫢 等等！不要删除我！";
+"quick_action_dont_delete_subtitle" = "您正在走向数字健康！";
+
+// MARK: - Retention Modal
+"retention_modal_title_active_session" = "等等！您正在专注中！🫢";
+"retention_modal_title_no_session" = "还不要删除我！🫢";
+"retention_modal_message_active_session" = "您目前正在专注中表现出色！现在删除会中断您惊人的进展。您真的确定吗？";
+"retention_modal_message_no_session" = "您正在进行令人难以置信的数字自由之旅！这里是保持Zenloop将改变您生活的原因：";
+"retention_modal_current_session" = "当前专注";
+"retention_modal_motivation" = "💪 您已经走了这么远 - 现在不要放弃！";
+
+// Retention Modal - Benefits
+"retention_benefit_1_title" = "追踪您的转变";
+"retention_benefit_1_description" = "确切看到您从分心中夺回了多少小时！";
+"retention_benefit_2_title" = "建立激光专注";
+"retention_benefit_2_description" = "培养不可打破的专注习惯，推动您的成功";
+"retention_benefit_3_title" = "赢得史诗成就";
+"retention_benefit_3_description" = "解锁独家徽章并建立令人印象深刻的连续记录";
+"retention_benefit_4_title" = "超级充电生产力";
+"retention_benefit_4_description" = "计划智能专注，成倍增加您的日常产出";
+
+// Retention Modal - Buttons
+"retention_button_stop_session" = "是的，停止专注";
+"retention_button_keep_going" = "继续加油！💪";
+"retention_button_try_quick_focus" = "尝试5分钟快速专注！";
+"retention_button_keep_app" = "我会保留Zenloop！💚";
+"retention_button_maybe_later" = "稍后再说";

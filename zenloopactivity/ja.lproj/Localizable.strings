@@ -1,0 +1,504 @@
+// Japanese (日本語) Localizable.strings
+// zenloopactivity Extension
+
+// Tab Bar
+"home" = "ホーム";
+"challenges" = "チャレンジ";
+"stats" = "統計";
+
+// Splash Screen
+"app_name" = "Zenloop";
+"take_control" = "コントロールを取り戻す";
+"one_session" = "一度に一つのセッション";
+
+// Common
+"loading" = "読み込み中...";
+"cancel" = "キャンセル";
+"ok" = "OK";
+"save" = "保存";
+"delete" = "削除";
+"edit" = "編集";
+"done" = "完了";
+"next" = "次へ";
+"previous" = "前へ";
+"continue" = "続行";
+
+// Home - HeroSection
+"progression" = "進行状況";
+"time_remaining" = "残り時間";
+"sessions" = "セッション";
+"choose_concentration_type" = "集中タイプを選択してください";
+"session_in_progress" = "セッション進行中";
+"session_paused" = "セッション一時停止中";
+"resume_when_ready" = "準備ができたら再開";
+"congratulations" = "おめでとうございます！🎉";
+"session_completed_successfully" = "セッションが正常に完了しました";
+
+// State titles
+"you_can_do_it" = "あなたならできる";
+"you_are_focused" = "集中しています！";
+"little_break" = "小休憩";
+"well_done" = "よくできました！";
+
+// Navigation
+"session_state" = "セッション状態";
+"close" = "閉じる";
+
+// Action states
+"ready_to_focus" = "集中の準備完了";
+"in_concentration" = "集中中";
+"active_pause" = "アクティブ休憩";
+"mission_accomplished" = "ミッション完了！";
+
+// Action descriptions
+"choose_concentration_start_session" = "集中タイプを選択してセッションを開始";
+"stay_focused_progress" = "集中を維持、目標に向かって前進中";
+"take_time_resume_ready" = "ゆっくりと、準備ができたら再開してください";
+"excellent_work_completed" = "素晴らしい仕事！セッションを正常に完了しました";
+
+// Quick actions
+"deep_focus" = "深い集中";
+"maximum_concentration" = "最大集中力";
+"study" = "勉強";
+"efficient_learning" = "効率的な学習";
+"creativity" = "創造性";
+"artistic_expression" = "芸術的表現";
+"meditation" = "瞑想";
+"mindfulness" = "マインドフルネス";
+
+// Action buttons
+"pause" = "一時停止";
+"stop" = "停止";
+"resume" = "再開";
+"finish" = "終了";
+"new_session" = "新しいセッション";
+
+// Timer Card
+"take_your_time" = "ゆっくりどうぞ";
+"everything_ready" = "すべて準備完了";
+"select_apps" = "アプリを選択";
+"start_session" = "セッション開始";
+"apps_blocked" = "ブロックされたアプリ：";
+"type" = "タイプ";
+"duration" = "持続時間";
+"hours" = "時間";
+"minutes" = "分";
+"apps_to_block" = "ブロックするアプリ";
+"scheduling" = "スケジュール";
+
+// Category Challenges
+"custom_challenges" = "カスタムチャレンジ";
+"tap_to_configure" = "タップして設定";
+"config" = "設定";
+"8h_challenges" = "8時間チャレンジ";
+"choose_daily_challenge" = "毎日のチャレンジを選択";
+"no_restriction" = "なし";
+"apps" = "アプリ";
+"challenges_by_category" = "カテゴリ別チャレンジ";
+"personalize_categories_discover" = "カテゴリをカスタマイズして、あなたに合うチャレンジを発見";
+"launch_challenge_add_universes" = "チャレンジを開始するか、新しい世界を追加して探索";
+"configuration" = "設定";
+"challenges" = "チャレンジ";
+"tap_to_personalize" = "タップしてカスタマイズ";
+
+// Missing texts
+"first_choose_distractions" = "まず、気が散る要因を選択";
+"selected_apps" = "選択されたアプリ";
+"no_app_selected" = "アプリが選択されていません";
+"select_apps_to_block" = "ブロックするアプリを選択";
+"modify" = "変更";
+"select" = "選択";
+"confirm_selection" = "選択を確認";
+"select_distracting_apps" = "最も気が散るアプリを選択";
+"apps_selected" = "個のアプリを選択";
+"select_your_distractions" = "気が散る要因を選択";
+"choose_apps_to_block" = "ブロックするアプリを選択";
+"selected_app" = "選択されたアプリ";
+"selected_category" = "選択されたカテゴリ";
+"select_once_apps_per_category" = "迅速なチャレンジのために、カテゴリごとに一度アプリを選択";
+"app_singular" = "アプリ";
+"apps_plural" = "アプリ";
+"selected_singular" = "選択済み";
+"selected_plural" = "選択済み";
+
+// Concentration Type Picker
+"concentration_type" = "集中タイプ";
+"choose_ideal_ambiance" = "理想的な雰囲気を選択";
+
+// Concentration Types
+"concentration_deep_focus" = "深い集中";
+"concentration_creativity" = "創造性";
+"concentration_study" = "勉強";
+"concentration_meditation" = "瞑想";
+"concentration_work" = "仕事";
+
+// Concentration Descriptions
+"concentration_deep_focus_desc" = "複雑なタスクへの集中的な集中";
+"concentration_creativity_desc" = "創造性と想像力を解き放つ";
+"concentration_study_desc" = "最適な学習と記憶";
+"concentration_meditation_desc" = "精神的な平静と内なる平和";
+"concentration_work_desc" = "プロジェクトの最大生産性";
+
+// Expand/Collapse buttons
+"less" = "少なく";
+"more" = "もっと";
+
+// Selection indicator
+"selected" = "選択済み";
+
+// Date formatting
+"today_at" = "今日 %@";
+"tomorrow_at" = "明日 %@";
+
+// Button texts
+"schedule_your_moment" = "あなたの時間をスケジュール";
+"lets_go" = "始めましょう！";
+
+// Schedule Picker
+"schedule_start" = "開始をスケジュール";
+"choose_session_start_time" = "セッション開始時間を選択";
+"start_time" = "開始時間";
+"shortcuts" = "ショートカット";
+"in_5_min" = "5分後";
+"in_15_min" = "15分後";
+"in_30_min" = "30分後";
+"in_1_hour" = "1時間後";
+"programming" = "プログラミング";
+"confirm" = "確認";
+
+// Motivation Section
+"motivation" = "モチベーション";
+"a_little_word_for_you" = "あなたへの小さな言葉";
+
+// Motivational Tips
+"tired_of_endless_scrolling" = "終わりのないスクロールに疲れましたか？";
+"25_min_focus_better_than_2h_lost" = "25分の真の集中は失われた2時間よりも優れています";
+"tell_yourself_why" = "自分になぜかを伝える";
+"before_starting_remember_why_important" = "始める前に、なぜそれがあなたにとって重要なのかを思い出してください";
+"breathe_a_little" = "少し呼吸してください";
+"5_min_break_every_25_brain_thanks" = "25分ごとに5分の休憩、あなたの脳が感謝します";
+"your_cocoon_of_calm" = "あなたの静けさの繭";
+"tidy_desk_turn_off_notifs_create_serenity" = "デスクを整理し、通知をオフにし、静寂の空間を作る";
+"go_easy" = "気楽に行こう";
+"every_small_step_counts_no_need_perfect" = "小さな一歩一歩が大切、今日は完璧である必要はありません";
+
+// Active Challenge Section
+"active_session" = "アクティブセッション";
+"started_at" = "%@ に開始";
+"progression" = "進行状況";
+"time_remaining" = "残り時間";
+"opening_attempts" = "%d 回の開く試行";
+"opening_attempts_plural" = "%d 回の開く試行";
+
+// Category Challenges Modal
+"category_challenges" = "カテゴリチャレンジ";
+
+// Category Names
+"category_ai_productivity_short" = "AI";
+"category_social_media_short" = "ソーシャル";
+"category_games_entertainment_short" = "ゲーム";
+"category_ai_productivity_restriction" = "AI";
+"category_social_media_restriction" = "ソーシャル";
+"category_games_entertainment_restriction" = "ゲーム";
+
+// Stats Insights Section
+"your_progress" = "あなたの進行状況";
+"overview" = "概要";
+"see_all" = "すべて表示";
+"current_streak" = "現在のストリーク";
+"days" = "日";
+"time_saved" = "節約された時間";
+"hours" = "時間";
+"challenges_completed" = "完了したチャレンジ";
+"sessions" = "セッション";
+"badges_earned" = "獲得したバッジ";
+"badges" = "バッジ";
+"recent_badges" = "最新のバッジ";
+"your_latest_achievements" = "あなたの最新の達成";
+"collection" = "コレクション";
+
+// Recent Activity Section
+"recent_activity" = "最近のアクティビティ";
+"your_latest_focus_sessions" = "あなたの最新の集中セッション";
+"view_complete_history" = "完全な履歴を表示";
+"no_recent_activity" = "最近のアクティビティがありません";
+"launch_first_focus_challenge" = "最初の集中チャレンジを開始して\n進行状況の追跡を開始";
+
+// Activity Types
+"started" = "開始";
+"completed" = "完了";
+"paused" = "一時停止";
+"resumed" = "再開";
+"stopped" = "停止";
+"finished" = "終了";
+
+// Date formatting
+"today_at_time" = "今日 %@";
+"yesterday_at_time" = "昨日 %@";
+
+// Badge Rarities
+"rarity_common" = "一般";
+"rarity_rare" = "レア";
+"rarity_epic" = "エピック";
+"rarity_legendary" = "レジェンダリー";
+
+// Badge Titles
+"badge_first_step" = "最初の一歩";
+"badge_regular" = "常連";
+"badge_determined" = "決意";
+"badge_champion" = "チャンピオン";
+"badge_focused" = "集中";
+"badge_focus_master" = "集中マスター";
+"badge_concentration_guru" = "集中グル";
+"badge_night_owl" = "夜更かし";
+"badge_early_bird" = "早起き";
+"badge_marathoner" = "マラソンランナー";
+"badge_perfect_week" = "完璧な週";
+"badge_blocking_master" = "ブロックマスター";
+"badge_speedster" = "スピードスター";
+
+// Badge Descriptions
+"badge_first_step_desc" = "最初のチャレンジ完了！";
+"badge_regular_desc" = "5つのチャレンジを完了";
+"badge_determined_desc" = "25のチャレンジを完了";
+"badge_champion_desc" = "100のチャレンジを完了";
+"badge_focused_desc" = "合計10時間の集中";
+"badge_focus_master_desc" = "合計50時間の集中";
+"badge_concentration_guru_desc" = "合計200時間の集中";
+"badge_night_owl_desc" = "午後10時以降にチャレンジ完了";
+"badge_early_bird_desc" = "午前6時前にチャレンジ完了";
+"badge_marathoner_desc" = "3時間チャレンジ";
+"badge_perfect_week_desc" = "7日連続";
+"badge_blocking_master_desc" = "10以上のアプリを同時にブロック";
+"badge_speedster_desc" = "24時間で5つのチャレンジ";
+
+// Badge Requirements
+"requirement_complete_challenges" = "%d 個のチャレンジを完了";
+"requirement_accumulate_focus_hours" = "%d 時間の集中を蓄積";
+"requirement_consecutive_days" = "%d 日連続";
+"requirement_perfect_week" = "完璧な週";
+"requirement_challenge_after_10pm" = "午後10時以降のチャレンジ";
+"requirement_challenge_before_6am" = "午前6時前のチャレンジ";
+"requirement_challenge_duration_hours" = "%d 時間以上のチャレンジ";
+"requirement_block_apps" = "%d 以上のアプリをブロック";
+"requirement_first_challenge" = "最初のチャレンジ";
+"requirement_challenges_in_24h" = "24時間で %d のチャレンジ";
+
+// Header Greetings
+"greeting_morning" = "おはようございます";
+"greeting_afternoon" = "こんにちは";
+"greeting_evening" = "こんばんは";
+"greeting_night" = "おやすみなさい";
+
+// Status Messages
+"status_ready_new_challenge" = "新しいチャレンジの準備完了";
+"status_focus_in_progress" = "集中進行中";
+"status_active_pause" = "アクティブ休憩";
+"status_mission_accomplished" = "ミッション完了";
+
+// Modern Challenges View
+"challenges_title" = "チャレンジ";
+"create_personalized_sessions" = "パーソナライズされたセッションを作成";
+"custom_challenges" = "カスタムチャレンジ";
+"create" = "作成";
+"no_custom_challenge" = "カスタムチャレンジがありません";
+"tap_to_create_first_challenge" = "タップして最初のカスタムチャレンジを作成";
+
+// Challenge Actions & States
+"started_exclamation" = "開始されました！";
+"choose_launch" = "選択して開始";
+"start" = "開始";
+
+// Default Challenges
+"morning_focus" = "朝の集中";
+"start_day_with_concentration" = "集中して一日を始める";
+"deep_work" = "深い作業";
+"deep_work_session" = "深い作業セッション";
+"study_break" = "勉強休憩";
+"concentrated_revision" = "集中した復習";
+"creativity" = "創造性";
+"creative_session_no_distractions" = "気を散らすもののない創造的セッション";
+
+// Create Challenge Sheet
+"new_challenge" = "新しいチャレンジ";
+"challenge_title" = "チャレンジタイトル";
+"challenge_title_placeholder" = "例：朝の集中";
+"description_optional" = "説明（オプション）";
+"description_placeholder" = "例：集中セッション";
+"duration" = "持続時間";
+"difficulty" = "難易度";
+"icon" = "アイコン";
+"color" = "色";
+"save" = "保存";
+"my_challenge" = "私のチャレンジ";
+
+// Time units
+"min" = "分";
+
+// Quick Action Cards
+"quick_sessions" = "クイックセッション";
+"start_instantly_with_optimized_presets" = "最適化されたプリセットで即座に開始";
+"popular" = "人気";
+
+// Quick Presets
+"pomodoro" = "ポモドーロ";
+"classic_concentration_technique" = "クラシック集中テクニック";
+"deep_focus" = "深い集中";
+"deep_continuous_concentration" = "深く継続的な集中";
+"sprint" = "スプリント";
+"quick_intense_session" = "迅速で集中的なセッション";
+"flow_state" = "フロー状態";
+"total_immersion_creativity" = "完全な没入と創造性";
+
+// Feedback Messages
+"session_started_exclamation" = "セッションが開始されました！";
+"return_to_home_to_see_challenge" = "ホームに戻ってチャレンジを確認";
+
+// Onboarding
+"digital_wellness" = "デジタルウェルネス";
+"get_started" = "始める";
+"continue" = "続行";
+"skip" = "スキップ";
+
+// Onboarding Pages
+"take_back_control" = "コントロールを取り戻す";
+"take_back_control_desc" = "テクノロジーとの関係を変革してください。Zenloopは健康的なデジタル習慣を作成し、集中力を取り戻すのに役立ちます。";
+"focus_sessions" = "集中セッション";
+"focus_sessions_desc" = "パーソナライズされた集中セッションを開始。気を散らすアプリをブロックし、最適なフローゾーンにとどまる。";
+"challenges_gamification" = "チャレンジとゲーミフィケーション";
+"challenges_gamification_desc" = "バッジを獲得し、達成を解除し、日々デジタルウェルネスの目標に向かって進歩。";
+"advanced_insights" = "高度な洞察";
+"advanced_insights_desc" = "詳細な統計とパーソナライズされたレポートであなたの習慣を分析し、スクリーンタイムを最適化。";
+
+// Paywall
+"premium" = "プレミアム";
+"unlock_your_potential" = "あなたの可能性を解放";
+"unlock_your_potential_desc" = "すべてのプレミアム機能にアクセスし、デジタル習慣を永続的に変革";
+"premium_features" = "プレミアム機能";
+"choose_your_plan" = "プランを選択";
+"start_premium" = "プレミアムを開始";
+"processing" = "処理中...";
+"money_back_guarantee" = "7日間の返金保証";
+
+// Premium Features
+"unlimited_sessions" = "無制限セッション";
+"unlimited_sessions_desc" = "望むだけの集中セッション";
+"advanced_analytics" = "高度な分析";
+"advanced_analytics_desc" = "詳細な統計とパーソナライズされた洞察";
+"all_badges" = "すべてのバッジ";
+"all_badges_desc" = "すべてのプレミアム達成を解除";
+"multi_device_sync" = "マルチデバイス同期";
+"multi_device_sync_desc" = "すべてのデバイス間で同期";
+"premium_themes" = "プレミアムテーマ";
+"premium_themes_desc" = "独占テーマでアプリをカスタマイズ";
+"priority_support" = "優先サポート";
+"priority_support_desc" = "プレミアム24時間年中無休のサポート";
+
+// Pricing Plans
+"yearly" = "年間";
+"monthly" = "月間";
+"save_60_percent" = "60%節約";
+"maximum_flexibility" = "最大の柔軟性";
+"popular" = "人気";
+
+// Trust Section
+"app_store" = "App Store";
+"users" = "ユーザー";
+"secure_data" = "安全";
+"data" = "データ";
+"trust_message" = "すでにテクノロジーとの関係を変革した何千人ものユーザーに参加";
+
+// Stats View
+"statistics" = "統計";
+"refresh" = "更新";
+"authorize_screen_time" = "スクリーンタイムを認証";
+
+// Stats Screens
+"apple" = "Apple";
+"overview" = "概要";
+"analytics" = "分析";
+
+// Time Periods
+"today" = "今日";
+"7_days" = "7日";
+"30_days" = "30日";
+
+// Apple Screen
+"authorize_screen_time_detail" = "Appleの詳細を表示するためにスクリーンタイムを認証してください。";
+
+// Overview Screen
+"screen" = "スクリーン";
+"off_screen" = "オフスクリーン";
+"saved" = "節約";
+"you_saved_time_percent" = "この期間中に %@ (%d%%) を節約しました。";
+
+// Analytics Screen
+"trend" = "トレンド";
+"top_categories" = "トップカテゴリ";
+"not_enough_data" = "データが不十分です。";
+
+// Last Updated
+"updated_maj" = "更新 ";
+
+// Breathing Meditation
+"breathing" = "呼吸";
+"follow_circle_rhythm" = "円のリズムに従って";
+"breathe_deeply_relax" = "深く呼吸してリラックス";
+
+// Breathing Phases
+"inhale" = "吸う";
+"hold" = "止める";
+"exhale" = "吐く";
+"pause" = "一時停止";
+
+// Breathing Counts
+"count_inhale" = "1...2...3...4";
+"count_hold" = "止めて...";
+"count_exhale" = "1...2...3...4...5...6";
+"count_pause" = "解放...";
+
+// Breathing Decision Sheet
+"breathing_moment_completed" = "呼吸の瞬間完了";
+"what_would_you_like_to_do" = "今何をしたいですか？";
+"continue_session" = "セッションを続行";
+"stop_return_home" = "停止してホームに戻る";
+
+// Device Activity Report
+"overview" = "概要";
+"applications" = "アプリケーション";
+"daily" = "日次";
+"weekly" = "週次";
+"total" = "合計";
+"distribution" = "分布";
+"top_categories" = "トップカテゴリ";
+"no_category" = "カテゴリなし";
+"no_activity_detected" = "この期間中にアクティビティは検出されませんでした";
+"others" = "その他";
+"explore_applications" = "アプリケーションを探索";
+"see_detailed_ranking" = "詳細なランキングを表示";
+"no_application" = "アプリケーションなし";
+"no_apps_found" = "アプリが見つかりません";
+"no_results_for" = "'%@' の結果がありません";
+"search" = "検索";
+"sort" = "ソート";
+"sort_by" = "ソート基準";
+"time" = "時間";
+"name" = "名前";
+"show_more" = "さらに %d 個表示";
+"app_singular" = "アプリ";
+"apps_plural" = "アプリ";
+
+// zenloopactivity Extension strings
+"screen_time" = "スクリーンタイム";
+"updating" = "更新中...";
+"category_distribution" = "カテゴリ分布";
+"health" = "健康";
+"productivity" = "生産性";
+"recent_days" = "最近の日";
+"weekday_vs_weekend" = "平日 vs 週末";
+"weekend" = "週末";
+"more_active_weekend" = "週末により活発";
+"more_active_weekday" = "平日により活発";
+"average" = "平均";
+"favorite_app" = "お気に入りのアプリ";
+"daily_average" = "日次平均";

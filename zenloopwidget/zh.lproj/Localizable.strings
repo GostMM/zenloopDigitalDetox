@@ -1,0 +1,62 @@
+/* 
+   Localizable.strings (Chinese)
+   zenloopwidget
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Widget Configuration
+"widget.title" = "Zenloop Focus";
+"widget.description" = "跟踪你的专注会话和数字健康进度";
+
+// MARK: - Brand Name
+"zenloop" = "Zenloop";
+
+// MARK: - Session States
+"ready_to_focus" = "准备专注";
+"focus_session" = "专注会话";
+"session_paused" = "会话已暂停";
+"well_done" = "做得好！";
+
+// MARK: - Action Buttons
+"pause" = "暂停";
+"resume" = "恢复";
+"stop" = "停止";
+"start_25min" = "开始25分钟";
+"start_1_hour" = "开始1小时";
+"start_2_hours" = "2小时";
+"new_session" = "新会话";
+"start_new_session" = "开始新会话";
+
+// MARK: - Status Messages
+"choose_session_duration" = "选择会话持续时间开始";
+"take_break_resume" = "休息一下，准备好后继续";
+"session_completed_successfully" = "会话成功完成";
+"great_job" = "干得好！";
+
+// MARK: - Time Formats
+"25min" = "25分钟";
+"1_hour" = "1小时";
+
+// MARK: - Scheduled Sessions
+"scheduled" = "已安排";
+"next" = "下一个：";
+
+// MARK: - Completion Messages
+"session_completed" = "会话完成！";
+"ready_to_focus_tap" = "准备专注";
+"tap_to_start_session" = "点击开始会话";
+
+// MARK: - Placeholders
+"focus_session_placeholder" = "专注会话";
+"session_completed_placeholder" = "会话完成！";
+
+// MARK: - Widget States
+"state_ready_to_focus" = "准备专注";
+"state_in_session" = "会话中";
+"state_paused" = "已暂停";
+"state_completed" = "已完成！";
+
+// MARK: - Quick Session
+"quick_session_title" = "快速会话 %d分钟";
+"session_cancelled_conflict" = "会话已取消或存在冲突";

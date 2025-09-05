@@ -1,0 +1,62 @@
+/* 
+   Localizable.strings (Arabic)
+   zenloopwidget
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Widget Configuration
+"widget.title" = "Zenloop Focus";
+"widget.description" = "تتبع جلسات التركيز وتقدم الصحة الرقمية";
+
+// MARK: - Brand Name
+"zenloop" = "Zenloop";
+
+// MARK: - Session States
+"ready_to_focus" = "جاهز للتركيز";
+"focus_session" = "جلسة تركيز";
+"session_paused" = "الجلسة متوقفة";
+"well_done" = "أحسنت!";
+
+// MARK: - Action Buttons
+"pause" = "إيقاف مؤقت";
+"resume" = "استئناف";
+"stop" = "توقف";
+"start_25min" = "ابدأ 25 دقيقة";
+"start_1_hour" = "ابدأ ساعة واحدة";
+"start_2_hours" = "ساعتان";
+"new_session" = "جلسة جديدة";
+"start_new_session" = "ابدأ جلسة جديدة";
+
+// MARK: - Status Messages
+"choose_session_duration" = "اختر مدة الجلسة للبدء";
+"take_break_resume" = "خذ استراحة، ثم استأنف عندما تكون جاهزاً";
+"session_completed_successfully" = "تم إكمال الجلسة بنجاح";
+"great_job" = "عمل رائع!";
+
+// MARK: - Time Formats
+"25min" = "25 دقيقة";
+"1_hour" = "ساعة واحدة";
+
+// MARK: - Scheduled Sessions
+"scheduled" = "مجدول";
+"next" = "التالي:";
+
+// MARK: - Completion Messages
+"session_completed" = "تم إكمال الجلسة!";
+"ready_to_focus_tap" = "جاهز للتركيز";
+"tap_to_start_session" = "اضغط لبدء الجلسة";
+
+// MARK: - Placeholders
+"focus_session_placeholder" = "جلسة تركيز";
+"session_completed_placeholder" = "تم إكمال الجلسة!";
+
+// MARK: - Widget States
+"state_ready_to_focus" = "جاهز للتركيز";
+"state_in_session" = "في الجلسة";
+"state_paused" = "متوقف";
+"state_completed" = "مكتمل!";
+
+// MARK: - Quick Session
+"quick_session_title" = "جلسة سريعة %d دقيقة";
+"session_cancelled_conflict" = "تم إلغاء الجلسة أو يوجد تعارض";

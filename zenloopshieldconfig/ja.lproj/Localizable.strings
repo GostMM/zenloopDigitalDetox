@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (Japanese)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "あなたの力";
+"shield.title.challenge" = "チャレンジ実行中";
+"shield.title.detox" = "デジタルデトックス";
+"shield.title.flow" = "フローゾーン";
+
+// MARK: - Buttons
+"shield.button.primary" = "集中";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 素晴らしい一日の始まり\nあなたの脳は最高の状態です。";
+"shield.time.midday" = "☀️ 正午の勢い\nこの生産的なエネルギーを維持しましょう。";
+"shield.time.afternoon" = "⚡ 午後のパフォーマンス\n今こそ違いを生み出す時です。";
+"shield.time.evening" = "🌙 夜の習得\n強く一日を終えましょう。";
+"shield.time.night" = "🌟 献身的な夜間セッション\nあなたの深夜の取り組みは決意を示しています。";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "あなたの深い集中セッションが脳を変革しています。すべての分が重要です。";
+"shield.context.challenge" = "このチャレンジはあなたをより良いバージョンの自分へと押し上げます。";
+"shield.context.detox" = "あなたは注意力のコントロールを取り戻しています。それは現代の超能力です。";
+"shield.context.flow" = "このフローゾーンで、あなたは最大限の可能性に達します。";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "最初の試み - アプリを開きたいと思うのは普通です。";
+"shield.attempts.few" = "試み #%d - あなたの脳があなたの決意をテストしています。";
+"shield.attempts.good" = "試み #%d - あなたは平均以上に抵抗しています。";
+"shield.attempts.excellent" = "試み #%d - あなたの規律は例外的になっています。";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "抵抗の瞬間すべてがあなたの精神的規律を強化します。あなたは深い集中力という価値ある能力を開発しています。\n\n続けてください - 未来のあなたが感謝するでしょう。";
+
+// MARK: - Complete message template
+"shield.message.template" = "ブロックされたアプリ: %@";

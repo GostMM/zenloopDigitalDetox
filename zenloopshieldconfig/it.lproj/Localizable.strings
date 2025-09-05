@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (Italian)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "LA TUA FORZA";
+"shield.title.challenge" = "SFIDA ATTIVA";
+"shield.title.detox" = "DETOX DIGITALE";
+"shield.title.flow" = "ZONA DI FLUSSO";
+
+// MARK: - Buttons
+"shield.button.primary" = "FOCUS";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 OTTIMO INIZIO DI GIORNATA\nIl tuo cervello è al massimo delle capacità.";
+"shield.time.midday" = "☀️ SLANCIO DI MEZZOGIORNO\nMantieni questa energia produttiva.";
+"shield.time.afternoon" = "⚡ PRESTAZIONE POMERIDIANA\nÈ ora che fai la differenza.";
+"shield.time.evening" = "🌙 PADRONANZA SERALE\nFinisci la giornata con forza.";
+"shield.time.night" = "🌟 SESSIONE NOTTURNA DEDICATA\nIl tuo impegno tardivo mostra determinazione.";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "La tua sessione di concentrazione profonda sta trasformando il tuo cervello. Ogni minuto conta.";
+"shield.context.challenge" = "Questa sfida ti spinge verso una versione migliorata di te stesso.";
+"shield.context.detox" = "Stai riprendendo il controllo della tua attenzione. È un superpotere moderno.";
+"shield.context.flow" = "In questa zona di flusso, raggiungi il tuo pieno potenziale.";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "Primo tentativo - è normale voler aprire l'app.";
+"shield.attempts.few" = "Tentativo #%d - il tuo cervello sta testando la tua determinazione.";
+"shield.attempts.good" = "Tentativo #%d - stai resistendo meglio della media.";
+"shield.attempts.excellent" = "Tentativo #%d - la tua disciplina sta diventando eccezionale.";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "Ogni momento di resistenza rafforza la tua disciplina mentale. Stai sviluppando una capacità preziosa per la concentrazione profonda.\n\nContinua - il tuo futuro io ti ringrazierà.";
+
+// MARK: - Complete message template
+"shield.message.template" = "App bloccata: %@";

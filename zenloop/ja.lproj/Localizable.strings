@@ -1,0 +1,839 @@
+// Japanese (日本語) Localizable.strings
+
+// Tab Bar
+"home" = "ホーム";
+"challenges" = "チャレンジ";
+"stats" = "統計";
+
+// Splash Screen
+"app_name" = "Zenloop";
+"take_control" = "コントロールを取り戻す";
+"one_session" = "一度に一つのセッション";
+"break_infinite_loop" = "無限ループを断ち切る";
+
+// Common
+"loading" = "読み込み中...";
+"cancel" = "キャンセル";
+"ok" = "OK";
+"save" = "保存";
+"delete" = "削除";
+"edit" = "編集";
+"done" = "完了";
+"next" = "次へ";
+"previous" = "前へ";
+"continue" = "続行";
+
+// Home - HeroSection
+"progression" = "進行状況";
+"time_remaining" = "残り時間";
+"sessions" = "セッション";
+"choose_concentration_type" = "集中タイプを選択してください";
+"session_in_progress" = "セッション進行中";
+"session_paused" = "セッション一時停止中";
+"resume_when_ready" = "準備ができたら再開";
+"congratulations" = "おめでとうございます！🎉";
+"session_completed_successfully" = "セッションが正常に完了しました";
+
+// State titles
+"you_can_do_it" = "あなたならできる";
+"you_are_focused" = "集中しています！";
+"little_break" = "小休憩";
+"well_done" = "よくできました！";
+
+// Navigation
+"session_state" = "セッション状態";
+"close" = "閉じる";
+
+// Action states
+"ready_to_focus" = "集中の準備完了";
+"in_concentration" = "集中中";
+"active_pause" = "アクティブ休憩";
+"mission_accomplished" = "ミッション完了！";
+
+// Action descriptions
+"choose_concentration_start_session" = "集中タイプを選択してセッションを開始";
+"stay_focused_progress" = "集中を維持、目標に向かって前進中";
+"take_time_resume_ready" = "ゆっくりと、準備ができたら再開してください";
+"excellent_work_completed" = "素晴らしい仕事！セッションを正常に完了しました";
+
+// Quick actions
+"deep_focus" = "深い集中";
+"maximum_concentration" = "最大集中力";
+"study" = "勉強";
+"efficient_learning" = "効率的な学習";
+"creativity" = "創造性";
+"artistic_expression" = "芸術的表現";
+"meditation" = "瞑想";
+"mindfulness" = "マインドフルネス";
+
+// Action buttons
+"pause" = "一時停止";
+"stop" = "停止";
+"resume" = "再開";
+"finish" = "終了";
+"new_session" = "新しいセッション";
+
+// Timer Card
+"take_your_time" = "ゆっくりどうぞ";
+"everything_ready" = "すべて準備完了";
+"select_apps" = "アプリを選択";
+"start_session" = "セッション開始";
+"apps_blocked" = "ブロックされたアプリ：";
+"type" = "タイプ";
+"duration" = "持続時間";
+"hours" = "時間";
+"minutes" = "分";
+"apps_to_block" = "ブロックするアプリ";
+"scheduling" = "スケジュール";
+
+// Category Challenges
+"custom_challenges" = "カスタムチャレンジ";
+"tap_to_configure" = "タップして設定";
+"config" = "設定";
+"8h_challenges" = "8時間チャレンジ";
+"choose_daily_challenge" = "毎日のチャレンジを選択";
+"no_restriction" = "なし";
+"apps" = "アプリ";
+"challenges_by_category" = "カテゴリ別チャレンジ";
+"personalize_categories_discover" = "カテゴリをカスタマイズして、あなたに合うチャレンジを発見";
+"launch_challenge_add_universes" = "チャレンジを開始するか、新しい世界を追加して探索";
+"configuration" = "設定";
+"challenges" = "チャレンジ";
+"tap_to_personalize" = "タップしてカスタマイズ";
+
+// Missing texts
+"first_choose_distractions" = "まず、気が散る要因を選択";
+"selected_apps" = "選択されたアプリ";
+"no_app_selected" = "アプリが選択されていません";
+"select_apps_to_block" = "ブロックするアプリを選択";
+"modify" = "変更";
+"select" = "選択";
+"confirm_selection" = "選択を確認";
+"select_distracting_apps" = "最も気が散るアプリを選択";
+"apps_selected" = "個のアプリを選択";
+"select_your_distractions" = "気が散る要因を選択";
+"choose_apps_to_block" = "ブロックするアプリを選択";
+"selected_app" = "選択されたアプリ";
+"selected_category" = "選択されたカテゴリ";
+"select_once_apps_per_category" = "迅速なチャレンジのために、カテゴリごとに一度アプリを選択";
+"app_singular" = "アプリ";
+"apps_plural" = "アプリ";
+"selected_singular" = "選択済み";
+"selected_plural" = "選択済み";
+
+// Concentration Type Picker
+"concentration_type" = "集中タイプ";
+"choose_ideal_ambiance" = "理想的な雰囲気を選択";
+
+// Concentration Types
+"concentration_deep_focus" = "深い集中";
+"concentration_creativity" = "創造性";
+"concentration_study" = "勉強";
+"concentration_meditation" = "瞑想";
+"concentration_work" = "仕事";
+
+// Concentration Descriptions
+"concentration_deep_focus_desc" = "複雑なタスクへの集中的な集中";
+"concentration_creativity_desc" = "創造性と想像力を解き放つ";
+"concentration_study_desc" = "最適な学習と記憶";
+"concentration_meditation_desc" = "精神的な平静と内なる平和";
+"concentration_work_desc" = "プロジェクトの最大生産性";
+
+// Short descriptions for 2x2 grid
+"deep_focus_short" = "最大集中";
+"creativity_short" = "創造性";
+"study_short" = "勉強";
+"meditation_short" = "瞑想";
+"work_short" = "仕事";
+
+// Expand/Collapse buttons
+"less" = "少なく";
+"more" = "もっと";
+
+// Selection indicator
+"selected" = "選択済み";
+
+// Date formatting
+"today_at" = "今日 %@";
+"tomorrow_at" = "明日 %@";
+
+// Button texts
+"schedule_your_moment" = "あなたの時間をスケジュール";
+"lets_go" = "始めましょう！";
+
+// Schedule Picker
+"schedule_start" = "開始をスケジュール";
+"choose_session_start_time" = "セッション開始時間を選択";
+"start_time" = "開始時間";
+"shortcuts" = "ショートカット";
+"in_5_min" = "5分後";
+"in_15_min" = "15分後";
+"in_30_min" = "30分後";
+"in_1_hour" = "1時間後";
+"programming" = "プログラミング";
+"confirm" = "確認";
+
+// Motivation Section
+"motivation" = "モチベーション";
+"a_little_word_for_you" = "あなたへの小さな言葉";
+
+// Motivational Tips
+"tired_of_endless_scrolling" = "終わりのないスクロールに疲れましたか？";
+"25_min_focus_better_than_2h_lost" = "25分の真の集中は失われた2時間よりも優れています";
+"tell_yourself_why" = "自分になぜかを伝える";
+"before_starting_remember_why_important" = "始める前に、なぜそれがあなたにとって重要なのかを思い出してください";
+"breathe_a_little" = "少し呼吸してください";
+"5_min_break_every_25_brain_thanks" = "25分ごとに5分の休憩、あなたの脳が感謝します";
+"your_cocoon_of_calm" = "あなたの静けさの繭";
+"tidy_desk_turn_off_notifs_create_serenity" = "デスクを整理し、通知をオフにし、静寂の空間を作る";
+"go_easy" = "気楽に行こう";
+"every_small_step_counts_no_need_perfect" = "小さな一歩一歩が大切、今日は完璧である必要はありません";
+
+// Active Challenge Section
+"active_session" = "アクティブセッション";
+"started_at" = "%@ に開始";
+"progression" = "進行状況";
+"time_remaining" = "残り時間";
+"opening_attempts" = "%d 回の開く試行";
+"opening_attempts_plural" = "%d 回の開く試行";
+
+// Category Challenges Modal
+"category_challenges" = "カテゴリチャレンジ";
+
+// Category Names
+"category_ai_productivity_short" = "AI";
+"category_social_media_short" = "ソーシャル";
+"category_games_entertainment_short" = "ゲーム";
+"category_ai_productivity_restriction" = "AI";
+"category_social_media_restriction" = "ソーシャル";
+"category_games_entertainment_restriction" = "ゲーム";
+
+// Stats Insights Section
+"your_progress" = "あなたの進行状況";
+"overview" = "概要";
+"see_all" = "すべて表示";
+"current_streak" = "現在のストリーク";
+"days" = "日";
+"time_saved" = "節約された時間";
+"hours" = "時間";
+"challenges_completed" = "完了したチャレンジ";
+"sessions" = "セッション";
+"badges_earned" = "獲得したバッジ";
+"badges" = "バッジ";
+"recent_badges" = "最新のバッジ";
+"your_latest_achievements" = "あなたの最新の達成";
+"collection" = "コレクション";
+
+// Recent Activity Section
+"recent_activity" = "最近のアクティビティ";
+"your_latest_focus_sessions" = "あなたの最新の集中セッション";
+"view_complete_history" = "完全な履歴を表示";
+"no_recent_activity" = "最近のアクティビティがありません";
+"launch_first_focus_challenge" = "最初の集中チャレンジを開始して\n進行状況の追跡を開始";
+
+// Activity Types
+"started" = "開始";
+"completed" = "完了";
+"paused" = "一時停止";
+"resumed" = "再開";
+"stopped" = "停止";
+"finished" = "終了";
+"scheduled" = "スケジュール済み";
+
+// Date formatting
+"today_at_time" = "今日 %@";
+"yesterday_at_time" = "昨日 %@";
+
+// Badge Rarities
+"rarity_common" = "一般";
+"rarity_rare" = "レア";
+"rarity_epic" = "エピック";
+"rarity_legendary" = "レジェンダリー";
+
+// Badge Titles
+"badge_first_step" = "最初の一歩";
+"badge_regular" = "常連";
+"badge_determined" = "決意";
+"badge_champion" = "チャンピオン";
+"badge_focused" = "集中";
+"badge_focus_master" = "集中マスター";
+"badge_concentration_guru" = "集中グル";
+"badge_night_owl" = "夜更かし";
+"badge_early_bird" = "早起き";
+"badge_marathoner" = "マラソンランナー";
+"badge_perfect_week" = "完璧な週";
+"badge_blocking_master" = "ブロックマスター";
+"badge_speedster" = "スピードスター";
+
+// Badge Descriptions
+"badge_first_step_desc" = "最初のチャレンジ完了！";
+"badge_regular_desc" = "5つのチャレンジを完了";
+"badge_determined_desc" = "25のチャレンジを完了";
+"badge_champion_desc" = "100のチャレンジを完了";
+"badge_focused_desc" = "合計10時間の集中";
+"badge_focus_master_desc" = "合計50時間の集中";
+"badge_concentration_guru_desc" = "合計200時間の集中";
+"badge_night_owl_desc" = "午後10時以降にチャレンジ完了";
+"badge_early_bird_desc" = "午前6時前にチャレンジ完了";
+"badge_marathoner_desc" = "3時間チャレンジ";
+"badge_perfect_week_desc" = "7日連続";
+"badge_blocking_master_desc" = "10以上のアプリを同時にブロック";
+"badge_speedster_desc" = "24時間で5つのチャレンジ";
+
+// Badge Requirements
+"requirement_complete_challenges" = "%d 個のチャレンジを完了";
+"requirement_accumulate_focus_hours" = "%d 時間の集中を蓄積";
+"requirement_consecutive_days" = "%d 日連続";
+"requirement_perfect_week" = "完璧な週";
+"requirement_challenge_after_10pm" = "午後10時以降のチャレンジ";
+"requirement_challenge_before_6am" = "午前6時前のチャレンジ";
+"requirement_challenge_duration_hours" = "%d 時間以上のチャレンジ";
+"requirement_block_apps" = "%d 以上のアプリをブロック";
+"requirement_first_challenge" = "最初のチャレンジ";
+"requirement_challenges_in_24h" = "24時間で %d のチャレンジ";
+
+// Header Greetings
+"greeting_morning" = "おはようございます";
+"greeting_afternoon" = "こんにちは";
+"greeting_evening" = "こんばんは";
+"greeting_night" = "おやすみなさい";
+
+// Status Messages
+"status_ready_new_challenge" = "新しいチャレンジの準備完了";
+"status_focus_in_progress" = "集中進行中";
+"status_active_pause" = "アクティブ休憩";
+"status_mission_accomplished" = "ミッション完了";
+
+// Modern Challenges View
+"challenges_title" = "チャレンジ";
+"create_personalized_sessions" = "パーソナライズされたセッションを作成";
+"custom_challenges" = "カスタムチャレンジ";
+"create" = "作成";
+"no_custom_challenge" = "カスタムチャレンジがありません";
+"tap_to_create_first_challenge" = "タップして最初のカスタムチャレンジを作成";
+
+// Challenge Actions & States
+"started_exclamation" = "開始されました！";
+"choose_launch" = "選択して開始";
+"start" = "開始";
+
+// Default Challenges
+"morning_focus" = "朝の集中";
+"start_day_with_concentration" = "集中して一日を始める";
+"deep_work" = "深い作業";
+"deep_work_session" = "深い作業セッション";
+"study_break" = "勉強休憩";
+"concentrated_revision" = "集中した復習";
+"creativity" = "創造性";
+"creative_session_no_distractions" = "気を散らすもののない創造的セッション";
+
+// Create Challenge Sheet
+"new_challenge" = "新しいチャレンジ";
+"challenge_title" = "チャレンジタイトル";
+"challenge_title_placeholder" = "例：朝の集中";
+"description_optional" = "説明（オプション）";
+"description_placeholder" = "例：集中セッション";
+"duration" = "持続時間";
+"difficulty" = "難易度";
+"icon" = "アイコン";
+"color" = "色";
+"save" = "保存";
+"my_challenge" = "私のチャレンジ";
+
+// Time units
+"min" = "分";
+
+// Quick Action Cards
+"quick_sessions" = "クイックセッション";
+"start_instantly_with_optimized_presets" = "最適化されたプリセットで即座に開始";
+"popular" = "人気";
+
+// Quick Presets
+"pomodoro" = "ポモドーロ";
+"classic_concentration_technique" = "クラシック集中テクニック";
+"deep_focus" = "深い集中";
+"deep_continuous_concentration" = "深く継続的な集中";
+"sprint" = "スプリント";
+"quick_intense_session" = "迅速で集中的なセッション";
+"flow_state" = "フロー状態";
+"total_immersion_creativity" = "完全な没入と創造性";
+
+// Feedback Messages
+"session_started_exclamation" = "セッションが開始されました！";
+"return_to_home_to_see_challenge" = "ホームに戻ってチャレンジを確認";
+
+// Onboarding
+"digital_wellness" = "デジタルウェルネス";
+"get_started" = "始める";
+"continue" = "続行";
+"skip" = "スキップ";
+
+// Onboarding Pages
+"take_back_control" = "コントロールを取り戻す";
+"take_back_control_desc" = "テクノロジーとの関係を変革してください。Zenloopは健康的なデジタル習慣を作成し、集中力を取り戻すのに役立ちます。";
+"focus_sessions" = "集中セッション";
+"focus_sessions_desc" = "パーソナライズされた集中セッションを開始。気を散らすアプリをブロックし、最適なフローゾーンにとどまる。";
+"focus_sessions_and_insights" = "セッションと洞察";
+"focus_sessions_and_insights_desc" = "パーソナライズされた集中セッションを開始し、バッジを獲得し、デジタル習慣に関する詳細な洞察を得てウェルネスを最適化。";
+"challenges_gamification" = "チャレンジとゲーミフィケーション";
+"challenges_gamification_desc" = "バッジを獲得し、達成を解除し、日々デジタルウェルネスの目標に向かって進歩。";
+"advanced_insights" = "高度な洞察";
+"advanced_insights_desc" = "詳細な統計とパーソナライズされたレポートであなたの習慣を分析し、スクリーンタイムを最適化。";
+
+// Paywall
+"premium" = "プレミアム";
+"unlock_your_potential" = "あなたの可能性を解放";
+"unlock_your_potential_desc" = "すべてのプレミアム機能にアクセスし、デジタル習慣を永続的に変革";
+"premium_features" = "プレミアム機能";
+"choose_your_plan" = "プランを選択";
+"start_premium" = "プレミアムを開始";
+"processing" = "処理中...";
+"money_back_guarantee" = "7日間の返金保証";
+
+// Premium Features
+"unlimited_sessions" = "無制限セッション";
+"unlimited_sessions_desc" = "望むだけの集中セッション";
+"advanced_analytics" = "高度な分析";
+"advanced_analytics_desc" = "詳細な統計とパーソナライズされた洞察";
+"all_badges" = "すべてのバッジ";
+"all_badges_desc" = "すべてのプレミアム達成を解除";
+"multi_device_sync" = "マルチデバイス同期";
+"multi_device_sync_desc" = "すべてのデバイス間で同期";
+"premium_themes" = "プレミアムテーマ";
+"premium_themes_desc" = "独占テーマでアプリをカスタマイズ";
+"priority_support" = "優先サポート";
+"priority_support_desc" = "プレミアム24時間年中無休のサポート";
+
+// Pricing Plans
+"lifetime" = "ライフタイム";
+"yearly" = "年間";
+"monthly" = "月間";
+"one_payment_forever" = "一回の支払い、永続";
+"free_trial_7_days_yearly" = "7日間無料、その後年間課金";
+"free_trial_7_days_monthly" = "7日間無料、その後月間課金";
+"save_60_percent" = "60%節約";
+"maximum_flexibility" = "最大の柔軟性";
+"popular" = "人気";
+
+// Trust Section
+"app_store" = "App Store";
+"users" = "ユーザー";
+"secure_data" = "安全";
+"data" = "データ";
+"trust_message" = "すでにテクノロジーとの関係を変革した何千人ものユーザーに参加";
+
+// Stats View
+"statistics" = "統計";
+"refresh" = "更新";
+"authorize_screen_time" = "スクリーンタイムを認証";
+
+// Stats Screens
+"apple" = "Apple";
+"overview" = "概要";
+"analytics" = "分析";
+
+// Time Periods
+"today" = "今日";
+"7_days" = "7日";
+"30_days" = "30日";
+
+// Apple Screen
+"authorize_screen_time_detail" = "Appleの詳細を表示するためにスクリーンタイムを認証してください。";
+
+// Overview Screen
+"screen" = "スクリーン";
+"off_screen" = "オフスクリーン";
+"saved" = "節約";
+"you_saved_time_percent" = "この期間中に %@ (%d%%) を節約しました。";
+
+// Analytics Screen
+"trend" = "トレンド";
+"top_categories" = "トップカテゴリ";
+"not_enough_data" = "データが不十分です。";
+
+// Last Updated
+"updated_maj" = "更新 ";
+
+// Breathing Meditation
+"breathing" = "呼吸";
+"follow_circle_rhythm" = "円のリズムに従って";
+"breathe_deeply_relax" = "深く呼吸してリラックス";
+
+// Breathing Phases
+"inhale" = "吸う";
+"hold" = "止める";
+"exhale" = "吐く";
+"pause" = "一時停止";
+
+// Breathing Counts
+"count_inhale" = "1...2...3...4";
+"count_hold" = "止めて...";
+"count_exhale" = "1...2...3...4...5...6";
+"count_pause" = "解放...";
+
+// Breathing Decision Sheet
+"breathing_moment_completed" = "呼吸の瞬間完了";
+"what_would_you_like_to_do" = "今何をしたいですか？";
+"continue_session" = "セッションを続行";
+"stop_return_home" = "停止してホームに戻る";
+
+// Device Activity Report
+"overview" = "概要";
+"applications" = "アプリケーション";
+"daily" = "日次";
+"weekly" = "週次";
+"total" = "合計";
+"distribution" = "分布";
+"top_categories" = "トップカテゴリ";
+"no_category" = "カテゴリなし";
+"no_activity_detected" = "この期間中にアクティビティは検出されませんでした";
+"others" = "その他";
+"explore_applications" = "アプリケーションを探索";
+"see_detailed_ranking" = "詳細なランキングを表示";
+"no_application" = "アプリケーションなし";
+"no_apps_found" = "アプリが見つかりません";
+"no_results_for" = "'%@' の結果がありません";
+"search" = "検索";
+"sort" = "ソート";
+"sort_by" = "ソート基準";
+"time" = "時間";
+"name" = "名前";
+"show_more" = "さらに %d 個表示";
+"app_singular" = "アプリ";
+"apps_plural" = "アプリ";
+
+// Paywall Hypnotic Messages
+"hypnotic_unlock_potential" = "あなたの可能性を解放";
+"hypnotic_stop_scrolling" = "無限スクロールを停止";
+"hypnotic_focus_master" = "集中マスターになる";
+"hypnotic_time_is_gold" = "あなたの時間は金";
+"hypnotic_transform_productivity" = "生産性を変革";
+"hypnotic_unlock_superpower" = "超能力を解放";
+"hypnotic_take_control_now" = "今すぐコントロールを取る";
+"hypnotic_premium_version" = "あなたのプレミアム版になる";
+"paywall_ultimate_experience" = "究極の体験にアクセス";
+
+// Session Notifications
+"session_starting_soon" = "セッションまもなく開始";
+"session_starts_in_15_minutes" = "%@ が15分後に開始されます。準備してください！";
+"session_starting_now" = "セッション今開始！";
+"session_starts_in_2_minutes" = "%@ が2分後に開始されます。集中時間です！";
+"focus_time" = "集中時間！";
+"session_ready_to_start" = "%@ が開始準備完了！タップして集中セッションを開始してください。";
+"session_progress_halfway" = "半分まで来ました！";
+"halfway_through_session" = "集中セッションの半分が終わりました。続けて！";
+"session_complete" = "セッション完了！🎉";
+"session_started" = "セッション開始";
+"session_started_successfully" = "%@ が正常に開始されました！集中を維持してください。";
+"app_blocked" = "アプリがブロックされました！🛡️";
+"app_blocked_during_session" = "%@ は集中セッション中にブロックされています。軌道を維持してください！";
+
+// Daily Tips & Motivational Notifications
+"daily_wellness_tip" = "日々のウェルネスティップ";
+"stay_motivated" = "モチベーションを維持";
+"weekly_preparation" = "週間準備";
+"prepare_for_productive_week" = "生産的な週の準備はできていますか？集中目標を設定して実現させましょう！🎯";
+
+// Tips Content
+"take_regular_breaks_tip" = "一日中集中力を維持するために定期的に休憩を取ってください。あなたの脳が感謝します！🧠";
+"single_tasking_tip" = "一度に一つのタスクに集中してください。マルチタスクは生産性を40%低下させる神話です。";
+"notification_silence_tip" = "集中時間中は必須ではない通知をオフにしてください。深い集中ゾーンを作りましょう。";
+"morning_routine_tip" = "10分の集中儀式で一日を始めましょう。意図を設定し、成功のために準備してください。";
+"deep_work_blocks_tip" = "90分の深い作業ブロックをスケジュールしてください。これは最大生産性のための自然な注意サイクルと一致します。";
+
+// Motivational Reminders
+"small_steps_big_impact" = "小さく一貫した歩みが大きな変革を生み出します。あなたは素晴らしいものを構築しています！✨";
+"consistency_beats_intensity" = "一貫性は毎回強度に勝ります。1日10分でも継続して現れ続けてください。";
+"focus_is_superpower" = "気を散らす世界では、深く集中する能力があなたの超能力です。賢く使ってください！🦸‍♀️";
+"digital_wellness_journey" = "意識的な電話使用の瞬間一つ一つが、デジタルウェルネスの旅での勝利です。誇りに思ってください！";
+"proud_of_progress" = "どこまで来たかを見てください！今日構築している集中習慣を未来の自分が感謝するでしょう。";
+
+// Permission Onboarding
+"setup_permissions" = "許可の設定";
+"screen_time_access" = "スクリーンタイムアクセス";
+"smart_notifications" = "スマート通知";
+"personal_insights" = "個人的な洞察";
+"screen_time_explanation" = "気を散らすアプリを効果的にブロックし、パーソナライズされた集中セッションを作成するためにスクリーンタイムアクセスを認証してください。";
+"notification_explanation" = "健康的なデジタル習慣を維持するためのスマートリマインダー、日々のヒント、励ましを受け取ってください。";
+"insights_preview_description" = "使用に関するパーソナライズされた洞察を発見し、最適なデジタルウェルネスに向けた進歩を追跡してください。";
+"block_distracting_apps" = "気を散らすアプリをブロック";
+"track_usage_patterns" = "使用パターンを追跡";
+"create_focus_sessions" = "集中セッションを作成";
+"authorize_screen_time" = "スクリーンタイムを認証";
+"enable_notifications" = "通知を有効化";
+"maybe_later" = "後で";
+"start_your_journey" = "あなたの旅を開始";
+"processing" = "処理中...";
+"daily_average" = "日次平均";
+"trend" = "トレンド";
+"insights" = "洞察";
+"unlock_insights_with_screen_time" = "スクリーンタイムを有効にして詳細な洞察を解除し、スクリーンタイムを最適化する方法を発見してください！";
+"high_usage_insight" = "電話での1日平均 %@ を費やしています。一緒にその時間を最適化しましょう！";
+"moderate_usage_insight" = "1日 %@ のスクリーンタイムで、正しい軌道に乗っています！重要なことに集中するのをお手伝いします。";
+"low_usage_insight" = "よくできました！1日 %@ の使用量は健康的なデジタル習慣を示しています。そのバランスを維持しましょう。";
+"top_category_insight" = "あなたのトップカテゴリは %@ です";
+"enable_screen_time_for_insights" = "パーソナライズされた洞察のためにスクリーンタイムを有効化";
+
+// Encouragement Messages
+"start_your_digital_wellness_journey" = "デジタルウェルネスの旅を開始";
+"great_progress_today" = "今日の素晴らしい進歩！継続してください";
+"time_for_focus_break" = "集中休憩の時間、重要なことに再接続";
+"stay_mindful_of_usage" = "使用を意識し続けてください、正しい軌道にいます";
+
+// Daily Insights Card
+"daily_insights" = "日々の洞察";
+"your_screen_time_today" = "今日のあなたのスクリーンタイム";
+"loading_insights" = "洞察を読み込み中...";
+"enable_screen_time_for_detailed_insights" = "詳細な洞察のために設定でスクリーンタイムを有効化";
+"open_settings" = "設定を開く";
+"top_category_today" = "今日のトップカテゴリ：%@";
+
+// Daily Report Modal
+"good_morning" = "おはようございます";
+"good_afternoon" = "こんにちは";
+"good_evening" = "こんばんは";
+"morning_report_subtitle" = "あなたの一日の始まり方";
+"afternoon_report_subtitle" = "これまでの進歩を確認しましょう";
+"evening_report_subtitle" = "一日を振り返る時間";
+"top_3_apps_today" = "今日のトップ3カテゴリ";
+"no_usage_data" = "使用データなし";
+"start_using_apps_to_see_data" = "パターンを見るために電話の使用を開始";
+"no_screen_time_data" = "スクリーンタイムデータなし";
+"daily_motivation" = "日々のモチベーション";
+"start_focus_session" = "集中セッション開始";
+
+// Motivational Messages
+"morning_motivation" = "新しい日はより良いデジタル習慣を構築する機会です。今日を生産的で意図的にする力があります。";
+"afternoon_motivation" = "一日の半分が終わりました！瞬間を取って評価し、最大生産性のために集中を調整してください。";
+"evening_motivation" = "一日が終わりに近づくにつれて、スクリーンタイムパターンを振り返り、安らかな夜の習慣のために準備してください。";
+
+// Action Tips
+"morning_action_tip" = "ソーシャルメディアをチェックする前に25分間の集中作業から始めてみてください。";
+"afternoon_action_tip" = "注意をリセットするために画面から10分間の休憩を取ることを考えてください。";
+"evening_action_tip" = "より良い睡眠質のために就寝1時間前にスクリーンカーフューを設定してください。";
+
+// Session Planning
+"session_planning" = "セッション計画";
+"schedule_focus_sessions" = "集中セッションをスケジュール";
+"schedule_sessions" = "セッションをスケジュール";
+"plan_focus_sessions_description" = "最も生産的な時間中に特定のアプリをブロックするために集中セッションを計画してスケジュール";
+"popular_sessions" = "人気のセッション";
+"schedule" = "スケジュール";
+
+// Popular Session Titles
+"no_tiktok_8h" = "反TikTok 8時間";
+"no_instagram_8h" = "反Instagram 8時間";
+"no_social_8h" = "反ソーシャル 8時間";
+"no_chatgpt_8h" = "反AI 8時間";
+"study_mode_4h" = "勉強集中 4時間";
+
+// Popular Session Descriptions
+"block_tiktok_8h_desc" = "深い集中の8時間のためにTikTokとショート動画をブロック";
+"block_instagram_8h_desc" = "生産的な作業のためにInstagramと視覚的な気晴らしをブロック";
+"block_all_social_8h_desc" = "最大集中のためにすべてのソーシャルメディアプラットフォームをブロック";
+"block_chatgpt_8h_desc" = "自分自身の思考に集中するためにAIアシスタントとツールをブロック";
+"study_mode_desc" = "エンターテイメントアプリがブロックされた勉強に最適";
+
+// Session Categories
+"social_media" = "ソーシャルメディア";
+"productivity" = "生産性";
+"entertainment" = "エンターテイメント";
+"ai_tools" = "AIツール";
+"mixed" = "混合";
+
+// Schedule Configuration
+"schedule_session" = "セッションをスケジュール";
+"schedule_configuration" = "スケジュール設定";
+"start_date" = "開始日";
+"start_time" = "開始時間";
+"frequency" = "頻度";
+"repeat_on_days" = "日に繰り返し";
+"selected_apps" = "選択されたアプリ";
+"items" = "項目";
+"tap_to_select_apps" = "ブロックするアプリを選択するためにタップ";
+
+// Frequency Options
+"once" = "一度";
+"daily" = "毎日";
+"weekly" = "毎週";
+
+// Weekdays
+"monday" = "月曜日";
+"tuesday" = "火曜日";
+"wednesday" = "水曜日";
+"thursday" = "木曜日";
+"friday" = "金曜日";
+"saturday" = "土曜日";
+"sunday" = "日曜日";
+
+// Weekdays Short
+"mon" = "月";
+"tue" = "火";
+"wed" = "水";
+"thu" = "木";
+"fri" = "金";
+"sat" = "土";
+"sun" = "日";
+
+// Configuration Status
+"configured" = "設定完了";
+"clear" = "クリア";
+"next" = "次へ";
+
+// Session Progress
+"session_progress" = "セッション進行状況";
+
+// HeroSection
+"blocked_apps" = "ブロックされたアプリ";
+
+// Subscription Status
+"premium_status" = "プレミアムステータス";
+"manage_zenloop_subscription" = "Zenloop サブスクリプションを管理";
+"subscription_expiring_soon" = "⚠️ サブスクリプションがまもなく期限切れ";
+"renew_to_avoid_interruption" = "サービスの中断を避けるために今すぐ更新";
+"subscription_expired" = "❌ サブスクリプション期限切れ";
+"renew_to_continue_premium" = "すべてのプレミアム機能を継続して使用するためにサブスクリプションを更新";
+"subscription_refunded" = "🔄 サブスクリプション返金";
+"subscription_refunded_description" = "サブスクリプションが返金されました。希望があれば再度サブスクライブできます";
+"refresh" = "更新";
+"renew_now" = "今すぐ更新";
+"reactivate_premium" = "プレミアムを再有効化";
+"subscribe_again" = "再度サブスクライブ";
+"become_premium" = "プレミアムになる";
+"renew" = "更新";
+"continue_premium_experience" = "プレミアム体験を継続";
+"choose_plan_continue_premium" = "プランを選択してすべてのZenloopプレミアム機能を享受し続けてください";
+"included_features" = "✨ 含まれる機能：";
+"payment_error" = "支払いエラー";
+"renew_premium" = "プレミアムを更新";
+"retry" = "再試行";
+"product_not_found" = "商品が見つかりません";
+"unlimited_app_blocking" = "無制限アプリブロック";
+"personalized_focus_sessions" = "パーソナライズされた集中セッション";
+"detailed_statistics" = "詳細な統計";
+"smart_notifications" = "スマート通知";
+
+// Purchase Manager strings
+"no_subscription" = "サブスクリプションなし";
+"subscription_active" = "アクティブなサブスクリプション";
+"subscription_expiring_soon_short" = "まもなく期限切れ";
+"subscription_expired_short" = "サブスクリプション期限切れ";
+"subscription_refunded_short" = "サブスクリプション返金";
+"purchase_cancelled_by_user" = "ユーザーによる購入キャンセル";
+"purchase_pending_approval" = "購入承認待ち";
+"purchase_unknown_result" = "不明な購入結果";
+
+// StatsView strings
+"categories" = "カテゴリ";
+"most_used_apps" = "最も使用されたアプリ";
+"apps_summary" = "アプリの概要";
+"categories_distribution" = "カテゴリ分布";
+"daily_usage" = "日次使用";
+"unlock_statistics" = "統計を解除";
+"authorize_screen_time_access_description" = "詳細なデジタル習慣を発見するためにスクリーンタイムアクセスを認証してください。";
+"authorize_access" = "アクセスを認証";
+"today_short" = "今日";
+"ago_prefix" = "前 ";
+"updated_prefix" = "更新 ";
+"no_data_available" = "利用可能なデータがありません";
+"last_7_days" = "過去7日";
+
+// DailyReportModal strings
+"good_morning" = "おはようございます！";
+"good_afternoon" = "こんにちは！";
+"good_evening" = "こんばんは！";
+"how_to_start_day_right" = "正しい一日の始め方";
+"your_midday_summary" = "あなたの昼の要約";
+"your_day_recap" = "あなたの一日の要約";
+"morning_motivational_message" = "新しい日が始まります！優先事項を設定し、スクリーンフリーの瞬間を作りましょう。";
+"afternoon_motivational_message" = "中間地点です。休憩を取り、現実世界と再接続してください。";
+"evening_motivational_message" = "この日はよくできました！成果を振り返り、明日の準備をしてください。";
+"morning_action_tip" = "💡 ヒント：30分間電話なしで始める";
+"afternoon_action_tip" = "💡 ヒント：10分間の散歩を取る";
+"evening_action_tip" = "💡 ヒント：就寝1時間前に画面をオフ";
+"screen_time_today" = "今日のスクリーンタイム";
+"data_not_available" = "データが利用できません";
+"top_3_categories_today" = "今日のトップ3カテゴリ";
+"i_saw_my_report" = "レポートを見ました";
+"daily_motivation" = "日々のモチベーション";
+
+// Additional StatsView strings
+"applications" = "アプリケーション";
+"trends" = "トレンド";
+
+// PremiumGatekeeper strings
+"start_session" = "セッション開始";
+"create_custom_challenge" = "カスタムチャレンジ作成";
+"schedule_session" = "セッションスケジュール";
+"use_widgets" = "ウィジェット使用";
+"subscription_expired_renew_message" = "サブスクリプションが期限切れです。%@ を継続使用するために更新してください。";
+"subscription_refunded_subscribe_message" = "サブスクリプションが返金されました。%@ にアクセスするために再度サブスクライブしてください。";
+"discover_premium_message" = "%@ などにアクセスするためにZenloopプレミアムを発見してください！";
+"premium_required_message" = "%@ にはZenloopプレミアムが必要です。";
+"renew_premium" = "プレミアムを更新";
+"reactivate_premium" = "プレミアムを再有効化";
+"discover_premium" = "プレミアムを発見";
+"quick_session" = "クイックセッション";
+"custom_session" = "カスタムセッション";
+"scheduled_session" = "スケジュールセッション";
+"custom_challenge" = "カスタムチャレンジ";
+"widget" = "ウィジェット";
+"advanced_statistics" = "高度な統計";
+"this_feature" = "この機能";
+"blocked_feature" = "ブロックされた機能";
+"feature_requires_premium" = "「%@」にはZenloopプレミアムが必要です";
+"with_premium_unlock" = "プレミアムで解除：";
+"advanced_app_blocking" = "高度なアプリブロック";
+"custom_challenges" = "カスタムチャレンジ";
+"detailed_statistics" = "詳細な統計";
+"scheduled_sessions" = "スケジュールセッション";
+"control_widgets" = "コントロールウィジェット";
+"per_year" = "年間";
+"per_month" = "月間";
+
+// Additional PremiumGatekeeper strings
+"unlock_premium_now" = "今すぐプレミアムを解除";
+"flexible" = "柔軟";
+
+// MinimalHeader adaptive strings
+"expires_short" = "期限切れ";
+"expired_short" = "期限切れ";
+"refunded_short" = "返金";
+"premium_short" = "プレミアム";
+
+// MARK: - Quick Actions
+"quick_action_quick_focus_title" = "🚀 クイック集中";
+"quick_action_quick_focus_subtitle" = "25分集中セッション開始";
+"quick_action_start_scheduled_title" = "⏰ スケジュール開始";
+"quick_action_start_scheduled_subtitle" = "計画されたセッションを開始";
+"quick_action_view_stats_title" = "📊 統計表示";
+"quick_action_view_stats_subtitle" = "進歩を確認";
+"quick_action_emergency_title" = "🛟 緊急休憩";
+"quick_action_emergency_subtitle" = "気晴らし休憩が必要ですか？";
+"quick_action_dont_delete_title" = "🫢 待って！削除しないで！";
+"quick_action_dont_delete_subtitle" = "デジタルウェルネスへの道を歩んでいます！";
+
+// MARK: - Retention Modal
+"retention_modal_title_active_session" = "待って！セッション中です！🫢";
+"retention_modal_title_no_session" = "まだ削除しないで！🫢";
+"retention_modal_message_active_session" = "現在集中セッションで素晴らしい成果を上げています！今削除すると驚くべき進歩が中断されます。本当に確実ですか？";
+"retention_modal_message_no_session" = "デジタル自由への信じられない旅をしています！Zenloopを維持することがあなたの人生を変える理由は以下の通りです：";
+"retention_modal_current_session" = "現在のセッション";
+"retention_modal_motivation" = "💪 ここまで来ました - 今諦めないでください！";
+
+// Retention Modal - Benefits
+"retention_benefit_1_title" = "変革を追跡";
+"retention_benefit_1_description" = "気晴らしから取り戻した時間を正確に確認してください！";
+"retention_benefit_2_title" = "レーザー集中を構築";
+"retention_benefit_2_description" = "成功を押し上げる揺るぎない集中習慣を開発";
+"retention_benefit_3_title" = "エピック達成を獲得";
+"retention_benefit_3_description" = "独占バッジを解除し印象的な連続記録を構築";
+"retention_benefit_4_title" = "生産性を超充電";
+"retention_benefit_4_description" = "日々のアウトプットを倍増するスマートセッションを計画";
+
+// Retention Modal - Buttons
+"retention_button_stop_session" = "はい、セッション停止";
+"retention_button_keep_going" = "継続する！💪";
+"retention_button_try_quick_focus" = "5分クイック集中を試す！";
+"retention_button_keep_app" = "Zenloopを維持します！💚";
+"retention_button_maybe_later" = "後で";

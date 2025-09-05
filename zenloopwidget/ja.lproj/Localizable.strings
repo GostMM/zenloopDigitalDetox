@@ -1,0 +1,62 @@
+/* 
+   Localizable.strings (Japanese)
+   zenloopwidget
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Widget Configuration
+"widget.title" = "Zenloop Focus";
+"widget.description" = "集中セッションとデジタルウェルネスの進捗を追跡";
+
+// MARK: - Brand Name
+"zenloop" = "Zenloop";
+
+// MARK: - Session States
+"ready_to_focus" = "集中準備完了";
+"focus_session" = "集中セッション";
+"session_paused" = "セッション一時停止";
+"well_done" = "よくできました！";
+
+// MARK: - Action Buttons
+"pause" = "一時停止";
+"resume" = "再開";
+"stop" = "停止";
+"start_25min" = "25分開始";
+"start_1_hour" = "1時間開始";
+"start_2_hours" = "2時間";
+"new_session" = "新しいセッション";
+"start_new_session" = "新しいセッションを開始";
+
+// MARK: - Status Messages
+"choose_session_duration" = "開始するセッション時間を選択";
+"take_break_resume" = "休憩を取って、準備ができたら再開";
+"session_completed_successfully" = "セッションが正常に完了しました";
+"great_job" = "素晴らしい仕事です！";
+
+// MARK: - Time Formats
+"25min" = "25分";
+"1_hour" = "1時間";
+
+// MARK: - Scheduled Sessions
+"scheduled" = "予定済み";
+"next" = "次：";
+
+// MARK: - Completion Messages
+"session_completed" = "セッション完了！";
+"ready_to_focus_tap" = "集中準備完了";
+"tap_to_start_session" = "タップしてセッション開始";
+
+// MARK: - Placeholders
+"focus_session_placeholder" = "集中セッション";
+"session_completed_placeholder" = "セッション完了！";
+
+// MARK: - Widget States
+"state_ready_to_focus" = "集中準備完了";
+"state_in_session" = "セッション中";
+"state_paused" = "一時停止";
+"state_completed" = "完了！";
+
+// MARK: - Quick Session
+"quick_session_title" = "クイックセッション %d分";
+"session_cancelled_conflict" = "セッションがキャンセルされたか競合が発生しました";

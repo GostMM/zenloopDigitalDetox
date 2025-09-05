@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (Spanish)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "TU FUERZA";
+"shield.title.challenge" = "DESAFÍO ACTIVO";
+"shield.title.detox" = "DESINTOXICACIÓN DIGITAL";
+"shield.title.flow" = "ZONA DE FLUJO";
+
+// MARK: - Buttons
+"shield.button.primary" = "ENFOQUE";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 EXCELENTE COMIENZO DEL DÍA\nTu cerebro está en su máxima capacidad.";
+"shield.time.midday" = "☀️ IMPULSO DEL MEDIODÍA\nMantén esta energía productiva.";
+"shield.time.afternoon" = "⚡ RENDIMIENTO DE LA TARDE\nAhora es cuando marcas la diferencia.";
+"shield.time.evening" = "🌙 DOMINIO NOCTURNO\nTermina el día con fuerza.";
+"shield.time.night" = "🌟 SESIÓN NOCTURNA DEDICADA\nTu compromiso tardío muestra determinación.";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "Tu sesión de concentración profunda está transformando tu cerebro. Cada minuto cuenta.";
+"shield.context.challenge" = "Este desafío te impulsa hacia una versión mejorada de ti mismo.";
+"shield.context.detox" = "Estás recuperando el control de tu atención. Es un superpoder moderno.";
+"shield.context.flow" = "En esta zona de flujo, alcanzas tu máximo potencial.";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "Primer intento - es normal querer abrir la aplicación.";
+"shield.attempts.few" = "Intento #%d - tu cerebro está probando tu determinación.";
+"shield.attempts.good" = "Intento #%d - estás resistiendo mejor que el promedio.";
+"shield.attempts.excellent" = "Intento #%d - tu disciplina se está volviendo excepcional.";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "Cada momento de resistencia fortalece tu disciplina mental. Estás desarrollando una capacidad valiosa para la concentración profunda.\n\nSigue adelante - tu yo futuro te lo agradecerá.";
+
+// MARK: - Complete message template
+"shield.message.template" = "Aplicación bloqueada: %@";

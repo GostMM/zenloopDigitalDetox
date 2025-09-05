@@ -1,0 +1,839 @@
+// Arabic (العربية) Localizable.strings
+
+// Tab Bar
+"home" = "الرئيسية";
+"challenges" = "التحديات";
+"stats" = "الإحصائيات";
+
+// Splash Screen
+"app_name" = "Zenloop";
+"take_control" = "استعد السيطرة";
+"one_session" = "جلسة واحدة في كل مرة";
+"break_infinite_loop" = "اكسر الحلقة اللانهائية";
+
+// Common
+"loading" = "جاري التحميل...";
+"cancel" = "إلغاء";
+"ok" = "حسناً";
+"save" = "حفظ";
+"delete" = "حذف";
+"edit" = "تحرير";
+"done" = "تم";
+"next" = "التالي";
+"previous" = "السابق";
+"continue" = "متابعة";
+
+// Home - HeroSection
+"progression" = "التقدم";
+"time_remaining" = "الوقت المتبقي";
+"sessions" = "الجلسات";
+"choose_concentration_type" = "اختر نوع التركيز الخاص بك";
+"session_in_progress" = "الجلسة قيد التقدم";
+"session_paused" = "الجلسة متوقفة مؤقتاً";
+"resume_when_ready" = "استكمل عندما تكون مستعداً";
+"congratulations" = "تهانينا! 🎉";
+"session_completed_successfully" = "تم إكمال الجلسة بنجاح";
+
+// State titles
+"you_can_do_it" = "يمكنك فعل ذلك";
+"you_are_focused" = "أنت مركز!";
+"little_break" = "استراحة قصيرة";
+"well_done" = "أحسنت!";
+
+// Navigation
+"session_state" = "حالة الجلسة";
+"close" = "إغلاق";
+
+// Action states
+"ready_to_focus" = "مستعد للتركيز";
+"in_concentration" = "في حالة تركيز";
+"active_pause" = "استراحة نشطة";
+"mission_accomplished" = "تم إنجاز المهمة!";
+
+// Action descriptions
+"choose_concentration_start_session" = "اختر نوع التركيز الخاص بك وابدأ الجلسة";
+"stay_focused_progress" = "ابق مركزاً، أنت تحرز تقدماً نحو هدفك";
+"take_time_resume_ready" = "خذ وقتك، استكمل عندما تكون مستعداً";
+"excellent_work_completed" = "عمل ممتاز! لقد أكملت جلستك بنجاح";
+
+// Quick actions
+"deep_focus" = "التركيز العميق";
+"maximum_concentration" = "أقصى تركيز";
+"study" = "الدراسة";
+"efficient_learning" = "التعلم الفعال";
+"creativity" = "الإبداع";
+"artistic_expression" = "التعبير الفني";
+"meditation" = "التأمل";
+"mindfulness" = "اليقظة الذهنية";
+
+// Action buttons
+"pause" = "إيقاف مؤقت";
+"stop" = "توقف";
+"resume" = "استكمال";
+"finish" = "إنهاء";
+"new_session" = "جلسة جديدة";
+
+// Timer Card
+"take_your_time" = "خذ وقتك";
+"everything_ready" = "كل شيء جاهز لك";
+"select_apps" = "اختيار التطبيقات";
+"start_session" = "بدء الجلسة";
+"apps_blocked" = "التطبيقات المحجوبة:";
+"type" = "النوع";
+"duration" = "المدة";
+"hours" = "ساعات";
+"minutes" = "دقائق";
+"apps_to_block" = "التطبيقات المراد حجبها";
+"scheduling" = "الجدولة";
+
+// Category Challenges
+"custom_challenges" = "التحديات المخصصة";
+"tap_to_configure" = "اضغط للتكوين";
+"config" = "التكوين";
+"8h_challenges" = "تحديات 8 ساعات";
+"choose_daily_challenge" = "اختر تحديك اليومي";
+"no_restriction" = "لا";
+"apps" = "تطبيقات";
+"challenges_by_category" = "التحديات حسب الفئة";
+"personalize_categories_discover" = "خصص فئاتك لاكتشاف التحديات التي تناسبك";
+"launch_challenge_add_universes" = "أطلق تحدياً أو أضف عوالم جديدة للاستكشاف";
+"configuration" = "التكوين";
+"challenges" = "تحديات";
+"tap_to_personalize" = "اضغط للتخصيص";
+
+// Missing texts
+"first_choose_distractions" = "أولاً، اختر مصادر الإلهاء";
+"selected_apps" = "التطبيقات المختارة";
+"no_app_selected" = "لم يتم اختيار تطبيق";
+"select_apps_to_block" = "اختر التطبيقات المراد حجبها";
+"modify" = "تعديل";
+"select" = "اختيار";
+"confirm_selection" = "تأكيد الاختيار";
+"select_distracting_apps" = "اختر التطبيقات التي تشتتك أكثر";
+"apps_selected" = "تطبيقات مختارة";
+"select_your_distractions" = "اختر مصادر الإلهاء";
+"choose_apps_to_block" = "اختر التطبيقات المراد حجبها";
+"selected_app" = "التطبيق المختار";
+"selected_category" = "الفئة المختارة";
+"select_once_apps_per_category" = "اختر تطبيقاتك مرة واحدة لكل فئة للتحديات السريعة";
+"app_singular" = "تطبيق";
+"apps_plural" = "تطبيقات";
+"selected_singular" = "مختار";
+"selected_plural" = "مختارة";
+
+// Concentration Type Picker
+"concentration_type" = "نوع التركيز";
+"choose_ideal_ambiance" = "اختر الأجواء المثالية";
+
+// Concentration Types
+"concentration_deep_focus" = "التركيز العميق";
+"concentration_creativity" = "الإبداع";
+"concentration_study" = "الدراسة";
+"concentration_meditation" = "التأمل";
+"concentration_work" = "العمل";
+
+// Concentration Descriptions
+"concentration_deep_focus_desc" = "تركيز مكثف للمهام المعقدة";
+"concentration_creativity_desc" = "أطلق العنان لإبداعك وخيالك";
+"concentration_study_desc" = "التعلم والحفظ الأمثل";
+"concentration_meditation_desc" = "الهدوء الذهني والسلام الداخلي";
+"concentration_work_desc" = "أقصى إنتاجية لمشاريعك";
+
+// Short descriptions for 2x2 grid
+"deep_focus_short" = "أقصى تركيز";
+"creativity_short" = "إبداع";
+"study_short" = "دراسة";
+"meditation_short" = "تأمل";
+"work_short" = "عمل";
+
+// Expand/Collapse buttons
+"less" = "أقل";
+"more" = "أكثر";
+
+// Selection indicator
+"selected" = "مختار";
+
+// Date formatting
+"today_at" = "اليوم في %@";
+"tomorrow_at" = "غداً في %@";
+
+// Button texts
+"schedule_your_moment" = "جدول لحظتك";
+"lets_go" = "لنبدأ!";
+
+// Schedule Picker
+"schedule_start" = "جدولة البداية";
+"choose_session_start_time" = "اختر وقت بداية الجلسة";
+"start_time" = "وقت البداية";
+"shortcuts" = "الاختصارات";
+"in_5_min" = "خلال 5 دقائق";
+"in_15_min" = "خلال 15 دقيقة";
+"in_30_min" = "خلال 30 دقيقة";
+"in_1_hour" = "خلال ساعة واحدة";
+"programming" = "البرمجة";
+"confirm" = "تأكيد";
+
+// Motivation Section
+"motivation" = "التحفيز";
+"a_little_word_for_you" = "كلمة صغيرة لك";
+
+// Motivational Tips
+"tired_of_endless_scrolling" = "متعب من التمرير اللانهائي؟";
+"25_min_focus_better_than_2h_lost" = "25 دقيقة من التركيز الحقيقي أفضل من ساعتين ضائعتين";
+"tell_yourself_why" = "قل لنفسك لماذا";
+"before_starting_remember_why_important" = "قبل البداية، تذكر لماذا هذا مهم لك";
+"breathe_a_little" = "تنفس قليلاً";
+"5_min_break_every_25_brain_thanks" = "استراحة 5 دقائق كل 25 دقيقة، عقلك سيشكرك";
+"your_cocoon_of_calm" = "شرنقة الهدوء الخاصة بك";
+"tidy_desk_turn_off_notifs_create_serenity" = "رتب مكتبك، أغلق الإشعارات، اخلق مساحة هدوء";
+"go_easy" = "تمهل";
+"every_small_step_counts_no_need_perfect" = "كل خطوة صغيرة مهمة، لا حاجة لتكون مثالياً اليوم";
+
+// Active Challenge Section
+"active_session" = "الجلسة النشطة";
+"started_at" = "بدأت في %@";
+"progression" = "التقدم";
+"time_remaining" = "الوقت المتبقي";
+"opening_attempts" = "%d محاولة فتح";
+"opening_attempts_plural" = "%d محاولات فتح";
+
+// Category Challenges Modal
+"category_challenges" = "تحديات الفئة";
+
+// Category Names
+"category_ai_productivity_short" = "الذكي";
+"category_social_media_short" = "اجتماعي";
+"category_games_entertainment_short" = "ألعاب";
+"category_ai_productivity_restriction" = "الذكي";
+"category_social_media_restriction" = "اجتماعي";
+"category_games_entertainment_restriction" = "ألعاب";
+
+// Stats Insights Section
+"your_progress" = "تقدمك";
+"overview" = "نظرة عامة";
+"see_all" = "عرض الكل";
+"current_streak" = "السلسلة الحالية";
+"days" = "أيام";
+"time_saved" = "الوقت المحفوظ";
+"hours" = "ساعات";
+"challenges_completed" = "التحديات المكتملة";
+"sessions" = "جلسات";
+"badges_earned" = "الشارات المكتسبة";
+"badges" = "شارات";
+"recent_badges" = "الشارات الحديثة";
+"your_latest_achievements" = "إنجازاتك الأخيرة";
+"collection" = "المجموعة";
+
+// Recent Activity Section
+"recent_activity" = "النشاط الأخير";
+"your_latest_focus_sessions" = "جلسات التركيز الأخيرة";
+"view_complete_history" = "عرض التاريخ الكامل";
+"no_recent_activity" = "لا يوجد نشاط حديث";
+"launch_first_focus_challenge" = "أطلق تحدي التركيز الأول\nلبدء تتبع تقدمك";
+
+// Activity Types
+"started" = "بدأ";
+"completed" = "مكتمل";
+"paused" = "متوقف مؤقتاً";
+"resumed" = "مستأنف";
+"stopped" = "متوقف";
+"finished" = "منتهي";
+"scheduled" = "مجدول";
+
+// Date formatting
+"today_at_time" = "اليوم %@";
+"yesterday_at_time" = "أمس %@";
+
+// Badge Rarities
+"rarity_common" = "شائع";
+"rarity_rare" = "نادر";
+"rarity_epic" = "ملحمي";
+"rarity_legendary" = "أسطوري";
+
+// Badge Titles
+"badge_first_step" = "الخطوة الأولى";
+"badge_regular" = "منتظم";
+"badge_determined" = "مصمم";
+"badge_champion" = "بطل";
+"badge_focused" = "مركز";
+"badge_focus_master" = "سيد التركيز";
+"badge_concentration_guru" = "خبير التركيز";
+"badge_night_owl" = "بومة الليل";
+"badge_early_bird" = "الطائر المبكر";
+"badge_marathoner" = "عداء الماراثون";
+"badge_perfect_week" = "الأسبوع المثالي";
+"badge_blocking_master" = "سيد الحجب";
+"badge_speedster" = "السريع";
+
+// Badge Descriptions
+"badge_first_step_desc" = "تحديك الأول مكتمل!";
+"badge_regular_desc" = "5 تحديات مكتملة";
+"badge_determined_desc" = "25 تحدي مكتمل";
+"badge_champion_desc" = "100 تحدي مكتمل";
+"badge_focused_desc" = "10 ساعات تركيز إجمالية";
+"badge_focus_master_desc" = "50 ساعة تركيز إجمالية";
+"badge_concentration_guru_desc" = "200 ساعة تركيز إجمالية";
+"badge_night_owl_desc" = "تحدي مكتمل بعد 10 مساءً";
+"badge_early_bird_desc" = "تحدي مكتمل قبل 6 صباحاً";
+"badge_marathoner_desc" = "تحدي 3 ساعات";
+"badge_perfect_week_desc" = "7 أيام متتالية";
+"badge_blocking_master_desc" = "حجب 10+ تطبيقات في نفس الوقت";
+"badge_speedster_desc" = "5 تحديات في 24 ساعة";
+
+// Badge Requirements
+"requirement_complete_challenges" = "أكمل %d تحديات";
+"requirement_accumulate_focus_hours" = "اجمع %d ساعة تركيز";
+"requirement_consecutive_days" = "%d أيام متتالية";
+"requirement_perfect_week" = "أسبوع مثالي";
+"requirement_challenge_after_10pm" = "تحدي بعد 10 مساءً";
+"requirement_challenge_before_6am" = "تحدي قبل 6 صباحاً";
+"requirement_challenge_duration_hours" = "تحدي %d ساعة+";
+"requirement_block_apps" = "حجب %d+ تطبيقات";
+"requirement_first_challenge" = "التحدي الأول";
+"requirement_challenges_in_24h" = "%d تحديات في 24 ساعة";
+
+// Header Greetings
+"greeting_morning" = "صباح الخير";
+"greeting_afternoon" = "مساء الخير";
+"greeting_evening" = "مساء الخير";
+"greeting_night" = "ليلة سعيدة";
+
+// Status Messages
+"status_ready_new_challenge" = "مستعد لتحدي جديد";
+"status_focus_in_progress" = "التركيز قيد التقدم";
+"status_active_pause" = "استراحة نشطة";
+"status_mission_accomplished" = "تم إنجاز المهمة";
+
+// Modern Challenges View
+"challenges_title" = "التحديات";
+"create_personalized_sessions" = "إنشاء جلسات شخصية";
+"custom_challenges" = "التحديات المخصصة";
+"create" = "إنشاء";
+"no_custom_challenge" = "لا يوجد تحدي مخصص";
+"tap_to_create_first_challenge" = "اضغط لإنشاء تحديك المخصص الأول";
+
+// Challenge Actions & States
+"started_exclamation" = "بدأ!";
+"choose_launch" = "اختر وأطلق";
+"start" = "بداية";
+
+// Default Challenges
+"morning_focus" = "تركيز الصباح";
+"start_day_with_concentration" = "ابدأ يومك بالتركيز";
+"deep_work" = "العمل العميق";
+"deep_work_session" = "جلسة عمل عميق";
+"study_break" = "استراحة الدراسة";
+"concentrated_revision" = "مراجعة مركزة";
+"creativity" = "الإبداع";
+"creative_session_no_distractions" = "جلسة إبداعية بدون تشتيت";
+
+// Create Challenge Sheet
+"new_challenge" = "تحدي جديد";
+"challenge_title" = "عنوان التحدي";
+"challenge_title_placeholder" = "مثال: تركيز الصباح";
+"description_optional" = "الوصف (اختياري)";
+"description_placeholder" = "مثال: جلسة تركيز";
+"duration" = "المدة";
+"difficulty" = "الصعوبة";
+"icon" = "الأيقونة";
+"color" = "اللون";
+"save" = "حفظ";
+"my_challenge" = "تحديي";
+
+// Time units
+"min" = "د";
+
+// Quick Action Cards
+"quick_sessions" = "الجلسات السريعة";
+"start_instantly_with_optimized_presets" = "ابدأ فوراً بإعداداتنا المحسنة";
+"popular" = "شائع";
+
+// Quick Presets
+"pomodoro" = "بومودورو";
+"classic_concentration_technique" = "تقنية التركيز الكلاسيكية";
+"deep_focus" = "التركيز العميق";
+"deep_continuous_concentration" = "التركيز العميق المستمر";
+"sprint" = "سباق";
+"quick_intense_session" = "جلسة سريعة ومكثفة";
+"flow_state" = "حالة التدفق";
+"total_immersion_creativity" = "الانغماس الكامل والإبداع";
+
+// Feedback Messages
+"session_started_exclamation" = "بدأت الجلسة!";
+"return_to_home_to_see_challenge" = "ارجع للرئيسية لرؤية تحديك";
+
+// Onboarding
+"digital_wellness" = "العافية الرقمية";
+"get_started" = "البدء";
+"continue" = "متابعة";
+"skip" = "تخطي";
+
+// Onboarding Pages
+"take_back_control" = "استعد السيطرة";
+"take_back_control_desc" = "غير علاقتك مع التكنولوجيا. Zenloop يساعدك على خلق عادات رقمية صحية واستعادة تركيزك.";
+"focus_sessions" = "جلسات التركيز";
+"focus_sessions_desc" = "أطلق جلسات تركيز شخصية. احجب التطبيقات المشتتة وابق في منطقة التدفق المثلى.";
+"focus_sessions_and_insights" = "الجلسات والرؤى";
+"focus_sessions_and_insights_desc" = "أطلق جلسات تركيز شخصية، اكسب الشارات، واحصل على رؤى مفصلة حول عاداتك الرقمية لتحسين عافيتك.";
+"challenges_gamification" = "التحديات والألعاب";
+"challenges_gamification_desc" = "اكسب الشارات، افتح الإنجازات وتقدم نحو أهداف العافية الرقمية يوماً بعد يوم.";
+"advanced_insights" = "رؤى متقدمة";
+"advanced_insights_desc" = "حلل عاداتك بإحصائيات مفصلة وتقارير شخصية لتحسين وقت الشاشة.";
+
+// Paywall
+"premium" = "مميز";
+"unlock_your_potential" = "أطلق إمكانياتك";
+"unlock_your_potential_desc" = "احصل على جميع الميزات المميزة وغير عاداتك الرقمية إلى الأبد";
+"premium_features" = "الميزات المميزة";
+"choose_your_plan" = "اختر خطتك";
+"start_premium" = "ابدأ المميز";
+"processing" = "جاري المعالجة...";
+"money_back_guarantee" = "ضمان استرداد المال لمدة 7 أيام";
+
+// Premium Features
+"unlimited_sessions" = "جلسات غير محدودة";
+"unlimited_sessions_desc" = "أي عدد تريده من جلسات التركيز";
+"advanced_analytics" = "تحليلات متقدمة";
+"advanced_analytics_desc" = "إحصائيات مفصلة ورؤى شخصية";
+"all_badges" = "جميع الشارات";
+"all_badges_desc" = "افتح جميع الإنجازات المميزة";
+"multi_device_sync" = "مزامنة متعددة الأجهزة";
+"multi_device_sync_desc" = "المزامنة عبر جميع أجهزتك";
+"premium_themes" = "مظاهر مميزة";
+"premium_themes_desc" = "خصص التطبيق بمظاهر حصرية";
+"priority_support" = "دعم أولوية";
+"priority_support_desc" = "مساعدة مميزة 24/7";
+
+// Pricing Plans
+"lifetime" = "مدى الحياة";
+"yearly" = "سنوي";
+"monthly" = "شهري";
+"one_payment_forever" = "دفعة واحدة، إلى الأبد";
+"free_trial_7_days_yearly" = "7 أيام مجاناً، ثم الفوترة سنوياً";
+"free_trial_7_days_monthly" = "7 أيام مجاناً، ثم الفوترة شهرياً";
+"save_60_percent" = "وفر 60%";
+"maximum_flexibility" = "أقصى مرونة";
+"popular" = "شائع";
+
+// Trust Section
+"app_store" = "متجر التطبيقات";
+"users" = "مستخدمين";
+"secure_data" = "آمن";
+"data" = "البيانات";
+"trust_message" = "انضم لآلاف المستخدمين الذين غيروا علاقتهم مع التكنولوجيا";
+
+// Stats View
+"statistics" = "الإحصائيات";
+"refresh" = "تحديث";
+"authorize_screen_time" = "أذن لوقت الشاشة";
+
+// Stats Screens
+"apple" = "أبل";
+"overview" = "نظرة عامة";
+"analytics" = "التحليلات";
+
+// Time Periods
+"today" = "اليوم";
+"7_days" = "7 أيام";
+"30_days" = "30 يوم";
+
+// Apple Screen
+"authorize_screen_time_detail" = "أذن لوقت الشاشة لرؤية تفاصيل أبل.";
+
+// Overview Screen
+"screen" = "الشاشة";
+"off_screen" = "خارج الشاشة";
+"saved" = "محفوظ";
+"you_saved_time_percent" = "وفرت %@ (%d%%) خلال هذه الفترة.";
+
+// Analytics Screen
+"trend" = "الاتجاه";
+"top_categories" = "الفئات الأعلى";
+"not_enough_data" = "بيانات غير كافية.";
+
+// Last Updated
+"updated_maj" = "محدث ";
+
+// Breathing Meditation
+"breathing" = "التنفس";
+"follow_circle_rhythm" = "اتبع إيقاع الدائرة";
+"breathe_deeply_relax" = "تنفس بعمق واسترخ";
+
+// Breathing Phases
+"inhale" = "شهيق";
+"hold" = "احبس";
+"exhale" = "زفير";
+"pause" = "توقف";
+
+// Breathing Counts
+"count_inhale" = "1...2...3...4";
+"count_hold" = "احبس...";
+"count_exhale" = "1...2...3...4...5...6";
+"count_pause" = "حرر...";
+
+// Breathing Decision Sheet
+"breathing_moment_completed" = "اكتملت لحظة التنفس";
+"what_would_you_like_to_do" = "ماذا تريد أن تفعل الآن؟";
+"continue_session" = "متابعة الجلسة";
+"stop_return_home" = "توقف وارجع للرئيسية";
+
+// Device Activity Report
+"overview" = "نظرة عامة";
+"applications" = "التطبيقات";
+"daily" = "يومي";
+"weekly" = "أسبوعي";
+"total" = "الإجمالي";
+"distribution" = "التوزيع";
+"top_categories" = "الفئات الأعلى";
+"no_category" = "لا توجد فئة";
+"no_activity_detected" = "لم يتم اكتشاف نشاط في هذه الفترة";
+"others" = "أخرى";
+"explore_applications" = "استكشاف التطبيقات";
+"see_detailed_ranking" = "رؤية الترتيب المفصل";
+"no_application" = "لا توجد تطبيقات";
+"no_apps_found" = "لم يتم العثور على تطبيقات";
+"no_results_for" = "لا توجد نتائج لـ '%@'";
+"search" = "بحث";
+"sort" = "ترتيب";
+"sort_by" = "ترتيب حسب";
+"time" = "الوقت";
+"name" = "الاسم";
+"show_more" = "إظهار %d أكثر";
+"app_singular" = "تطبيق";
+"apps_plural" = "تطبيقات";
+
+// Paywall Hypnotic Messages
+"hypnotic_unlock_potential" = "أطلق إمكانياتك";
+"hypnotic_stop_scrolling" = "توقف عن التمرير اللانهائي";
+"hypnotic_focus_master" = "كن سيد التركيز";
+"hypnotic_time_is_gold" = "وقتك ذهب";
+"hypnotic_transform_productivity" = "غير إنتاجيتك";
+"hypnotic_unlock_superpower" = "أطلق قوتك الخارقة";
+"hypnotic_take_control_now" = "خذ السيطرة الآن";
+"hypnotic_premium_version" = "كن النسخة المميزة منك";
+"paywall_ultimate_experience" = "احصل على التجربة المطلقة";
+
+// Session Notifications
+"session_starting_soon" = "الجلسة تبدأ قريباً";
+"session_starts_in_15_minutes" = "%@ تبدأ خلال 15 دقيقة. استعد!";
+"session_starting_now" = "الجلسة تبدأ الآن!";
+"session_starts_in_2_minutes" = "%@ تبدأ خلال دقيقتين. وقت التركيز!";
+"focus_time" = "وقت التركيز!";
+"session_ready_to_start" = "%@ جاهز للبداية! اضغط لبدء جلسة التركيز.";
+"session_progress_halfway" = "وصلت للنصف!";
+"halfway_through_session" = "أنت في منتصف جلسة التركيز. استمر!";
+"session_complete" = "اكتملت الجلسة! 🎉";
+"session_started" = "بدأت الجلسة";
+"session_started_successfully" = "%@ بدأ بنجاح! ابق مركزاً.";
+"app_blocked" = "التطبيق محجوب! 🛡️";
+"app_blocked_during_session" = "%@ محجوب أثناء جلسة التركيز. ابق على المسار!";
+
+// Daily Tips & Motivational Notifications
+"daily_wellness_tip" = "نصيحة العافية اليومية";
+"stay_motivated" = "ابق متحفزاً";
+"weekly_preparation" = "التحضير الأسبوعي";
+"prepare_for_productive_week" = "مستعد لأسبوع منتج؟ ضع أهداف التركيز واجعلها تحدث! 🎯";
+
+// Tips Content
+"take_regular_breaks_tip" = "خذ فترات راحة منتظمة للحفاظ على تركيزك خلال اليوم. عقلك سيشكرك! 🧠";
+"single_tasking_tip" = "ركز على مهمة واحدة في كل مرة. تعدد المهام خرافة تقلل إنتاجيتك بنسبة 40%.";
+"notification_silence_tip" = "أغلق الإشعارات غير الضرورية أثناء وقت التركيز. اخلق منطقة تركيز عميق.";
+"morning_routine_tip" = "ابدأ يومك بطقوس تركيز لمدة 10 دقائق. ضع نواياك واستعد للنجاح.";
+"deep_work_blocks_tip" = "جدول كتل عمل عميق لمدة 90 دقيقة. هذا يتماشى مع دورات انتباهك الطبيعية لأقصى إنتاجية.";
+
+// Motivational Reminders
+"small_steps_big_impact" = "الخطوات الصغيرة المستمرة تخلق تحولات كبيرة. أنت تبني شيئاً رائعاً! ✨";
+"consistency_beats_intensity" = "الثبات يتفوق على الشدة دائماً. استمر في الظهور، حتى لو لمدة 10 دقائق يومياً.";
+"focus_is_superpower" = "في عالم مشتت، قدرتك على التركيز العميق هي قوتك الخارقة. استخدمها بحكمة! 🦸‍♀️";
+"digital_wellness_journey" = "كل لحظة استخدام واعي للهاتف هي انتصار في رحلة العافية الرقمية. كن فخوراً!";
+"proud_of_progress" = "انظر كم قطعت من الطريق! ذاتك المستقبلية ستشكرك على عادات التركيز التي تبنيها اليوم.";
+
+// Permission Onboarding
+"setup_permissions" = "إعداد الأذونات";
+"screen_time_access" = "الوصول لوقت الشاشة";
+"smart_notifications" = "إشعارات ذكية";
+"personal_insights" = "رؤى شخصية";
+"screen_time_explanation" = "أذن للوصول لوقت الشاشة لحجب التطبيقات المشتتة بفعالية وإنشاء جلسات تركيز شخصية.";
+"notification_explanation" = "تلقى تذكيرات ذكية ونصائح يومية وتشجيع للحفاظ على عاداتك الرقمية الصحية.";
+"insights_preview_description" = "اكتشف رؤى شخصية حول استخدامك وتتبع تقدمك نحو العافية الرقمية المثلى.";
+"block_distracting_apps" = "حجب التطبيقات المشتتة";
+"track_usage_patterns" = "تتبع أنماط الاستخدام";
+"create_focus_sessions" = "إنشاء جلسات تركيز";
+"authorize_screen_time" = "أذن لوقت الشاشة";
+"enable_notifications" = "تفعيل الإشعارات";
+"maybe_later" = "ربما لاحقاً";
+"start_your_journey" = "ابدأ رحلتك";
+"processing" = "جاري المعالجة...";
+"daily_average" = "المتوسط اليومي";
+"trend" = "الاتجاه";
+"insights" = "الرؤى";
+"unlock_insights_with_screen_time" = "افتح رؤى مفصلة بتفعيل وقت الشاشة واكتشف كيفية تحسين وقت شاشتك!";
+"high_usage_insight" = "تقضي متوسط %@ يومياً على هاتفك. لنحسن هذا الوقت معاً!";
+"moderate_usage_insight" = "مع %@ وقت شاشة يومي، أنت على المسار الصحيح! دعنا نساعدك على التركيز على المهم.";
+"low_usage_insight" = "عمل رائع! استخدامك اليومي %@ يظهر عادات رقمية صحية. لنحافظ على هذا التوازن.";
+"top_category_insight" = "فئتك الأعلى هي %@";
+"enable_screen_time_for_insights" = "فعل وقت الشاشة للرؤى الشخصية";
+
+// Encouragement Messages
+"start_your_digital_wellness_journey" = "ابدأ رحلة العافية الرقمية";
+"great_progress_today" = "تقدم رائع اليوم! استمر";
+"time_for_focus_break" = "وقت لاستراحة تركيز والاتصال مجدداً بالمهم";
+"stay_mindful_of_usage" = "ابق واعياً لاستخدامك، أنت على المسار الصحيح";
+
+// Daily Insights Card
+"daily_insights" = "الرؤى اليومية";
+"your_screen_time_today" = "وقت شاشتك اليوم";
+"loading_insights" = "جاري تحميل الرؤى...";
+"enable_screen_time_for_detailed_insights" = "فعل وقت الشاشة في الإعدادات للرؤى المفصلة";
+"open_settings" = "فتح الإعدادات";
+"top_category_today" = "الفئة الأعلى: %@";
+
+// Daily Report Modal
+"good_morning" = "صباح الخير";
+"good_afternoon" = "مساء الخير";
+"good_evening" = "مساء الخير";
+"morning_report_subtitle" = "هكذا تبدأ يومك";
+"afternoon_report_subtitle" = "لنتحقق من تقدمك حتى الآن";
+"evening_report_subtitle" = "وقت التفكير في يومك";
+"top_3_apps_today" = "أعلى 3 فئات اليوم";
+"no_usage_data" = "لا توجد بيانات استخدام";
+"start_using_apps_to_see_data" = "ابدأ استخدام هاتفك لرؤية الأنماط";
+"no_screen_time_data" = "لا توجد بيانات وقت الشاشة";
+"daily_motivation" = "التحفيز اليومي";
+"start_focus_session" = "بدء جلسة التركيز";
+
+// Motivational Messages
+"morning_motivation" = "كل يوم جديد فرصة لبناء عادات رقمية أفضل. لديك القوة لجعل اليوم منتجاً وهادفاً.";
+"afternoon_motivation" = "أنت في منتصف اليوم! خذ لحظة لتقييم وتعديل تركيزك لأقصى إنتاجية.";
+"evening_motivation" = "مع انتهاء اليوم، فكر في أنماط وقت الشاشة واستعد لروتين مسائي مريح.";
+
+// Action Tips
+"morning_action_tip" = "جرب البدء بـ 25 دقيقة عمل مركز قبل تفقد وسائل التواصل.";
+"afternoon_action_tip" = "فكر في أخذ استراحة 10 دقائق من الشاشات لإعادة ضبط انتباهك.";
+"evening_action_tip" = "ضع حظراً للشاشات ساعة قبل النوم لجودة نوم أفضل.";
+
+// Session Planning
+"session_planning" = "تخطيط الجلسات";
+"schedule_focus_sessions" = "جدول جلسات التركيز";
+"schedule_sessions" = "جدولة الجلسات";
+"plan_focus_sessions_description" = "خطط وجدول جلسات التركيز لحجب تطبيقات محددة خلال ساعاتك الأكثر إنتاجية";
+"popular_sessions" = "الجلسات الشائعة";
+"schedule" = "جدولة";
+
+// Popular Session Titles
+"no_tiktok_8h" = "مكافحة تيك توك 8س";
+"no_instagram_8h" = "مكافحة إنستغرام 8س";
+"no_social_8h" = "مكافحة السوشيال 8س";
+"no_chatgpt_8h" = "مكافحة الذكي 8س";
+"study_mode_4h" = "وضع الدراسة 4س";
+
+// Popular Session Descriptions
+"block_tiktok_8h_desc" = "احجب تيك توك والفيديوهات القصيرة لـ 8 ساعات تركيز عميق";
+"block_instagram_8h_desc" = "احجب إنستغرام والمشتتات البصرية للعمل المنتج";
+"block_all_social_8h_desc" = "احجب جميع منصات التواصل الاجتماعي لأقصى تركيز";
+"block_chatgpt_8h_desc" = "احجب مساعدي الذكي والأدوات للتركيز على تفكيرك الخاص";
+"study_mode_desc" = "مثالي للدراسة مع حجب تطبيقات الترفيه";
+
+// Session Categories
+"social_media" = "وسائل التواصل";
+"productivity" = "الإنتاجية";
+"entertainment" = "الترفيه";
+"ai_tools" = "أدوات الذكي";
+"mixed" = "مختلط";
+
+// Schedule Configuration
+"schedule_session" = "جدولة الجلسة";
+"schedule_configuration" = "تكوين الجدولة";
+"start_date" = "تاريخ البداية";
+"start_time" = "وقت البداية";
+"frequency" = "التكرار";
+"repeat_on_days" = "التكرار في الأيام";
+"selected_apps" = "التطبيقات المختارة";
+"items" = "عناصر";
+"tap_to_select_apps" = "اضغط لاختيار التطبيقات للحجب";
+
+// Frequency Options
+"once" = "مرة واحدة";
+"daily" = "يومي";
+"weekly" = "أسبوعي";
+
+// Weekdays
+"monday" = "الاثنين";
+"tuesday" = "الثلاثاء";
+"wednesday" = "الأربعاء";
+"thursday" = "الخميس";
+"friday" = "الجمعة";
+"saturday" = "السبت";
+"sunday" = "الأحد";
+
+// Weekdays Short
+"mon" = "الاث";
+"tue" = "الثل";
+"wed" = "الأرب";
+"thu" = "الخم";
+"fri" = "الجم";
+"sat" = "السبت";
+"sun" = "الأحد";
+
+// Configuration Status
+"configured" = "جاهز";
+"clear" = "مسح";
+"next" = "التالي";
+
+// Session Progress
+"session_progress" = "تقدم الجلسة";
+
+// HeroSection
+"blocked_apps" = "التطبيقات المحجوبة";
+
+// Subscription Status
+"premium_status" = "حالة المميز";
+"manage_zenloop_subscription" = "إدارة اشتراك Zenloop";
+"subscription_expiring_soon" = "⚠️ اشتراكك ينتهي قريباً";
+"renew_to_avoid_interruption" = "جدد الآن لتجنب انقطاع الخدمة";
+"subscription_expired" = "❌ انتهى الاشتراك";
+"renew_to_continue_premium" = "جدد اشتراكك لمتابعة استخدام جميع الميزات المميزة";
+"subscription_refunded" = "🔄 تم استرداد الاشتراك";
+"subscription_refunded_description" = "تم استرداد اشتراكك. يمكنك الاشتراك مجدداً إن أردت";
+"refresh" = "تحديث";
+"renew_now" = "جدد الآن";
+"reactivate_premium" = "إعادة تفعيل المميز";
+"subscribe_again" = "اشترك مجدداً";
+"become_premium" = "كن مميزاً";
+"renew" = "تجديد";
+"continue_premium_experience" = "تابع تجربتك المميزة";
+"choose_plan_continue_premium" = "اختر خطتك وتابع الاستمتاع بجميع ميزات Zenloop المميزة";
+"included_features" = "✨ الميزات المتضمنة:";
+"payment_error" = "خطأ في الدفع";
+"renew_premium" = "تجديد المميز";
+"retry" = "إعادة المحاولة";
+"product_not_found" = "المنتج غير موجود";
+"unlimited_app_blocking" = "حجب تطبيقات غير محدود";
+"personalized_focus_sessions" = "جلسات تركيز شخصية";
+"detailed_statistics" = "إحصائيات مفصلة";
+"smart_notifications" = "إشعارات ذكية";
+
+// Purchase Manager strings
+"no_subscription" = "لا يوجد اشتراك";
+"subscription_active" = "اشتراك نشط";
+"subscription_expiring_soon_short" = "ينتهي قريباً";
+"subscription_expired_short" = "انتهى الاشتراك";
+"subscription_refunded_short" = "تم الاسترداد";
+"purchase_cancelled_by_user" = "ألغى المستخدم الشراء";
+"purchase_pending_approval" = "الشراء في انتظار الموافقة";
+"purchase_unknown_result" = "نتيجة شراء غير معروفة";
+
+// StatsView strings
+"categories" = "الفئات";
+"most_used_apps" = "التطبيقات الأكثر استخداماً";
+"apps_summary" = "ملخص التطبيقات";
+"categories_distribution" = "توزيع الفئات";
+"daily_usage" = "الاستخدام اليومي";
+"unlock_statistics" = "فتح الإحصائيات";
+"authorize_screen_time_access_description" = "أذن للوصول لوقت الشاشة لاكتشاف عاداتك الرقمية المفصلة.";
+"authorize_access" = "أذن للوصول";
+"today_short" = "اليوم";
+"ago_prefix" = "منذ ";
+"updated_prefix" = "محدث ";
+"no_data_available" = "لا توجد بيانات";
+"last_7_days" = "آخر 7 أيام";
+
+// DailyReportModal strings
+"good_morning" = "صباح الخير!";
+"good_afternoon" = "مساء الخير!";
+"good_evening" = "مساء الخير!";
+"how_to_start_day_right" = "كيف تبدأ اليوم بشكل صحيح";
+"your_midday_summary" = "ملخص منتصف يومك";
+"your_day_recap" = "خلاصة يومك";
+"morning_motivational_message" = "يوم جديد يبدأ! ضع أولوياتك واخلق لحظات خالية من الشاشات.";
+"afternoon_motivational_message" = "أنت في المنتصف. خذ استراحة واتصل مجدداً بالعالم الحقيقي.";
+"evening_motivational_message" = "أحسنت في هذا اليوم! فكر في إنجازاتك وحضر للغد.";
+"morning_action_tip" = "💡 نصيحة: ابدأ بـ 30 دقيقة بدون هاتف";
+"afternoon_action_tip" = "💡 نصيحة: امش لمدة 10 دقائق";
+"evening_action_tip" = "💡 نصيحة: أغلق الشاشات ساعة قبل النوم";
+"screen_time_today" = "وقت الشاشة اليوم";
+"data_not_available" = "البيانات غير متاحة";
+"top_3_categories_today" = "أعلى 3 فئات اليوم";
+"i_saw_my_report" = "رأيت تقريري";
+"daily_motivation" = "التحفيز اليومي";
+
+// Additional StatsView strings
+"applications" = "التطبيقات";
+"trends" = "الاتجاهات";
+
+// PremiumGatekeeper strings
+"start_session" = "بدء الجلسة";
+"create_custom_challenge" = "إنشاء تحدي مخصص";
+"schedule_session" = "جدولة الجلسة";
+"use_widgets" = "استخدام الأدوات";
+"subscription_expired_renew_message" = "انتهى اشتراكك. جدد لمتابعة استخدام %@.";
+"subscription_refunded_subscribe_message" = "تم استرداد اشتراكك. اشترك مجدداً للوصول إلى %@.";
+"discover_premium_message" = "اكتشف Zenloop المميز للوصول إلى %@ وأكثر!";
+"premium_required_message" = "يتطلب %@ Zenloop المميز.";
+"renew_premium" = "تجديد المميز";
+"reactivate_premium" = "إعادة تفعيل المميز";
+"discover_premium" = "اكتشف المميز";
+"quick_session" = "جلسة سريعة";
+"custom_session" = "جلسة مخصصة";
+"scheduled_session" = "جلسة مجدولة";
+"custom_challenge" = "تحدي مخصص";
+"widget" = "أداة";
+"advanced_statistics" = "إحصائيات متقدمة";
+"this_feature" = "هذه الميزة";
+"blocked_feature" = "ميزة محجوبة";
+"feature_requires_premium" = "「%@」تتطلب Zenloop المميز";
+"with_premium_unlock" = "مع المميز، افتح:";
+"advanced_app_blocking" = "حجب التطبيقات المتقدم";
+"custom_challenges" = "تحديات مخصصة";
+"detailed_statistics" = "إحصائيات مفصلة";
+"scheduled_sessions" = "جلسات مجدولة";
+"control_widgets" = "أدوات التحكم";
+"per_year" = "سنوياً";
+"per_month" = "شهرياً";
+
+// Additional PremiumGatekeeper strings
+"unlock_premium_now" = "افتح المميز الآن";
+"flexible" = "مرن";
+
+// MinimalHeader adaptive strings
+"expires_short" = "ينتهي";
+"expired_short" = "انتهى";
+"refunded_short" = "مسترد";
+"premium_short" = "مميز";
+
+// MARK: - Quick Actions
+"quick_action_quick_focus_title" = "🚀 تركيز سريع";
+"quick_action_quick_focus_subtitle" = "ابدأ جلسة تركيز 25 دقيقة";
+"quick_action_start_scheduled_title" = "⏰ ابدأ المجدول";
+"quick_action_start_scheduled_subtitle" = "ابدأ جلستك المخططة";
+"quick_action_view_stats_title" = "📊 عرض الإحصائيات";
+"quick_action_view_stats_subtitle" = "تحقق من تقدمك";
+"quick_action_emergency_title" = "🛟 استراحة طوارئ";
+"quick_action_emergency_subtitle" = "تحتاج استراحة من التشتت؟";
+"quick_action_dont_delete_title" = "🫢 انتظر! لا تحذفني!";
+"quick_action_dont_delete_subtitle" = "أنت في طريقك للعافية الرقمية!";
+
+// MARK: - Retention Modal
+"retention_modal_title_active_session" = "انتظر! أنت في جلسة! 🫢";
+"retention_modal_title_no_session" = "لا تحذفني بعد! 🫢";
+"retention_modal_message_active_session" = "أنت حالياً تبدع في جلسة تركيز! الحذف الآن سيقطع تقدمك المذهل. هل أنت متأكد حقاً؟";
+"retention_modal_message_no_session" = "أنت في رحلة لا تصدق نحو الحرية الرقمية! إليك لماذا الاحتفاظ بـ Zenloop سيغير حياتك:";
+"retention_modal_current_session" = "الجلسة الحالية";
+"retention_modal_motivation" = "💪 وصلت لهذا الحد - لا تستسلم الآن!";
+
+// Retention Modal - Benefits
+"retention_benefit_1_title" = "تتبع تحولك";
+"retention_benefit_1_description" = "شاهد بالضبط كم ساعة استرددت من التشتت!";
+"retention_benefit_2_title" = "بناء تركيز ليزر";
+"retention_benefit_2_description" = "طور عادات تركيز لا تنكسر تدفع نجاحك";
+"retention_benefit_3_title" = "اكسب إنجازات ملحمية";
+"retention_benefit_3_description" = "افتح شارات حصرية وابن سلاسل مذهلة";
+"retention_benefit_4_title" = "شحن الإنتاجية الفائق";
+"retention_benefit_4_description" = "خطط جلسات ذكية تضاعف إنتاجك اليومي";
+
+// Retention Modal - Buttons
+"retention_button_stop_session" = "نعم، أوقف الجلسة";
+"retention_button_keep_going" = "استمر! 💪";
+"retention_button_try_quick_focus" = "جرب تركيز سريع 5 دقائق!";
+"retention_button_keep_app" = "سأحتفظ بـ Zenloop! 💚";
+"retention_button_maybe_later" = "ربما لاحقاً";

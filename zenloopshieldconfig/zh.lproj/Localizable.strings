@@ -1,0 +1,40 @@
+/* 
+   Localizable.strings (Chinese)
+   zenloopshieldconfig
+
+   Created by Claude on 04/09/2025.
+*/
+
+// MARK: - Motivational Titles
+"shield.title.focus" = "你的力量";
+"shield.title.challenge" = "挑战进行中";
+"shield.title.detox" = "数字排毒";
+"shield.title.flow" = "心流区域";
+
+// MARK: - Buttons
+"shield.button.primary" = "专注";
+
+// MARK: - Time-based Messages
+"shield.time.morning" = "🌅 一天的绝佳开始\n你的大脑处于最佳状态。";
+"shield.time.midday" = "☀️ 午间动力\n保持这种高效能量。";
+"shield.time.afternoon" = "⚡ 下午表现\n现在是你制造差异的时候。";
+"shield.time.evening" = "🌙 傍晚精通\n强势结束这一天。";
+"shield.time.night" = "🌟 专注夜间会话\n你的深夜承诺显示了决心。";
+
+// MARK: - Contextual Messages
+"shield.context.focus" = "你的深度专注会话正在改变你的大脑。每一分钟都很重要。";
+"shield.context.challenge" = "这个挑战推动你朝着更好的自己前进。";
+"shield.context.detox" = "你正在重新掌控你的注意力。这是现代的超能力。";
+"shield.context.flow" = "在这个心流区域，你能发挥出全部潜力。";
+
+// MARK: - Progress Messages
+"shield.attempts.first" = "第一次尝试 - 想要打开应用是很正常的。";
+"shield.attempts.few" = "尝试 #%d - 你的大脑在测试你的决心。";
+"shield.attempts.good" = "尝试 #%d - 你的抵抗力超过平均水平。";
+"shield.attempts.excellent" = "尝试 #%d - 你的纪律性变得卓越。";
+
+// MARK: - Encouragement Message
+"shield.encouragement" = "每一刻的抵抗都在增强你的心理纪律。你正在培养深度专注的宝贵能力。\n\n继续前进 - 未来的你会感谢你。";
+
+// MARK: - Complete message template
+"shield.message.template" = "已阻止应用: %@";
