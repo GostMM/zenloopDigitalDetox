@@ -837,3 +837,84 @@
 "retention_button_try_quick_focus" = "Try a Quick 5-Min Focus!";
 "retention_button_keep_app" = "I'll Keep Zenloop! 💚";
 "retention_button_maybe_later" = "Maybe Later";
+
+// MARK: - Optimized Onboarding
+
+// Hook View
+"block_tiktok_one_tap" = "Block TikTok in 1 tap";
+"gain_30min_focus_daily" = "+30min focus/day";
+"test_session_1min" = "Test session: 1 min no distractions";
+"no_distractions_immediate" = "No distractions, immediate effect";
+"personal_insights" = "Personal insights: Your habits decoded";
+"your_habits_decoded" = "Your habits decoded";
+"take_control_tech_1min" = "Take control of your tech in 1 min";
+"choose_app_block_test_session" = "Choose an app to block and test a focus session";
+"start_1min_test" = "Start Test (1 min)";
+"skip" = "Skip";
+
+// Questionnaire
+"personalize_experience" = "personalize your experience";
+"whats_your_main_digital_distraction" = "What's your main digital distraction?";
+"this_helps_us_suggest_apps_to_block" = "This helps us suggest apps to block";
+"social_networks" = "Social Networks";
+"emails_notifications" = "Emails/Notifications";
+"games_videos" = "Games/Videos";
+"other" = "Other";
+"whats_your_main_goal" = "What's your main goal?";
+"we_will_personalize_your_sessions" = "We'll personalize your sessions";
+"improve_work_focus" = "Improve work/study focus";
+"reduce_total_screen_time" = "Reduce total screen time";
+"better_sleep_habits" = "Better sleep (less night scrolling)";
+"general_wellness" = "General wellness";
+"daily_phone_usage_estimate" = "How much time do you spend on your phone daily?";
+"honest_estimate_helps_set_realistic_goals" = "An honest estimate helps set realistic goals";
+"maintain_balance" = "Maintain balance";
+"optimize_time" = "Optimize time";
+"reduce_to_3h" = "Reduce to 3h/day";
+"reduce_to_4h" = "Reduce to 4h/day";
+"skip_personalization" = "Skip personalization";
+
+// App Selection
+"choose_apps_to_block" = "choose apps to block";
+"block_distracting_apps_test_1min" = "Block distracting apps and test a 1-min focus session";
+"select_1_3_apps_launch_focus_session" = "Select 1-3 apps and launch a focus session. Notifications enabled!";
+"try_open_blocked_app_during_session" = "Try opening a blocked app during the session!";
+"popular_distracting_apps" = "Popular distracting apps";
+"session_preview" = "Session preview";
+"focus_session" = "Focus Session";
+"duration_1_minute" = "Duration: 1 minute";
+"blocked_apps" = "Blocked apps";
+"launch_1min_test_session" = "Launch 1-Min Test Session";
+"select_apps_first" = "Select apps first";
+"skip_test_for_now" = "Skip test for now";
+"focus_session_active" = "Focus Session Active";
+"try_opening_blocked_apps_now" = "Try opening blocked apps now!";
+"end_session_early" = "End session early";
+
+// Enhanced Screen Time
+"screen_time_authorized" = "Screen Time Authorized";
+"screen_time_denied" = "Screen Time Denied";
+"screen_time_access_needed" = "Screen Time Access Needed";
+"ready_to_block_apps" = "Ready to block apps";
+"please_enable_in_settings" = "Please enable in Settings";
+"authorize_to_block_distracting_apps" = "Authorize to block distracting apps";
+"authorized" = "Authorized";
+"denied" = "Denied";
+"pending" = "Pending";
+"retry_authorization" = "Retry authorization";
+"authorize_screen_time" = "Authorize Screen Time";
+"what_you_can_do" = "What you can do";
+"instantly_block_social_media" = "Instantly block social media";
+"focused_work_periods" = "Focused work periods";
+"understand_digital_habits" = "Understand your digital habits";
+"open_screen_time_settings" = "Open Screen Time Settings";
+"maybe_later" = "Maybe later";
+"why_screen_time_needed" = "Why is Screen Time needed?";
+"screen_time_explanation_detailed" = "Screen Time allows us to effectively block distracting apps during your focus sessions. Your data remains private and secure on your device.";
+"got_it" = "Got it";
+
+// Notifications
+"get_helpful_reminders" = "Get helpful reminders";
+"session_reminders" = "Session reminders";
+"daily_wellness_tips" = "Daily wellness tips";
+"enable_notifications" = "Enable Notifications";

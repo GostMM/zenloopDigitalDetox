@@ -26,6 +26,8 @@ struct zenloopApp: App {
             ContentView()
                 .environmentObject(quickActionsBridge)
                 .onAppear {
+                    // 🌟 Compter l'ouverture de l'app pour le système de notation
+                    AppRatingManager.shared.recordAppLaunch()
                     // Initialisation asynchrone pour éviter les lags au démarrage
                     Task {
                         // Firebase: Enregistrer le device au premier lancement

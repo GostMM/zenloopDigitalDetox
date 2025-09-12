@@ -839,3 +839,84 @@
 "retention_button_try_quick_focus" = "Essaie un Focus Rapide de 5 Min !";
 "retention_button_keep_app" = "Je Garde Zenloop ! 💚";
 "retention_button_maybe_later" = "Peut-être Plus Tard";
+
+// MARK: - Onboarding Optimisé
+
+// Hook View
+"block_tiktok_one_tap" = "Bloque TikTok en 1 tap";
+"gain_30min_focus_daily" = "+30min de focus/jour";
+"test_session_1min" = "Session test : 1 min sans distractions";
+"no_distractions_immediate" = "Pas de distractions, effet immédiat";
+"personal_insights" = "Insights perso : Tes habitudes décryptées";
+"your_habits_decoded" = "Tes habitudes décryptées";
+"take_control_tech_1min" = "Reprends le contrôle de ta tech en 1 min";
+"choose_app_block_test_session" = "Choisis une app à bloquer et teste une session focus";
+"start_1min_test" = "Commencer Test (1 min)";
+"skip" = "Passer";
+
+// Questionnaire
+"personalize_experience" = "personnaliser ton expérience";
+"whats_your_main_digital_distraction" = "Quelle est ta plus grande distraction numérique ?";
+"this_helps_us_suggest_apps_to_block" = "Cela nous aide à suggérer des apps à bloquer";
+"social_networks" = "Réseaux Sociaux";
+"emails_notifications" = "Emails/Notifications";
+"games_videos" = "Jeux/Vidéos";
+"other" = "Autre";
+"whats_your_main_goal" = "Quel est ton objectif principal ?";
+"we_will_personalize_your_sessions" = "Nous personnaliserons tes sessions";
+"improve_work_focus" = "Améliorer ma concentration au travail";
+"reduce_total_screen_time" = "Réduire mon temps d'écran global";
+"better_sleep_habits" = "Mieux dormir (moins de scroll nocturne)";
+"general_wellness" = "Bien-être général";
+"daily_phone_usage_estimate" = "Combien de temps passes-tu sur ton téléphone par jour ?";
+"honest_estimate_helps_set_realistic_goals" = "Une estimation honnête aide à fixer des objectifs réalistes";
+"maintain_balance" = "Maintenir l'équilibre";
+"optimize_time" = "Optimiser le temps";
+"reduce_to_3h" = "Réduire à 3h/jour";
+"reduce_to_4h" = "Réduire à 4h/jour";
+"skip_personalization" = "Passer la personnalisation";
+
+// App Selection
+"choose_apps_to_block" = "choisir les apps à bloquer";
+"block_distracting_apps_test_1min" = "Bloque les apps qui te distraient et teste une session focus de 1 min";
+"select_1_3_apps_launch_focus_session" = "Sélectionne 1-3 apps et lance une session focus. Notification activée !";
+"try_open_blocked_app_during_session" = "Essaie d'ouvrir une app bloquée pendant la session !";
+"popular_distracting_apps" = "Apps distractives populaires";
+"session_preview" = "Aperçu de session";
+"focus_session" = "Session Focus";
+"duration_1_minute" = "Durée : 1 minute";
+"blocked_apps" = "Apps bloquées";
+"launch_1min_test_session" = "Lancer Session Test (1 min)";
+"select_apps_first" = "Sélectionne des apps d'abord";
+"skip_test_for_now" = "Passer le test pour maintenant";
+"focus_session_active" = "Session Focus Active";
+"try_opening_blocked_apps_now" = "Essaie d'ouvrir les apps bloquées maintenant !";
+"end_session_early" = "Terminer plus tôt";
+
+// Enhanced Screen Time
+"screen_time_authorized" = "Screen Time Autorisé";
+"screen_time_denied" = "Screen Time Refusé";
+"screen_time_access_needed" = "Accès Screen Time Nécessaire";
+"ready_to_block_apps" = "Prêt à bloquer les apps";
+"please_enable_in_settings" = "Veuillez activer dans les Réglages";
+"authorize_to_block_distracting_apps" = "Autorise pour bloquer les apps distrayantes";
+"authorized" = "Autorisé";
+"denied" = "Refusé";
+"pending" = "En attente";
+"retry_authorization" = "Réessayer l'autorisation";
+"authorize_screen_time" = "Autoriser Screen Time";
+"what_you_can_do" = "Ce que tu peux faire";
+"instantly_block_social_media" = "Bloque instantanément les réseaux sociaux";
+"focused_work_periods" = "Périodes de travail focalisé";
+"understand_digital_habits" = "Comprends tes habitudes numériques";
+"open_screen_time_settings" = "Ouvrir Réglages Screen Time";
+"maybe_later" = "Peut-être plus tard";
+"why_screen_time_needed" = "Pourquoi Screen Time est nécessaire ?";
+"screen_time_explanation_detailed" = "Screen Time nous permet de bloquer efficacement les apps distrayantes pendant tes sessions focus. Tes données restent privées et sécurisées sur ton appareil.";
+"got_it" = "Compris";
+
+// Notifications
+"get_helpful_reminders" = "Reçois des rappels utiles";
+"session_reminders" = "Rappels de session";
+"daily_wellness_tips" = "Conseils bien-être quotidiens";
+"enable_notifications" = "Activer les Notifications";

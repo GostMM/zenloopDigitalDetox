@@ -1,0 +1,105 @@
+description (4000 characters): 
+
+
+  Zenloop: Transforma Tu Vida Digital
+
+  Retoma el control de tu bienestar digital con Zenloop, la app definitiva de concentración diseñada para ayudarte a liberarte de las distracciones digitales y construir hábitos más saludables de tiempo de pantalla.
+
+  SESIONES DE CONCENTRACIÓN PODEROSAS
+  Crea sesiones personalizadas que bloquean apps y sitios web que distraen cuando necesitas concentrarte. Ya sea una sesión Pomodoro de 25 minutos o un bloque de trabajo profundo de 2 horas, Zenloop te mantiene en el camino correcto evitando el acceso a redes sociales, juegos y otras apps durante tu tiempo de concentración.
+
+  BLOQUEO INTELIGENTE DE APPS
+  Nuestra integración con Screen Time te permite bloquear apps específicas o categorías enteras durante sesiones. Configura bloqueos automáticos para redes sociales durante horas de trabajo, o crea horarios personalizados que se adapten a tu rutina diaria. No más desplazamiento sin sentido.
+
+  INSIGHTS DETALLADOS DE USO
+  Obtén análisis completos sobre tus hábitos digitales. Ve exactamente cuánto tiempo pasas en diferentes apps, rastrea tus tasas de éxito de sesiones de concentración, y monitorea tu progreso. Nuestras visualizaciones hacen fácil entender tus patrones e identificar áreas de mejora.
+
+  SISTEMA DE RACHAS Y MOTIVACIÓN
+  Mantente motivado con nuestro enfoque gamificado hacia el bienestar digital. Construye rachas diarias, gana logros por completar sesiones de concentración, y rastrea tus récords personales. Mientras más larga tu racha, más fuerte se vuelve tu disciplina digital.
+
+  PROGRAMACIÓN FLEXIBLE
+  Programa sesiones con anticipación o inícielas al instante. Configura bloqueos recurrentes para horas regulares de trabajo, tiempo de estudio, o momentos familiares. Nuestra programación inteligente se adapta a tu calendario y envía recordatorios suaves.
+
+  ENFOQUE BIENESTAR PRIMERO
+  A diferencia de apps restrictivas que se sienten castigadoras, Zenloop toma un enfoque positivo. Nuestras notificaciones suaves, mensajes motivacionales, y celebraciones de progreso te ayudan a construir hábitos sostenibles sin sentirte restringido.
+
+  DISEÑO HERMOSO
+  Disfruta una experiencia de usuario premium con nuestra interfaz cuidadosamente diseñada. Soporte para modo oscuro, animaciones suaves, e interacciones reflexivas hacen que manejar tu bienestar digital sea un placer.
+
+  PRIVACIDAD PROTEGIDA
+  Tus datos permanecen en tu dispositivo. No rastreamos tu información personal ni vendemos tus datos a terceros. Todo se almacena localmente usando el framework seguro Screen Time de Apple.
+
+  CARACTERÍSTICAS CLAVE:
+  - Sesiones de concentración (25min a 8 horas)
+  - Bloqueo de apps durante tiempo de concentración
+  - Análisis detallados de uso
+  - Seguimiento de rachas y logros
+  - Notificaciones inteligentes
+  - Modos programados e instantáneos
+  - Soporte para widgets
+  - Integración Screen Time API
+  - Consejos de bienestar diarios
+  - Seguimiento de progreso
+
+  PERFECTO PARA:
+  - Estudiantes que necesitan tiempo libre de distracciones
+  - Profesionales buscando mejor balance trabajo-vida
+  - Padres queriendo modelar hábitos saludables
+  - Cualquiera luchando con adicción al teléfono
+  - Equipos implementando políticas de bienestar digital
+
+  SUSCRIPCIÓN REQUERIDA
+  Zenloop está disponible mediante suscripción para proveerte actualizaciones continuas, características premium, y soporte continuo para tu jornada de bienestar digital.
+
+  COMIENZA HOY
+  Únete a miles de usuarios que ya han transformado sus vidas digitales con Zenloop. Comienza con una simple sesión de 25 minutos y construye gradualmente la disciplina digital que cambiará para siempre cómo interactúas con la tecnología.
+
+  Descarga Zenloop ahora y experimenta la libertad que viene de tener control sobre tus dispositivos.
+
+  Requiere iOS 16.0 o posterior. Permisos Screen Time requeridos.
+
+  Información Legal:
+  Acuerdo de Licencia de Usuario Final: https://www.zenloop.me/eula
+  Términos de Uso: https://www.zenloop.me/terms
+  Política de Privacidad: https://www.zenloop.me/privacy-policy
+
+
+
+text promo  (170 characters):
+
+¡Transforma tus hábitos digitales con Zenloop! Bloquea apps que distraen, crea sesiones de concentración, y construye patrones de pantalla más saludables!
+
+
+mots clé  (100 characters): 
+
+concentración,productividad,tiempo pantalla,bloqueador apps,bienestar digital,hábitos,distracción
+
+
+app title & subtitle (30 characters max):
+
+App Title:
+Zenloop Digital Detox
+
+App Subtitle:
+Enfoque y Bloqueo de Apps
+
+
+product names & descriptions:
+
+Lifetime Premium (30 characters):
+Zenloop Premium de por Vida
+
+Lifetime Premium description (45 characters):
+Todas las funciones para siempre, sin suscripción
+
+Monthly Premium (30 characters):
+Zenloop Premium Mensual
+
+Monthly Premium description (45 characters):
+Funciones premium con suscripción mensual
+
+Yearly Premium (30 characters):
+Zenloop Premium Anual
+
+Yearly Premium description (45 characters):
+Mejor valor: premium anual con 60% descuento
