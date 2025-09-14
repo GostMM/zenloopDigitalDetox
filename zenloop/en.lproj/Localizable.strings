@@ -18,6 +18,13 @@
 "save" = "Save";
 "delete" = "Delete";
 "edit" = "Edit";
+
+// Onboarding - Screen Time Required
+"access_required" = "Access Required";
+"authorization_needed" = "Authorization Needed";
+"screen_time_required_to_continue" = "Screen Time access is required to continue. Please authorize in iOS Settings.";
+"screen_time_required_message" = "This permission is essential for Zenloop to block distracting applications.";
+"retry_screen_time_authorization" = "Retry Authorization";
 "done" = "Done";
 "next" = "Next";
 "previous" = "Previous";

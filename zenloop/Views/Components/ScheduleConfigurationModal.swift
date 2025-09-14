@@ -529,6 +529,7 @@ struct ScheduleConfigurationModal: View {
         }
         .opacity(showContent ? 1 : 0)
         .animation(.easeOut(duration: 0.3), value: showContent)
+        .premiumGated()
     }
     
     // MARK: - Computed Properties
@@ -544,44 +545,49 @@ struct ScheduleConfigurationModal: View {
     // MARK: - Private Methods
     
     private func scheduleSession() {
-        print("🗓️ [SCHEDULE_CONFIG] Programmation de '\(session.title)'")
-        print("   - Heure: \(selectedStartTime)")
-        print("   - Fréquence: \(selectedFrequency)")
-        print("   - Apps: \(selectedApps.applicationTokens.count)")
-        print("   - Catégories: \(selectedApps.categoryTokens.count)")
+        print("🗓️ [SCHEDULE_CONFIG] Tentative de programmation de '\(session.title)'")
         
-        // Déterminer la difficulté selon la durée
-        let difficulty: DifficultyLevel = {
-            let hours = session.duration / 3600
-            if hours >= 8 {
-                return .hard
-            } else if hours >= 4 {
-                return .medium
-            } else {
-                return .easy
-            }
-        }()
-        
-        // Pour l'instant, programmer une seule session
-        // TODO: Implémenter la logique de fréquence répétée
-        zenloopManager.scheduleCustomChallenge(
-            title: session.title,
-            duration: session.duration,
-            difficulty: difficulty,
-            apps: selectedApps,
-            startTime: selectedStartTime
-        )
-        
-        // Feedback haptique
-        #if canImport(UIKit)
-        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-        impactFeedback.impactOccurred()
-        #endif
-        
-        // Fermer le modal
-        dismiss()
-        
-        print("✅ [SCHEDULE_CONFIG] Session programmée avec succès")
+        // Vérifier l'accès Premium via PremiumGatekeeper
+        PremiumGatekeeper.shared.performIfAllowed(.startScheduledSession) {
+            print("🗓️ [SCHEDULE_CONFIG] Programmation autorisée pour '\(session.title)'")
+            print("   - Heure: \(selectedStartTime)")
+            print("   - Fréquence: \(selectedFrequency)")
+            print("   - Apps: \(selectedApps.applicationTokens.count)")
+            print("   - Catégories: \(selectedApps.categoryTokens.count)")
+            
+            // Déterminer la difficulté selon la durée
+            let difficulty: DifficultyLevel = {
+                let hours = session.duration / 3600
+                if hours >= 8 {
+                    return .hard
+                } else if hours >= 4 {
+                    return .medium
+                } else {
+                    return .easy
+                }
+            }()
+            
+            // Pour l'instant, programmer une seule session
+            // TODO: Implémenter la logique de fréquence répétée
+            zenloopManager.scheduleCustomChallenge(
+                title: session.title,
+                duration: session.duration,
+                difficulty: difficulty,
+                apps: selectedApps,
+                startTime: selectedStartTime
+            )
+            
+            // Feedback haptique
+            #if canImport(UIKit)
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+            #endif
+            
+            // Fermer le modal
+            dismiss()
+            
+            print("✅ [SCHEDULE_CONFIG] Session programmée avec succès")
+        }
     }
     
     private func calculateNextOptimalTime() -> Date {

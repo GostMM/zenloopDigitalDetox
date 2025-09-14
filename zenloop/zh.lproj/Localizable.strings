@@ -18,6 +18,13 @@
 "save" = "保存";
 "delete" = "删除";
 "edit" = "编辑";
+
+// Onboarding - Screen Time Required
+"access_required" = "需要访问权限";
+"authorization_needed" = "需要授权";
+"screen_time_required_to_continue" = "需要屏幕时间访问权限才能继续。请在iOS设置中授权。";
+"screen_time_required_message" = "此权限对于Zenloop阻止分心应用至关重要。";
+"retry_screen_time_authorization" = "重试授权";
 "done" = "完成";
 "next" = "下一步";
 "previous" = "上一步";

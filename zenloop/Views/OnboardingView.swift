@@ -51,7 +51,6 @@ struct OnboardingView: View {
                     totalPages: pages.count,
                     showContent: showContent,
                     onNext: { nextPage() },
-                    onSkip: { handleOnboardingComplete() },
                     onGetStarted: { handleOnboardingComplete() },
                     onboardingManager: onboardingManager
                 )
@@ -231,18 +230,56 @@ struct OnboardingPageView: View {
                 )
             }
             
-            // Status uniquement
-            if onboardingManager.screenTimeStatus == .granted {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                    Text(String(localized: "authorized"))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.green)
+            // Status et messages
+            VStack(spacing: 12) {
+                if onboardingManager.screenTimeStatus == .granted {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(String(localized: "authorized"))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.green)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(.green.opacity(0.15), in: Capsule())
+                } else if onboardingManager.screenTimeStatus == .denied {
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            Text(String(localized: "access_required"))
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.red)
+                        }
+                        
+                        Text(String(localized: "screen_time_required_to_continue"))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.red.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+                } else {
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(.orange)
+                            Text(String(localized: "authorization_needed"))
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.orange)
+                        }
+                        
+                        Text(String(localized: "screen_time_required_message"))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(.green.opacity(0.15), in: Capsule())
             }
         }
     }
@@ -320,7 +357,6 @@ struct OnboardingBottomActions: View {
     let totalPages: Int
     let showContent: Bool
     let onNext: () -> Void
-    let onSkip: () -> Void
     let onGetStarted: () -> Void
     @ObservedObject var onboardingManager: OnboardingManager
     @State private var isRequesting = false
@@ -385,14 +421,6 @@ struct OnboardingBottomActions: View {
                 .shadow(color: .cyan.opacity(0.3), radius: 12, x: 0, y: 6)
             }
             
-            // Bouton skip (sauf sur la dernière page et pages permission déjà accordées)
-            if currentPage < totalPages - 1 && shouldShowSkipButton {
-                Button(String(localized: "skip")) {
-                    onSkip()
-                }
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
-            }
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
@@ -409,6 +437,8 @@ struct OnboardingBottomActions: View {
                 // Bouton pour demander Screen Time
                 if onboardingManager.screenTimeStatus == .granted {
                     text = String(localized: "continue")
+                } else if onboardingManager.screenTimeStatus == .denied {
+                    text = String(localized: "retry_screen_time_authorization")
                 } else {
                     text = String(localized: "authorize_screen_time")
                 }
@@ -432,10 +462,6 @@ struct OnboardingBottomActions: View {
         return "arrow.right"
     }
     
-    private var shouldShowSkipButton: Bool {
-        // Toujours montrer le skip sauf sur la dernière page
-        return currentPage < totalPages - 1
-    }
     
     private func handlePermissionAction() {
         print("🚨 [ONBOARDING] handlePermissionAction called for page \(currentPage) (\(currentPage_.title))")
@@ -466,9 +492,9 @@ struct OnboardingBottomActions: View {
                             // Permission accordée, passer à la page suivante
                             onNext()
                         } else {
-                            // Permission refusée, on peut quand même continuer
-                            // L'utilisateur pourra réessayer plus tard
-                            onNext()
+                            // Permission refusée, rester sur cette page
+                            // L'utilisateur doit réessayer pour continuer
+                            print("🚫 [ONBOARDING] Screen Time refusé - impossible de continuer")
                         }
                     }
                 }

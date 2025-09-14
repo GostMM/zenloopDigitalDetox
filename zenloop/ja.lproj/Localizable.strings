@@ -18,6 +18,13 @@
 "save" = "保存";
 "delete" = "削除";
 "edit" = "編集";
+
+// Onboarding - Screen Time Required
+"access_required" = "アクセスが必要";
+"authorization_needed" = "認証が必要";
+"screen_time_required_to_continue" = "続行するにはスクリーンタイムへのアクセスが必要です。iOS設定で許可してください。";
+"screen_time_required_message" = "この権限は、Zenloopが気を散らすアプリをブロックするために不可欠です。";
+"retry_screen_time_authorization" = "認証を再試行";
 "done" = "完了";
 "next" = "次へ";
 "previous" = "前へ";
