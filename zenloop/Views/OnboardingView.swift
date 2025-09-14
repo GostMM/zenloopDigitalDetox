@@ -255,7 +255,7 @@ struct OnboardingPageView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
-                    Text("Autorisé")
+                    Text(String(localized: "authorized"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.green)
                 }
@@ -296,7 +296,7 @@ struct OnboardingPageView: View {
                     if onboardingManager.notificationStatus == .granted {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                        Text("Activé")
+                        Text(String(localized: "enabled"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.green)
                     } else if onboardingManager.notificationStatus == .denied {
@@ -429,7 +429,7 @@ struct OnboardingBottomActions: View {
                 if onboardingManager.screenTimeStatus == .granted {
                     text = String(localized: "continue")
                 } else {
-                    text = "Autoriser Screen Time"
+                    text = String(localized: "authorize_screen_time")
                 }
             case .notifications:
                 // Le bouton principal est maintenant toujours "Continuer"

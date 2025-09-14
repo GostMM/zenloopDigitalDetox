@@ -837,3 +837,19 @@
 "retention_button_try_quick_focus" = "جرب تركيز سريع 5 دقائق!";
 "retention_button_keep_app" = "سأحتفظ بـ Zenloop! 💚";
 "retention_button_maybe_later" = "ربما لاحقاً";
+
+// Additional Paywall strings
+"choose_your_plan" = "اختر خطتك";
+"monthly" = "شهري";
+"yearly" = "سنوي";
+"lifetime" = "مدى الحياة";
+"activating" = "جاري التفعيل...";
+"unlock_your_potential_cta" = "أطلق إمكانياتك";
+"restore_purchases" = "استعادة المشتريات";
+"money_back_guarantee_7_days" = "ضمان استرداد المال لمدة 7 أيام";
+"best_offer" = "أفضل عرض";
+"popular" = "شائع";
+"free_trial_7_days" = "7 أيام مجانية";
+
+// OnboardingView additional strings
+"enabled" = "مُفَعَّل";

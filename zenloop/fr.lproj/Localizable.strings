@@ -920,3 +920,19 @@
 "session_reminders" = "Rappels de session";
 "daily_wellness_tips" = "Conseils bien-être quotidiens";
 "enable_notifications" = "Activer les Notifications";
+
+// Additional Paywall strings
+"choose_your_plan" = "Choisis ton plan";
+"monthly" = "Mensuel";
+"yearly" = "Annuel";
+"lifetime" = "À Vie";
+"activating" = "Activation...";
+"unlock_your_potential_cta" = "DÉVERROUILLE TON POTENTIEL";
+"restore_purchases" = "Restaurer les achats";
+"money_back_guarantee_7_days" = "Garantie 7 jours satisfait ou remboursé";
+"best_offer" = "MEILLEURE OFFRE";
+"popular" = "POPULAIRE";
+"free_trial_7_days" = "7 JOURS GRATUITS";
+
+// OnboardingView additional strings
+"enabled" = "Activé";

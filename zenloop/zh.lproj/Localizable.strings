@@ -837,3 +837,19 @@
 "retention_button_try_quick_focus" = "尝试5分钟快速专注！";
 "retention_button_keep_app" = "我会保留Zenloop！💚";
 "retention_button_maybe_later" = "稍后再说";
+
+// Additional Paywall strings
+"choose_your_plan" = "选择您的计划";
+"monthly" = "月度";
+"yearly" = "年度";
+"lifetime" = "终身";
+"activating" = "激活中...";
+"unlock_your_potential_cta" = "释放您的潜能";
+"restore_purchases" = "恢复购买";
+"money_back_guarantee_7_days" = "7天退款保证";
+"best_offer" = "最佳优惠";
+"popular" = "热门";
+"free_trial_7_days" = "7天免费试用";
+
+// OnboardingView additional strings
+"enabled" = "已启用";

@@ -837,3 +837,19 @@
 "retention_button_try_quick_focus" = "5分クイック集中を試す！";
 "retention_button_keep_app" = "Zenloopを維持します！💚";
 "retention_button_maybe_later" = "後で";
+
+// Additional Paywall strings
+"choose_your_plan" = "プランを選択";
+"monthly" = "月次";
+"yearly" = "年次";
+"lifetime" = "生涯";
+"activating" = "アクティベート中...";
+"unlock_your_potential_cta" = "あなたの可能性を解放";
+"restore_purchases" = "購入を復元";
+"money_back_guarantee_7_days" = "7日間返金保証";
+"best_offer" = "最良のオファー";
+"popular" = "人気";
+"free_trial_7_days" = "7日間無料";
+
+// OnboardingView additional strings
+"enabled" = "有効";

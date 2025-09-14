@@ -918,3 +918,19 @@
 "session_reminders" = "Session reminders";
 "daily_wellness_tips" = "Daily wellness tips";
 "enable_notifications" = "Enable Notifications";
+
+// Additional Paywall strings
+"choose_your_plan" = "Choose your plan";
+"monthly" = "Monthly";
+"yearly" = "Yearly";
+"lifetime" = "Lifetime";
+"activating" = "Activating...";
+"unlock_your_potential_cta" = "UNLOCK YOUR POTENTIAL";
+"restore_purchases" = "Restore purchases";
+"money_back_guarantee_7_days" = "7 days money back guarantee";
+"best_offer" = "BEST OFFER";
+"popular" = "POPULAR";
+"free_trial_7_days" = "7 DAYS FREE TRIAL";
+
+// OnboardingView additional strings
+"enabled" = "Enabled";
