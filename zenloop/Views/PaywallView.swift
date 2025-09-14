@@ -9,9 +9,27 @@ import StoreKit
 import UIKit
 
 struct PaywallView: View {
-    @Binding var isOnboardingComplete: Bool
+    @Binding var isOnboardingComplete: Bool?
     @Environment(\.dismiss) private var dismiss
     @StateObject private var purchaseManager = PurchaseManager.shared
+    
+    // Initializer for onboarding context
+    init(isOnboardingComplete: Binding<Bool>) {
+        let optionalBinding = Binding<Bool?>(
+            get: { isOnboardingComplete.wrappedValue },
+            set: { newValue in
+                if let value = newValue {
+                    isOnboardingComplete.wrappedValue = value
+                }
+            }
+        )
+        self._isOnboardingComplete = optionalBinding
+    }
+    
+    // Initializer for session/premium gate context
+    init() {
+        self._isOnboardingComplete = .constant(nil)
+    }
     @State private var showContent = false
     @State private var selectedPlan: PricingPlan = .monthly
     @State private var isPurchasing = false
@@ -248,7 +266,7 @@ struct PaywallView: View {
                                     try await purchaseManager.restorePurchases()
                                     if purchaseManager.isPremium {
                                         notificationFeedback.notificationOccurred(.success)
-                                        isOnboardingComplete = true
+                                        isOnboardingComplete? = true
                                         dismiss()
                                     }
                                 } catch {
@@ -363,7 +381,7 @@ struct PaywallView: View {
                 await MainActor.run {
                     notificationFeedback.notificationOccurred(.success)
                     isPurchasing = false
-                    isOnboardingComplete = true
+                    isOnboardingComplete? = true
                     dismiss()
                 }
                
@@ -637,5 +655,5 @@ struct PremiumPlanCard: View {
 
 // MARK: - Data Models (moved to PurchaseManager)
 #Preview {
-    PaywallView(isOnboardingComplete: .constant(false))
+    PaywallView()
 }

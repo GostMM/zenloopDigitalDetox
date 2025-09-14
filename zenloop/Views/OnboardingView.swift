@@ -10,7 +10,6 @@ import SwiftUI
 struct OnboardingView: View {
     @State private var currentPage = 0
     @State private var showContent = false
-    @State private var showPaywall = false
     @Binding var isOnboardingComplete: Bool
     @StateObject private var onboardingManager = OnboardingManager.shared
     
@@ -79,15 +78,6 @@ struct OnboardingView: View {
             // Vérifier les permissions à chaque changement de page
             onboardingManager.checkPermissionStatuses()
         }
-        .sheet(isPresented: $showPaywall) {
-            PaywallView(isOnboardingComplete: $isOnboardingComplete)
-                .onDisappear {
-                    // Marquer l'onboarding comme terminé pour le système de rapport quotidien
-                    if isOnboardingComplete {
-                        DailyReportManager.shared.setOnboardingCompleted()
-                    }
-                }
-        }
     }
     
     private func nextPage() {
@@ -106,22 +96,13 @@ struct OnboardingView: View {
     }
     
     private func handleOnboardingComplete() {
-        // Demander les permissions avant d'aller au paywall
-        Task {
-            await requestAllPermissionsBeforePaywall()
-        }
-    }
-    
-    private func requestAllPermissionsBeforePaywall() async {
-        print("🚀 [ONBOARDING] Opening paywall - permissions already handled")
+        print("🚀 [ONBOARDING] Onboarding complete - going to main app")
         
-        // Les permissions ont déjà été gérées sur leurs pages respectives
-        // Plus besoin de les redemander ici
+        // Marquer l'onboarding comme terminé
+        isOnboardingComplete = true
         
-        await MainActor.run {
-            print("💰 [ONBOARDING] Opening paywall")
-            showPaywall = true
-        }
+        // Configurer les notifications quotidiennes
+        DailyReportManager.shared.setOnboardingCompleted()
     }
 }
 
