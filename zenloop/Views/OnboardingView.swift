@@ -10,9 +10,10 @@ import SwiftUI
 struct OnboardingView: View {
     @State private var currentPage = 0
     @State private var showContent = false
+    @State private var showPaywall = false
     @Binding var isOnboardingComplete: Bool
     @StateObject private var onboardingManager = OnboardingManager.shared
-    
+
     private let pages = OnboardingPage.allPages
     
     var body: some View {
@@ -58,15 +59,18 @@ struct OnboardingView: View {
                 .padding(.bottom, 40)
             }
         }
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView(isOnboardingComplete: $isOnboardingComplete)
+        }
         .onAppear {
             // Animation d'entrée plus pro avec délai écheloné
             withAnimation(.spring(response: 1.2, dampingFraction: 0.8, blendDuration: 0.3)) {
                 showContent = true
             }
-            
+
             // Vérifier les permissions au démarrage
             onboardingManager.checkPermissionStatuses()
-            
+
             // Debug des pages
             print("🚨🚨 [ONBOARDING] OnboardingView appeared")
             for (index, page) in OnboardingPage.allPages.enumerated() {
@@ -95,13 +99,13 @@ struct OnboardingView: View {
     }
     
     private func handleOnboardingComplete() {
-        print("🚀 [ONBOARDING] Onboarding complete - going to main app")
-        
-        // Marquer l'onboarding comme terminé
-        isOnboardingComplete = true
-        
-        // Configurer les notifications quotidiennes
-        DailyReportManager.shared.setOnboardingCompleted()
+        print("🚀 [ONBOARDING] Onboarding complete - showing paywall")
+
+        // Afficher le paywall
+        showPaywall = true
+
+        // Désactivé: Configuration des rapports quotidiens
+        // DailyReportManager.shared.setOnboardingCompleted()
     }
 }
 
@@ -156,7 +160,10 @@ struct OnboardingPageView: View {
             Spacer()
             
             // Icon principal avec animations améliorées
-            if page.title.contains("Sessions") && page.title.contains("Insights") {
+            if page.icon == "chart.line.uptrend.xyaxis" {
+                // Page 3 : Page de résultats avec stats
+                ResultsStatsAnimation(showContent: showContent, color: page.color)
+            } else if page.title.contains("Sessions") && page.title.contains("Insights") {
                 // Page 2 : Animation spéciale avec multiples icônes
                 ProFeatureAnimation(showContent: showContent, color: page.color)
             } else {
@@ -551,6 +558,7 @@ struct OnboardingPage {
     }
     
     static let allPages: [OnboardingPage] = [
+        // Page 1: Introduction - Le problème
         OnboardingPage(
             title: String(localized: "take_back_control"),
             description: String(localized: "take_back_control_desc"),
@@ -559,6 +567,7 @@ struct OnboardingPage {
             isPermissionPage: false,
             permissionType: nil
         ),
+        // Page 2: La solution - Comment ça marche
         OnboardingPage(
             title: String(localized: "focus_sessions_and_insights"),
             description: String(localized: "focus_sessions_and_insights_desc"),
@@ -567,22 +576,17 @@ struct OnboardingPage {
             isPermissionPage: false,
             permissionType: nil
         ),
+        // Page 3: Les résultats - Preuve sociale et impact
         OnboardingPage(
-            title: String(localized: "screen_time_access"),
-            description: String(localized: "screen_time_explanation"),
-            icon: "lock.shield.fill",
-            color: .cyan,
-            isPermissionPage: true,
-            permissionType: .screenTime
-        ),
-        OnboardingPage(
-            title: String(localized: "smart_notifications"),
-            description: String(localized: "notification_explanation"),
-            icon: "bell.badge.fill",
-            color: .orange,
-            isPermissionPage: true,
-            permissionType: .notifications
+            title: String(localized: "join_thousands_users"),
+            description: String(localized: "join_thousands_users_desc"),
+            icon: "chart.line.uptrend.xyaxis",
+            color: .green,
+            isPermissionPage: false,
+            permissionType: nil
         )
+        // Note: Le paywall s'affichera après cette page
+        // Les permissions Screen Time et Notifications seront demandées APRÈS le paywall
     ]
 }
 
@@ -829,6 +833,89 @@ struct ProFeatureAnimation: View {
     private func stopAnimations() {
         pulseScale = 1.0
         rotationAngle = 0
+    }
+}
+
+// MARK: - Results Stats Animation
+struct ResultsStatsAnimation: View {
+    let showContent: Bool
+    let color: Color
+    @State private var animateStats = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            // Stats impressionnantes
+            HStack(spacing: 20) {
+                StatBubble(
+                    value: "10K+",
+                    label: String(localized: "active_users"),
+                    color: .cyan,
+                    showContent: showContent,
+                    delay: 0.3
+                )
+
+                StatBubble(
+                    value: "2.5h",
+                    label: String(localized: "avg_time_saved"),
+                    color: .green,
+                    showContent: showContent,
+                    delay: 0.5
+                )
+            }
+
+            HStack(spacing: 20) {
+                StatBubble(
+                    value: "94%",
+                    label: String(localized: "success_rate"),
+                    color: .purple,
+                    showContent: showContent,
+                    delay: 0.7
+                )
+
+                StatBubble(
+                    value: "4.9★",
+                    label: String(localized: "app_rating"),
+                    color: .orange,
+                    showContent: showContent,
+                    delay: 0.9
+                )
+            }
+        }
+    }
+}
+
+struct StatBubble: View {
+    let value: String
+    let label: String
+    let color: Color
+    let showContent: Bool
+    let delay: Double
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(value)
+                .font(.system(size: 32, weight: .black))
+                .foregroundColor(color)
+                .shadow(color: color.opacity(0.5), radius: 8)
+
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white.opacity(0.8))
+                .multilineTextAlignment(.center)
+        }
+        .frame(width: 140, height: 100)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(color.opacity(0.5), lineWidth: 2)
+                )
+        )
+        .shadow(color: color.opacity(0.3), radius: 15)
+        .scaleEffect(showContent ? 1.0 : 0.5)
+        .opacity(showContent ? 1 : 0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(delay), value: showContent)
     }
 }
 

@@ -167,13 +167,13 @@ struct ContentView: View {
             }
             .tag(0)
             
-            // Défis - Chargement lazy
+            // Mindful Scroll - Chargement lazy
             LazyTabView(selectedTab: selectedTab, targetTab: 1) {
-                ModernChallengesView()
+                MindfulScrollView()
                     .environmentObject(zenloopManager)
             }
             .tabItem {
-                Image(systemName: selectedTab == 1 ? "target" : "target")
+                Image(systemName: selectedTab == 1 ? "lungs.fill" : "lungs")
                 Text(String(localized: "challenges"))
             }
             .tag(1)

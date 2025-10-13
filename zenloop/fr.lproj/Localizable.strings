@@ -2,7 +2,7 @@
 
 // Tab Bar
 "home" = "Accueil";
-"challenges" = "Défis";
+"challenges" = "Respire";
 "stats" = "Stats";
 
 // Splash Screen
@@ -382,6 +382,22 @@
 "focus_sessions_desc" = "Lance des sessions de concentration personnalisées. Bloque les apps distractives et reste dans ta zone de flow optimale.";
 "focus_sessions_and_insights" = "Sessions & Insights";
 "focus_sessions_and_insights_desc" = "Lance des sessions de focus personnalisées, gagne des badges, et obtiens des insights détaillés sur tes habitudes numériques pour optimiser ton bien-être.";
+
+// New Onboarding - Results Page
+"join_thousands_users" = "Rejoins 10 000+ Utilisateurs";
+"join_thousands_users_desc" = "Des personnes dans le monde entier reprennent le contrôle de leur temps et de leur concentration avec Zenloop. Découvre l'impact réel sur ton bien-être numérique.";
+"active_users" = "Utilisateurs Actifs";
+"avg_time_saved" = "Temps Récupéré/Jour";
+"success_rate" = "Taux de Réussite";
+"app_rating" = "Note de l'App";
+
+// Permissions Setup (After Purchase)
+"final_setup" = "Configuration Finale";
+"two_quick_steps" = "2 étapes rapides pour commencer";
+"finish_setup" = "Terminer la Configuration";
+"enable_notifications" = "Activer les Notifications";
+"optional_can_skip" = "Optionnel - Tu peux sauter cette étape";
+"skip_for_now" = "Passer pour l'instant";
 "challenges_gamification" = "Défis & Gamification";
 "challenges_gamification_desc" = "Gagne des badges, débloquer des achievements et progresse vers tes objectifs de bien-être numérique jour après jour.";
 "advanced_insights" = "Insights Avancés";
@@ -400,8 +416,10 @@
 // Premium Features
 "unlimited_sessions" = "Sessions Illimitées";
 "unlimited_sessions_desc" = "Autant de sessions de focus que tu veux";
+"unlimited_focus_sessions" = "Sessions de Focus Illimitées";
 "advanced_analytics" = "Analytics Avancés";
 "advanced_analytics_desc" = "Statistiques détaillées et insights personnalisés";
+"smart_reminders" = "Rappels Intelligents";
 "all_badges" = "Tous les Badges";
 "all_badges_desc" = "Débloquer tous les achievements premium";
 "multi_device_sync" = "Sync Multi-Appareils";
@@ -943,3 +961,38 @@
 
 // OnboardingView additional strings
 "enabled" = "Activé";
+// Mindful Scroll View
+"mindful_scroll" = "Scroll Conscient";
+"scroll_consciously" = "Scrolle en conscience";
+"mindful_scroll_intro" = "Une façon plus saine de scroller";
+"mindful_scroll_description" = "Au lieu de contenu infini, découvre des citations inspirantes, tes progrès, et des moments de paix. Scrolle en pleine conscience.";
+
+// Mindful Content Categories
+"quote" = "Citation";
+"insight" = "Insight";
+"affirmation" = "Affirmation";
+"wisdom" = "Sagesse";
+"reminder" = "Rappel";
+"goal" = "Objectif";
+"motivation" = "Motivation";
+
+// Mindful Content
+"mindful_quote_1" = "Le moment présent est tout ce que tu as.";
+"progress_message_1" = "Tu es resté concentré 12 heures cette semaine";
+"keep_going" = "Continue, tu te débrouilles super bien !";
+"mindful_insight_1" = "Chaque fois que tu résistes à la distraction, tu renforces ton muscle de concentration.";
+"affirmation_1" = "Je contrôle mon attention et mon temps.";
+"wisdom_1" = "La vraie liberté n'est pas d'avoir tout, mais d'avoir besoin de moins.";
+"reminder_1" = "Remarque comment tu te sens en ce moment.";
+"take_a_breath" = "Prends une grande inspiration.";
+"goal_message_1" = "Plus que 3 jours pour atteindre ton objectif hebdo !";
+"motivation_1" = "Les petits pas quotidiens mènent à de grands changements.";
+
+// Awareness Messages
+"youve_scrolled_enough" = "Tu as assez scrollé";
+"time_to_take_action" = "Il est temps de transformer cette énergie en quelque chose de significatif.";
+"awareness_check" = "Check de Conscience";
+"youve_been_scrolling_for" = "Tu scrolles depuis :";
+"time_to_do_something_meaningful" = "Peut-être qu'il est temps de faire quelque chose de plus significatif ?";
+"take_action" = "Passer à l'Action";
+"continue_scrolling" = "Continuer à scroller";

@@ -11,7 +11,7 @@ import SwiftUI
 
 // MARK: - Debug Configuration
 struct PurchaseConfig {
-    static let isTestEnvironment = true // Changez à false pour production
+    static let isTestEnvironment = false // Changez à false pour production
     static let enableSandboxMode = true
 }
 

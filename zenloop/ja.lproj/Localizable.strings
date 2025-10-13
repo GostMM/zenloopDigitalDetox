@@ -400,8 +400,10 @@
 // Premium Features
 "unlimited_sessions" = "無制限セッション";
 "unlimited_sessions_desc" = "望むだけの集中セッション";
+"unlimited_focus_sessions" = "無制限の集中セッション";
 "advanced_analytics" = "高度な分析";
 "advanced_analytics_desc" = "詳細な統計とパーソナライズされた洞察";
+"smart_reminders" = "スマートリマインダー";
 "all_badges" = "すべてのバッジ";
 "all_badges_desc" = "すべてのプレミアム達成を解除";
 "multi_device_sync" = "マルチデバイス同期";

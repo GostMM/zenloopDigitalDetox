@@ -114,10 +114,10 @@ struct HomeView: View {
             // Démarrer la synchronisation périodique
             startPeriodicSync()
             
-            // Vérifier s'il faut afficher le rapport quotidien
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                dailyReportManager.checkShouldShowReport()
-            }
+            // Désactivé: Vérification du rapport quotidien
+            // DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            //     dailyReportManager.checkShouldShowReport()
+            // }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             // Re-synchroniser quand l'app devient active
@@ -141,15 +141,16 @@ struct HomeView: View {
                 impactFeedback.impactOccurred()
             }
         }
-        .sheet(isPresented: $dailyReportManager.shouldShowReport) {
-            DailyReportModal(
-                isPresented: $dailyReportManager.shouldShowReport,
-                timeOfDay: convertTimeOfDay(dailyReportManager.currentTimeOfDay)
-            )
-            .onDisappear {
-                dailyReportManager.markReportAsShown()
-            }
-        }
+        // Désactivé: Affichage du rapport quotidien
+        // .sheet(isPresented: $dailyReportManager.shouldShowReport) {
+        //     DailyReportModal(
+        //         isPresented: $dailyReportManager.shouldShowReport,
+        //         timeOfDay: convertTimeOfDay(dailyReportManager.currentTimeOfDay)
+        //     )
+        //     .onDisappear {
+        //         dailyReportManager.markReportAsShown()
+        //     }
+        // }
     }
     
     // MARK: - View Sections

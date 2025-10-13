@@ -400,8 +400,10 @@
 // Premium Features
 "unlimited_sessions" = "无限专注";
 "unlimited_sessions_desc" = "想要多少专注时间都可以";
+"unlimited_focus_sessions" = "无限专注时段";
 "advanced_analytics" = "高级分析";
 "advanced_analytics_desc" = "详细统计和个性化洞察";
+"smart_reminders" = "智能提醒";
 "all_badges" = "所有徽章";
 "all_badges_desc" = "解锁所有高级成就";
 "multi_device_sync" = "多设备同步";

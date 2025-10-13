@@ -400,8 +400,10 @@
 // Premium Features
 "unlimited_sessions" = "جلسات غير محدودة";
 "unlimited_sessions_desc" = "أي عدد تريده من جلسات التركيز";
+"unlimited_focus_sessions" = "جلسات تركيز غير محدودة";
 "advanced_analytics" = "تحليلات متقدمة";
 "advanced_analytics_desc" = "إحصائيات مفصلة ورؤى شخصية";
+"smart_reminders" = "تذكيرات ذكية";
 "all_badges" = "جميع الشارات";
 "all_badges_desc" = "افتح جميع الإنجازات المميزة";
 "multi_device_sync" = "مزامنة متعددة الأجهزة";

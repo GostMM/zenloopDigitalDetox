@@ -400,8 +400,10 @@
 // Premium Features
 "unlimited_sessions" = "Sessioni Illimitate";
 "unlimited_sessions_desc" = "Tutte le sessioni di concentrazione che vuoi";
+"unlimited_focus_sessions" = "Sessioni di Focus Illimitate";
 "advanced_analytics" = "Analytics Avanzate";
 "advanced_analytics_desc" = "Statistiche dettagliate e insight personalizzati";
+"smart_reminders" = "Promemoria Intelligenti";
 "all_badges" = "Tutti i Badge";
 "all_badges_desc" = "Sblocca tutti i risultati premium";
 "multi_device_sync" = "Sincronizzazione Multi-Dispositivo";

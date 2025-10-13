@@ -2,7 +2,7 @@
 
 // Tab Bar
 "home" = "Home";
-"challenges" = "Challenges";
+"challenges" = "Breathe";
 "stats" = "Stats";
 
 // Splash Screen
@@ -382,6 +382,22 @@
 "focus_sessions_desc" = "Launch personalized concentration sessions. Block distracting apps and stay in your optimal flow zone.";
 "focus_sessions_and_insights" = "Sessions & Insights";
 "focus_sessions_and_insights_desc" = "Launch personalized focus sessions, earn badges, and get detailed insights about your digital habits to optimize your wellness.";
+
+// New Onboarding - Results Page
+"join_thousands_users" = "Join 10,000+ Users";
+"join_thousands_users_desc" = "People worldwide are reclaiming their time and focus with Zenloop. See the real impact on your digital wellbeing.";
+"active_users" = "Active Users";
+"avg_time_saved" = "Avg. Time Saved/Day";
+"success_rate" = "Success Rate";
+"app_rating" = "App Rating";
+
+// Permissions Setup (After Purchase)
+"final_setup" = "Final Setup";
+"two_quick_steps" = "2 quick steps to get started";
+"finish_setup" = "Finish Setup";
+"enable_notifications" = "Enable Notifications";
+"optional_can_skip" = "Optional - You can skip this step";
+"skip_for_now" = "Skip for now";
 "challenges_gamification" = "Challenges & Gamification";
 "challenges_gamification_desc" = "Earn badges, unlock achievements and progress towards your digital wellness goals day by day.";
 "advanced_insights" = "Advanced Insights";
@@ -400,8 +416,10 @@
 // Premium Features
 "unlimited_sessions" = "Unlimited Sessions";
 "unlimited_sessions_desc" = "As many focus sessions as you want";
+"unlimited_focus_sessions" = "Unlimited Focus Sessions";
 "advanced_analytics" = "Advanced Analytics";
 "advanced_analytics_desc" = "Detailed statistics and personalized insights";
+"smart_reminders" = "Smart Reminders";
 "all_badges" = "All Badges";
 "all_badges_desc" = "Unlock all premium achievements";
 "multi_device_sync" = "Multi-Device Sync";
@@ -941,3 +959,38 @@
 
 // OnboardingView additional strings
 "enabled" = "Enabled";
+// Mindful Scroll View
+"mindful_scroll" = "Mindful Scroll";
+"scroll_consciously" = "Scroll with awareness";
+"mindful_scroll_intro" = "A healthier way to scroll";
+"mindful_scroll_description" = "Instead of endless content, discover inspiring quotes, your progress, and moments of peace. Scroll mindfully.";
+
+// Mindful Content Categories  
+"quote" = "Quote";
+"insight" = "Insight";
+"affirmation" = "Affirmation";
+"wisdom" = "Wisdom";
+"reminder" = "Reminder";
+"goal" = "Goal";
+"motivation" = "Motivation";
+
+// Mindful Content
+"mindful_quote_1" = "The present moment is all you ever have.";
+"progress_message_1" = "You've stayed focused for 12 hours this week";
+"keep_going" = "Keep going, you're doing great!";
+"mindful_insight_1" = "Every time you resist distraction, you strengthen your focus muscle.";
+"affirmation_1" = "I am in control of my attention and my time.";
+"wisdom_1" = "True freedom is not having everything, but needing less.";
+"reminder_1" = "Notice how you're feeling right now.";
+"take_a_breath" = "Take a deep breath.";
+"goal_message_1" = "3 more days to reach your weekly goal!";
+"motivation_1" = "Small steps every day lead to big changes.";
+
+// Awareness Messages
+"youve_scrolled_enough" = "You've scrolled enough";
+"time_to_take_action" = "Time to transform this energy into something meaningful.";
+"awareness_check" = "Awareness Check";
+"youve_been_scrolling_for" = "You've been scrolling for:";
+"time_to_do_something_meaningful" = "Maybe it's time to do something more meaningful?";
+"take_action" = "Take Action";
+"continue_scrolling" = "Continue scrolling";
