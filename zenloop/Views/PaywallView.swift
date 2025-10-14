@@ -32,7 +32,7 @@ struct PaywallView: View {
         self._isOnboardingComplete = .constant(nil)
     }
     @State private var showContent = false
-    @State private var selectedPlan: PricingPlan = .lifetime  // Sélection par défaut sur le meilleur plan
+    @State private var selectedPlan: PricingPlan = .yearly  // Sélection par défaut sur le plan le plus populaire
     @State private var isPurchasing = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var rotationAngle: Double = 0
@@ -186,21 +186,9 @@ struct PaywallView: View {
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
                             .padding(.horizontal, 16)
 
-                            // Tous les plans visibles simultanément
+                            // Tous les plans visibles simultanément - ORDRE OPTIMISÉ
                             VStack(spacing: 12) {
-                                // Lifetime - Le plus attrayant (BEST OFFER)
-                                PremiumPlanCard(
-                                    plan: .lifetime,
-                                    isSelected: selectedPlan == .lifetime,
-                                    isCompact: false,
-                                    purchaseManager: purchaseManager,
-                                    onSelect: {
-                                        impactMedium.impactOccurred()
-                                        selectedPlan = .lifetime
-                                    }
-                                )
-
-                                // Yearly - Populaire
+                                // 1️⃣ YEARLY - POPULAIRE (meilleur rapport qualité/prix)
                                 PremiumPlanCard(
                                     plan: .yearly,
                                     isSelected: selectedPlan == .yearly,
@@ -212,7 +200,7 @@ struct PaywallView: View {
                                     }
                                 )
 
-                                // Monthly - Option flexible
+                                // 2️⃣ MONTHLY - Option flexible
                                 PremiumPlanCard(
                                     plan: .monthly,
                                     isSelected: selectedPlan == .monthly,
@@ -221,6 +209,18 @@ struct PaywallView: View {
                                     onSelect: {
                                         impactMedium.impactOccurred()
                                         selectedPlan = .monthly
+                                    }
+                                )
+
+                                // 3️⃣ LIFETIME - Premium (pour les convaincus)
+                                PremiumPlanCard(
+                                    plan: .lifetime,
+                                    isSelected: selectedPlan == .lifetime,
+                                    isCompact: false,
+                                    purchaseManager: purchaseManager,
+                                    onSelect: {
+                                        impactMedium.impactOccurred()
+                                        selectedPlan = .lifetime
                                     }
                                 )
                             }
@@ -598,21 +598,30 @@ struct PremiumPlanCard: View {
 
                 // Contenu principal
                 VStack(alignment: .leading, spacing: 8) {
-                    // Badge en haut
+                    // Badge en haut - ORDRE OPTIMISÉ
                     HStack {
-                        if plan == .lifetime {
-                            HStack(spacing: 4) {
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 9))
-                                Text(String(localized: "best_offer"))
-                                    .font(.system(size: fontSizeBadge, weight: .bold))
-                            }
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color(red: 1.0, green: 0.84, blue: 0.0), in: Capsule())
-                        } else if plan == .yearly {
+                        if plan == .yearly {
+                            // YEARLY = MEILLEUR CHOIX (badges proéminents)
                             HStack(spacing: 6) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 9))
+                                    Text(String(localized: "popular"))
+                                        .font(.system(size: fontSizeBadge, weight: .bold))
+                                }
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(red: 1.0, green: 0.84, blue: 0.0), Color.orange],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    in: Capsule()
+                                )
+                                .shadow(color: .orange.opacity(0.5), radius: 4, x: 0, y: 2)
+
                                 HStack(spacing: 4) {
                                     Image(systemName: "gift.fill")
                                         .font(.system(size: 8))
@@ -623,15 +632,9 @@ struct PremiumPlanCard: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(.green, in: Capsule())
-
-                                Text(String(localized: "popular"))
-                                    .font(.system(size: fontSizeBadge, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(.orange, in: Capsule())
                             }
                         } else if plan == .monthly {
+                            // MONTHLY = Option flexible
                             HStack(spacing: 4) {
                                 Image(systemName: "gift.fill")
                                     .font(.system(size: 8))
@@ -642,6 +645,18 @@ struct PremiumPlanCard: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(.green, in: Capsule())
+                        } else if plan == .lifetime {
+                            // LIFETIME = Premium pour convaincus
+                            HStack(spacing: 4) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 9))
+                                Text(String(localized: "best_offer"))
+                                    .font(.system(size: fontSizeBadge, weight: .bold))
+                            }
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color(red: 1.0, green: 0.84, blue: 0.0), in: Capsule())
                         }
 
                         Spacer()

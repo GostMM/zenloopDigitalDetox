@@ -209,70 +209,7 @@ struct MindfulScrollView: View {
     }
 
     private func mindfulCard(content: MindfulContent, index: Int) -> some View {
-        VStack(spacing: 20) {
-            // Icône
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [content.color.opacity(0.3), content.color.opacity(0.1), .clear],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 60
-                        )
-                    )
-                    .frame(width: 100, height: 100)
-
-                Image(systemName: content.icon)
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundColor(content.color)
-            }
-
-            // Type de contenu
-            Text(content.category)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(content.color)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-                .background(content.color.opacity(0.2), in: Capsule())
-
-            // Texte principal
-            Text(content.text)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
-                .lineSpacing(6)
-
-            // Sous-texte optionnel
-            if let subtext = content.subtext {
-                Text(subtext)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
-            }
-
-            // Animation de particules
-            ParticleEffect(color: content.color)
-                .frame(height: 60)
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 28)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28)
-                        .stroke(
-                            LinearGradient(
-                                colors: [content.color.opacity(0.4), content.color.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                )
-        )
-        .shadow(color: content.color.opacity(0.15), radius: 25)
+        SocialMediaStyleCard(content: content, index: index)
     }
 
     private var continuationIndicator: some View {
@@ -659,6 +596,257 @@ extension MindfulScrollView {
             MindfulContent(icon: "drop.fill", color: .blue, category: "Rappel", text: "Hydrate-toi, ton cerveau en a besoin.", subtext: nil),
             MindfulContent(icon: "figure.stand", color: .green, category: "Rappel", text: "Lève-toi et étire-toi, même 30 secondes.", subtext: nil)
         ]
+    }
+}
+
+// MARK: - Social Media Style Card Component
+
+struct SocialMediaStyleCard: View {
+    let content: MindfulContent
+    let index: Int
+
+    @State private var likes: Int
+    @State private var isLiked = false
+    @State private var showComments = false
+
+    private let randomUsernames = ["@mindful_soul", "@zen_warrior", "@focus_master", "@peaceful_mind", "@clarity_seeker"]
+
+    // Commentaires multilingues (FR/EN)
+    private var randomComments: [(String, String)] {
+        let language = Locale.current.language.languageCode?.identifier ?? "en"
+
+        if language == "fr" {
+            return [
+                ("@emma_focus", "Ça m'a vraiment aidé aujourd'hui 🙏"),
+                ("@alex_zen", "J'avais besoin d'entendre ça ✨"),
+                ("@sophia_calm", "Tellement vrai ! Merci pour le partage"),
+                ("@lucas_mindful", "Exactement ce que je pensais 💭"),
+                ("@maya_peace", "C'est magnifique ❤️"),
+                ("@theo_zen", "Merci pour ce rappel 🌟"),
+                ("@julie_calm", "Wow, ça résonne tellement 💫")
+            ]
+        } else {
+            return [
+                ("@emma_focus", "This really helped me today 🙏"),
+                ("@alex_zen", "Needed to hear this ✨"),
+                ("@sophia_calm", "So true! Thank you for sharing"),
+                ("@lucas_mindful", "Exactly what I was thinking 💭"),
+                ("@maya_peace", "This is beautiful ❤️"),
+                ("@theo_zen", "Thanks for this reminder 🌟"),
+                ("@julie_calm", "Wow, this resonates so much 💫")
+            ]
+        }
+    }
+
+    private var viewAllCommentsText: String {
+        let language = Locale.current.language.languageCode?.identifier ?? "en"
+        let count = Int.random(in: 50...500)
+        return language == "fr" ? "Voir les \(count) commentaires" : "View all \(count) comments"
+    }
+
+    init(content: MindfulContent, index: Int) {
+        self.content = content
+        self.index = index
+        _likes = State(initialValue: Int.random(in: 250...8500))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header (profil style)
+            HStack(spacing: 12) {
+                // Avatar circulaire avec gradient
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [content.color, content.color.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: content.icon)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Zenloop")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.cyan)
+                        Text(content.category)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+
+                Spacer()
+
+                // Options (3 dots)
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            // Contenu principal (post)
+            VStack(alignment: .leading, spacing: 16) {
+                Text(content.text)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(.white)
+                    .lineSpacing(6)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let subtext = content.subtext {
+                    Text(subtext)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(content.color)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(content.color.opacity(0.15))
+                        )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+            // Interaction bar (likes, comments, shares)
+            VStack(spacing: 0) {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                HStack(spacing: 8) {
+                    // Like button
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            isLiked.toggle()
+                            likes += isLiked ? 1 : -1
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(isLiked ? .pink : .white.opacity(0.7))
+
+                            Text("\(likes)")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .scaleEffect(isLiked ? 1.1 : 1.0)
+                    }
+
+                    Spacer()
+
+                    // Comment button
+                    Button(action: { showComments.toggle() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bubble.right")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+
+                            Text("\(Int.random(in: 15...350))")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+
+                    Spacer()
+
+                    // Share button
+                    Button(action: {}) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "paperplane")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+
+                            Text("\(Int.random(in: 5...120))")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+
+                    Spacer()
+
+                    // Bookmark
+                    Button(action: {}) {
+                        Image(systemName: "bookmark")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+            }
+
+            // Commentaires (2-3 faux commentaires)
+            if showComments {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(0..<min(3, randomComments.count), id: \.self) { i in
+                        let comment = randomComments[i]
+                        HStack(alignment: .top, spacing: 10) {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 28, height: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(comment.0)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white)
+
+                                Text(comment.1)
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+
+                            Spacer()
+                        }
+                    }
+
+                    Text(viewAllCommentsText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                        .padding(.top, 4)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // Timestamp
+            Text("\(Int.random(in: 5...60))m ago")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.4))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                colors: [content.color.opacity(0.3), content.color.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                )
+        )
+        .shadow(color: content.color.opacity(0.2), radius: 20, x: 0, y: 10)
     }
 }
 

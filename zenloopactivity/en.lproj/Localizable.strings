@@ -498,3 +498,12 @@
 "average" = "Average";
 "favorite_app" = "Favorite app";
 "daily_average" = "Daily average";
+
+// New Enhanced UI strings
+"total_screen_time" = "Total Screen Time";
+"daily_average" = "Daily Average";
+"weekly_total" = "Weekly Total";
+"excellent_usage" = "Excellent usage! 🌟";
+"moderate_usage" = "Moderate usage 👍";
+"high_usage" = "Consider taking a break ⚠️";
+"top_category_insight" = "%@ represents %d%% of your usage";

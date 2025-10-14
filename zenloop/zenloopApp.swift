@@ -16,15 +16,25 @@ struct zenloopApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var quickActionsManager = QuickActionsManager.shared
     @StateObject private var quickActionsBridge = QuickActionsBridge.shared
-    
+    @State private var showSplash = true
+
     init() {
         FirebaseApp.configure()
     }
-    
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(quickActionsBridge)
+            ZStack {
+                ContentView()
+                    .environmentObject(quickActionsBridge)
+
+                // Splash Screen animé par-dessus
+                if showSplash {
+                    SplashScreenView(isActive: $showSplash)
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
                 .onAppear {
                     // 🌟 Compter l'ouverture de l'app pour le système de notation
                     AppRatingManager.shared.recordAppLaunch()
