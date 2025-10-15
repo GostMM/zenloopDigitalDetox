@@ -378,7 +378,7 @@ class PurchaseManager: ObservableObject {
             do {
                 let transaction = try checkVerified(result)
                 NSLog("🔍 Checking entitlement: \(transaction.productID)")
-                
+
                 // Vérifier le statut de la transaction
                 if let revocationDate = transaction.revocationDate {
                     NSLog("🚫 Product refunded: \(transaction.productID) on \(revocationDate)")
@@ -387,20 +387,54 @@ class PurchaseManager: ObservableObject {
                     }
                     continue
                 }
-                
+
                 // Vérifier l'expiration pour les abonnements
                 if let expirationDate = transaction.expirationDate {
                     if expirationDate < Date() {
                         NSLog("⏰ Product expired: \(transaction.productID) on \(expirationDate)")
                         if let product = products.first(where: { $0.id == transaction.productID }) {
                             expiredProducts.append(product)
+
+                            // 🔗 Tracker l'expiration du trial
+                            Task {
+                                let deviceId = await FirebaseManager.shared.getDeviceId()
+                                await AffiliateManager.shared.trackTrialExpired(userId: deviceId)
+                            }
                         }
                         continue
                     } else {
                         NSLog("⏳ Product expires: \(transaction.productID) on \(expirationDate)")
+
+                        // 🔗 Tracker l'achat avec affiliation
+                        if let product = products.first(where: { $0.id == transaction.productID }) {
+                            // Déterminer si c'est un trial
+                            let isTrial = hasFreeTrial(product) && transaction.purchaseDate.addingTimeInterval(7*24*60*60) > Date()
+
+                            // Mapper le type d'achat
+                            let purchaseType: PurchaseType
+                            if product.id.contains("lifetime") {
+                                purchaseType = .lifetime
+                            } else if product.id.contains("yearly") {
+                                purchaseType = .yearly
+                            } else {
+                                purchaseType = .monthly
+                            }
+
+                            // Tracker
+                            Task {
+                                let deviceId = await FirebaseManager.shared.getDeviceId()
+                                await AffiliateManager.shared.trackPurchase(
+                                    userId: deviceId,
+                                    purchaseType: purchaseType,
+                                    isTrial: isTrial,
+                                    price: Double(truncating: product.price as NSNumber),
+                                    trialEndDate: expirationDate
+                                )
+                            }
+                        }
                     }
                 }
-                
+
                 if let product = products.first(where: { $0.id == transaction.productID }) {
                     newPurchasedProducts.append(product)
                     NSLog("✅ Found active product: \(product.id)")

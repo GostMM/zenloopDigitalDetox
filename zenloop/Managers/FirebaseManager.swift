@@ -25,16 +25,26 @@ class FirebaseManager: ObservableObject {
             UserDefaults.standard.set(self.deviceId, forKey: "zenloop_device_id")
         }
     }
-    
+
+    // MARK: - Public Device ID Access
+
+    /// Obtenir le device ID (pour affiliation et autres services)
+    func getDeviceId() -> String {
+        return deviceId
+    }
+
     // MARK: - Device Registration
     
     func registerDeviceOnFirstLaunch() async {
         let hasRegistered = UserDefaults.standard.bool(forKey: "zenloop_device_registered")
-        
+
         if !hasRegistered {
             await registerDevice()
             UserDefaults.standard.set(true, forKey: "zenloop_device_registered")
             print("✅ [FIREBASE] Device registered on first launch")
+
+            // 🔗 Enregistrer l'affiliation si présente
+            await AffiliateManager.shared.registerAffiliation(userId: deviceId)
         } else {
             print("ℹ️ [FIREBASE] Device already registered")
         }

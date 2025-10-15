@@ -88,8 +88,13 @@ struct zenloopApp: App {
                     }
                 }
                 .onOpenURL { url in
-                    // Handle URL schemes if needed for Quick Actions
+                    // Handle URL schemes (Quick Actions + Affiliation)
                     handleURL(url)
+
+                    // 🔗 Traiter les liens d'affiliation
+                    Task {
+                        await AffiliateManager.shared.processDeepLink(url: url)
+                    }
                 }
         }
     }

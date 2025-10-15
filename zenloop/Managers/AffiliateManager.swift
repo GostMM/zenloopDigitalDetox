@@ -8,6 +8,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import UIKit
 
 /// Statut de l'affiliation
 enum AffiliateStatus: String, Codable {
@@ -66,6 +67,9 @@ class AffiliateManager: ObservableObject {
 
     private init() {
         loadSavedAffiliateCode()
+        // Ne PAS vérifier le clipboard automatiquement - évite l'alerte de permission
+        // On utilisera uniquement server-side recovery + deep links
+        tryServerSideRecoveryIfNeeded()
     }
 
     // MARK: - Deep Linking
@@ -112,14 +116,103 @@ class AffiliateManager: ObservableObject {
         }
     }
 
+    /// Récupération server-side uniquement (si pas de code)
+    private func tryServerSideRecoveryIfNeeded() {
+        // Si on a déjà un code, ne rien faire
+        guard currentAffiliateCode == nil else {
+            print("⏭️ [AFFILIATE] Code already exists, skipping recovery")
+            return
+        }
+
+        // Vérifier si on a déjà fait une tentative de récupération
+        let recoveryAttemptedKey = "zenloop.affiliate.recoveryAttempted"
+        guard !userDefaults.bool(forKey: recoveryAttemptedKey) else {
+            print("⏭️ [AFFILIATE] Recovery already attempted")
+            return
+        }
+
+        // Essayer la récupération server-side (Firebase)
+        print("🔍 [AFFILIATE] Attempting server-side recovery...")
+        Task {
+            await tryRecoverFromFirebaseClicks()
+        }
+
+        // Marquer comme tenté
+        userDefaults.set(true, forKey: recoveryAttemptedKey)
+        userDefaults.synchronize()
+    }
+
+    /// Récupération via Firebase affiliateClicks (si clipboard échoue)
+    private func tryRecoverFromFirebaseClicks() async {
+        let deviceModel = UIDevice.current.model // "iPhone", "iPad"
+        let systemVersion = UIDevice.current.systemVersion // "17.0"
+
+        do {
+            // Chercher les clics des dernières 48h correspondant à ce device
+            let twoDaysAgo = Date().addingTimeInterval(-48 * 3600)
+
+            let clicksQuery = db.collection("affiliateClicks")
+                .whereField("deviceType", isEqualTo: deviceModel)
+                .whereField("iOSVersion", isEqualTo: systemVersion)
+                .whereField("claimed", isEqualTo: false)
+                .whereField("timestamp", isGreaterThan: Timestamp(date: twoDaysAgo))
+                .order(by: "timestamp", descending: true)
+                .limit(to: 5)
+
+            let snapshot = try await clicksQuery.getDocuments()
+
+            if let mostRecentClick = snapshot.documents.first {
+                let data = mostRecentClick.data()
+
+                if let affiliateCode = data["affiliateCode"] as? String {
+                    print("🎯 [AFFILIATE] Server-side recovery found code: \(affiliateCode)")
+
+                    // Sauvegarder le code
+                    saveAffiliateCode(affiliateCode)
+
+                    // Marquer ce clic comme "claimed"
+                    try await mostRecentClick.reference.updateData([
+                        "claimed": true,
+                        "claimedAt": Timestamp(date: Date())
+                    ])
+
+                    print("✅ [AFFILIATE] Code recovered from server!")
+                }
+            } else {
+                print("⚠️ [AFFILIATE] No matching clicks found in last 48h")
+            }
+
+        } catch {
+            print("❌ [AFFILIATE] Firebase recovery failed: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Firebase Integration
 
     /// Enregistrer l'affiliation dans Firebase lors de l'inscription
     func registerAffiliation(userId: String) async {
-        guard let affiliateCode = currentAffiliateCode,
-              !hasProcessedAffiliation() else {
-            print("⚠️ [AFFILIATE] No code or already processed")
+        guard let affiliateCode = currentAffiliateCode else {
+            print("⚠️ [AFFILIATE] No affiliate code")
             return
+        }
+
+        // Utiliser IDFV comme device fingerprint unique
+        let deviceFingerprint = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+
+        // Vérifier si ce device a déjà été enregistré pour éviter les doublons
+        do {
+            let existingQuery = db.collection("affiliates")
+                .whereField("deviceFingerprint", isEqualTo: deviceFingerprint)
+                .limit(to: 1)
+
+            let existingDocs = try await existingQuery.getDocuments()
+
+            if !existingDocs.isEmpty {
+                print("⚠️ [AFFILIATE] Device already registered, skipping duplicate")
+                return
+            }
+        } catch {
+            print("⚠️ [AFFILIATE] Error checking existing device: \(error.localizedDescription)")
         }
 
         let affiliateData = AffiliateData(
@@ -135,32 +228,76 @@ class AffiliateManager: ObservableObject {
         )
 
         do {
-            // Enregistrer dans Firebase
+            // Enregistrer dans Firebase avec device fingerprint
             let docRef = db.collection("affiliates").document(userId)
             try await docRef.setData([
                 "affiliateCode": affiliateData.affiliateCode,
                 "userId": affiliateData.userId,
                 "timestamp": Timestamp(date: affiliateData.timestamp),
                 "status": affiliateData.status.rawValue,
-                "deviceInfo": affiliateData.deviceInfo
+                "deviceInfo": affiliateData.deviceInfo,
+                "deviceFingerprint": deviceFingerprint,
+                "source": "app" // Provenance de l'affiliation
             ])
 
-            // Incrémenter le compteur de l'affilié
-            let affiliateRef = db.collection("affiliateStats").document(affiliateCode)
-            try await affiliateRef.setData([
-                "code": affiliateCode,
-                "totalSignups": FieldValue.increment(Int64(1)),
-                "lastSignupDate": Timestamp(date: Date())
-            ], merge: true)
+            // Récupérer les infos de l'affilié pour mise à jour
+            let affiliateStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: affiliateCode)
+                .limit(to: 1)
+
+            let affiliateSnapshot = try await affiliateStatsQuery.getDocuments()
+
+            if let affiliateDoc = affiliateSnapshot.documents.first {
+                // Mettre à jour le document existant avec le bon ID
+                try await affiliateDoc.reference.setData([
+                    "affiliateCode": affiliateCode,
+                    "totalSignups": FieldValue.increment(Int64(1)),
+                    "lastSignupDate": Timestamp(date: Date())
+                ], merge: true)
+
+                print("✅ [AFFILIATE] Updated existing affiliate stats")
+            } else {
+                print("⚠️ [AFFILIATE] Affiliate code not found in affiliateStats: \(affiliateCode)")
+            }
 
             // Marquer comme traité
             markAffiliationAsProcessed()
             self.affiliateData = affiliateData
 
+            // Marquer le clic affilié comme récupéré (si existe)
+            await markAffiliateClickAsClaimed(affiliateCode: affiliateCode, userId: userId, deviceFingerprint: deviceFingerprint)
+
             print("✅ [AFFILIATE] Registration saved to Firebase")
 
         } catch {
             print("❌ [AFFILIATE] Failed to save: \(error.localizedDescription)")
+        }
+    }
+
+    /// Marquer un clic affilié comme récupéré par un userId
+    private func markAffiliateClickAsClaimed(affiliateCode: String, userId: String, deviceFingerprint: String) async {
+        do {
+            // Chercher les clics non réclamés avec ce code
+            let clicksQuery = db.collection("affiliateClicks")
+                .whereField("affiliateCode", isEqualTo: affiliateCode)
+                .whereField("claimed", isEqualTo: false)
+                .order(by: "timestamp", descending: true)
+                .limit(to: 1)
+
+            let snapshot = try await clicksQuery.getDocuments()
+
+            if let clickDoc = snapshot.documents.first {
+                try await clickDoc.reference.updateData([
+                    "claimed": true,
+                    "claimedAt": Timestamp(date: Date()),
+                    "claimedByUserId": userId,
+                    "deviceFingerprint": deviceFingerprint
+                ])
+
+                print("✅ [AFFILIATE] Click marked as claimed")
+            }
+        } catch {
+            print("⚠️ [AFFILIATE] Could not mark click as claimed: \(error.localizedDescription)")
         }
     }
 
@@ -179,36 +316,93 @@ class AffiliateManager: ObservableObject {
 
         let status: AffiliateStatus = isTrial ? .pending : .active
 
+        // Calculer la commission (30% pour trial converti, 40% pour achat direct)
+        let commissionRate = isTrial ? 0.30 : 0.40
+        let commission = price * commissionRate
+
+        // Device fingerprint pour éviter les doublons
+        let deviceFingerprint = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+
         do {
             let docRef = db.collection("affiliates").document(userId)
 
-            var updateData: [String: Any] = [
+            var affiliateData: [String: Any] = [
+                "affiliateCode": affiliateCode,
+                "userId": userId,
                 "purchaseType": purchaseType.rawValue,
                 "purchaseDate": Timestamp(date: Date()),
                 "status": status.rawValue,
-                "isTrial": isTrial
+                "isTrial": isTrial,
+                "purchaseAmount": price,
+                "timestamp": Timestamp(date: Date()),
+                "deviceInfo": getDeviceInfo(),
+                "deviceFingerprint": deviceFingerprint
             ]
 
             if let trialEnd = trialEndDate {
-                updateData["trialEndDate"] = Timestamp(date: trialEnd)
+                affiliateData["trialEndDate"] = Timestamp(date: trialEnd)
             }
 
-            // Si ce n'est pas un trial, enregistrer le revenu
-            if !isTrial {
-                updateData["revenue"] = price
+            // Créer TOUJOURS un document de conversion (trial ou payant)
+            let conversionRef = db.collection("affiliateConversions").document()
+            try await conversionRef.setData([
+                "affiliateCode": affiliateCode,
+                "userId": userId,
+                "purchaseType": purchaseType.rawValue,
+                "purchaseAmount": price,
+                "commission": commission,
+                "status": status.rawValue,  // "pending" pour trial, "active" pour payant
+                "isTrial": isTrial,
+                "convertedAt": Timestamp(date: Date()),
+                "trialEndDate": trialEndDate != nil ? Timestamp(date: trialEndDate!) : nil
+            ])
 
-                // Mettre à jour les stats de l'affilié
-                let affiliateRef = db.collection("affiliateStats").document(affiliateCode)
-                try await affiliateRef.setData([
-                    "totalRevenue": FieldValue.increment(Int64(price)),
-                    "totalConversions": FieldValue.increment(Int64(1)),
-                    "lastConversionDate": Timestamp(date: Date())
+            // Récupérer le document affiliateStats via query
+            let affiliateStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: affiliateCode)
+                .limit(to: 1)
+
+            let affiliateSnapshot = try await affiliateStatsQuery.getDocuments()
+
+            if let affiliateDoc = affiliateSnapshot.documents.first {
+                if !isTrial {
+                    // Achat payant : incrémenter revenue et conversions
+                    affiliateData["revenue"] = commission
+
+                    try await affiliateDoc.reference.setData([
+                        "totalRevenue": FieldValue.increment(Double(commission)),
+                        "totalConversions": FieldValue.increment(Int64(1)),
+                        "lastConversionDate": Timestamp(date: Date())
+                    ], merge: true)
+
+                    print("✅ [AFFILIATE] Updated affiliate stats with commission: \(commission)")
+                } else {
+                    // Trial : incrémenter pending seulement
+                    try await affiliateDoc.reference.setData([
+                        "totalPending": FieldValue.increment(Int64(1)),
+                        "lastPendingDate": Timestamp(date: Date())
+                    ], merge: true)
+
+                    print("⏳ [AFFILIATE] Trial tracked as pending (no commission yet)")
+                }
+            }
+
+            // Vérifier si c'est un nouveau signup avant de créer le document
+            let docSnapshot = try await docRef.getDocument()
+            let isNewSignup = !docSnapshot.exists
+
+            // Utiliser setData avec merge au lieu de updateData pour créer le doc s'il n'existe pas
+            try await docRef.setData(affiliateData, merge: true)
+
+            // Incrémenter totalSignups si c'est la première fois
+            if isNewSignup, let affiliateDoc = affiliateSnapshot.documents.first {
+                try await affiliateDoc.reference.setData([
+                    "totalSignups": FieldValue.increment(Int64(1)),
+                    "lastSignupDate": Timestamp(date: Date())
                 ], merge: true)
             }
 
-            try await docRef.updateData(updateData)
-
-            print("✅ [AFFILIATE] Purchase tracked - Type: \(purchaseType.rawValue), Trial: \(isTrial)")
+            print("✅ [AFFILIATE] Purchase tracked - Type: \(purchaseType.rawValue), Trial: \(isTrial), Commission: \(commission)")
 
         } catch {
             print("❌ [AFFILIATE] Failed to track purchase: \(error.localizedDescription)")
@@ -224,25 +418,31 @@ class AffiliateManager: ObservableObject {
     ) async {
         guard let affiliateCode = currentAffiliateCode else { return }
 
+        // Commission de 30% pour les conversions trial
+        let commission = price * 0.30
+
         let conversion = AffiliateConversion(
             affiliateCode: affiliateCode,
             userId: userId,
             fromType: .trial,
             toType: toPurchaseType,
             conversionDate: Date(),
-            revenue: price
+            revenue: commission
         )
 
         do {
-            // Enregistrer la conversion
+            // Enregistrer la conversion avec tous les détails
             let conversionRef = db.collection("affiliateConversions").document()
             try await conversionRef.setData([
                 "affiliateCode": conversion.affiliateCode,
                 "userId": conversion.userId,
                 "fromType": conversion.fromType.rawValue,
                 "toType": conversion.toType.rawValue,
-                "conversionDate": Timestamp(date: conversion.conversionDate),
-                "revenue": conversion.revenue
+                "purchaseType": toPurchaseType.rawValue,
+                "purchaseAmount": price,
+                "commission": commission,
+                "status": AffiliateStatus.converted.rawValue,
+                "convertedAt": Timestamp(date: conversion.conversionDate)
             ])
 
             // Mettre à jour le statut principal
@@ -250,18 +450,46 @@ class AffiliateManager: ObservableObject {
             try await userRef.updateData([
                 "status": AffiliateStatus.converted.rawValue,
                 "conversionDate": Timestamp(date: Date()),
-                "revenue": price
+                "revenue": commission,
+                "purchaseAmount": price
             ])
 
-            // Stats de l'affilié
-            let statsRef = db.collection("affiliateStats").document(affiliateCode)
-            try await statsRef.setData([
-                "totalRevenue": FieldValue.increment(Int64(price)),
-                "totalConversions": FieldValue.increment(Int64(1)),
-                "lastConversionDate": Timestamp(date: Date())
-            ], merge: true)
+            // Récupérer le document affiliateStats via query
+            let affiliateStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: affiliateCode)
+                .limit(to: 1)
 
-            print("✅ [AFFILIATE] Trial conversion tracked - Revenue: \(price)")
+            let affiliateSnapshot = try await affiliateStatsQuery.getDocuments()
+
+            if let affiliateDoc = affiliateSnapshot.documents.first {
+                try await affiliateDoc.reference.setData([
+                    "totalRevenue": FieldValue.increment(Double(commission)),
+                    "totalConversions": FieldValue.increment(Int64(1)),
+                    "totalPending": FieldValue.increment(Int64(-1)),  // Décrémenter pending
+                    "lastConversionDate": Timestamp(date: Date())
+                ], merge: true)
+
+                print("✅ [AFFILIATE] Updated affiliate stats with commission: \(commission)")
+            }
+
+            // Mettre à jour le document de conversion initial (passer de pending à converted)
+            let pendingQuery = db.collection("affiliateConversions")
+                .whereField("userId", isEqualTo: userId)
+                .whereField("status", isEqualTo: "pending")
+                .limit(to: 1)
+
+            let pendingSnapshot = try await pendingQuery.getDocuments()
+            if let pendingDoc = pendingSnapshot.documents.first {
+                try await pendingDoc.reference.updateData([
+                    "status": AffiliateStatus.converted.rawValue,
+                    "commission": commission,
+                    "purchaseAmount": price,
+                    "purchaseType": toPurchaseType.rawValue
+                ])
+                print("✅ [AFFILIATE] Updated pending conversion to converted")
+            }
+
+            print("✅ [AFFILIATE] Trial conversion tracked - Price: \(price), Commission: \(commission)")
 
         } catch {
             print("❌ [AFFILIATE] Failed to track conversion: \(error.localizedDescription)")
@@ -279,11 +507,33 @@ class AffiliateManager: ObservableObject {
                 "expirationDate": Timestamp(date: Date())
             ])
 
-            // Stats de l'affilié (trial expiré)
-            let statsRef = db.collection("affiliateStats").document(affiliateCode)
-            try await statsRef.setData([
-                "totalExpired": FieldValue.increment(Int64(1))
-            ], merge: true)
+            // Récupérer le document affiliateStats via query
+            let affiliateStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: affiliateCode)
+                .limit(to: 1)
+
+            let affiliateSnapshot = try await affiliateStatsQuery.getDocuments()
+
+            if let affiliateDoc = affiliateSnapshot.documents.first {
+                try await affiliateDoc.reference.setData([
+                    "totalExpired": FieldValue.increment(Int64(1)),
+                    "totalPending": FieldValue.increment(Int64(-1))  // Décrémenter pending
+                ], merge: true)
+            }
+
+            // Mettre à jour le document de conversion (passer de pending à expired)
+            let pendingQuery = db.collection("affiliateConversions")
+                .whereField("userId", isEqualTo: userId)
+                .whereField("status", isEqualTo: "pending")
+                .limit(to: 1)
+
+            let pendingSnapshot = try await pendingQuery.getDocuments()
+            if let pendingDoc = pendingSnapshot.documents.first {
+                try await pendingDoc.reference.updateData([
+                    "status": AffiliateStatus.expired.rawValue
+                ])
+                print("✅ [AFFILIATE] Updated pending conversion to expired")
+            }
 
             print("⏰ [AFFILIATE] Trial expired tracked")
 
