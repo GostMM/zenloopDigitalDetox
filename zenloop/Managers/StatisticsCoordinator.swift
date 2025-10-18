@@ -132,18 +132,25 @@ final class StatisticsCoordinator: ObservableObject {
     private func updateConsecutiveDays() {
         let today = Calendar.current.startOfDay(for: Date())
         let lastChallengeDate = UserDefaults.standard.object(forKey: Keys.lastChallengeDate) as? Date
-        
+
         if let lastDate = lastChallengeDate {
             let lastChallengeDay = Calendar.current.startOfDay(for: lastDate)
             let daysBetween = Calendar.current.dateComponents([.day], from: lastChallengeDay, to: today).day ?? 0
-            
-            if daysBetween == 1 {
+
+            if daysBetween == 0 {
+                // Même jour - Ne rien faire, le streak est maintenu
+                // On met juste à jour la date pour l'historique
+                #if DEBUG
+                self.logger.debug("🔥 [Statistics] Same day challenge - streak maintained: \(self.currentStreakCount) days")
+                #endif
+
+            } else if daysBetween == 1 {
                 // Jour consécutif
                 let currentStreak = UserDefaults.standard.integer(forKey: Keys.currentStreak)
                 let newStreak = currentStreak + 1
                 UserDefaults.standard.set(newStreak, forKey: Keys.currentStreak)
                 self.currentStreakCount = newStreak
-                
+
                 // Vérifier record de streak
                 let previousLongest = UserDefaults.standard.integer(forKey: Keys.longestStreak)
                 if newStreak > previousLongest {
@@ -151,27 +158,35 @@ final class StatisticsCoordinator: ObservableObject {
                     self.longestStreak = newStreak
                     self.delegate?.badgeEarned(type: .longestStreak, value: newStreak)
                 }
-                
+
                 self.delegate?.streakUpdated(newStreak: newStreak)
-                
+
+                #if DEBUG
+                self.logger.debug("🔥 [Statistics] Consecutive day! New streak: \(newStreak) days")
+                #endif
+
             } else if daysBetween > 1 {
                 // Streak cassé
                 UserDefaults.standard.set(1, forKey: Keys.currentStreak)
                 self.currentStreakCount = 1
                 self.delegate?.streakUpdated(newStreak: 1)
+
+                #if DEBUG
+                self.logger.debug("💔 [Statistics] Streak broken after \(daysBetween) days! Reset to 1")
+                #endif
             }
         } else {
             // Premier challenge
             UserDefaults.standard.set(1, forKey: Keys.currentStreak)
             self.currentStreakCount = 1
             self.delegate?.streakUpdated(newStreak: 1)
+
+            #if DEBUG
+            self.logger.debug("🔥 [Statistics] First challenge! Streak initialized to 1")
+            #endif
         }
-        
+
         UserDefaults.standard.set(today, forKey: Keys.lastChallengeDate)
-        
-        #if DEBUG
-        self.logger.debug("🔥 [Statistics] Streak updated: \(self.currentStreakCount) days")
-        #endif
     }
     
     // MARK: - Badge System

@@ -7,6 +7,7 @@
 import Foundation
 import SwiftUI
 import FamilyControls
+import UserNotifications
 import os
 
 // MARK: - Challenge State Management
@@ -62,21 +63,24 @@ final class ChallengeStateManager: ObservableObject {
     
     func startChallenge(_ challenge: ZenloopChallenge) {
         guard currentState == .idle else { return }
-        
+
         var startingChallenge = challenge
-        
+
         // CORRIGÉ: Ne pas écraser startTime si c'est une session programmée qui a déjà commencé
         if startingChallenge.startTime == nil {
             // Session manuelle - utiliser l'heure actuelle
             startingChallenge.startTime = Date()
         }
         // Sinon, conserver l'heure de démarrage réelle de l'extension
-        
+
         startingChallenge.isActive = true
         startingChallenge.isCompleted = false
-        
+
         currentChallenge = startingChallenge
         currentState = .active
+
+        // Programmer une notification silencieuse pour réveiller l'app à la fin
+        scheduleSessionEndNotification(for: startingChallenge)
         
         currentTimeRemaining = startingChallenge.timeRemaining
         currentProgress = startingChallenge.safeProgress
@@ -163,30 +167,34 @@ final class ChallengeStateManager: ObservableObject {
     
     func stopChallenge() {
         guard let challenge = currentChallenge, currentState == .active || currentState == .paused else { return }
-        
+
         var stoppedChallenge = challenge
         stoppedChallenge.isActive = false
         currentChallenge = stoppedChallenge
         currentState = .idle
-        
+
         cancelTimers()
+        cancelSessionEndNotification()
         resetState()
-        
+
         delegate?.stateDidChange(to: .idle, challenge: nil)
-        
+
         #if DEBUG
         logger.debug("⏹️ [ChallengeState] Challenge stopped: \(challenge.title)")
         #endif
     }
     
     func resetToIdle() {
+        // Annuler la notification de fin de session
+        cancelSessionEndNotification()
+
         currentChallenge = nil
         currentState = .idle
         pauseEndTime = nil
-        
+
         cancelTimers()
         resetState()
-        
+
         delegate?.stateDidChange(to: .idle, challenge: nil)
     }
     
@@ -195,7 +203,90 @@ final class ChallengeStateManager: ObservableObject {
         currentProgress = 0.0
         pauseTimeRemaining = "00:00"
     }
-    
+
+    // MARK: - Background Session End Notifications
+
+    private func scheduleSessionEndNotification(for challenge: ZenloopChallenge) {
+        guard let startTime = challenge.startTime else { return }
+        let endTime = startTime.addingTimeInterval(challenge.duration)
+        let timeInterval = endTime.timeIntervalSinceNow
+
+        guard timeInterval > 0 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "session_completed")
+        content.body = challenge.title
+        content.sound = .default
+        content.categoryIdentifier = "session_end"
+        content.userInfo = ["sessionId": challenge.id, "action": "complete_session"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "session_end_\(challenge.id)",
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            #if DEBUG
+            if let error = error {
+                self.logger.debug("❌ [ChallengeState] Failed to schedule session end notification: \(error.localizedDescription)")
+            } else {
+                self.logger.debug("🔔 [ChallengeState] Session end notification scheduled for \(timeInterval)s from now")
+            }
+            #endif
+        }
+    }
+
+    private func cancelSessionEndNotification() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            let sessionEndIds = requests
+                .filter { $0.identifier.starts(with: "session_end_") }
+                .map { $0.identifier }
+
+            if !sessionEndIds.isEmpty {
+                UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: sessionEndIds)
+
+                #if DEBUG
+                Task { @MainActor in
+                    self.logger.debug("🔕 [ChallengeState] Cancelled \(sessionEndIds.count) session end notification(s)")
+                }
+                #endif
+            }
+        }
+    }
+
+    func checkAndCompleteExpiredSession() {
+        guard let challenge = currentChallenge,
+              let startTime = challenge.startTime,
+              currentState == .active else {
+            #if DEBUG
+            logger.debug("⏰ [ChallengeState] checkAndCompleteExpiredSession - no active session to check")
+            #endif
+            return
+        }
+
+        let elapsed = Date().timeIntervalSince(startTime) - challenge.pauseDuration
+        let timeRemaining = challenge.duration - elapsed
+
+        #if DEBUG
+        logger.debug("⏰ [ChallengeState] Checking expired session: elapsed=\(elapsed)s, duration=\(challenge.duration)s, remaining=\(timeRemaining)s")
+        #endif
+
+        // Ajouter une petite tolérance de 2 secondes pour éviter les problèmes de timing
+        if elapsed >= (challenge.duration - 2.0) {
+            #if DEBUG
+            logger.debug("⏰ [ChallengeState] Session expired while in background - completing now (elapsed: \(Int(elapsed))s)")
+            #endif
+
+            completeChallenge()
+        } else {
+            #if DEBUG
+            logger.debug("⏰ [ChallengeState] Session still active - \(Int(timeRemaining))s remaining")
+            #endif
+        }
+    }
+
     // MARK: - App Attempt Tracking
     
     func recordAppOpenAttempt(appName: String? = nil) {

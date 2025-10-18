@@ -170,10 +170,14 @@ class AffiliateManager: ObservableObject {
                     // Sauvegarder le code
                     saveAffiliateCode(affiliateCode)
 
+                    // Obtenir le deviceId pour tracer qui a réclamé le clic
+                    let deviceId = await FirebaseManager.shared.getDeviceId()
+
                     // Marquer ce clic comme "claimed"
                     try await mostRecentClick.reference.updateData([
                         "claimed": true,
-                        "claimedAt": Timestamp(date: Date())
+                        "claimedAt": Timestamp(date: Date()),
+                        "claimedByUserId": deviceId
                     ])
 
                     print("✅ [AFFILIATE] Code recovered from server!")
@@ -199,20 +203,41 @@ class AffiliateManager: ObservableObject {
         // Utiliser IDFV comme device fingerprint unique
         let deviceFingerprint = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
 
-        // Vérifier si ce device a déjà été enregistré pour éviter les doublons
+        // Vérifier si ce device/user a déjà été enregistré
         do {
             let existingQuery = db.collection("affiliates")
-                .whereField("deviceFingerprint", isEqualTo: deviceFingerprint)
+                .whereField("userId", isEqualTo: userId)
                 .limit(to: 1)
 
             let existingDocs = try await existingQuery.getDocuments()
 
             if !existingDocs.isEmpty {
-                print("⚠️ [AFFILIATE] Device already registered, skipping duplicate")
+                let existingDoc = existingDocs.documents[0]
+                let existingData = existingDoc.data()
+
+                // Si l'utilisateur a déjà acheté (status = active/converted), ne pas changer l'affilié
+                if let status = existingData["status"] as? String,
+                   (status == "active" || status == "converted") {
+                    print("⚠️ [AFFILIATE] User already purchased, keeping original affiliate")
+                    return
+                }
+
+                // Si l'utilisateur n'a pas encore acheté, mettre à jour avec le nouveau code
+                print("🔄 [AFFILIATE] User exists but no purchase, updating affiliate code")
+                try await existingDoc.reference.updateData([
+                    "affiliateCode": affiliateCode,
+                    "timestamp": Timestamp(date: Date()),
+                    "deviceInfo": getDeviceInfo()
+                ])
+
+                // Mettre à jour les stats des deux affiliés (ancien et nouveau)
+                await updateAffiliateStatsOnCodeChange(oldCode: existingData["affiliateCode"] as? String, newCode: affiliateCode)
+
+                print("✅ [AFFILIATE] Affiliate code updated successfully")
                 return
             }
         } catch {
-            print("⚠️ [AFFILIATE] Error checking existing device: \(error.localizedDescription)")
+            print("⚠️ [AFFILIATE] Error checking existing user: \(error.localizedDescription)")
         }
 
         let affiliateData = AffiliateData(
@@ -307,6 +332,7 @@ class AffiliateManager: ObservableObject {
         purchaseType: PurchaseType,
         isTrial: Bool,
         price: Double,
+        currency: String = "EUR",
         trialEndDate: Date? = nil
     ) async {
         guard let affiliateCode = currentAffiliateCode else {
@@ -334,6 +360,7 @@ class AffiliateManager: ObservableObject {
                 "status": status.rawValue,
                 "isTrial": isTrial,
                 "purchaseAmount": price,
+                "currency": currency,
                 "timestamp": Timestamp(date: Date()),
                 "deviceInfo": getDeviceInfo(),
                 "deviceFingerprint": deviceFingerprint
@@ -350,6 +377,7 @@ class AffiliateManager: ObservableObject {
                 "userId": userId,
                 "purchaseType": purchaseType.rawValue,
                 "purchaseAmount": price,
+                "currency": currency,
                 "commission": commission,
                 "status": status.rawValue,  // "pending" pour trial, "active" pour payant
                 "isTrial": isTrial,
@@ -414,7 +442,8 @@ class AffiliateManager: ObservableObject {
         userId: String,
         fromTrial: Bool,
         toPurchaseType: PurchaseType,
-        price: Double
+        price: Double,
+        currency: String = "EUR"
     ) async {
         guard let affiliateCode = currentAffiliateCode else { return }
 
@@ -440,6 +469,7 @@ class AffiliateManager: ObservableObject {
                 "toType": conversion.toType.rawValue,
                 "purchaseType": toPurchaseType.rawValue,
                 "purchaseAmount": price,
+                "currency": currency,
                 "commission": commission,
                 "status": AffiliateStatus.converted.rawValue,
                 "convertedAt": Timestamp(date: conversion.conversionDate)
@@ -484,6 +514,7 @@ class AffiliateManager: ObservableObject {
                     "status": AffiliateStatus.converted.rawValue,
                     "commission": commission,
                     "purchaseAmount": price,
+                    "currency": currency,
                     "purchaseType": toPurchaseType.rawValue
                 ])
                 print("✅ [AFFILIATE] Updated pending conversion to converted")
@@ -543,6 +574,42 @@ class AffiliateManager: ObservableObject {
     }
 
     // MARK: - Helpers
+
+    /// Mettre à jour les stats quand un utilisateur change de code affilié
+    private func updateAffiliateStatsOnCodeChange(oldCode: String?, newCode: String) async {
+        guard let oldCode = oldCode, oldCode != newCode else { return }
+
+        do {
+            // Décrémenter totalSignups de l'ancien affilié
+            let oldStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: oldCode)
+                .limit(to: 1)
+
+            let oldSnapshot = try await oldStatsQuery.getDocuments()
+            if let oldDoc = oldSnapshot.documents.first {
+                try await oldDoc.reference.updateData([
+                    "totalSignups": FieldValue.increment(Int64(-1))
+                ])
+                print("➖ [AFFILIATE] Decremented signup count for old code: \(oldCode)")
+            }
+
+            // Incrémenter totalSignups du nouveau affilié
+            let newStatsQuery = db.collection("affiliateStats")
+                .whereField("affiliateCode", isEqualTo: newCode)
+                .limit(to: 1)
+
+            let newSnapshot = try await newStatsQuery.getDocuments()
+            if let newDoc = newSnapshot.documents.first {
+                try await newDoc.reference.updateData([
+                    "totalSignups": FieldValue.increment(Int64(1)),
+                    "lastSignupDate": Timestamp(date: Date())
+                ])
+                print("➕ [AFFILIATE] Incremented signup count for new code: \(newCode)")
+            }
+        } catch {
+            print("⚠️ [AFFILIATE] Error updating stats on code change: \(error.localizedDescription)")
+        }
+    }
 
     private func hasProcessedAffiliation() -> Bool {
         return userDefaults.bool(forKey: affiliateProcessedKey)

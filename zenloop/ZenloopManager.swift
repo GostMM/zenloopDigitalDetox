@@ -64,6 +64,8 @@ struct ZenloopChallenge: Identifiable, Codable {
     let description: String
     let duration: TimeInterval
     let difficulty: DifficultyLevel
+    var taskGoal: String? = nil // Objectif/tâche à accomplir
+    var taskCompleted: Bool = false // Si la tâche a été accomplie
     var startTime: Date?
     var pausedTime: Date?
     var pauseDuration: TimeInterval = 0
@@ -73,9 +75,10 @@ struct ZenloopChallenge: Identifiable, Codable {
     var blockedAppsNames: [String] = []
     var appOpenAttempts: Int = 0
     var attemptedApps: [String: Int] = [:]
-    
+
     enum CodingKeys: String, CodingKey {
         case id, title, description, duration, difficulty
+        case taskGoal, taskCompleted
         case startTime, pausedTime, pauseDuration
         case isActive, isCompleted, blockedAppsCount, blockedAppsNames
         case appOpenAttempts, attemptedApps
@@ -432,7 +435,7 @@ class ZenloopManager: ObservableObject {
     nonisolated var currentStreak: Int { statisticsCoordinator.currentStreak }
     
     // MARK: - Managers Spécialisés
-    private let challengeStateManager = ChallengeStateManager()
+    let challengeStateManager = ChallengeStateManager()
     private let appRestrictionCoordinator = AppRestrictionCoordinator()
     private let deviceActivityCoordinator = DeviceActivityCoordinator()
     private let persistence = ZenloopPersistence()
@@ -660,19 +663,21 @@ class ZenloopManager: ObservableObject {
         startChallenge(challenge)
     }
     
-    func startCustomChallenge(title: String, duration: TimeInterval, difficulty: DifficultyLevel, apps: FamilyActivitySelection) {
+    func startCustomChallenge(title: String, duration: TimeInterval, difficulty: DifficultyLevel, apps: FamilyActivitySelection, taskGoal: String? = nil) {
         guard self.currentState == .idle else { return }
         guard !apps.applicationTokens.isEmpty || !apps.categoryTokens.isEmpty else {
             self.recordActivity(.challengeStopped, title: "Échec démarrage: aucune app sélectionnée")
             return
         }
-        
+
         var challenge = ZenloopChallenge(
             id: "custom-\(UUID().uuidString)",
             title: title,
             description: "Défi personnalisé",
             duration: duration,
             difficulty: difficulty,
+            taskGoal: taskGoal,
+            taskCompleted: false,
             startTime: Date(),
             isActive: true
         )
@@ -891,7 +896,7 @@ class ZenloopManager: ObservableObject {
     func resumeChallenge() {
         guard currentState == .paused else { return }
         challengeStateManager.resumeChallenge()
-        
+
         // Enregistrer l'activité
         var activities = recentActivity
         persistence.addActivityRecord(
@@ -899,6 +904,16 @@ class ZenloopManager: ObservableObject {
             to: &activities
         )
         recentActivity = activities
+    }
+
+    func toggleTaskCompletion() {
+        guard var challenge = self.currentChallenge else { return }
+        challenge.taskCompleted.toggle()
+        self.currentChallenge = challenge
+
+        #if DEBUG
+        print("✅ [ZENLOOP_MANAGER] Task marked as \(challenge.taskCompleted ? "completed" : "incomplete"): \(challenge.taskGoal ?? "N/A")")
+        #endif
     }
     
     // MARK: - Restrictions - Délégation aux managers

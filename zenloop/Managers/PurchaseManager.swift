@@ -388,11 +388,12 @@ class PurchaseManager: ObservableObject {
                     continue
                 }
 
-                // Vérifier l'expiration pour les abonnements
-                if let expirationDate = transaction.expirationDate {
-                    if expirationDate < Date() {
-                        NSLog("⏰ Product expired: \(transaction.productID) on \(expirationDate)")
-                        if let product = products.first(where: { $0.id == transaction.productID }) {
+                // Récupérer le produit correspondant
+                if let product = products.first(where: { $0.id == transaction.productID }) {
+                    // Vérifier l'expiration pour les abonnements
+                    if let expirationDate = transaction.expirationDate {
+                        if expirationDate < Date() {
+                            NSLog("⏰ Product expired: \(transaction.productID) on \(expirationDate)")
                             expiredProducts.append(product)
 
                             // 🔗 Tracker l'expiration du trial
@@ -400,42 +401,50 @@ class PurchaseManager: ObservableObject {
                                 let deviceId = await FirebaseManager.shared.getDeviceId()
                                 await AffiliateManager.shared.trackTrialExpired(userId: deviceId)
                             }
+                            continue
+                        } else {
+                            NSLog("⏳ Product expires: \(transaction.productID) on \(expirationDate)")
                         }
-                        continue
                     } else {
-                        NSLog("⏳ Product expires: \(transaction.productID) on \(expirationDate)")
-
-                        // 🔗 Tracker l'achat avec affiliation
-                        if let product = products.first(where: { $0.id == transaction.productID }) {
-                            // Déterminer si c'est un trial
-                            let isTrial = hasFreeTrial(product) && transaction.purchaseDate.addingTimeInterval(7*24*60*60) > Date()
-
-                            // Mapper le type d'achat
-                            let purchaseType: PurchaseType
-                            if product.id.contains("lifetime") {
-                                purchaseType = .lifetime
-                            } else if product.id.contains("yearly") {
-                                purchaseType = .yearly
-                            } else {
-                                purchaseType = .monthly
-                            }
-
-                            // Tracker
-                            Task {
-                                let deviceId = await FirebaseManager.shared.getDeviceId()
-                                await AffiliateManager.shared.trackPurchase(
-                                    userId: deviceId,
-                                    purchaseType: purchaseType,
-                                    isTrial: isTrial,
-                                    price: Double(truncating: product.price as NSNumber),
-                                    trialEndDate: expirationDate
-                                )
-                            }
-                        }
+                        NSLog("✅ Non-expiring product (lifetime): \(transaction.productID)")
                     }
-                }
 
-                if let product = products.first(where: { $0.id == transaction.productID }) {
+                    // 🔗 Tracker l'achat avec affiliation (pour TOUS les types)
+                    // Déterminer si c'est un trial
+                    let isTrial = hasFreeTrial(product) && transaction.expirationDate != nil && transaction.purchaseDate.addingTimeInterval(7*24*60*60) > Date()
+
+                    // Mapper le type d'achat
+                    let purchaseType: PurchaseType
+                    if product.id.contains("lifetime") {
+                        purchaseType = .lifetime
+                    } else if product.id.contains("yearly") {
+                        purchaseType = .yearly
+                    } else {
+                        purchaseType = .monthly
+                    }
+
+                    // Récupérer le VRAI prix (pas le prix du trial)
+                    let actualPrice = getActualPriceForProduct(product, purchaseType: purchaseType)
+
+                    // Récupérer la devise (currency code)
+                    let currencyCode = product.priceFormatStyle.currencyCode ?? "EUR"
+
+                    NSLog("🔗 [AFFILIATE] Tracking purchase - Type: \(purchaseType.rawValue), Trial: \(isTrial), Price: \(actualPrice) \(currencyCode)")
+
+                    // Tracker
+                    Task {
+                        let deviceId = await FirebaseManager.shared.getDeviceId()
+                        await AffiliateManager.shared.trackPurchase(
+                            userId: deviceId,
+                            purchaseType: purchaseType,
+                            isTrial: isTrial,
+                            price: actualPrice,
+                            currency: currencyCode,
+                            trialEndDate: transaction.expirationDate
+                        )
+                    }
+
+                    // Ajouter aux produits achetés
                     newPurchasedProducts.append(product)
                     NSLog("✅ Found active product: \(product.id)")
                 }
@@ -543,6 +552,24 @@ class PurchaseManager: ObservableObject {
         }
         // Pour les abonnements, on assume qu'ils ont un essai gratuit de 7 jours
         return product.id.contains("monthly") || product.id.contains("yearly")
+    }
+
+    /// Récupérer le prix RÉEL du produit (pas le prix du trial)
+    private func getActualPriceForProduct(_ product: Product, purchaseType: PurchaseType) -> Double {
+        // Pour lifetime, utiliser le prix StoreKit directement
+        if purchaseType == .lifetime {
+            return Double(truncating: product.price as NSNumber)
+        }
+
+        // Pour les abonnements (monthly/yearly), récupérer le prix après le trial
+        if #available(iOS 15.0, *), let subscription = product.subscription {
+            // Si on a un offer introductif, utiliser le prix standard (après le trial)
+            // Le prix dans product.price est le prix réel de l'abonnement
+            return Double(truncating: product.price as NSNumber)
+        }
+
+        // Fallback: utiliser le prix du produit
+        return Double(truncating: product.price as NSNumber)
     }
     
     func oldPriceForPlan(_ plan: PricingPlan) -> String? {

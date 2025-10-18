@@ -996,3 +996,23 @@
 "time_to_do_something_meaningful" = "Peut-être qu'il est temps de faire quelque chose de plus significatif ?";
 "take_action" = "Passer à l'Action";
 "continue_scrolling" = "Continuer à scroller";
+
+// Task Goal (Timer Card)
+"your_goal" = "Ton Objectif";
+"optional" = "Optionnel";
+"goal_placeholder" = "Ex : Lire 20 pages, Écrire rapport, Méditer...";
+"read_pages" = "Lire";
+"read_20_pages" = "Lire 20 pages";
+"write_report" = "Écrire";
+"finish_report" = "Finir mon rapport";
+"meditate" = "Méditer";
+"meditate_10_min" = "Méditer 10 min";
+"workout" = "Sport";
+"complete_workout" = "Finir mon entraînement";
+"completed" = "Terminé";
+"in_progress" = "En Cours";
+"add_goal_optional" = "Ajouter un objectif (optionnel)";
+"custom_goal" = "Objectif personnalisé";
+
+// Background Session Notifications
+"session_completed" = "Session Terminée";

@@ -897,32 +897,41 @@ final class SessionNotificationManager: NSObject, ObservableObject {
 extension SessionNotificationManager: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        // Afficher la notification même quand l'app est au premier plan
-        completionHandler([.banner, .badge, .sound])
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        let userInfo = notification.request.content.userInfo
+
+        // Si c'est une notification de fin de session, traiter immédiatement
+        if let type = userInfo["type"] as? String,
+           (type == "session_end" || type == "complete_session") {
+            print("⏰ [SESSION_NOTIFICATIONS] Session end notification will present - triggering completion")
+            await MainActor.run {
+                ZenloopManager.shared.challengeStateManager.checkAndCompleteExpiredSession()
+            }
+        }
+
+        return [.banner, .badge, .sound]
     }
-    
+
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
-        
+
         Task { @MainActor in
             await handleNotificationAction(userInfo: userInfo, actionIdentifier: response.actionIdentifier)
         }
-        
+
         completionHandler()
     }
     
     private func handleNotificationAction(userInfo: [AnyHashable: Any], actionIdentifier: String) async {
         guard let type = userInfo["type"] as? String else { return }
-        
+
         print("🔔 [SESSION_NOTIFICATIONS] Handling notification action: \(actionIdentifier) for type: \(type)")
-        
+
         switch type {
         case "session_start":
             if let sessionId = userInfo["sessionId"] as? String {
@@ -936,7 +945,14 @@ extension SessionNotificationManager: UNUserNotificationCenterDelegate {
                 }
                 print("🚀 [SESSION_NOTIFICATIONS] Session start notification sent for: \(sessionId)")
             }
-            
+
+        case "session_end", "complete_session":
+            // CRUCIAL: Compléter la session immédiatement quand la notification arrive
+            print("⏰ [SESSION_NOTIFICATIONS] Session end notification received - checking for expired session")
+            await MainActor.run {
+                ZenloopManager.shared.challengeStateManager.checkAndCompleteExpiredSession()
+            }
+
         case "session_reminder":
             if actionIdentifier == "POSTPONE_SESSION" {
                 // Reporter la session de 5 minutes
@@ -944,7 +960,7 @@ extension SessionNotificationManager: UNUserNotificationCenterDelegate {
                     postponeSession(sessionId: sessionId, by: 300) // 5 minutes
                 }
             }
-            
+
         case "app_blocked":
             // Envoyer feedback haptique et encouragement
             #if canImport(UIKit)
@@ -953,10 +969,10 @@ extension SessionNotificationManager: UNUserNotificationCenterDelegate {
                 impactFeedback.impactOccurred()
             }
             #endif
-            
+
         case "daily_tip", "motivational_reminder", "weekly_encouragement":
             print("💫 [SESSION_NOTIFICATIONS] Wellness notification received: \(type)")
-            
+
         default:
             print("⚠️ [SESSION_NOTIFICATIONS] Unknown notification type: \(type)")
         }

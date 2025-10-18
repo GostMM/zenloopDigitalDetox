@@ -19,6 +19,7 @@ struct TimerCard: View {
     @State private var selectedConcentrationType: ConcentrationType = .deep
     @State private var showingConcentrationPicker = false
     @State private var isExpanded = false // Nouvel état pour l'expansion
+    @State private var taskGoal: String = "" // Objectif/tâche à accomplir
     @StateObject private var gatekeeper = PremiumGatekeeper.shared
     
     private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 55]
@@ -503,15 +504,91 @@ struct TimerCard: View {
                     }
                 }
                 
+                // Objectif/Tâche à accomplir - Version compacte
+                HStack(spacing: 10) {
+                    Image(systemName: taskGoal.isEmpty ? "target" : "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(taskGoal.isEmpty ? .white.opacity(0.5) : .yellow)
+
+                    if taskGoal.isEmpty {
+                        Menu {
+                            Button {
+                                taskGoal = String(localized: "read_20_pages")
+                            } label: {
+                                Label(String(localized: "read_20_pages"), systemImage: "book.fill")
+                            }
+
+                            Button {
+                                taskGoal = String(localized: "finish_report")
+                            } label: {
+                                Label(String(localized: "finish_report"), systemImage: "doc.text.fill")
+                            }
+
+                            Button {
+                                taskGoal = String(localized: "meditate_10_min")
+                            } label: {
+                                Label(String(localized: "meditate_10_min"), systemImage: "figure.mind.and.body")
+                            }
+
+                            Button {
+                                taskGoal = String(localized: "complete_workout")
+                            } label: {
+                                Label(String(localized: "complete_workout"), systemImage: "dumbbell.fill")
+                            }
+
+                            Divider()
+
+                            Button {
+                                // Permet d'ouvrir le TextField
+                            } label: {
+                                Label(String(localized: "custom_goal"), systemImage: "pencil")
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                TextField("", text: $taskGoal, prompt: Text(String(localized: "add_goal_optional")).foregroundColor(.white.opacity(0.4)))
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .disabled(false)
+
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                    } else {
+                        TextField("", text: $taskGoal)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+
+                        Button {
+                            taskGoal = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(taskGoal.isEmpty ? .white.opacity(0.03) : .yellow.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(taskGoal.isEmpty ? .white.opacity(0.08) : .yellow.opacity(0.25), lineWidth: 1)
+                        )
+                )
+
                 // Applications à bloquer
                 VStack(spacing: 12) {
                     HStack {
                         Text(String(localized: "apps_to_block"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white.opacity(0.8))
-                        
+
                         Spacer()
-                        
+
                         Button {
                             showingAppSelection = true
                         } label: {
@@ -519,7 +596,7 @@ struct TimerCard: View {
                                 Image(systemName: hasSelectedApps ? "plus.circle.fill" : "plus.circle")
                                     .font(.system(size: 14))
                                     .foregroundColor(hasSelectedApps ? .cyan : .white.opacity(0.7))
-                                
+
                                 Text(hasSelectedApps ? String(localized: "modify") : String(localized: "select"))
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white)
@@ -533,7 +610,7 @@ struct TimerCard: View {
                             )
                         }
                     }
-                    
+
                     // Affichage des apps sélectionnées
                     if hasSelectedApps {
                         SelectedAppsView(selection: selectedApps, maxDisplayCount: 4)
@@ -666,11 +743,13 @@ struct TimerCard: View {
             
             // Démarrer immédiatement la session
             if hasSelectedApps {
+                let goal = taskGoal.isEmpty ? nil : taskGoal
                 zenloopManager.startCustomChallenge(
                     title: title,
                     duration: duration,
                     difficulty: difficulty,
-                    apps: selectedApps
+                    apps: selectedApps,
+                    taskGoal: goal
                 )
             } else {
                 zenloopManager.startQuickChallenge(duration: duration)

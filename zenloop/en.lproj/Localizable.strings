@@ -994,3 +994,23 @@
 "time_to_do_something_meaningful" = "Maybe it's time to do something more meaningful?";
 "take_action" = "Take Action";
 "continue_scrolling" = "Continue scrolling";
+
+// Task Goal (Timer Card)
+"your_goal" = "Your Goal";
+"optional" = "Optional";
+"goal_placeholder" = "Ex: Read 20 pages, Write report, Meditate...";
+"read_pages" = "Read";
+"read_20_pages" = "Read 20 pages";
+"write_report" = "Write";
+"finish_report" = "Finish my report";
+"meditate" = "Meditate";
+"meditate_10_min" = "Meditate 10 min";
+"workout" = "Workout";
+"complete_workout" = "Complete workout";
+"completed" = "Completed";
+"in_progress" = "In Progress";
+"add_goal_optional" = "Add a goal (optional)";
+"custom_goal" = "Custom goal";
+
+// Background Session Notifications
+"session_completed" = "Session Completed";

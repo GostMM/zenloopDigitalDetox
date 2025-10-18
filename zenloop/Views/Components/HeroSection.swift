@@ -827,7 +827,7 @@ struct ModernQuickActionButton: View {
 
 struct ModernActiveChallengeActions: View {
     @ObservedObject var zenloopManager: ZenloopManager
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // En-tête avec info session
@@ -836,17 +836,24 @@ struct ModernActiveChallengeActions: View {
                     Text(String(localized: "session_in_progress"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
-                    
+
                     if let challenge = zenloopManager.currentChallenge {
                         Text("\(challenge.title) • \(zenloopManager.currentTimeRemaining)")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.orange.opacity(0.8))
                     }
                 }
-                
+
                 Spacer()
             }
-            
+
+            // Objectif/Tâche si défini
+            if let challenge = zenloopManager.currentChallenge, let taskGoal = challenge.taskGoal, !taskGoal.isEmpty {
+                TaskGoalCard(taskGoal: taskGoal, isCompleted: challenge.taskCompleted) {
+                    zenloopManager.toggleTaskCompletion()
+                }
+            }
+
             // Section pour afficher les apps/catégories bloquées pendant la session
             if zenloopManager.selectedAppsCount > 0 {
                 SelectedAppsDisplaySection(zenloopManager: zenloopManager)
@@ -1118,6 +1125,76 @@ struct CompactMoreIndicator: View {
     }
 }
 
+
+// MARK: - Task Goal Card
+
+struct TaskGoalCard: View {
+    let taskGoal: String
+    let isCompleted: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 12) {
+                // Checkbox
+                ZStack {
+                    Circle()
+                        .fill(isCompleted ? Color.green.opacity(0.2) : Color.yellow.opacity(0.1))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Circle()
+                                .stroke(isCompleted ? Color.green : Color.yellow, lineWidth: 2)
+                        )
+
+                    if isCompleted {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.green)
+                    } else {
+                        Image(systemName: "target")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.yellow)
+                    }
+                }
+
+                // Task text
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "your_goal"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+
+                    Text(taskGoal)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .strikethrough(isCompleted, color: .green)
+                }
+
+                Spacer()
+
+                // Status badge
+                Text(isCompleted ? String(localized: "completed") : String(localized: "in_progress"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isCompleted ? .green : .yellow)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill((isCompleted ? Color.green : Color.yellow).opacity(0.15))
+                    )
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isCompleted ? Color.green.opacity(0.3) : Color.yellow.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
 
 #Preview {
     HeroSection(
