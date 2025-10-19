@@ -340,17 +340,44 @@ class AffiliateManager: ObservableObject {
             return
         }
 
-        let status: AffiliateStatus = isTrial ? .pending : .active
-
-        // Calculer la commission (30% pour trial converti, 40% pour achat direct)
-        let commissionRate = isTrial ? 0.30 : 0.40
-        let commission = price * commissionRate
-
         // Device fingerprint pour éviter les doublons
         let deviceFingerprint = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
 
         do {
             let docRef = db.collection("affiliates").document(userId)
+
+            // 🚨 VÉRIFICATION CRITIQUE : Vérifier si l'utilisateur a déjà acheté
+            let existingDoc = try await docRef.getDocument()
+            if existingDoc.exists {
+                let data = existingDoc.data()
+                let existingStatus = data?["status"] as? String ?? ""
+                let existingPurchaseType = data?["purchaseType"] as? String
+
+                // Si l'utilisateur a déjà un statut "active" ou "converted", ne PAS créer de nouvelle conversion
+                if existingStatus == "active" || existingStatus == "converted" {
+                    print("⚠️ [AFFILIATE] User already has active/converted status - BLOCKING duplicate commission")
+                    print("   Existing status: \(existingStatus)")
+                    print("   Existing purchase: \(existingPurchaseType ?? "none")")
+                    print("   New purchase attempt: \(purchaseType.rawValue)")
+
+                    // Juste mettre à jour le document sans créer de conversion ni commission
+                    try await docRef.setData([
+                        "lastAttemptedPurchase": purchaseType.rawValue,
+                        "lastAttemptedPurchaseDate": Timestamp(date: Date()),
+                        "duplicatePurchaseBlocked": true
+                    ], merge: true)
+
+                    print("✅ [AFFILIATE] Duplicate purchase blocked successfully")
+                    return
+                }
+            }
+
+            // L'utilisateur n'a pas encore acheté, on peut continuer normalement
+            let status: AffiliateStatus = isTrial ? .pending : .active
+
+            // Calculer la commission (30% pour trial converti, 40% pour achat direct)
+            let commissionRate = isTrial ? 0.30 : 0.40
+            let commission = price * commissionRate
 
             var affiliateData: [String: Any] = [
                 "affiliateCode": affiliateCode,

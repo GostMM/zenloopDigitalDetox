@@ -915,7 +915,17 @@ class ZenloopManager: ObservableObject {
         print("✅ [ZENLOOP_MANAGER] Task marked as \(challenge.taskCompleted ? "completed" : "incomplete"): \(challenge.taskGoal ?? "N/A")")
         #endif
     }
-    
+
+    func updateTaskGoal(_ newTaskGoal: String) {
+        guard var challenge = self.currentChallenge else { return }
+        challenge.taskGoal = newTaskGoal
+        self.currentChallenge = challenge
+
+        #if DEBUG
+        print("📝 [ZENLOOP_MANAGER] Task goal updated: \(newTaskGoal)")
+        #endif
+    }
+
     // MARK: - Restrictions - Délégation aux managers
     
     private func applyRestrictions() {

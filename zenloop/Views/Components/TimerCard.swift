@@ -19,8 +19,19 @@ struct TimerCard: View {
     @State private var selectedConcentrationType: ConcentrationType = .deep
     @State private var showingConcentrationPicker = false
     @State private var isExpanded = false // Nouvel état pour l'expansion
-    @State private var taskGoal: String = "" // Objectif/tâche à accomplir
+    @State private var taskGoals: [(text: String, isCompleted: Bool)] = [] // Liste des objectifs avec état (max 5)
+    @State private var showingAddGoal = false
     @StateObject private var gatekeeper = PremiumGatekeeper.shared
+
+    // Suggestions d'objectifs prédéfinis
+    private let goalSuggestions = [
+        ("read_20_pages", "book.fill"),
+        ("finish_report", "doc.text.fill"),
+        ("meditate_10_min", "figure.mind.and.body"),
+        ("complete_workout", "dumbbell.fill"),
+        ("write_1000_words", "pencil.and.outline"),
+        ("study_chapter", "graduationcap.fill")
+    ]
     
     private let availableMinutes = [5, 10, 15, 20, 25, 30, 45, 55]
     private let availableHours = Array(0...24)
@@ -504,81 +515,139 @@ struct TimerCard: View {
                     }
                 }
                 
-                // Objectif/Tâche à accomplir - Version compacte
-                HStack(spacing: 10) {
-                    Image(systemName: taskGoal.isEmpty ? "target" : "checkmark.circle.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(taskGoal.isEmpty ? .white.opacity(0.5) : .yellow)
+                // Section Objectifs - Version compacte avec liste
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: "target")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(taskGoals.isEmpty ? .white.opacity(0.5) : .yellow)
 
-                    if taskGoal.isEmpty {
-                        Menu {
-                            Button {
-                                taskGoal = String(localized: "read_20_pages")
+                        Text(String(localized: "goals"))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.7))
+
+                        if !taskGoals.isEmpty {
+                            Text("\(taskGoals.count)/5")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.yellow.opacity(0.8))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(.yellow.opacity(0.15))
+                                )
+                        }
+
+                        Spacer()
+
+                        if taskGoals.count < 5 {
+                            Menu {
+                                ForEach(goalSuggestions, id: \.0) { suggestion in
+                                    Button {
+                                        addGoal(String(localized: String.LocalizationValue(suggestion.0)))
+                                    } label: {
+                                        Label(String(localized: String.LocalizationValue(suggestion.0)), systemImage: suggestion.1)
+                                    }
+                                }
+
+                                Divider()
+
+                                Button {
+                                    showingAddGoal = true
+                                } label: {
+                                    Label(String(localized: "custom_goal"), systemImage: "pencil")
+                                }
                             } label: {
-                                Label(String(localized: "read_20_pages"), systemImage: "book.fill")
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text(String(localized: "add"))
+                                        .font(.system(size: 11, weight: .semibold))
+                                }
+                                .foregroundColor(taskGoals.isEmpty ? .white.opacity(0.6) : .yellow)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                                        )
+                                )
                             }
+                        }
+                    }
 
-                            Button {
-                                taskGoal = String(localized: "finish_report")
-                            } label: {
-                                Label(String(localized: "finish_report"), systemImage: "doc.text.fill")
-                            }
+                    // Liste des objectifs
+                    if !taskGoals.isEmpty {
+                        VStack(spacing: 6) {
+                            ForEach(Array(taskGoals.enumerated()), id: \.offset) { index, goal in
+                                HStack(spacing: 8) {
+                                    // Checkbox interactive
+                                    Button {
+                                        toggleGoalCompletion(at: index)
+                                    } label: {
+                                        Image(systemName: goal.isCompleted ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(goal.isCompleted ? .green : .yellow.opacity(0.6))
+                                    }
 
-                            Button {
-                                taskGoal = String(localized: "meditate_10_min")
-                            } label: {
-                                Label(String(localized: "meditate_10_min"), systemImage: "figure.mind.and.body")
-                            }
+                                    Text(goal.text)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(goal.isCompleted ? .white.opacity(0.5) : .white.opacity(0.9))
+                                        .strikethrough(goal.isCompleted, color: .white.opacity(0.5))
+                                        .lineLimit(1)
 
-                            Button {
-                                taskGoal = String(localized: "complete_workout")
-                            } label: {
-                                Label(String(localized: "complete_workout"), systemImage: "dumbbell.fill")
-                            }
+                                    Spacer()
 
-                            Divider()
-
-                            Button {
-                                // Permet d'ouvrir le TextField
-                            } label: {
-                                Label(String(localized: "custom_goal"), systemImage: "pencil")
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                TextField("", text: $taskGoal, prompt: Text(String(localized: "add_goal_optional")).foregroundColor(.white.opacity(0.4)))
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .disabled(false)
-
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
+                                    Button {
+                                        removeGoal(at: index)
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 9, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.4))
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(goal.isCompleted ? .green.opacity(0.08) : .yellow.opacity(0.05))
+                                )
                             }
                         }
                     } else {
-                        TextField("", text: $taskGoal)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white)
-
-                        Button {
-                            taskGoal = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
+                        Text(String(localized: "add_goal_optional"))
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.white.opacity(0.4))
+                            .padding(.horizontal, 8)
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(taskGoal.isEmpty ? .white.opacity(0.03) : .yellow.opacity(0.08))
+                        .fill(taskGoals.isEmpty ? .white.opacity(0.03) : .yellow.opacity(0.08))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(taskGoal.isEmpty ? .white.opacity(0.08) : .yellow.opacity(0.25), lineWidth: 1)
+                                .stroke(taskGoals.isEmpty ? .white.opacity(0.08) : .yellow.opacity(0.25), lineWidth: 1)
                         )
                 )
+                .alert(String(localized: "add_goal"), isPresented: $showingAddGoal) {
+                    TextField(String(localized: "goal_placeholder"), text: Binding(
+                        get: { "" },
+                        set: { newGoal in
+                            if !newGoal.isEmpty {
+                                addGoal(newGoal)
+                            }
+                        }
+                    ))
+                    Button(String(localized: "cancel"), role: .cancel) { }
+                    Button(String(localized: "add")) {
+                        // Handled by TextField binding
+                    }
+                }
 
                 // Applications à bloquer
                 VStack(spacing: 12) {
@@ -727,29 +796,65 @@ struct TimerCard: View {
         }
     }
     
+    // MARK: - Goal Management
+
+    private func addGoal(_ goal: String) {
+        guard taskGoals.count < 5 else { return }
+        guard !goal.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            taskGoals.append((text: goal, isCompleted: false))
+        }
+    }
+
+    private func removeGoal(at index: Int) {
+        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+        impactFeedback.impactOccurred()
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            taskGoals.remove(at: index)
+        }
+    }
+
+    private func toggleGoalCompletion(at index: Int) {
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            taskGoals[index].isCompleted.toggle()
+        }
+    }
+
     private func startSession() {
         // Vérifier si l'utilisateur peut lancer une session
         gatekeeper.performIfAllowed(.startCustomSession) {
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
-            
+
             let totalMinutes = selectedHours * 60 + selectedMinutes
-            
+
             let title = "\(selectedConcentrationType.title) - \(formattedDuration)"
             let duration = TimeInterval(totalMinutes * 60)
             let difficulty: DifficultyLevel = totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard
-            
+
             print("🚀 [TIMER_CARD] Démarrage immédiat session: \(title)")
-            
+
             // Démarrer immédiatement la session
             if hasSelectedApps {
-                let goal = taskGoal.isEmpty ? nil : taskGoal
+                // Combiner tous les objectifs avec leurs statuts sur des lignes séparées
+                let goalsString = taskGoals.isEmpty ? nil : taskGoals.map { goal in
+                    goal.isCompleted ? "✅ \(goal.text)" : "⭕️ \(goal.text)"
+                }.joined(separator: "\n")
+
                 zenloopManager.startCustomChallenge(
                     title: title,
                     duration: duration,
                     difficulty: difficulty,
                     apps: selectedApps,
-                    taskGoal: goal
+                    taskGoal: goalsString
                 )
             } else {
                 zenloopManager.startQuickChallenge(duration: duration)

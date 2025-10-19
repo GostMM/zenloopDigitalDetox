@@ -849,9 +849,7 @@ struct ModernActiveChallengeActions: View {
 
             // Objectif/Tâche si défini
             if let challenge = zenloopManager.currentChallenge, let taskGoal = challenge.taskGoal, !taskGoal.isEmpty {
-                TaskGoalCard(taskGoal: taskGoal, isCompleted: challenge.taskCompleted) {
-                    zenloopManager.toggleTaskCompletion()
-                }
+                TaskGoalCard(taskGoal: taskGoal, zenloopManager: zenloopManager)
             }
 
             // Section pour afficher les apps/catégories bloquées pendant la session
@@ -1130,69 +1128,108 @@ struct CompactMoreIndicator: View {
 
 struct TaskGoalCard: View {
     let taskGoal: String
-    let isCompleted: Bool
-    let onToggle: () -> Void
+    @ObservedObject var zenloopManager: ZenloopManager
+
+    // Parser les tâches du string (format: "✅ Task 1\n⭕️ Task 2\n...")
+    private var tasks: [(emoji: String, text: String, isCompleted: Bool)] {
+        let lines = taskGoal.split(separator: "\n").map(String.init)
+        return lines.compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("✅") {
+                let text = trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces)
+                return ("✅", text, true)
+            } else if trimmed.hasPrefix("⭕️") {
+                let text = trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces)
+                return ("⭕️", text, false)
+            }
+            return nil
+        }
+    }
+
+    private func toggleTask(at index: Int) {
+        guard index < tasks.count else { return }
+
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+
+        // Reconstruire le taskGoal avec le statut changé
+        var updatedTasks = tasks
+        updatedTasks[index].isCompleted.toggle()
+
+        let newTaskGoal = updatedTasks.map { task in
+            task.isCompleted ? "✅ \(task.text)" : "⭕️ \(task.text)"
+        }.joined(separator: "\n")
+
+        // Mettre à jour dans le ZenloopManager
+        zenloopManager.updateTaskGoal(newTaskGoal)
+    }
 
     var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: 12) {
-                // Checkbox
-                ZStack {
-                    Circle()
-                        .fill(isCompleted ? Color.green.opacity(0.2) : Color.yellow.opacity(0.1))
-                        .frame(width: 36, height: 36)
-                        .overlay(
-                            Circle()
-                                .stroke(isCompleted ? Color.green : Color.yellow, lineWidth: 2)
-                        )
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Image(systemName: "target")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.yellow)
 
-                    if isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.green)
-                    } else {
-                        Image(systemName: "target")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.yellow)
-                    }
-                }
-
-                // Task text
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "your_goal"))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-
-                    Text(taskGoal)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                        .strikethrough(isCompleted, color: .green)
-                }
+                Text(String(localized: "your_goal"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.8))
 
                 Spacer()
 
-                // Status badge
-                Text(isCompleted ? String(localized: "completed") : String(localized: "in_progress"))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(isCompleted ? .green : .yellow)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                // Compteur de tâches complétées
+                let completedCount = tasks.filter { $0.isCompleted }.count
+                Text("\(completedCount)/\(tasks.count)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.yellow)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill((isCompleted ? Color.green : Color.yellow).opacity(0.15))
+                            .fill(.yellow.opacity(0.15))
                     )
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(isCompleted ? Color.green.opacity(0.3) : Color.yellow.opacity(0.3), lineWidth: 1)
-                    )
-            )
+
+            // Liste des tâches
+            VStack(spacing: 8) {
+                ForEach(Array(tasks.enumerated()), id: \.offset) { index, task in
+                    Button(action: {
+                        toggleTask(at: index)
+                    }) {
+                        HStack(spacing: 10) {
+                            // Emoji de statut (cliquable)
+                            Text(task.emoji)
+                                .font(.system(size: 16))
+
+                            // Texte de la tâche
+                            Text(task.text)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(task.isCompleted ? .white.opacity(0.5) : .white)
+                                .strikethrough(task.isCompleted, color: .green)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(task.isCompleted ? Color.green.opacity(0.08) : Color.yellow.opacity(0.05))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

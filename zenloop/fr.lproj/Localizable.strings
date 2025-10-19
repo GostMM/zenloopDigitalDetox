@@ -2,7 +2,7 @@
 
 // Tab Bar
 "home" = "Accueil";
-"challenges" = "Respire";
+"challenges" = "Zen";
 "stats" = "Stats";
 
 // Splash Screen
@@ -105,7 +105,7 @@
 "personalize_categories_discover" = "Personnalise tes catégories pour découvrir des défis qui te ressemblent";
 "launch_challenge_add_universes" = "Lance un défi ou ajoute de nouveaux univers à explorer";
 "configuration" = "Configuration";
-"challenges" = "défis";
+"challenges" = "zen";
 "tap_to_personalize" = "Touche pour personnaliser";
 
 // Missing texts
@@ -1013,6 +1013,12 @@
 "in_progress" = "En Cours";
 "add_goal_optional" = "Ajouter un objectif (optionnel)";
 "custom_goal" = "Objectif personnalisé";
+"goals" = "Objectifs";
+"add" = "Ajouter";
+"goal_placeholder" = "Écrivez votre objectif...";
+"write_1000_words" = "Écrire 1000 mots";
+"study_chapter" = "Étudier un chapitre";
+"cancel" = "Annuler";
 
 // Background Session Notifications
 "session_completed" = "Session Terminée";
