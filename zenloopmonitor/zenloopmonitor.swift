@@ -193,13 +193,18 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     }
 
     private func removeShield(for activity: DeviceActivityName) {
+        print("🔓 [DeviceActivity] Starting shield removal for: \(activity.rawValue)")
+
         let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activity.rawValue))
-        
-        // Retirer tous les blocages
+
+        print("   [DeviceActivity] Clearing shield.applications...")
         store.shield.applications = nil
+
+        print("   [DeviceActivity] Clearing shield.applicationCategories...")
         store.shield.applicationCategories = nil
-        
-        print("🔓 [DeviceActivity] Shield removed for \(activity.rawValue)")
+
+        print("✅ [DeviceActivity] Shield successfully removed for \(activity.rawValue)")
+        print("   Blocked apps should now be accessible")
     }
     
     // MARK: - Helper Methods

@@ -142,24 +142,41 @@ final class ChallengeStateManager: ObservableObject {
     }
     
     func completeChallenge() {
-        guard let challenge = currentChallenge, currentState == .active else { return }
-        
+        guard let challenge = currentChallenge, currentState == .active else {
+            #if DEBUG
+            logger.warning("⚠️ [ChallengeState] Cannot complete - no active challenge (state: \(String(describing: self.currentState)))")
+            #endif
+            return
+        }
+
+        #if DEBUG
+        logger.debug("🏁 [ChallengeState] Starting challenge completion for: \(challenge.title)")
+        #endif
+
         var completedChallenge = challenge
         completedChallenge.isActive = false
         completedChallenge.isCompleted = true
         currentChallenge = completedChallenge
         currentState = .completed
-        
+
         cancelTimers()
-        
+
+        #if DEBUG
+        logger.debug("📢 [ChallengeState] Notifying delegates of completion...")
+        #endif
+
         delegate?.challengeCompleted(challenge: completedChallenge)
         delegate?.stateDidChange(to: .completed, challenge: completedChallenge)
-        
+
+        #if DEBUG
+        logger.debug("🔓 [ChallengeState] Restrictions should now be removed by stateDidChange")
+        #endif
+
         // Auto-reset to idle after 5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             self?.resetToIdle()
         }
-        
+
         #if DEBUG
         logger.debug("✅ [ChallengeState] Challenge completed: \(challenge.title)")
         #endif

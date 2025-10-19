@@ -85,15 +85,38 @@ final class DeviceActivityCoordinator: ObservableObject {
     
     func checkDeviceActivityEvents() {
         let defaults = UserDefaults(suiteName: "group.com.app.zenloop") ?? UserDefaults.standard
+
+        #if DEBUG
+        logger.debug("🔍 [DeviceActivity] Checking for pending events...")
+        #endif
+
         if let events = defaults.array(forKey: "device_activity_events") as? [[String: Any]] {
+            #if DEBUG
+            logger.debug("📬 [DeviceActivity] Found \(events.count) pending event(s)")
+            #endif
+
             for event in events {
                 if let eventType = event["event"] as? String,
                    let activity = event["activity"] as? String,
                    let timestamp = event["timestamp"] as? TimeInterval {
+                    #if DEBUG
+                    logger.debug("📨 [DeviceActivity] Processing event: \(eventType) for \(activity)")
+                    #endif
                     processDeviceActivityEvent(type: eventType, activity: activity, timestamp: timestamp)
                 }
             }
+
+            // Nettoyer les événements traités
             defaults.removeObject(forKey: "device_activity_events")
+            defaults.synchronize()
+
+            #if DEBUG
+            logger.debug("✅ [DeviceActivity] All events processed and cleared")
+            #endif
+        } else {
+            #if DEBUG
+            logger.debug("📭 [DeviceActivity] No pending events found")
+            #endif
         }
     }
     

@@ -437,7 +437,7 @@ class ZenloopManager: ObservableObject {
     // MARK: - Managers Spécialisés
     let challengeStateManager = ChallengeStateManager()
     private let appRestrictionCoordinator = AppRestrictionCoordinator()
-    private let deviceActivityCoordinator = DeviceActivityCoordinator()
+    let deviceActivityCoordinator = DeviceActivityCoordinator() // Public pour zenloopApp
     private let persistence = ZenloopPersistence()
     private let statisticsCoordinator = StatisticsCoordinator()
     private let scheduledSessionsCoordinator = ScheduledSessionsCoordinator()
@@ -1368,6 +1368,9 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
         // Gérer les restrictions selon l'état
         switch state {
         case .active:
+            // Vérifier le statut d'autorisation avant d'appliquer
+            appRestrictionCoordinator.checkAuthorizationStatus()
+
             if appRestrictionCoordinator.isAuthorized {
                 // CRUCIAL: Ne pas réappliquer les restrictions pour les sessions programmées
                 // car l'extension les gère déjà via son propre ManagedSettingsStore
@@ -1376,8 +1379,12 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                     // Ne pas appeler applyRestrictions() pour éviter d'écraser l'extension
                 } else {
                     // Session manuelle - appliquer les restrictions normalement
+                    print("🔒 [ZENLOOP] Applying restrictions for manual session")
                     appRestrictionCoordinator.applyRestrictions()
                 }
+            } else {
+                print("⚠️ [ZENLOOP] Authorization not granted - restrictions will not be applied")
+                print("   Please ensure Family Controls permission is approved")
             }
             if let challenge = challenge {
                 // Pour les sessions programmées, le monitoring est déjà actif via l'extension
@@ -1386,17 +1393,23 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                 }
             }
         case .idle, .completed, .paused:
+            print("🔄 [ZENLOOP] State changed to \(state) - checking if restrictions should be removed")
+
             // CRUCIAL: Vérification complète avant suppression des restrictions
             let hasScheduledSessions = appRestrictionCoordinator.hasActiveScheduledSession()
             let isScheduledChallenge = challenge != nil && isScheduledSession(challenge!)
-            
+
+            print("   📊 hasScheduledSessions: \(hasScheduledSessions)")
+            print("   📊 isScheduledChallenge: \(isScheduledChallenge)")
+            print("   📊 challenge: \(String(describing: challenge?.title))")
+
             if !hasScheduledSessions && !isScheduledChallenge {
+                print("🔓 [ZENLOOP] Removing restrictions - no scheduled sessions active")
                 appRestrictionCoordinator.removeRestrictions()
-                print("🔓 [ZENLOOP] Aucune session programmée - restrictions supprimées")
+                print("✅ [ZENLOOP] Restrictions removed successfully")
             } else {
-                print("⚠️ [ZENLOOP] Sessions programmées actives détectées - restrictions préservées")
-                print("   hasScheduledSessions: \(hasScheduledSessions)")
-                print("   isScheduledChallenge: \(isScheduledChallenge)")
+                print("⚠️ [ZENLOOP] Keeping restrictions - scheduled sessions are active")
+                print("   This is expected if you have scheduled focus sessions running")
             }
             
             if let challenge = challenge {

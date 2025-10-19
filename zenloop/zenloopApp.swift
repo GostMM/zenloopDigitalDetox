@@ -75,6 +75,11 @@ struct zenloopApp: App {
                         print("📱 App became inactive")
                     case .active:
                         print("📱 App became active")
+
+                        // 🔥 CRITIQUE: Vérifier les événements DeviceActivity en premier
+                        // Cela permet de traiter les fins de session qui se sont produites en arrière-plan
+                        ZenloopManager.shared.deviceActivityCoordinator.checkDeviceActivityEvents()
+
                         // Check if any session expired while in background
                         ZenloopManager.shared.challengeStateManager.checkAndCompleteExpiredSession()
                         // Process any pending Quick Actions

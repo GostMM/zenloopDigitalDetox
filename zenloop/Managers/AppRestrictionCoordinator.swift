@@ -57,9 +57,13 @@ final class AppRestrictionCoordinator: ObservableObject {
     func requestAuthorization() async {
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+
+            // Attendre un court délai pour que le statut soit propagé
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
+
             checkAuthorizationStatus()
             #if DEBUG
-            logger.debug("✅ [AppRestriction] Authorization granted")
+            logger.debug("✅ [AppRestriction] Authorization granted, final status: \(self.isAuthorized)")
             #endif
         } catch {
             #if DEBUG
@@ -68,12 +72,13 @@ final class AppRestrictionCoordinator: ObservableObject {
             isAuthorized = false
         }
     }
-    
+
     func checkAuthorizationStatus() {
         let status = AuthorizationCenter.shared.authorizationStatus
+        let wasAuthorized = isAuthorized
         isAuthorized = status == .approved
         #if DEBUG
-        logger.debug("🔐 [AppRestriction] Authorization status: \(String(describing: status))")
+        logger.debug("🔐 [AppRestriction] Authorization status: \(String(describing: status)) (was: \(wasAuthorized), now: \(self.isAuthorized))")
         #endif
     }
     
@@ -147,13 +152,26 @@ final class AppRestrictionCoordinator: ObservableObject {
     }
     
     func removeRestrictions(for sessionId: String? = nil) {
-        let targetStore = getManagedStore(for: sessionId)
-        targetStore.shield.applications = nil
-        targetStore.shield.applicationCategories = nil
-        
         #if DEBUG
         let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"
-        logger.debug("🔓 [AppRestriction] Restrictions removed from \(storeType)")
+        logger.debug("🔓 [AppRestriction] Starting to remove restrictions from \(storeType)")
+        #endif
+
+        let targetStore = getManagedStore(for: sessionId)
+
+        #if DEBUG
+        logger.debug("   Clearing shield.applications...")
+        #endif
+        targetStore.shield.applications = nil
+
+        #if DEBUG
+        logger.debug("   Clearing shield.applicationCategories...")
+        #endif
+        targetStore.shield.applicationCategories = nil
+
+        #if DEBUG
+        logger.debug("✅ [AppRestriction] Restrictions removed successfully from \(storeType)")
+        logger.debug("   Apps should now be accessible")
         #endif
     }
     
