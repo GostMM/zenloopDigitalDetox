@@ -13,10 +13,17 @@ import FamilyControls
 
 // MARK: - Shared Models
 
+// Type de restriction à appliquer
+enum RestrictionMode: String, Codable {
+    case shield // Blocage avec overlay (shield)
+    case hide   // Masquage complet (blockedApplications)
+}
+
 struct SelectionPayload: Codable {
     let sessionId: String
     let apps: [ApplicationToken]
     let categories: [ActivityCategoryToken]
+    let restrictionMode: RestrictionMode? // nil = shield par défaut (compatibilité)
 }
 
 struct SessionInfo: Codable {
@@ -164,47 +171,65 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             return
         }
 
-        print("🎯 [DeviceActivity] Found payload - Apps: \(payload.apps.count), Categories: \(payload.categories.count)")
+        let mode = payload.restrictionMode ?? .shield // Défaut: shield pour compatibilité
+        print("🎯 [DeviceActivity] Found payload - Apps: \(payload.apps.count), Categories: \(payload.categories.count), Mode: \(mode.rawValue)")
 
         // IMPORTANT: Le blocage s'applique depuis l'extension avec un store nommé
         let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activity.rawValue))
 
-        // Bloquer les apps sélectionnées
-        if !payload.apps.isEmpty {
-            store.shield.applications = Set(payload.apps)
-            print("🛡️ [DeviceActivity] Blocked \(payload.apps.count) apps")
-            
-            // Apps blocked successfully
+        switch mode {
+        case .shield:
+            // Mode Shield: Blocage avec overlay
+            if !payload.apps.isEmpty {
+                store.shield.applications = Set(payload.apps)
+                print("🛡️ [DeviceActivity] Shield applied: \(payload.apps.count) apps")
+            }
+
+            if !payload.categories.isEmpty {
+                store.shield.applicationCategories = .specific(Set(payload.categories))
+                print("🛡️ [DeviceActivity] Shield applied: \(payload.categories.count) categories")
+            }
+
+        case .hide:
+            // Mode Hide: Masquage complet des apps individuelles
+            if !payload.apps.isEmpty {
+                let blockedApps: Set<Application> = Set(payload.apps.map { Application(token: $0) })
+                store.application.blockedApplications = blockedApps
+                print("🚫 [DeviceActivity] Hide applied: \(payload.apps.count) apps COMPLETELY HIDDEN")
+            }
+
+            // Pour les catégories en mode hide, on utilise quand même shield
+            // car blockedApplicationCategories n'existe pas dans ApplicationSettings
+            if !payload.categories.isEmpty {
+                store.shield.applicationCategories = .specific(Set(payload.categories))
+                print("🛡️ [DeviceActivity] Shield applied for categories: \(payload.categories.count) (hide mode doesn't support categories)")
+            }
         }
 
-        // Bloquer les catégories sélectionnées  
-        if !payload.categories.isEmpty {
-            store.shield.applicationCategories = .specific(Set(payload.categories))
-            print("🛡️ [DeviceActivity] Blocked \(payload.categories.count) categories")
-            
-            // Categories blocked successfully
-        }
-        
         if payload.apps.isEmpty && payload.categories.isEmpty {
             print("⚠️ [DeviceActivity] Payload found but nothing to block")
         }
-        
-        print("✅ [DeviceActivity] Shield applied for \(activity.rawValue)")
+
+        print("✅ [DeviceActivity] Restrictions applied for \(activity.rawValue) with mode: \(mode.rawValue)")
     }
 
     private func removeShield(for activity: DeviceActivityName) {
-        print("🔓 [DeviceActivity] Starting shield removal for: \(activity.rawValue)")
+        print("🔓 [DeviceActivity] Starting restriction removal for: \(activity.rawValue)")
 
         let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activity.rawValue))
 
+        // Nettoyer les deux modes (shield ET hide) pour être sûr
         print("   [DeviceActivity] Clearing shield.applications...")
         store.shield.applications = nil
 
         print("   [DeviceActivity] Clearing shield.applicationCategories...")
         store.shield.applicationCategories = nil
 
-        print("✅ [DeviceActivity] Shield successfully removed for \(activity.rawValue)")
-        print("   Blocked apps should now be accessible")
+        print("   [DeviceActivity] Clearing application.blockedApplications (hide mode)...")
+        store.application.blockedApplications = nil
+
+        print("✅ [DeviceActivity] All restrictions removed for \(activity.rawValue)")
+        print("   Apps should now be accessible/visible")
     }
     
     // MARK: - Helper Methods

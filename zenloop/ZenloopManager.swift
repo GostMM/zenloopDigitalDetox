@@ -25,7 +25,7 @@ enum DifficultyLevel: String, CaseIterable, Identifiable, Codable {
     case easy = "Facile"
     case medium = "Moyen"
     case hard = "Difficile"
-    
+
     var id: String { rawValue }
     var color: Color {
         switch self {
@@ -39,6 +39,31 @@ enum DifficultyLevel: String, CaseIterable, Identifiable, Codable {
         case .easy: return "leaf.fill"
         case .medium: return "flame.fill"
         case .hard: return "bolt.fill"
+        }
+    }
+
+    // Mode de restriction basé sur la difficulté
+    var restrictionMode: RestrictionMode {
+        switch self {
+        case .easy, .medium:
+            return .shield // Facile/Moyen: Shield (overlay)
+        case .hard:
+            return .hide // Difficile: Masquage complet
+        }
+    }
+}
+
+// Type de restriction à appliquer
+enum RestrictionMode: String, Codable {
+    case shield // Blocage avec overlay (shield)
+    case hide   // Masquage complet (blockedApplications)
+
+    var description: String {
+        switch self {
+        case .shield:
+            return "Shield - Apps bloquées avec overlay"
+        case .hide:
+            return "Hide - Apps complètement masquées"
         }
     }
 }
@@ -175,6 +200,7 @@ struct SelectionPayload: Codable {
     let sessionId: String
     let apps: [ApplicationToken]
     let categories: [ActivityCategoryToken]
+    let restrictionMode: RestrictionMode? // nil = shield par défaut (compatibilité)
 }
 
 struct SessionInfo: Codable {
@@ -233,12 +259,13 @@ class BlockScheduler {
     }
     
     // Sauvegarder les apps/catégories sélectionnées pour l'extension
-    func saveSelectionForExtension(selection: FamilyActivitySelection, sessionId: String) throws {
+    func saveSelectionForExtension(selection: FamilyActivitySelection, sessionId: String, restrictionMode: RestrictionMode = .shield) throws {
         let encoder = JSONEncoder()
         let payload = SelectionPayload(
             sessionId: sessionId,
             apps: Array(selection.applicationTokens),
-            categories: Array(selection.categoryTokens)
+            categories: Array(selection.categoryTokens),
+            restrictionMode: restrictionMode
         )
         
         let data = try encoder.encode(payload)
@@ -263,11 +290,12 @@ class BlockScheduler {
         title: String,
         duration: TimeInterval,
         startTime: Date,
-        selection: FamilyActivitySelection
+        selection: FamilyActivitySelection,
+        difficulty: DifficultyLevel = .medium
     ) throws {
         let sessionId = "scheduled_\(UUID().uuidString)"
         let endTime = startTime.addingTimeInterval(duration)
-        
+
         let sessionInfo = SessionInfo(
             sessionId: sessionId,
             title: title,
@@ -276,9 +304,12 @@ class BlockScheduler {
             endTime: endTime,
             createdAt: Date()
         )
-        
-        // Sauvegarder la sélection pour l'extension
-        try saveSelectionForExtension(selection: selection, sessionId: sessionId)
+
+        // Sauvegarder la sélection pour l'extension avec le bon mode de restriction
+        let restrictionMode = difficulty.restrictionMode
+        try saveSelectionForExtension(selection: selection, sessionId: sessionId, restrictionMode: restrictionMode)
+
+        print("🗓️ [BlockScheduler] Session scheduled with difficulty: \(difficulty.rawValue), restriction mode: \(restrictionMode.rawValue)")
         
         // Sauvegarder les infos de session pour restauration
         let sessionData = try JSONEncoder().encode(sessionInfo)
@@ -927,13 +958,15 @@ class ZenloopManager: ObservableObject {
     }
 
     // MARK: - Restrictions - Délégation aux managers
-    
-    private func applyRestrictions() {
-        appRestrictionCoordinator.applyRestrictions()
+
+    private func applyRestrictions(mode: RestrictionMode? = nil) {
+        // Si un mode est spécifié, l'utiliser, sinon utiliser le mode du challenge actuel
+        let restrictionMode = mode ?? currentChallenge?.difficulty.restrictionMode ?? .shield
+        appRestrictionCoordinator.applyRestrictions(mode: restrictionMode)
     }
-    
-    private func removeRestrictions(for sessionId: String? = nil) {
-        appRestrictionCoordinator.removeRestrictions(for: sessionId)
+
+    private func removeRestrictions(for sessionId: String? = nil, mode: RestrictionMode? = nil) {
+        appRestrictionCoordinator.removeRestrictions(for: sessionId, mode: mode)
     }
     
     // MARK: - Ticker (1 Hz) - Délégation aux managers
@@ -1379,8 +1412,9 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                     // Ne pas appeler applyRestrictions() pour éviter d'écraser l'extension
                 } else {
                     // Session manuelle - appliquer les restrictions normalement
-                    print("🔒 [ZENLOOP] Applying restrictions for manual session")
-                    appRestrictionCoordinator.applyRestrictions()
+                    let mode = challenge?.difficulty.restrictionMode ?? .shield
+                    print("🔒 [ZENLOOP] Applying restrictions for manual session (mode: \(mode.rawValue))")
+                    applyRestrictions(mode: mode)
                 }
             } else {
                 print("⚠️ [ZENLOOP] Authorization not granted - restrictions will not be applied")

@@ -323,26 +323,131 @@ struct ProgressSection: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white.opacity(0.6))
                         .tracking(1)
-                    
+
                     Text("\(Int(zenloopManager.currentProgress * 100))%")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(String(localized: "time_remaining"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white.opacity(0.6))
                         .tracking(1)
-                    
+
                     Text(zenloopManager.currentTimeRemaining)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(stateColor)
                 }
             }
+
+            // Indicateur de difficulté
+            DifficultyIndicator(difficulty: challenge.difficulty)
         }
+    }
+}
+
+// MARK: - Difficulty Indicator
+
+struct DifficultyIndicator: View {
+    let difficulty: DifficultyLevel
+
+    private var modeInfo: (title: String, description: String, icon: String) {
+        switch difficulty {
+        case .easy:
+            return (
+                String(localized: "difficulty_easy_mode"),
+                String(localized: "difficulty_easy_desc"),
+                "shield.lefthalf.filled"
+            )
+        case .medium:
+            return (
+                String(localized: "difficulty_medium_mode"),
+                String(localized: "difficulty_medium_desc"),
+                "shield.fill"
+            )
+        case .hard:
+            return (
+                String(localized: "difficulty_hard_mode"),
+                String(localized: "difficulty_hard_desc"),
+                "eye.slash.fill"
+            )
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                difficulty.color.opacity(0.2),
+                                difficulty.color.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: difficulty.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(difficulty.color)
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(difficulty.rawValue)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text("•")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.4))
+
+                    HStack(spacing: 4) {
+                        Image(systemName: modeInfo.icon)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(difficulty.color.opacity(0.8))
+
+                        Text(modeInfo.title)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(difficulty.color.opacity(0.9))
+                    }
+                }
+
+                Text(modeInfo.description)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            difficulty.color.opacity(0.12),
+                            difficulty.color.opacity(0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(difficulty.color.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

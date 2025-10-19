@@ -1022,3 +1022,24 @@
 
 // Background Session Notifications
 "session_completed" = "Session Terminée";
+
+// Difficulty Modal
+"difficulty_modal_title" = "Niveau de Restriction";
+"difficulty_modal_subtitle" = "Choisissez l'intensité du blocage";
+"start_session" = "Démarrer la Session";
+"suggested" = "Suggéré";
+
+// Difficulty Levels
+"difficulty_easy" = "Facile";
+"difficulty_medium" = "Moyen";
+"difficulty_hard" = "Difficile";
+
+// Difficulty Modes
+"difficulty_easy_mode" = "Mode Shield";
+"difficulty_easy_desc" = "Apps visibles mais bloquées par un overlay";
+
+"difficulty_medium_mode" = "Shield Renforcé";
+"difficulty_medium_desc" = "Blocage strict avec notifications de rappel";
+
+"difficulty_hard_mode" = "Mode Hide";
+"difficulty_hard_desc" = "Apps complètement masquées de l'écran";

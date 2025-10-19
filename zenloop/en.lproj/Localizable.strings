@@ -1020,3 +1020,24 @@
 
 // Background Session Notifications
 "session_completed" = "Session Completed";
+
+// Difficulty Modal
+"difficulty_modal_title" = "Restriction Level";
+"difficulty_modal_subtitle" = "Choose the intensity of app blocking";
+"start_session" = "Start Session";
+"suggested" = "Suggested";
+
+// Difficulty Levels
+"difficulty_easy" = "Easy";
+"difficulty_medium" = "Medium";
+"difficulty_hard" = "Hard";
+
+// Difficulty Modes
+"difficulty_easy_mode" = "Shield Mode";
+"difficulty_easy_desc" = "Apps remain visible but blocked with an overlay";
+
+"difficulty_medium_mode" = "Enhanced Shield";
+"difficulty_medium_desc" = "Strict blocking with reminder notifications";
+
+"difficulty_hard_mode" = "Hide Mode";
+"difficulty_hard_desc" = "Apps completely hidden from home screen";

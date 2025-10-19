@@ -119,15 +119,15 @@ final class AppRestrictionCoordinator: ObservableObject {
     }
     
     // MARK: - Restriction Application
-    
-    func applyRestrictions(for sessionId: String? = nil) {
-        guard isAuthorized else { 
+
+    func applyRestrictions(for sessionId: String? = nil, mode: RestrictionMode = .shield) {
+        guard isAuthorized else {
             #if DEBUG
             logger.warning("⚠️ [AppRestriction] Cannot apply restrictions - not authorized")
             #endif
-            return 
+            return
         }
-        
+
         // Ne pas appliquer de restrictions si une session programmée est active
         if hasActiveScheduledSession() && sessionId == nil {
             #if DEBUG
@@ -135,23 +135,49 @@ final class AppRestrictionCoordinator: ObservableObject {
             #endif
             return
         }
-        
+
         let targetStore = getManagedStore(for: sessionId)
         let appTokens = blockedAppsSelection.applicationTokens
-        targetStore.shield.applications = appTokens
-        
-        if !blockedAppsSelection.categoryTokens.isEmpty {
-            targetStore.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
-                .specific(blockedAppsSelection.categoryTokens)
-        }
-        
+
         #if DEBUG
         let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"
-        self.logger.debug("🛡️ [AppRestriction] Restrictions applied to \(storeType): \(appTokens.count) apps, \(self.blockedAppsSelection.categoryTokens.count) categories")
+        logger.debug("🛡️ [AppRestriction] Applying restrictions to \(storeType) with mode: \(mode.rawValue)")
         #endif
+
+        switch mode {
+        case .shield:
+            // Mode Shield: Blocage avec overlay (comportement actuel)
+            targetStore.shield.applications = appTokens
+
+            if !blockedAppsSelection.categoryTokens.isEmpty {
+                targetStore.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
+                    .specific(blockedAppsSelection.categoryTokens)
+            }
+
+            #if DEBUG
+            logger.debug("🛡️ [AppRestriction] Shield applied: \(appTokens.count) apps, \(self.blockedAppsSelection.categoryTokens.count) categories")
+            #endif
+
+        case .hide:
+            // Mode Hide: Masquage complet des apps individuelles
+            let blockedApps: Set<Application> = Set(appTokens.map { Application(token: $0) })
+            targetStore.application.blockedApplications = blockedApps.isEmpty ? nil : blockedApps
+
+            // Pour les catégories, utiliser shield car blockedApplicationCategories n'existe pas
+            if !blockedAppsSelection.categoryTokens.isEmpty {
+                targetStore.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
+                    .specific(blockedAppsSelection.categoryTokens)
+            }
+
+            #if DEBUG
+            logger.debug("🚫 [AppRestriction] Hide applied: \(blockedApps.count) apps completely hidden")
+            logger.debug("🛡️ [AppRestriction] Shield applied for \(self.blockedAppsSelection.categoryTokens.count) categories (hide mode doesn't support categories)")
+            logger.debug("   Apps are now INVISIBLE on home screen")
+            #endif
+        }
     }
     
-    func removeRestrictions(for sessionId: String? = nil) {
+    func removeRestrictions(for sessionId: String? = nil, mode: RestrictionMode? = nil) {
         #if DEBUG
         let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"
         logger.debug("🔓 [AppRestriction] Starting to remove restrictions from \(storeType)")
@@ -159,19 +185,30 @@ final class AppRestrictionCoordinator: ObservableObject {
 
         let targetStore = getManagedStore(for: sessionId)
 
-        #if DEBUG
-        logger.debug("   Clearing shield.applications...")
-        #endif
-        targetStore.shield.applications = nil
+        // Si un mode spécifique est fourni, on ne nettoie que ce mode
+        // Sinon on nettoie les deux modes (comportement par défaut pour compatibilité)
+        if mode == nil || mode == .shield {
+            #if DEBUG
+            logger.debug("   Clearing shield.applications...")
+            #endif
+            targetStore.shield.applications = nil
 
-        #if DEBUG
-        logger.debug("   Clearing shield.applicationCategories...")
-        #endif
-        targetStore.shield.applicationCategories = nil
+            #if DEBUG
+            logger.debug("   Clearing shield.applicationCategories...")
+            #endif
+            targetStore.shield.applicationCategories = nil
+        }
+
+        if mode == nil || mode == .hide {
+            #if DEBUG
+            logger.debug("   Clearing application.blockedApplications...")
+            #endif
+            targetStore.application.blockedApplications = nil
+        }
 
         #if DEBUG
         logger.debug("✅ [AppRestriction] Restrictions removed successfully from \(storeType)")
-        logger.debug("   Apps should now be accessible")
+        logger.debug("   Apps should now be accessible/visible")
         #endif
     }
     
