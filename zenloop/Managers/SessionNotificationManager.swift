@@ -282,12 +282,19 @@ final class SessionNotificationManager: NSObject, ObservableObject {
         } else if minutesUntilSession > 0 {
             // Session dans 1-2 minutes : notification immédiate
             createImmediateReminderNotification(
-                baseId: baseId, 
-                session: session, 
+                baseId: baseId,
+                session: session,
                 notifications: &notifications
             )
         }
-        
+
+        // NOUVEAU: Toujours ajouter une notification à l'instant T (heure exacte de début)
+        createStartTimeNotification(
+            baseId: baseId,
+            session: session,
+            notifications: &notifications
+        )
+
         // Toujours ajouter les notifications de progression et de fin
         addProgressAndEndNotifications(baseId: baseId, session: session, notifications: &notifications)
         
@@ -341,17 +348,49 @@ final class SessionNotificationManager: NSObject, ObservableObject {
         }
     }
     
+    private func createStartTimeNotification(
+        baseId: String,
+        session: ScheduledNotification,
+        notifications: inout [NotificationInfo]
+    ) {
+        // Notification exactement à l'heure de début
+        let startTime = session.scheduledFor
+
+        guard startTime > Date() else { return }
+
+        let content = createReminderContent(
+            title: String(localized: "session_starting_now"),
+            body: "\(session.title) démarre maintenant !",
+            sound: .critical
+        )
+
+        notifications.append(NotificationInfo(
+            id: "\(baseId)_start",
+            title: session.title,
+            content: content,
+            scheduledTime: startTime,
+            request: createNotificationRequest(
+                identifier: "\(baseId)_start",
+                content: content,
+                triggerDate: startTime,
+                categoryIdentifier: "SESSION_START"
+            )
+        ))
+
+        print("⏰ [SESSION_NOTIFICATIONS] Start time notification scheduled for \(startTime)")
+    }
+
     private func createImmediateReminderNotification(
-        baseId: String, 
-        session: ScheduledNotification, 
+        baseId: String,
+        session: ScheduledNotification,
         notifications: inout [NotificationInfo]
     ) {
         let content = createReminderContent(
             title: String(localized: "session_starting_now"),
-            body: "\(session.title) démarre maintenant ! 🚀",
+            body: "\(session.title) démarre dans moins d'une minute !",
             sound: .critical
         )
-        
+
         notifications.append(NotificationInfo(
             id: "\(baseId)_starting_now",
             title: session.title,

@@ -21,6 +21,13 @@ struct SharedReportPayload: Codable {
     let days: [SharedReportDayPoint]
     let todayScreenSeconds: Double
     let todayOffScreenSeconds: Double
+    let topApps: [SharedReportApp]  // ✅ Ajout des top apps
+}
+
+struct SharedReportApp: Codable {
+    let name: String
+    let seconds: Double
+    let bundleId: String?
 }
 
 struct SharedReportCategory: Codable {

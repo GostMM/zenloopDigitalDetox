@@ -45,7 +45,7 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         startTime: Date,
         notificationManager: SessionNotificationManager
     ) {
-        let sessionId = "scheduled-\(UUID().uuidString)"
+        let sessionId = "scheduled_\(UUID().uuidString)"
         
         // Créer la session programmée
         let appNames = delegate?.generateAppNames(from: apps) ?? []
@@ -86,7 +86,8 @@ final class ScheduledSessionsCoordinator: ObservableObject {
                 title: title,
                 duration: duration,
                 startTime: roundedStartTime, // Réutiliser la même variable
-                selection: apps
+                selection: apps,
+                difficulty: difficulty
             )
             #if DEBUG
             self.logger.debug("🛡️ [ScheduledSessions] DeviceActivity scheduled pour arrière-plan")

@@ -64,7 +64,9 @@ class AppUsageManager: ObservableObject {
     @Published var usageStats: UsageStats = .empty
     @Published var isLoading = false
     @Published var isAuthorized = false
-    
+    @Published var showTopAppToast = false
+    @Published var topApp: AppUsageInfo?
+
     private let authorizationCenter = AuthorizationCenter.shared
     private let deviceActivityCenter = DeviceActivityCenter()
     
@@ -180,10 +182,19 @@ class AppUsageManager: ObservableObject {
         DispatchQueue.main.async {
             self.usageStats = newStats
             self.isLoading = false
+
+            // Mettre à jour l'app la plus utilisée pour le toast
+            if let mostUsedApp = topApps.first {
+                self.topApp = mostUsedApp
+            }
+
             debugPrint("✅ [APP_USAGE] Stats mis à jour avec données simulées réalistes")
             debugPrint("✅ [APP_USAGE] Daily: \(self.formatTimeValue(finalDaily)), Weekly: \(self.formatTimeValue(finalWeekly))")
+            if let topApp = self.topApp {
+                debugPrint("🏆 [APP_USAGE] App la plus utilisée: \(topApp.name) - \(self.formatTimeValue(topApp.dailyUsage))")
+            }
         }
-        
+
         return true
     }
     
@@ -333,5 +344,33 @@ class AppUsageManager: ObservableObject {
     
     func refresh() {
         loadUsageData()
+    }
+
+    /// Afficher le toast de l'app la plus utilisée
+    func showTopAppToastIfAvailable() {
+        guard let topApp = topApp, !showTopAppToast else { return }
+
+        debugPrint("📢 [APP_USAGE] Affichage du toast pour: \(topApp.name)")
+        showTopAppToast = true
+    }
+
+    /// Mapper le bundleId vers une icône système
+    func getSystemIcon(for bundleId: String) -> String? {
+        switch bundleId {
+        case "com.apple.mobilesafari": return "safari"
+        case "com.apple.MobileSMS": return "message.fill"
+        case "com.burbn.instagram": return "photo.on.rectangle.angled"
+        case "com.apple.mobilemail": return "envelope.fill"
+        case "com.apple.mobilecal": return "calendar"
+        case "com.apple.reminders": return "checklist"
+        case "com.apple.MobileNotes": return "note.text"
+        case "com.tiktokv.TikTok": return "play.rectangle.fill"
+        case "com.facebook.Facebook": return "person.2.fill"
+        case "com.google.chrome.ios": return "globe"
+        case "com.spotify.client": return "music.note"
+        case "com.netflix.Netflix": return "tv.fill"
+        case "com.snapchat.snapchat": return "camera.fill"
+        default: return nil
+        }
     }
 }

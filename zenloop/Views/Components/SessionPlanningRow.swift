@@ -51,7 +51,7 @@ struct SessionPlanningRow: View {
                             .foregroundColor(.white)
                         
                         // Badge compact pour sessions programmées
-                        if zenloopManager.hasActiveScheduledSessions {
+                       /*  if zenloopManager.hasActiveScheduledSessions {
                             let count = getScheduledSessionsCount()
                             if count > 0 {
                                 Text("\(count)")
@@ -64,7 +64,7 @@ struct SessionPlanningRow: View {
                                             .stroke(.white.opacity(0.2), lineWidth: 1)
                                     )
                             }
-                        }
+                        } */
                     }
                     
                     HStack(spacing: 4) {
@@ -73,7 +73,7 @@ struct SessionPlanningRow: View {
                             .foregroundColor(.white.opacity(0.6))
                         
                         // Indicateur de prochaine session avec icône
-                        if let nextSession = zenloopManager.nextScheduledSession {
+/*                         if let nextSession = zenloopManager.nextScheduledSession {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock.arrow.circlepath")
                                     .font(.system(size: 10, weight: .semibold))
@@ -83,7 +83,7 @@ struct SessionPlanningRow: View {
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundColor(.cyan)
                             }
-                        }
+                        } */
                     }
                 }
                 

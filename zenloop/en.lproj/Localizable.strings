@@ -1010,6 +1010,7 @@
 "completed" = "Completed";
 "in_progress" = "In Progress";
 "add_goal_optional" = "Add a goal (optional)";
+"add_goal" = "Add a Goal";
 "custom_goal" = "Custom goal";
 "goals" = "Goals";
 "add" = "Add";
@@ -1041,3 +1042,30 @@
 
 "difficulty_hard_mode" = "Hide Mode";
 "difficulty_hard_desc" = "Apps completely hidden from home screen";
+
+// Upcoming Sessions
+"upcoming_sessions" = "Upcoming Sessions";
+"scheduled_to_start_automatically" = "Scheduled to start automatically";
+"starting_now" = "Starting now";
+"in_less_than_minute" = "In less than a minute";
+"in_x_minutes" = "In {count} minutes";
+"in_x_hours" = "In {count} hours";
+"in_x_days" = "In {count} days";
+"cancel_scheduled_session" = "Cancel scheduled session?";
+"cancel_scheduled_session_message" = "This session will be removed and won't start automatically.";
+"cancel_session" = "Cancel Session";
+"keep_session" = "Keep Session";
+
+// Pause restrictions
+"pause_not_available" = "Pause Not Available";
+"scheduled_sessions_cannot_be_paused" = "Scheduled sessions are managed by the system and cannot be paused. You can stop the session instead.";
+
+// Top App Toast
+"most_used_app" = "Most Used App";
+"duration_hours_minutes" = "%dh %dm";
+"duration_minutes" = "%d min";
+
+// Time of day
+"morning" = "Morning";
+"afternoon" = "Afternoon";
+"evening" = "Evening";

@@ -15,6 +15,7 @@ struct OnboardingView: View {
     @StateObject private var onboardingManager = OnboardingManager.shared
 
     private let pages = OnboardingPage.allPages
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .light)
     
     var body: some View {
         ZStack {
@@ -44,8 +45,7 @@ struct OnboardingView: View {
                     }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.3), value: currentPage)
-                
+
                 // Bottom actions
                 OnboardingBottomActions(
                     currentPage: currentPage,
@@ -84,15 +84,12 @@ struct OnboardingView: View {
     }
     
     private func nextPage() {
+        // Feedback haptique AVANT le changement de page
+        impactFeedback.impactOccurred()
+
         if currentPage < pages.count - 1 {
-            // Animation plus pro avec bounce léger
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.2)) {
-                currentPage += 1
-            }
-            
-            // Feedback haptique subtil
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
+            // Changement immédiat sans animation pour éviter re-renders
+            currentPage += 1
         } else {
             handleOnboardingComplete()
         }
@@ -365,27 +362,44 @@ struct OnboardingBottomActions: View {
     let showContent: Bool
     let onNext: () -> Void
     let onGetStarted: () -> Void
+
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
     @ObservedObject var onboardingManager: OnboardingManager
     @State private var isRequesting = false
-    
+
+    // Cache les computed properties pour éviter recalculs
     private var currentPage_: OnboardingPage {
         OnboardingPage.allPages[currentPage]
+    }
+
+    private var cachedButtonText: String {
+        if isRequesting {
+            return String(localized: "processing")
+        }
+        return String(localized: "continue")
+    }
+
+    private var cachedButtonIcon: String {
+        return "arrow.right"
     }
     
     var body: some View {
         VStack(spacing: 16) {
             // Bouton principal intelligent
-            Button(action: {
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            Button {
+                // Désactiver temporairement le bouton pour éviter double tap
+                guard !isRequesting else { return }
+
                 impactFeedback.impactOccurred()
-                
+
                 print("🚨🚨 [ONBOARDING] BUTTON TAPPED!")
                 print("🚨🚨 [ONBOARDING] Current page: \(currentPage)")
                 print("🚨🚨 [ONBOARDING] Total pages: \(totalPages)")
                 print("🚨🚨 [ONBOARDING] Page title: '\(currentPage_.title)'")
                 print("🚨🚨 [ONBOARDING] IsPermissionPage: \(currentPage_.isPermissionPage)")
                 print("🚨🚨 [ONBOARDING] PermissionType: \(String(describing: currentPage_.permissionType))")
-                
+
+                // Exécution directe sans délai
                 if currentPage_.isPermissionPage {
                     print("🚨🚨 [ONBOARDING] Permission page - calling handlePermissionAction()")
                     handlePermissionAction()
@@ -393,20 +407,20 @@ struct OnboardingBottomActions: View {
                     print("🚨🚨 [ONBOARDING] Regular page - calling onNext()")
                     onNext()
                 }
-            }) {
+            } label: {
                 HStack(spacing: 12) {
                     if isRequesting {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.8)
                     } else {
-                        Text(buttonText)
+                        Text(cachedButtonText)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                     }
-                    
+
                     if !isRequesting {
-                        Image(systemName: buttonIcon)
+                        Image(systemName: cachedButtonIcon)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -427,47 +441,14 @@ struct OnboardingBottomActions: View {
                 )
                 .shadow(color: .cyan.opacity(0.3), radius: 12, x: 0, y: 6)
             }
-            
+            .buttonStyle(PlainButtonStyle())
+            .disabled(isRequesting)
+
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.7), value: showContent)
     }
     
-    private var buttonText: String {
-        let text: String
-        if isRequesting {
-            text = String(localized: "processing")
-        } else if currentPage_.isPermissionPage {
-            switch currentPage_.permissionType {
-            case .screenTime:
-                // Bouton pour demander Screen Time
-                if onboardingManager.screenTimeStatus == .granted {
-                    text = String(localized: "continue")
-                } else if onboardingManager.screenTimeStatus == .denied {
-                    text = String(localized: "retry_screen_time_authorization")
-                } else {
-                    text = String(localized: "authorize_screen_time")
-                }
-            case .notifications:
-                // Le bouton principal est maintenant toujours "Continuer"
-                // L'activation se fait via le bouton orange dédié
-                text = String(localized: "continue")
-            default:
-                text = String(localized: "continue")
-            }
-        } else {
-            text = String(localized: "continue")
-        }
-        
-        print("🔍 [ONBOARDING] Button text for page \(currentPage): '\(text)' (isPermissionPage: \(currentPage_.isPermissionPage))")
-        return text
-    }
-    
-    private var buttonIcon: String {
-        // Toujours flèche vers la droite
-        return "arrow.right"
-    }
     
     
     private func handlePermissionAction() {

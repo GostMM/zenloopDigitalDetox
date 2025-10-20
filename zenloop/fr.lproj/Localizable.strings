@@ -1012,6 +1012,7 @@
 "completed" = "Terminé";
 "in_progress" = "En Cours";
 "add_goal_optional" = "Ajouter un objectif (optionnel)";
+"add_goal" = "Ajouter un objectif";
 "custom_goal" = "Objectif personnalisé";
 "goals" = "Objectifs";
 "add" = "Ajouter";
@@ -1043,3 +1044,30 @@
 
 "difficulty_hard_mode" = "Mode Hide";
 "difficulty_hard_desc" = "Apps complètement masquées de l'écran";
+
+// Upcoming Sessions
+"upcoming_sessions" = "Sessions Programmées";
+"scheduled_to_start_automatically" = "Démarrage automatique programmé";
+"starting_now" = "Démarre maintenant";
+"in_less_than_minute" = "Dans moins d'une minute";
+"in_x_minutes" = "Dans {count} minutes";
+"in_x_hours" = "Dans {count} heures";
+"in_x_days" = "Dans {count} jours";
+"cancel_scheduled_session" = "Annuler la session programmée ?";
+"cancel_scheduled_session_message" = "Cette session sera supprimée et ne démarrera pas automatiquement.";
+"cancel_session" = "Annuler la Session";
+"keep_session" = "Garder la Session";
+
+// Pause restrictions
+"pause_not_available" = "Pause Non Disponible";
+"scheduled_sessions_cannot_be_paused" = "Les sessions programmées sont gérées par le système et ne peuvent pas être mises en pause. Vous pouvez arrêter la session à la place.";
+
+// Top App Toast
+"most_used_app" = "App la Plus Utilisée";
+"duration_hours_minutes" = "%dh %dm";
+"duration_minutes" = "%d min";
+
+// Time of day
+"morning" = "Matin";
+"afternoon" = "Après-midi";
+"evening" = "Soir";

@@ -669,18 +669,18 @@ class ZenloopManager: ObservableObject {
     
     // MARK: - Défis
     
-    func startQuickChallenge(duration: TimeInterval) {
+    func startQuickChallenge(duration: TimeInterval, difficulty: DifficultyLevel = .medium) {
         guard challengeStateManager.canStartChallenge else { return }
-        
+
         // Obtenir la configuration des apps depuis le coordinator
         let (hasSelectedApps, appNames, appCount) = appRestrictionCoordinator.getQuickChallengeConfiguration()
-        
+
         var challenge = ZenloopChallenge(
             id: "quick-\(UUID().uuidString)",
             title: "Focus Rapide",
             description: "Session de concentration rapide",
             duration: duration,
-            difficulty: .medium
+            difficulty: difficulty
         )
         
         challenge.blockedAppsCount = appCount
@@ -761,7 +761,8 @@ class ZenloopManager: ObservableObject {
                 title: title,
                 duration: duration,
                 startTime: startTime,
-                selection: apps
+                selection: apps,
+                difficulty: difficulty
             )
             
             // Aussi programmer les notifications via l'ancien système
@@ -847,15 +848,27 @@ class ZenloopManager: ObservableObject {
     
     func stopCurrentChallenge() {
         guard let challenge = challengeStateManager.getCurrentChallenge(), challengeStateManager.hasActiveChallenge else { return }
-        
+
         showBreathingMeditation = false
-        
+
+        // CRUCIAL: Si c'est une session programmée, arrêter le DeviceActivityMonitor
+        if isScheduledSession(challenge) {
+            print("🛑 [ZENLOOP] Stopping scheduled session - cancelling DeviceActivityMonitor")
+            BlockScheduler.shared.cancelScheduledSession(challenge.id)
+
+            // Supprimer TOUTES les restrictions du store nommé (shield ET hide)
+            // Car en mode Hide on utilise aussi shield.applicationCategories
+            print("🧹 [ZENLOOP] Cleaning ALL restrictions (shield + hide) for session: \(challenge.id)")
+            let mode: RestrictionMode? = nil
+            appRestrictionCoordinator.removeRestrictions(for: challenge.id, mode: mode)
+        }
+
         // Arrêter le challenge via le state manager (qui triggera les callbacks)
         challengeStateManager.stopChallenge()
-        
+
         // Annuler les notifications en cours pour cette session
         notificationManager.cancelSessionNotifications(sessionId: challenge.id)
-        
+
         // Enregistrer l'activité
         var activities = recentActivity
         persistence.addActivityRecord(
@@ -913,8 +926,27 @@ class ZenloopManager: ObservableObject {
     
     func requestPause() {
         guard challengeStateManager.hasActiveChallenge else { return }
+
+        // Vérifier si c'est une session programmée
+        if let challenge = currentChallenge, isScheduledSession(challenge) {
+            // Pour les sessions programmées, on ne peut pas vraiment pauser
+            // car elles sont contrôlées par le DeviceActivityMonitor extension
+            print("⚠️ [ZENLOOP] Cannot pause scheduled session - managed by extension")
+
+            // Afficher une notification à l'utilisateur
+            let content = UNMutableNotificationContent()
+            content.title = String(localized: "pause_not_available")
+            content.body = String(localized: "scheduled_sessions_cannot_be_paused")
+            content.sound = .default
+
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+            return
+        }
+
+        // Pour les sessions manuelles, pause normale
         challengeStateManager.pauseChallenge()
-        
+
         // Enregistrer l'activité
         var activities = recentActivity
         persistence.addActivityRecord(
@@ -962,7 +994,15 @@ class ZenloopManager: ObservableObject {
     private func applyRestrictions(mode: RestrictionMode? = nil) {
         // Si un mode est spécifié, l'utiliser, sinon utiliser le mode du challenge actuel
         let restrictionMode = mode ?? currentChallenge?.difficulty.restrictionMode ?? .shield
-        appRestrictionCoordinator.applyRestrictions(mode: restrictionMode)
+
+        // Pour les sessions programmées, passer le sessionId pour utiliser le bon store
+        let sessionId: String? = if let challenge = currentChallenge, isScheduledSession(challenge) {
+            challenge.id
+        } else {
+            nil
+        }
+
+        appRestrictionCoordinator.applyRestrictions(for: sessionId, mode: restrictionMode)
     }
 
     private func removeRestrictions(for sessionId: String? = nil, mode: RestrictionMode? = nil) {
@@ -1405,17 +1445,16 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
             appRestrictionCoordinator.checkAuthorizationStatus()
 
             if appRestrictionCoordinator.isAuthorized {
-                // CRUCIAL: Ne pas réappliquer les restrictions pour les sessions programmées
-                // car l'extension les gère déjà via son propre ManagedSettingsStore
+                // Toujours appliquer les restrictions quand on passe à .active
+                // Cela couvre à la fois les démarrages et les reprises après pause
+                let mode = challenge?.difficulty.restrictionMode ?? .shield
+                print("🔒 [ZENLOOP] Applying restrictions (mode: \(mode.rawValue))")
+
                 if let challenge = challenge, isScheduledSession(challenge) {
-                    print("⚠️ [ZENLOOP] Session programmée détectée - restrictions gérées par l'extension")
-                    // Ne pas appeler applyRestrictions() pour éviter d'écraser l'extension
-                } else {
-                    // Session manuelle - appliquer les restrictions normalement
-                    let mode = challenge?.difficulty.restrictionMode ?? .shield
-                    print("🔒 [ZENLOOP] Applying restrictions for manual session (mode: \(mode.rawValue))")
-                    applyRestrictions(mode: mode)
+                    print("   ℹ️ Scheduled session - ensuring restrictions are active")
                 }
+
+                applyRestrictions(mode: mode)
             } else {
                 print("⚠️ [ZENLOOP] Authorization not granted - restrictions will not be applied")
                 print("   Please ensure Family Controls permission is approved")
@@ -1426,7 +1465,7 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                     deviceActivityCoordinator.startMonitoring(for: challenge)
                 }
             }
-        case .idle, .completed, .paused:
+        case .idle, .completed:
             print("🔄 [ZENLOOP] State changed to \(state) - checking if restrictions should be removed")
 
             // CRUCIAL: Vérification complète avant suppression des restrictions
@@ -1445,10 +1484,19 @@ extension ZenloopManager: ChallengeStateManagerDelegate {
                 print("⚠️ [ZENLOOP] Keeping restrictions - scheduled sessions are active")
                 print("   This is expected if you have scheduled focus sessions running")
             }
-            
+
+        case .paused:
+            print("⏸️ [ZENLOOP] Session paused - removing restrictions temporarily")
+
             if let challenge = challenge {
-                // Ne pas arrêter le monitoring pour les sessions programmées
-                if !isScheduledSession(challenge) {
+                if isScheduledSession(challenge) {
+                    // Pour les sessions programmées, on ne peut pas vraiment pauser car l'extension contrôle
+                    print("⚠️ [ZENLOOP] Cannot truly pause scheduled session - extension is managing restrictions")
+                    // Les restrictions restent actives via l'extension
+                } else {
+                    // Pour les sessions manuelles, enlever les restrictions pendant la pause
+                    print("🔓 [ZENLOOP] Removing restrictions for manual session pause")
+                    appRestrictionCoordinator.removeRestrictions()
                     deviceActivityCoordinator.stopMonitoring(for: challenge)
                 }
             }

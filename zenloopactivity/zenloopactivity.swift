@@ -48,5 +48,10 @@ struct zenloopactivity: DeviceActivityReportExtension {
         TimeComparisonWidget { timeComparisonData in
             TimeComparisonView(timeComparisonData: timeComparisonData)
         }
+
+        // Toast pour l'app la plus utilisée (avec vraie icône)
+        TopAppToastReport { topAppData in
+            TopAppToastReportView(data: topAppData)
+        }
     }
 }

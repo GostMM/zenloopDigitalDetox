@@ -648,19 +648,15 @@ struct TimerCard: View {
                                 .stroke(taskGoals.isEmpty ? .white.opacity(0.08) : .yellow.opacity(0.25), lineWidth: 1)
                         )
                 )
-                .alert(String(localized: "add_goal"), isPresented: $showingAddGoal) {
-                    TextField(String(localized: "goal_placeholder"), text: Binding(
-                        get: { "" },
-                        set: { newGoal in
-                            if !newGoal.isEmpty {
-                                addGoal(newGoal)
-                            }
-                        }
-                    ))
-                    Button(String(localized: "cancel"), role: .cancel) { }
-                    Button(String(localized: "add")) {
-                        // Handled by TextField binding
-                    }
+                .sheet(isPresented: $showingAddGoal) {
+                    AddGoalSheet(onAdd: { newGoal in
+                        addGoal(newGoal)
+                        showingAddGoal = false
+                    }, onCancel: {
+                        showingAddGoal = false
+                    })
+                    .presentationDetents([.height(280)])
+                    .presentationDragIndicator(.visible)
                 }
 
                 // Applications à bloquer
@@ -879,7 +875,7 @@ struct TimerCard: View {
                 taskGoal: goalsString
             )
         } else {
-            zenloopManager.startQuickChallenge(duration: duration)
+            zenloopManager.startQuickChallenge(duration: duration, difficulty: difficulty)
         }
 
         // Réinitialiser la sélection
@@ -905,6 +901,9 @@ struct DifficultySelectionModal: View {
     let autoDifficulty: DifficultyLevel
     let onConfirm: () -> Void
     @Environment(\.dismiss) var dismiss
+
+    // Réutiliser le même feedback generator
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -935,7 +934,6 @@ struct DifficultySelectionModal: View {
                         isSelected: (selectedDifficulty ?? autoDifficulty) == difficulty,
                         isAuto: selectedDifficulty == nil && difficulty == autoDifficulty,
                         onTap: {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                             impactFeedback.impactOccurred()
                             selectedDifficulty = difficulty
                         }
@@ -948,7 +946,6 @@ struct DifficultySelectionModal: View {
             // Boutons
             VStack(spacing: 8) {
                 Button {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
                     impactFeedback.impactOccurred()
                     onConfirm()
                 } label: {
@@ -1143,6 +1140,96 @@ struct DifficultyOptionCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Add Goal Sheet
+
+struct AddGoalSheet: View {
+    @State private var goalText = ""
+    let onAdd: (String) -> Void
+    let onCancel: () -> Void
+    @FocusState private var isTextFieldFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            Text(String(localized: "add_goal"))
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.top, 24)
+                .padding(.bottom, 20)
+
+            // TextField
+            TextField(String(localized: "goal_placeholder"), text: $goalText)
+                .font(.system(size: 16))
+                .foregroundColor(.white)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 20)
+                .focused($isTextFieldFocused)
+                .submitLabel(.done)
+                .onSubmit {
+                    if !goalText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        onAdd(goalText)
+                    }
+                }
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button {
+                    onCancel()
+                } label: {
+                    Text(String(localized: "cancel"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.1))
+                        )
+                }
+
+                Button {
+                    if !goalText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        onAdd(goalText)
+                    }
+                } label: {
+                    Text(String(localized: "add"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            LinearGradient(
+                                colors: goalText.isEmpty ? [.gray.opacity(0.5)] : [.yellow, .orange],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(12)
+                }
+                .disabled(goalText.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+        }
+        .background(Color(red: 0.09, green: 0.09, blue: 0.11))
+        .onAppear {
+            // Focus automatique sur le TextField
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isTextFieldFocused = true
+            }
+        }
     }
 }
 

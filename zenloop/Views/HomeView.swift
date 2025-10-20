@@ -12,10 +12,11 @@ struct HomeView: View {
     @EnvironmentObject var zenloopManager: ZenloopManager
     // Lazy loading des managers pour éviter l'initialisation lourde
     private var badgeManager: BadgeManager { BadgeManager.shared }
-    private var categoryManager: CategoryManager { CategoryManager.shared }  
+    private var categoryManager: CategoryManager { CategoryManager.shared }
     private var purchaseManager: PurchaseManager { PurchaseManager.shared }
     @StateObject private var dailyReportManager = DailyReportManager.shared
     @StateObject private var onboardingManager = OnboardingManager.shared
+    @StateObject private var topAppsDisplayManager = TopAppsDisplayManager.shared
     @State private var showContent = false
     @State private var syncTimer: Timer?
 
@@ -36,7 +37,7 @@ struct HomeView: View {
             // Background optimisé - moins gourmand en ressources
             OptimizedBackground(currentState: zenloopManager.currentState)
                 .ignoresSafeArea(.all, edges: .all)
-            
+
             // Interface principale
             VStack(spacing: 0) {
                 // Header minimaliste
@@ -56,7 +57,13 @@ struct HomeView: View {
                         if isIdle {
                             TimerCard(zenloopManager: zenloopManager, showContent: showContent)
                                 .padding(.top, 20)
-                            
+
+                            // Upcoming Scheduled Sessions
+                            UpcomingSessionsCard(
+                                zenloopManager: zenloopManager,
+                                showContent: showContent
+                            )
+
                             // Session Planning directement après TimerCard
                             SessionPlanningRow(
                                 zenloopManager: zenloopManager,
@@ -87,17 +94,29 @@ struct HomeView: View {
                         
                         // Sections communes
                         commonSections
-                        
-                        // Espace de respiration en bas
-                        Spacer(minLength: 80)
+
+                        // Espace de respiration en bas pour la card des top apps
+                        Spacer(minLength: topAppsDisplayManager.shouldShowCard ? 300 : 80)
                     }
                     .padding(.horizontal, 0)
                 }
                 .frame(maxHeight: .infinity)
             }
-            
+
             // Plus de bottom bar - maintenant intégrée en carte
-            
+
+            // Card des top 3 apps (bottom sheet draggable) - DÉSACTIVÉ
+            // if topAppsDisplayManager.shouldShowCard {
+            //     Color.clear
+            //         .sheet(isPresented: .constant(true)) {
+            //             TopAppsBottomSheet(onDismiss: {
+            //                 topAppsDisplayManager.dismissCard()
+            //             })
+            //             .presentationDetents([.height(500), .large])
+            //             .presentationDragIndicator(.visible)
+            //             .presentationBackgroundInteraction(.enabled)
+            //         }
+            // }
         }
         .onAppear {
             withAnimation(.spring(response: 1.2, dampingFraction: 0.7)) {
@@ -105,14 +124,20 @@ struct HomeView: View {
             }
             // backgroundAnimator.startAnimation() // ⚠️ DÉSACTIVÉ - CPU KILLER
             badgeManager.checkForNewBadges(zenloopManager: zenloopManager)
-            
+
             // Synchroniser l'état des sessions en arrière-plan
             Task {
                 await synchronizeBackgroundSessions()
             }
-            
+
             // Démarrer la synchronisation périodique
             startPeriodicSync()
+
+            // Vérifier si on doit afficher la card des top apps (après un délai pour que la vue soit prête)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                print("🎯 [HOMEVIEW] Déclenchement vérification TopAppsCard")
+                topAppsDisplayManager.checkIfShouldShow()
+            }
             
             // Désactivé: Vérification du rapport quotidien
             // DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -123,6 +148,13 @@ struct HomeView: View {
             // Re-synchroniser quand l'app devient active
             Task {
                 await synchronizeBackgroundSessions()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TopAppsCardDismissRequested"))) { _ in
+            // L'extension a demandé de fermer la card
+            print("📡 [HOMEVIEW] Réception demande de fermeture de la TopAppsCard")
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                topAppsDisplayManager.dismissCard()
             }
         }
         .onDisappear {
@@ -425,7 +457,63 @@ struct HomeView: View {
         syncTimer = nil
         print("⏰ [HOMEVIEW] Timer de synchronisation périodique arrêté")
     }
-    
+
+}
+
+// MARK: - Top Apps Bottom Sheet
+
+struct TopAppsBottomSheet: View {
+    let onDismiss: () -> Void
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header avec bouton fermer
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Apps les Plus Utilisées")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text("Aujourd'hui")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+
+                Spacer()
+
+                Button {
+                    onDismiss()
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+
+            // Contenu: DeviceActivityReport
+            ScrollView {
+                TopAppToastContainer(isShowing: Binding.constant(true))
+                    .padding(EdgeInsets(top: 8, leading: 0, bottom: 0, trailing: 0))
+            }
+
+            Spacer()
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.10, green: 0.10, blue: 0.12),
+                    Color(red: 0.08, green: 0.08, blue: 0.10)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
 }
 
 #Preview {

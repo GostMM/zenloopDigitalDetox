@@ -128,14 +128,6 @@ final class AppRestrictionCoordinator: ObservableObject {
             return
         }
 
-        // Ne pas appliquer de restrictions si une session programmée est active
-        if hasActiveScheduledSession() && sessionId == nil {
-            #if DEBUG
-            logger.debug("⚠️ [AppRestriction] Skipping manual restrictions - scheduled session active")
-            #endif
-            return
-        }
-
         let targetStore = getManagedStore(for: sessionId)
         let appTokens = blockedAppsSelection.applicationTokens
 

@@ -27,6 +27,10 @@ struct ScheduleConfigurationModal: View {
     @State private var showContent = false
     @State private var isAppearing = false
     @State private var hasInitialized = false
+
+    // Difficulty selection
+    @State private var showDifficultyModal = false
+    @State private var selectedDifficulty: DifficultyLevel? = nil
     
     init(session: PopularSession, 
          zenloopManager: ZenloopManager, 
@@ -109,6 +113,18 @@ struct ScheduleConfigurationModal: View {
                 }
             }
             .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
+            .sheet(isPresented: $showDifficultyModal) {
+                DifficultySelectionModal(
+                    selectedDifficulty: $selectedDifficulty,
+                    autoDifficulty: autoSuggestedDifficulty,
+                    onConfirm: {
+                        showDifficultyModal = false
+                        scheduleSession()
+                    }
+                )
+                .presentationDetents([.height(460)])
+                .presentationDragIndicator(.visible)
+            }
             .onAppear {
                 print("🔄 [MODAL] onAppear pour session: \(session.sessionId)")
                 print("🔄 [MODAL] hasInitialized: \(hasInitialized), showContent: \(showContent)")
@@ -496,7 +512,8 @@ struct ScheduleConfigurationModal: View {
     private var actionButtonsSection: some View {
         VStack(spacing: 12) {
             Button {
-                scheduleSession()
+                // Afficher le modal de difficulté avant de programmer
+                showDifficultyModal = true
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "calendar.badge.plus")
@@ -533,40 +550,43 @@ struct ScheduleConfigurationModal: View {
     }
     
     // MARK: - Computed Properties
-    
+
     private var hasSelectedApps: Bool {
         !selectedApps.applicationTokens.isEmpty || !selectedApps.categoryTokens.isEmpty
     }
-    
+
     private var canSchedule: Bool {
         hasSelectedApps
+    }
+
+    private var autoSuggestedDifficulty: DifficultyLevel {
+        let hours = session.duration / 3600
+        if hours >= 8 {
+            return .hard
+        } else if hours >= 4 {
+            return .medium
+        } else {
+            return .easy
+        }
     }
     
     // MARK: - Private Methods
     
     private func scheduleSession() {
         print("🗓️ [SCHEDULE_CONFIG] Tentative de programmation de '\(session.title)'")
-        
+
+        // Utiliser la difficulté sélectionnée par l'utilisateur ou celle suggérée
+        let difficulty = selectedDifficulty ?? autoSuggestedDifficulty
+
         // Vérifier l'accès Premium via PremiumGatekeeper
         PremiumGatekeeper.shared.performIfAllowed(.startScheduledSession) {
             print("🗓️ [SCHEDULE_CONFIG] Programmation autorisée pour '\(session.title)'")
             print("   - Heure: \(selectedStartTime)")
             print("   - Fréquence: \(selectedFrequency)")
+            print("   - Difficulté: \(difficulty.rawValue)")
             print("   - Apps: \(selectedApps.applicationTokens.count)")
             print("   - Catégories: \(selectedApps.categoryTokens.count)")
-            
-            // Déterminer la difficulté selon la durée
-            let difficulty: DifficultyLevel = {
-                let hours = session.duration / 3600
-                if hours >= 8 {
-                    return .hard
-                } else if hours >= 4 {
-                    return .medium
-                } else {
-                    return .easy
-                }
-            }()
-            
+
             // Pour l'instant, programmer une seule session
             // TODO: Implémenter la logique de fréquence répétée
             zenloopManager.scheduleCustomChallenge(
@@ -576,33 +596,50 @@ struct ScheduleConfigurationModal: View {
                 apps: selectedApps,
                 startTime: selectedStartTime
             )
-            
+
             // Feedback haptique
             #if canImport(UIKit)
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
             #endif
-            
+
             // Fermer le modal
             dismiss()
-            
+
             print("✅ [SCHEDULE_CONFIG] Session programmée avec succès")
         }
     }
     
     private func calculateNextOptimalTime() -> Date {
         let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        
+        let now = Date()
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+
+        // Si on est avant 23h, proposer une heure dans la journée actuelle
+        // Sinon, proposer demain matin
+        let targetDate: Date
+        let targetHour: Int
+
+        if currentHour < 23 {
+            // Proposer dans 1 heure (arrondi à l'heure suivante)
+            targetDate = now
+            targetHour = currentHour + 1
+        } else {
+            // Proposer demain à 8h
+            targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            targetHour = 8
+        }
+
         let components = DateComponents(
-            year: calendar.component(.year, from: tomorrow),
-            month: calendar.component(.month, from: tomorrow),
-            day: calendar.component(.day, from: tomorrow),
-            hour: 8,
+            year: calendar.component(.year, from: targetDate),
+            month: calendar.component(.month, from: targetDate),
+            day: calendar.component(.day, from: targetDate),
+            hour: targetHour,
             minute: 0
         )
-        
-        return calendar.date(from: components) ?? Date()
+
+        return calendar.date(from: components) ?? now
     }
 }
 

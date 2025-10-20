@@ -80,6 +80,13 @@ struct SharedReportPayload: Codable {
     let days: [SharedReportDayPoint]
     let todayScreenSeconds: Double
     let todayOffScreenSeconds: Double
+    let topApps: [SharedReportApp]  // ✅ Ajout des top apps
+}
+
+struct SharedReportApp: Codable {
+    let name: String
+    let seconds: Double
+    let bundleId: String?  // Peut être nil si non disponible
 }
 
 struct SharedReportCategory: Codable {
@@ -218,6 +225,14 @@ struct TotalActivityReport: DeviceActivityReportScene {
         let todayOff = max(0, elapsedToday - todayScreen)
         
         // — App Group JSON partagé —
+        let topAppsShared = Array(allApps.prefix(10)).map { app in
+            SharedReportApp(
+                name: app.name,
+                seconds: app.duration,
+                bundleId: nil  // Token non-sérialisable, on mettra nil côté app
+            )
+        }
+
         let payload = SharedReportPayload(
             intervalStart: start.timeIntervalSince1970,
             intervalEnd: end.timeIntervalSince1970,
@@ -231,7 +246,8 @@ struct TotalActivityReport: DeviceActivityReportScene {
                 SharedReportDayPoint(dayStart: $0.key.timeIntervalSince1970, seconds: $0.value)
             },
             todayScreenSeconds: todayScreen,
-            todayOffScreenSeconds: todayOff
+            todayOffScreenSeconds: todayOff,
+            topApps: topAppsShared
         )
         persistSharedReport(payload)
         
