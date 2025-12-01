@@ -276,8 +276,10 @@ class ScreenTimeManager: ObservableObject {
             for challengeId in allChallengeIds {
                 let storeIdentifier = challengeId.hasPrefix("scheduled_") ? challengeId : "manual_\(challengeId)"
                 let managedSettings = ManagedSettingsStore(named: ManagedSettingsStore.Name(storeIdentifier))
+                // Clear both shield mode and hide mode restrictions
                 managedSettings.shield.applications = nil
                 managedSettings.shield.applicationCategories = nil
+                managedSettings.application.blockedApplications = nil
                 print("🔓 [MANAGED_SETTINGS] Cleared restrictions from store: \(storeIdentifier)")
             }
             
@@ -285,6 +287,7 @@ class ScreenTimeManager: ObservableObject {
             let defaultStore = ManagedSettingsStore()
             defaultStore.shield.applications = nil
             defaultStore.shield.applicationCategories = nil
+            defaultStore.application.blockedApplications = nil
             
             deviceActivityCenter.stopMonitoring(allActivityNames)
             

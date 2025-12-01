@@ -42,6 +42,14 @@ enum DifficultyLevel: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var localizedName: String {
+        switch self {
+        case .easy: return String(localized: "difficulty_easy")
+        case .medium: return String(localized: "difficulty_medium")
+        case .hard: return String(localized: "difficulty_hard")
+        }
+    }
+
     // Mode de restriction basé sur la difficulté
     var restrictionMode: RestrictionMode {
         switch self {

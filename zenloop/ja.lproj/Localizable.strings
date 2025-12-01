@@ -81,7 +81,7 @@
 "new_session" = "新しいセッション";
 
 // Timer Card
-"take_your_time" = "ゆっくりどうぞ";
+"take_your_time" = "時間はあなたのもの";
 "everything_ready" = "すべて準備完了";
 "select_apps" = "アプリを選択";
 "start_session" = "セッション開始";
@@ -862,3 +862,27 @@
 
 // OnboardingView additional strings
 "enabled" = "有効";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "すべてリセット";
+"reset_all_restrictions_description" = "すべての制限を解除してアクティブなセッションを停止";
+"reset_all_success" = "🔓 すべての制限が解除されました！";
+"reset_all_success_title" = "制限解除";
+"reset_all_success_body" = "すべての制限が正常に削除されました";
+
+// Legal
+"privacy_policy" = "プライバシーポリシー";
+"terms_of_use" = "利用規約";
+
+// Goals modal keys
+"add_custom_goal" = "目標を追加";
+"goal_placeholder" = "目標を入力...";
+"suggestions" = "提案";
+"goals_subtitle" = "達成したいことを定義する";
+"no_goals_yet" = "まだ目標がありません";
+"add_goals_hint" = "セッション中に追跡する目標を追加";
+
+// Difficulty levels
+"difficulty_easy" = "簡単";
+"difficulty_medium" = "普通";
+"difficulty_hard" = "難しい";

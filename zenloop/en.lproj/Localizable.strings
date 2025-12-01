@@ -81,7 +81,7 @@
 "new_session" = "New Session";
 
 // Timer Card
-"take_your_time" = "Take your time";
+"take_your_time" = "Time is yours to control";
 "everything_ready" = "Everything is ready for you";
 "select_apps" = "Select apps";
 "start_session" = "Start Session";
@@ -1019,6 +1019,18 @@
 "study_chapter" = "Study a chapter";
 "cancel" = "Cancel";
 
+// Timer Card - New
+"ready_to_start" = "Ready to start";
+"tap_to_select" = "Tap to select";
+"quick_durations" = "Quick Durations";
+"custom_duration" = "Custom Duration";
+"goals_subtitle" = "Define what you want to accomplish";
+"no_goals_yet" = "No goals yet";
+"add_goals_hint" = "Add goals to track during your session";
+"suggestions" = "Suggestions";
+"add_custom_goal" = "Add Custom Goal";
+"goal_placeholder" = "Enter your goal...";
+
 // Background Session Notifications
 "session_completed" = "Session Completed";
 
@@ -1069,3 +1081,19 @@
 "morning" = "Morning";
 "afternoon" = "Afternoon";
 "evening" = "Evening";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "Reset All";
+"reset_all_restrictions_description" = "Remove all restrictions and stop active sessions";
+"reset_all_success" = "🔓 All restrictions removed!";
+"reset_all_success_title" = "Restrictions Removed";
+"reset_all_success_body" = "All restrictions have been successfully removed";
+
+// Legal
+"privacy_policy" = "Privacy Policy";
+"terms_of_use" = "Terms of Use";
+
+// Difficulty levels
+"difficulty_easy" = "Easy";
+"difficulty_medium" = "Medium";
+"difficulty_hard" = "Hard";

@@ -81,7 +81,7 @@
 "new_session" = "جلسة جديدة";
 
 // Timer Card
-"take_your_time" = "خذ وقتك";
+"take_your_time" = "الوقت ملكك";
 "everything_ready" = "كل شيء جاهز لك";
 "select_apps" = "اختيار التطبيقات";
 "start_session" = "بدء الجلسة";
@@ -862,3 +862,27 @@
 
 // OnboardingView additional strings
 "enabled" = "مُفَعَّل";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "إعادة تعيين الكل";
+"reset_all_restrictions_description" = "إزالة جميع القيود وإيقاف الجلسات النشطة";
+"reset_all_success" = "🔓 تمت إزالة جميع القيود!";
+"reset_all_success_title" = "تمت إزالة القيود";
+"reset_all_success_body" = "تمت إزالة جميع القيود بنجاح";
+
+// Legal
+"privacy_policy" = "سياسة الخصوصية";
+"terms_of_use" = "شروط الاستخدام";
+
+// Goals modal keys
+"add_custom_goal" = "أضف هدفاً";
+"goal_placeholder" = "أدخل هدفك...";
+"suggestions" = "اقتراحات";
+"goals_subtitle" = "حدد ما تريد تحقيقه";
+"no_goals_yet" = "لا توجد أهداف بعد";
+"add_goals_hint" = "أضف أهدافاً لتتبعها خلال الجلسة";
+
+// Difficulty levels
+"difficulty_easy" = "سهل";
+"difficulty_medium" = "متوسط";
+"difficulty_hard" = "صعب";

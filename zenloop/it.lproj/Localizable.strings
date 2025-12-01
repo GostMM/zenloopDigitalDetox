@@ -81,7 +81,7 @@
 "new_session" = "Nuova Sessione";
 
 // Timer Card
-"take_your_time" = "Prenditi il tuo tempo";
+"take_your_time" = "Il tempo è tuo";
 "everything_ready" = "Tutto è pronto per te";
 "select_apps" = "Seleziona app";
 "start_session" = "Inizia Sessione";
@@ -862,3 +862,27 @@
 
 // OnboardingView additional strings
 "enabled" = "Attivato";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "Ripristina Tutto";
+"reset_all_restrictions_description" = "Rimuovere tutte le restrizioni e interrompere le sessioni attive";
+"reset_all_success" = "🔓 Tutte le restrizioni rimosse!";
+"reset_all_success_title" = "Restrizioni Rimosse";
+"reset_all_success_body" = "Tutte le restrizioni sono state rimosse con successo";
+
+// Legal
+"privacy_policy" = "Informativa sulla privacy";
+"terms_of_use" = "Termini di utilizzo";
+
+// Goals modal keys
+"add_custom_goal" = "Aggiungi Obiettivo";
+"goal_placeholder" = "Inserisci il tuo obiettivo...";
+"suggestions" = "Suggerimenti";
+"goals_subtitle" = "Definisci cosa vuoi raggiungere";
+"no_goals_yet" = "Nessun obiettivo ancora";
+"add_goals_hint" = "Aggiungi obiettivi da seguire durante la sessione";
+
+// Difficulty levels
+"difficulty_easy" = "Facile";
+"difficulty_medium" = "Medio";
+"difficulty_hard" = "Difficile";

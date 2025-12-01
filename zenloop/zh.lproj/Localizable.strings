@@ -81,7 +81,7 @@
 "new_session" = "新专注";
 
 // Timer Card
-"take_your_time" = "慢慢来";
+"take_your_time" = "时间属于你";
 "everything_ready" = "一切已为您准备就绪";
 "select_apps" = "选择应用";
 "start_session" = "开始专注";
@@ -862,3 +862,27 @@
 
 // OnboardingView additional strings
 "enabled" = "已启用";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "重置全部";
+"reset_all_restrictions_description" = "移除所有限制并停止活动会话";
+"reset_all_success" = "🔓 已移除所有限制！";
+"reset_all_success_title" = "限制已移除";
+"reset_all_success_body" = "所有限制已成功移除";
+
+// Legal
+"privacy_policy" = "隐私政策";
+"terms_of_use" = "使用条款";
+
+// Goals modal keys
+"add_custom_goal" = "添加目标";
+"goal_placeholder" = "输入你的目标...";
+"suggestions" = "建议";
+"goals_subtitle" = "定义你想要实现的目标";
+"no_goals_yet" = "还没有目标";
+"add_goals_hint" = "添加目标以在会话期间跟踪";
+
+// Difficulty levels
+"difficulty_easy" = "简单";
+"difficulty_medium" = "中等";
+"difficulty_hard" = "困难";

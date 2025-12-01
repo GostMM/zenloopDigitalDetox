@@ -15,6 +15,7 @@ enum QuickActionType: String, CaseIterable {
     case startScheduled = "com.app.zenloop.startscheduled"
     case viewStats = "com.app.zenloop.viewstats"
     case emergency = "com.app.zenloop.emergency"
+    case resetAll = "com.app.zenloop.resetall"
     case dontDelete = "com.app.zenloop.dontdelete"
     
     var title: String {
@@ -27,11 +28,13 @@ enum QuickActionType: String, CaseIterable {
             return String(localized: "quick_action_view_stats_title", comment: "View stats action title")
         case .emergency:
             return String(localized: "quick_action_emergency_title", comment: "Emergency break action title")
+        case .resetAll:
+            return String(localized: "reset_all_restrictions", comment: "Reset all restrictions action title")
         case .dontDelete:
             return String(localized: "quick_action_dont_delete_title", comment: "Don't delete retention action title")
         }
     }
-    
+
     var subtitle: String {
         switch self {
         case .quickFocus:
@@ -42,11 +45,13 @@ enum QuickActionType: String, CaseIterable {
             return String(localized: "quick_action_view_stats_subtitle", comment: "View stats action subtitle")
         case .emergency:
             return String(localized: "quick_action_emergency_subtitle", comment: "Emergency break subtitle")
+        case .resetAll:
+            return String(localized: "reset_all_restrictions_description", comment: "Reset all restrictions subtitle")
         case .dontDelete:
             return String(localized: "quick_action_dont_delete_subtitle", comment: "Don't delete retention subtitle")
         }
     }
-    
+
     var iconType: UIApplicationShortcutIcon {
         switch self {
         case .quickFocus:
@@ -57,6 +62,8 @@ enum QuickActionType: String, CaseIterable {
             return UIApplicationShortcutIcon(systemImageName: "chart.bar.fill")
         case .emergency:
             return UIApplicationShortcutIcon(systemImageName: "cross.circle.fill")
+        case .resetAll:
+            return UIApplicationShortcutIcon(systemImageName: "arrow.counterclockwise.circle.fill")
         case .dontDelete:
             return UIApplicationShortcutIcon(systemImageName: "heart.circle.fill")
         }
@@ -86,6 +93,7 @@ class QuickActionsManager: ObservableObject {
         // Add initial static actions - always show retention message
         let staticActions = [
             createShortcutItem(for: .dontDelete), // Most important for retention
+            createShortcutItem(for: .resetAll),    // Always visible - lever restrictions
             createShortcutItem(for: .quickFocus),
             createShortcutItem(for: .viewStats)
         ]
@@ -106,20 +114,23 @@ class QuickActionsManager: ObservableObject {
         
         // ALWAYS FIRST: Retention message - most important for user retention
         actions.append(createShortcutItem(for: .dontDelete))
-        
+
+        // ALWAYS SECOND: Reset All - toujours visible pour lever les restrictions
+        actions.append(createShortcutItem(for: .resetAll))
+
         // Always available: Quick Focus
         actions.append(createShortcutItem(for: .quickFocus))
-        
+
         // Conditional: Emergency break (only if session is active) - higher priority
-        if hasActiveSession() {
+        if hasActiveSession() && actions.count < 4 {
             actions.append(createShortcutItem(for: .emergency))
         }
-        
+
         // Conditional: Start Scheduled (if there are upcoming sessions)
-        if hasUpcomingScheduledSessions() {
+        if hasUpcomingScheduledSessions() && actions.count < 4 {
             actions.append(createShortcutItem(for: .startScheduled))
         }
-        
+
         // Always available: View Stats (if space allows)
         if actions.count < 4 {
             actions.append(createShortcutItem(for: .viewStats))
@@ -217,16 +228,19 @@ class QuickActionsManager: ObservableObject {
         switch actionType {
         case .quickFocus:
             startQuickFocusSession(with: manager)
-            
+
         case .startScheduled:
             startScheduledSession(with: manager)
-            
+
         case .viewStats:
             navigateToStats()
-            
+
         case .emergency:
             handleEmergencyBreak(with: manager)
-            
+
+        case .resetAll:
+            handleResetAllRestrictions(with: manager)
+
         case .dontDelete:
             handleRetentionMessage(with: manager)
         }
@@ -299,17 +313,36 @@ class QuickActionsManager: ObservableObject {
     
     private func handleEmergencyBreak(with manager: ZenloopManager) {
         print("🛟 [QUICK_ACTIONS] Emergency break requested")
-        
+
         // Pause the current session
         manager.requestPause()
-        
+
         // Send strong haptic feedback
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        
+
         // Could show a breathing exercise or motivational message
         NotificationCenter.default.post(name: .quickActionEmergencyBreak, object: nil)
     }
-    
+
+    private func handleResetAllRestrictions(with manager: ZenloopManager) {
+        print("🔄 [QUICK_ACTIONS] Reset all restrictions requested")
+
+        // Stop current challenge/session
+        manager.stopCurrentChallenge()
+
+        // Clear all restrictions
+        Task {
+            await ScreenTimeManager.shared.stopAllBlocking()
+            await manager.deviceActivityCoordinator.stopAllMonitoring()
+
+            await MainActor.run {
+                // Send strong haptic feedback
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                print("✅ [QUICK_ACTIONS] All restrictions cleared successfully")
+            }
+        }
+    }
+
     private func handleRetentionMessage(with manager: ZenloopManager) {
         print("🫢 [QUICK_ACTIONS] Retention message selected - user considering keeping the app!")
         

@@ -314,6 +314,21 @@ struct PaywallView: View {
                             }
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.cyan)
+
+                            // Legal links
+                            HStack(spacing: 8) {
+                                Link(String(localized: "privacy_policy"), destination: URL(string: "https://www.zenloop.me/privacy-policy")!)
+                                    .font(.system(size: 10, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.5))
+
+                                Text("•")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.3))
+
+                                Link(String(localized: "terms_of_use"), destination: URL(string: "https://www.zenloop.me/eula")!)
+                                    .font(.system(size: 10, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
                         }
                         .opacity(showContent ? 1 : 0)
                     }
@@ -569,10 +584,10 @@ struct PremiumPlanCard: View {
     let onSelect: () -> Void
 
     private var fontSizeTitle: CGFloat { isCompact ? 14 : 20 }
-    private var fontSizePrice: CGFloat { isCompact ? 18 : 32 }
+    private var fontSizePrice: CGFloat { isCompact ? 16 : 24 }
     private var fontSizeSubtitle: CGFloat { isCompact ? 9 : 11 }
     private var fontSizeBadge: CGFloat { isCompact ? 8 : 11 }
-    private var fontSizeOldPrice: CGFloat { isCompact ? 10 : 14 }
+    private var fontSizeOldPrice: CGFloat { isCompact ? 10 : 12 }
     private var paddingVertical: CGFloat { isCompact ? 12 : 18 }
     private var paddingHorizontal: CGFloat { isCompact ? 8 : 20 }
 
@@ -679,16 +694,31 @@ struct PremiumPlanCard: View {
 
                         VStack(alignment: .trailing, spacing: 2) {
                             if let oldPrice = realOldPrice {
-                                Text(oldPrice)
-                                    .font(.system(size: fontSizeOldPrice, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.4))
-                                    .strikethrough()
+                                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                                    Text(oldPrice)
+                                        .font(.system(size: fontSizeOldPrice, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.4))
+                                        .strikethrough()
+                                    if plan == .monthly || plan == .yearly {
+                                        Text("/\(plan == .monthly ? String(localized: "per_month") : String(localized: "per_year"))")
+                                            .font(.system(size: 8, weight: .regular))
+                                            .foregroundColor(.white.opacity(0.3))
+                                    }
+                                }
                             }
 
-                            Text(realPrice)
-                                .font(.system(size: fontSizePrice, weight: .black))
-                                .foregroundColor(plan.color)
-                                .shadow(color: plan.color.opacity(0.5), radius: 8)
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(realPrice)
+                                    .font(.system(size: fontSizePrice, weight: .black))
+                                    .foregroundColor(plan.color)
+                                    .shadow(color: plan.color.opacity(0.5), radius: 8)
+
+                                if plan == .monthly || plan == .yearly {
+                                    Text("/\(plan == .monthly ? String(localized: "per_month") : String(localized: "per_year"))")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(plan.color.opacity(0.7))
+                                }
+                            }
                         }
                     }
                 }

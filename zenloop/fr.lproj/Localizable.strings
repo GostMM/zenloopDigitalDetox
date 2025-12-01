@@ -81,7 +81,7 @@
 "new_session" = "Nouvelle Session";
 
 // Timer Card
-"take_your_time" = "Reprends ton temps";
+"take_your_time" = "Le temps t'appartient";
 "everything_ready" = "Tout est prêt pour toi";
 "select_apps" = "Sélectionner des apps";
 "start_session" = "Démarrer la Session";
@@ -1021,6 +1021,18 @@
 "study_chapter" = "Étudier un chapitre";
 "cancel" = "Annuler";
 
+// Timer Card - New
+"ready_to_start" = "Prêt à commencer";
+"tap_to_select" = "Touchez pour sélectionner";
+"quick_durations" = "Durées rapides";
+"custom_duration" = "Durée personnalisée";
+"goals_subtitle" = "Définissez ce que vous voulez accomplir";
+"no_goals_yet" = "Pas encore d'objectifs";
+"add_goals_hint" = "Ajoutez des objectifs à suivre pendant votre session";
+"suggestions" = "Suggestions";
+"add_custom_goal" = "Ajouter un Objectif";
+"goal_placeholder" = "Entrez votre objectif...";
+
 // Background Session Notifications
 "session_completed" = "Session Terminée";
 
@@ -1071,3 +1083,19 @@
 "morning" = "Matin";
 "afternoon" = "Après-midi";
 "evening" = "Soir";
+
+// Reset All Restrictions
+"reset_all_restrictions" = "Tout Rétablir";
+"reset_all_restrictions_description" = "Lever toutes les restrictions et arrêter les sessions actives";
+"reset_all_success" = "🔓 Toutes les restrictions levées !";
+"reset_all_success_title" = "Restrictions Levées";
+"reset_all_success_body" = "Toutes les restrictions ont été supprimées avec succès";
+
+// Legal
+"privacy_policy" = "Politique de confidentialité";
+"terms_of_use" = "Conditions d'utilisation";
+
+// Difficulty levels
+"difficulty_easy" = "Facile";
+"difficulty_medium" = "Moyen";
+"difficulty_hard" = "Difficile";
