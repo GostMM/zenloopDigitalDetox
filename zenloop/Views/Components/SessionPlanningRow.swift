@@ -12,135 +12,73 @@ import UIKit
 struct SessionPlanningRow: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
-    @State private var showingConfiguration = false
     @State private var showingScheduleModal = false
     @State private var selectedSession: PopularSession?
     @StateObject private var sessionPlanningManager = SessionPlanningManager.shared
-    
+
     // Dictionnaire pour stocker les sélections d'apps par session
     @State private var sessionAppSelections: [String: FamilyActivitySelection] = [:]
-    
+
+    // States pour la nouvelle carte dynamique
+    @State private var selectedDuration: TimeInterval = 30 * 60 // 30 min par défaut
+    @State private var selectedApps = FamilyActivitySelection()
+    @State private var showingAppPicker = false
+    @State private var isInitialLoad = true // Pour éviter d'ouvrir le modal au chargement
+
     var body: some View {
-        VStack(spacing: 16) {
-            // Header avec icône et titre
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple.opacity(0.3), .purple.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.purple)
+        CompactScheduleCard(
+            selectedDuration: $selectedDuration,
+            selectedApps: $selectedApps,
+            onSelectApps: {
+                showingAppPicker = true
+            },
+            onSchedule: {
+                // Créer et afficher la modal de scheduling
+                if let session = createDynamicSession() {
+                    selectedSession = session
+                    showingScheduleModal = true
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.purple.opacity(0.3), lineWidth: 1)
-                )
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text(String(localized: "session_planning"))
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                        
-                        // Badge compact pour sessions programmées
-                       /*  if zenloopManager.hasActiveScheduledSessions {
-                            let count = getScheduledSessionsCount()
-                            if count > 0 {
-                                Text("\(count)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 18, height: 18)
-                                    .background(.cyan, in: Circle())
-                                    .overlay(
-                                        Circle()
-                                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                                    )
-                            }
-                        } */
-                    }
-                    
-                    HStack(spacing: 4) {
-                        Text(String(localized: "schedule_focus_sessions"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                        
-                        // Indicateur de prochaine session avec icône
-/*                         if let nextSession = zenloopManager.nextScheduledSession {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.cyan)
-                                
-                                Text(formatTime(nextSession.startTime))
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.cyan)
-                            }
-                        } */
-                    }
-                }
-                
-                Spacer()
-                
-                // Bouton config
-                Button(action: {
-                    showingConfiguration = true
-                }) {
-                    Image(systemName: "gear")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 32, height: 32)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-            }
-            .padding(.horizontal, 12)
-            
-            // Sessions programmables populaires
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(sessionPlanningManager.popularSessions) { session in
-                        PopularSessionCard(
-                            session: session,
-                            hasAppsConfigured: hasAppsForSession(session.sessionId),
-                            onSchedule: {
-                                print("🎯 [SESSION_ROW] Ouverture modal pour session: \(session.sessionId)")
-                                selectedSession = session
-                                showingScheduleModal = true
-                                print("✅ [SESSION_ROW] Modal state: selectedSession=\(selectedSession?.sessionId ?? "nil"), showingModal=\(showingScheduleModal)")
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 12)
-            }
-        }
-        .padding(.horizontal, 12)
+            },
+            showContent: showContent
+        )
+        .padding(.horizontal, 20)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 20)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.7), value: showContent)
-        .sheet(isPresented: $showingConfiguration) {
-            NavigationView {
-                SessionPlanningModal(zenloopManager: zenloopManager)
+        .familyActivityPicker(isPresented: $showingAppPicker, selection: $selectedApps)
+        .onChange(of: selectedApps) { oldValue, newValue in
+            // Sauvegarder les apps pour la carte Quick Schedule
+            saveQuickScheduleApps(newValue)
+
+            // Ouvrir automatiquement le modal après sélection d'apps (mais pas au chargement initial)
+            let hasApps = !newValue.applicationTokens.isEmpty || !newValue.categoryTokens.isEmpty
+            if hasApps && !isInitialLoad {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if let session = createDynamicSession() {
+                        selectedSession = session
+                        showingScheduleModal = true
+                    }
+                }
+            }
+
+            // Marquer que le chargement initial est terminé
+            if isInitialLoad {
+                isInitialLoad = false
             }
         }
         .sheet(isPresented: $showingScheduleModal) {
             Group {
                 if let session = selectedSession {
                     ScheduleConfigurationModal(
-                        session: session, 
+                        session: session,
                         zenloopManager: zenloopManager,
-                        initialAppsSelection: getAppsForSession(session.sessionId),
+                        initialAppsSelection: selectedApps,
                         onAppsSelected: { apps in
+                            selectedApps = apps
                             saveAppsForSession(session.sessionId, apps: apps)
                         },
                         onAppsClear: {
+                            selectedApps = FamilyActivitySelection()
                             clearAppsForSession(session.sessionId)
                         }
                     )
@@ -173,6 +111,7 @@ struct SessionPlanningRow: View {
         .onAppear {
             sessionPlanningManager.refreshSessions()
             loadPersistedSelections()
+            loadQuickScheduleApps() // Charger les apps de la carte Quick Schedule
         }
         .onChange(of: showingScheduleModal) { oldValue, newValue in
             print("🔄 [SESSION_ROW] showingScheduleModal changé: \(oldValue) -> \(newValue)")
@@ -251,15 +190,49 @@ struct SessionPlanningRow: View {
     private func clearAppsForSession(_ sessionId: String) {
         // Effacer de la mémoire
         sessionAppSelections[sessionId] = nil
-        
+
         // Effacer de la persistance
         if let appGroup = UserDefaults(suiteName: "group.com.app.zenloop") {
             appGroup.removeObject(forKey: "session_\(sessionId)_apps")
             appGroup.removeObject(forKey: "session_\(sessionId)_configured")
             appGroup.synchronize()
         }
-        
+
         print("🗑️ [SESSION_ROW] Apps effacées pour session: \(sessionId)")
+    }
+
+    // MARK: - Quick Schedule Persistence
+
+    private func saveQuickScheduleApps(_ apps: FamilyActivitySelection) {
+        if let appGroup = UserDefaults(suiteName: "group.com.app.zenloop") {
+            do {
+                let encoder = JSONEncoder()
+                let data = try encoder.encode(apps)
+                appGroup.set(data, forKey: "quick_schedule_apps")
+                appGroup.synchronize()
+
+                let count = apps.applicationTokens.count + apps.categoryTokens.count
+                print("💾 [SESSION_ROW] Apps Quick Schedule persistées: \(count) éléments")
+            } catch {
+                print("❌ [SESSION_ROW] Erreur persistance Quick Schedule: \(error)")
+            }
+        }
+    }
+
+    private func loadQuickScheduleApps() {
+        if let appGroup = UserDefaults(suiteName: "group.com.app.zenloop"),
+           let data = appGroup.data(forKey: "quick_schedule_apps") {
+            do {
+                let decoder = JSONDecoder()
+                let selection = try decoder.decode(FamilyActivitySelection.self, from: data)
+                selectedApps = selection
+
+                let count = selection.applicationTokens.count + selection.categoryTokens.count
+                print("📱 [SESSION_ROW] Apps Quick Schedule chargées: \(count) éléments")
+            } catch {
+                print("❌ [SESSION_ROW] Erreur chargement Quick Schedule: \(error)")
+            }
+        }
     }
     
     private func getScheduledSessionsCount() -> Int {
@@ -273,7 +246,201 @@ struct SessionPlanningRow: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    
+
+    private func createDynamicSession() -> PopularSession? {
+        let hours = Int(selectedDuration) / 3600
+        let minutes = (Int(selectedDuration) % 3600) / 60
+
+        let appsCount = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+        let title = appsCount > 0
+            ? String(localized: "focus_with_apps", defaultValue: "Focus • \(appsCount) apps")
+            : String(localized: "custom_focus_session")
+
+        return PopularSession(
+            sessionId: "custom_\(UUID().uuidString)",
+            title: title,
+            description: String(localized: "personalized_session_description"),
+            duration: selectedDuration,
+            iconName: "sparkles",
+            imageName: "focus",
+            accentColor: .purple,
+            targetedApps: [],
+            category: .mixed
+        )
+    }
+
+}
+
+// MARK: - Compact Schedule Card
+
+struct CompactScheduleCard: View {
+    @Binding var selectedDuration: TimeInterval
+    @Binding var selectedApps: FamilyActivitySelection
+    let onSelectApps: () -> Void
+    let onSchedule: () -> Void
+    let showContent: Bool
+
+    // Durées prédéfinies
+    private let durations: [(TimeInterval, String)] = [
+        (30 * 60, "30m"),
+        (60 * 60, "1h"),
+        (2 * 60 * 60, "2h"),
+        (4 * 60 * 60, "4h")
+    ]
+
+    private var selectedAppsCount: Int {
+        let count = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+        print("🔍 [COMPACT_CARD] selectedAppsCount = \(count), appTokens: \(selectedApps.applicationTokens.count), categoryTokens: \(selectedApps.categoryTokens.count)")
+        print("🔍 [COMPACT_CARD] applicationTokens array: \(Array(selectedApps.applicationTokens))")
+        return count
+    }
+
+    var body: some View {
+        let _ = print("🎨 [COMPACT_CARD] Body refresh - selectedAppsCount: \(selectedAppsCount)")
+        let _ = print("🎨 [COMPACT_CARD] showContent: \(showContent)")
+
+        return VStack(alignment: .leading, spacing: 12) {
+            // Header: Icône + Titre + Description
+            Button(action: onSelectApps) {
+                HStack(spacing: 12) {
+                    // Icône
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.purple.opacity(0.25), .purple.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 48, height: 48)
+
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.purple)
+                    }
+
+                    // Titre + Description
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "quick_schedule"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Text(String(localized: "quick_schedule_description"))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    // Chevron
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // Apps sélectionnées - GRILLE SIMPLE (code du modal qui fonctionnait)
+            if selectedAppsCount > 0 {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 6), spacing: 4) {
+                    // Applications individuelles
+                    ForEach(Array(selectedApps.applicationTokens.prefix(12)), id: \.self) { token in
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 20))
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                            )
+                    }
+
+                    // Catégories
+                    ForEach(Array(selectedApps.categoryTokens.prefix(4)), id: \.self) { token in
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 20))
+                            .frame(width: 32, height: 32)
+                            .background(.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(.purple.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                }
+            }
+
+            // Durées + Schedule Button
+            HStack(spacing: 8) {
+                // Durées plus compactes
+                HStack(spacing: 5) {
+                    ForEach(durations, id: \.0) { duration in
+                        Button(action: {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                selectedDuration = duration.0
+                            }
+                        }) {
+                            Text(duration.1)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(selectedDuration == duration.0 ? .white : .white.opacity(0.5))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(selectedDuration == duration.0 ? Color.cyan.opacity(0.3) : Color.white.opacity(0.05))
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(selectedDuration == duration.0 ? Color.cyan : Color.clear, lineWidth: 1.5)
+                                        )
+                                )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .fixedSize()
+                    }
+                }
+
+                Spacer()
+
+                // Schedule button plus compact
+                Button(action: onSchedule) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text(String(localized: "schedule"))
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [.purple, .purple.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(20)
+                    .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .fixedSize()
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(.purple.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
+    }
 }
 
 // MARK: - Popular Session Card
@@ -397,301 +564,6 @@ struct PopularSessionCard: View {
             )
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .brightness(isPressed ? -0.1 : 0.0)
-        }
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
-            withAnimation(.easeInOut(duration: 0.1)) {
-                isPressed = pressing
-            }
-        }, perform: {})
-    }
-}
-
-// MARK: - Session Planning Modal
-
-struct SessionPlanningModal: View {
-    @ObservedObject var zenloopManager: ZenloopManager
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var sessionPlanningManager = SessionPlanningManager.shared
-    @State private var showContent = false
-    @State private var showingAppSelection = false
-    @State private var selectedApps = FamilyActivitySelection()
-    @State private var selectedSession: PopularSession?
-    
-    var body: some View {
-        ZStack {
-            // Background moderne avec dégradé
-            ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.02, green: 0.02, blue: 0.12),
-                        Color(red: 0.06, green: 0.03, blue: 0.15),
-                        Color(red: 0.08, green: 0.02, blue: 0.18),
-                        Color(red: 0.04, green: 0.08, blue: 0.16)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                
-                // Overlay subtil
-                Rectangle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                .purple.opacity(0.1),
-                                .cyan.opacity(0.05),
-                                .clear
-                            ],
-                            center: .topTrailing,
-                            startRadius: 0,
-                            endRadius: 300
-                        )
-                    )
-            }
-            .ignoresSafeArea()
-            
-            ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 20) {
-                    // Header avec icône
-                    VStack(spacing: 16) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            .purple.opacity(0.3),
-                                            .cyan.opacity(0.2),
-                                            .blue.opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 80, height: 80)
-                            
-                            Image(systemName: "calendar.badge.clock")
-                                .font(.system(size: 32, weight: .medium))
-                                .foregroundColor(.purple)
-                        }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [.purple.opacity(0.5), .cyan.opacity(0.3)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 2
-                                )
-                        )
-                        .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
-                        
-                        VStack(spacing: 8) {
-                            Text(String(localized: "schedule_sessions"))
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            Text(String(localized: "plan_focus_sessions_description"))
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : -20)
-                    .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1), value: showContent)
-                    
-                    // Sessions populaires
-                    popularSessionsSection
-                    
-                    Spacer(minLength: 100)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-            }
-        }
-        .navigationTitle(String(localized: "session_planning"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(String(localized: "close")) {
-                    dismiss()
-                }
-                .foregroundColor(.white)
-            }
-        }
-        .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
-        .onChange(of: selectedApps) { oldSelection, newSelection in
-            // Quand l'utilisateur a sélectionné des apps, programmer la session
-            if let session = selectedSession, 
-               (!newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty) {
-                scheduleSessionWithApps(session: session, apps: newSelection)
-                selectedSession = nil // Reset après programmation
-                dismiss() // Fermer le modal après programmation
-            }
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 1.0)) {
-                showContent = true
-            }
-        }
-    }
-    
-    private var popularSessionsSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text(String(localized: "popular_sessions"))
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Spacer()
-            }
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 2), spacing: 16) {
-                ForEach(sessionPlanningManager.popularSessions) { session in
-                    DetailedSessionCard(
-                        session: session,
-                        onSchedule: {
-                            selectedSession = session
-                            selectedApps = FamilyActivitySelection() // Reset la sélection
-                            showingAppSelection = true
-                        }
-                    )
-                }
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.purple.opacity(0.3), lineWidth: 1)
-        )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3), value: showContent)
-    }
-    
-    // MARK: - Private Methods
-    
-    private func scheduleSessionWithApps(session: PopularSession, apps: FamilyActivitySelection) {
-        print("🗓️ [SESSION_MODAL] Programmation de '\(session.title)' avec \(apps.applicationTokens.count) apps et \(apps.categoryTokens.count) catégories")
-        
-        // Déterminer la difficulté selon la durée
-        let difficulty: DifficultyLevel = {
-            let hours = session.duration / 3600
-            if hours >= 8 {
-                return .hard
-            } else if hours >= 4 {
-                return .medium
-            } else {
-                return .easy
-            }
-        }()
-        
-        // Calculer l'heure de début (demain matin à 8h par exemple)
-        let startTime = calculateNextOptimalTime()
-        
-        // Programmer via ZenloopManager
-        zenloopManager.scheduleCustomChallenge(
-            title: session.title,
-            duration: session.duration,
-            difficulty: difficulty,
-            apps: apps,
-            startTime: startTime
-        )
-        
-        // Feedback haptique
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
-        
-        print("✅ [SESSION_MODAL] Session '\(session.title)' programmée pour \(startTime)")
-    }
-    
-    private func calculateNextOptimalTime() -> Date {
-        let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        
-        let components = DateComponents(
-            year: calendar.component(.year, from: tomorrow),
-            month: calendar.component(.month, from: tomorrow),
-            day: calendar.component(.day, from: tomorrow),
-            hour: 8, // 8h du matin
-            minute: 0
-        )
-        
-        return calendar.date(from: components) ?? Date()
-    }
-}
-
-// MARK: - Detailed Session Card
-
-struct DetailedSessionCard: View {
-    let session: PopularSession
-    let onSchedule: () -> Void
-    @State private var isPressed = false
-    
-    var body: some View {
-        Button(action: onSchedule) {
-            VStack(spacing: 12) {
-                // Header avec icône
-                HStack(spacing: 8) {
-                    Image(systemName: session.iconName)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(session.accentColor.color)
-                        .frame(width: 40, height: 40)
-                        .background(session.accentColor.color.opacity(0.15), in: Circle())
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(session.title)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        
-                        Text(session.formattedDuration)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(session.accentColor.color)
-                    }
-                    
-                    Spacer()
-                }
-                
-                // Description
-                Text(session.description)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.7))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Apps ciblées
-                Text(session.targetedAppsText)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Bouton d'action
-                HStack {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(session.accentColor.color)
-                    
-                    Text(String(localized: "schedule"))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(session.accentColor.color)
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(session.accentColor.color.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
-            }
-            .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(session.accentColor.color.opacity(0.3), lineWidth: 1)
-            )
-            .scaleEffect(isPressed ? 0.96 : 1.0)
-            .brightness(isPressed ? -0.05 : 0.0)
         }
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             withAnimation(.easeInOut(duration: 0.1)) {

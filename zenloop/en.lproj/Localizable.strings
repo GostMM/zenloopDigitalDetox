@@ -1097,3 +1097,35 @@
 "difficulty_easy" = "Easy";
 "difficulty_medium" = "Medium";
 "difficulty_hard" = "Hard";
+
+// Session planning unified card
+"scheduled_sessions" = "Scheduled Sessions";
+"no_sessions_yet" = "No Sessions Yet";
+"next_session_at" = "Next at";
+"tap_to_schedule" = "Tap to schedule your first session";
+"view_manage_all_sessions" = "View and manage all sessions";
+"upcoming_sessions" = "Upcoming Sessions";
+"view_all_sessions" = "View All Sessions";
+"delete_session" = "Delete Session";
+"delete_session_confirmation" = "Are you sure you want to delete this scheduled session?";
+
+// Scheduled label
+"scheduled" = "Scheduled";
+
+// Dynamic Schedule Card
+"create_custom_session" = "Create Session";
+"personalize_your_focus" = "Personalize your focus experience";
+"duration" = "Duration";
+"apps_to_block" = "Apps to Block";
+"schedule_session" = "Schedule Session";
+"custom_focus_session" = "Custom Focus";
+"block" = "Block";
+"personalized_session_description" = "Personalized session tailored to your needs";
+
+// Compact schedule card
+"select_apps" = "Select Apps";
+"focus_with_apps" = "Focus • %d apps";
+
+// Quick schedule card
+"quick_schedule" = "Quick Schedule";
+"quick_schedule_description" = "Tap to select apps, pick duration & schedule";

@@ -886,3 +886,35 @@
 "difficulty_easy" = "简单";
 "difficulty_medium" = "中等";
 "difficulty_hard" = "困难";
+
+// Session planning unified card
+"scheduled_sessions" = "已安排会话";
+"no_sessions_yet" = "还没有会话";
+"next_session_at" = "下次在";
+"tap_to_schedule" = "点击安排您的第一个会话";
+"view_manage_all_sessions" = "查看和管理所有会话";
+"upcoming_sessions" = "即将进行的会话";
+"view_all_sessions" = "查看所有会话";
+"delete_session" = "删除会话";
+"delete_session_confirmation" = "您确定要删除此已安排的会话吗？";
+
+// Scheduled label
+"scheduled" = "已安排";
+
+// Dynamic Schedule Card
+"create_custom_session" = "创建会话";
+"personalize_your_focus" = "个性化您的专注体验";
+"duration" = "时长";
+"apps_to_block" = "要屏蔽的应用";
+"schedule_session" = "安排会话";
+"custom_focus_session" = "自定义专注";
+"block" = "屏蔽";
+"personalized_session_description" = "根据您的需求量身定制的会话";
+
+// Compact schedule card
+"select_apps" = "选择应用";
+"focus_with_apps" = "专注 • %d应用";
+
+// Quick schedule card
+"quick_schedule" = "快速安排";
+"quick_schedule_description" = "点击选择应用、时长并安排";

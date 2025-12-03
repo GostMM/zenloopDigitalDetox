@@ -1099,3 +1099,35 @@
 "difficulty_easy" = "Facile";
 "difficulty_medium" = "Moyen";
 "difficulty_hard" = "Difficile";
+
+// Session planning unified card
+"scheduled_sessions" = "Sessions Programmées";
+"no_sessions_yet" = "Aucune Session";
+"next_session_at" = "Prochaine à";
+"tap_to_schedule" = "Touchez pour programmer votre première session";
+"view_manage_all_sessions" = "Voir et gérer toutes les sessions";
+"upcoming_sessions" = "Prochaines Sessions";
+"view_all_sessions" = "Voir Toutes les Sessions";
+"delete_session" = "Supprimer la Session";
+"delete_session_confirmation" = "Êtes-vous sûr de vouloir supprimer cette session programmée ?";
+
+// Scheduled label
+"scheduled" = "Programmé";
+
+// Dynamic Schedule Card
+"create_custom_session" = "Créer une Session";
+"personalize_your_focus" = "Personnalisez votre expérience de concentration";
+"duration" = "Durée";
+"apps_to_block" = "Apps à Bloquer";
+"schedule_session" = "Programmer la Session";
+"custom_focus_session" = "Focus Personnalisé";
+"block" = "Bloquer";
+"personalized_session_description" = "Session personnalisée adaptée à vos besoins";
+
+// Compact schedule card
+"select_apps" = "Sélectionner des Apps";
+"focus_with_apps" = "Focus • %d apps";
+
+// Quick schedule card
+"quick_schedule" = "Programmation Rapide";
+"quick_schedule_description" = "Touchez pour sélectionner apps, durée & programmer";

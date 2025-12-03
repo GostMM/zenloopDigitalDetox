@@ -42,7 +42,10 @@ struct zenloopApp: App {
                     Task {
                         // Firebase: Enregistrer le device au premier lancement
                         await FirebaseManager.shared.registerDeviceOnFirstLaunch()
-                        
+
+                        // Clean up obsolete App Group keys
+                        cleanupAppGroup()
+
                         // DEBUG: Test PurchaseManager initialization (background)
                         print("🎯 App started - Testing PurchaseManager...")
                         let manager = PurchaseManager.shared
@@ -69,8 +72,8 @@ struct zenloopApp: App {
                         print("📱 App entered background")
                         // Update Quick Actions when app goes to background
                         quickActionsManager.updateOnAppBackground()
-                        // Programmer une notification depuis l'extension pour tester
-                        scheduleAppTerminationTest()
+                        // DISABLED: Test code that was creating payload_test_extension_* keys
+                        // scheduleAppTerminationTest()
                     case .inactive:
                         print("📱 App became inactive")
                     case .active:
@@ -202,6 +205,46 @@ struct zenloopApp: App {
     }
     */
     
+    // MARK: - App Group Cleanup
+
+    func cleanupAppGroup() {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("⚠️ [CLEANUP] Cannot access App Group")
+            return
+        }
+
+        let allKeys = Array(suite.dictionaryRepresentation().keys)
+        var removedCount = 0
+
+        print("🧹 [CLEANUP] Starting App Group cleanup - \(allKeys.count) total keys")
+
+        // Keys to remove
+        let keysToRemove = allKeys.filter { key in
+            // Remove all test extension payloads
+            if key.hasPrefix("payload_test_extension_") {
+                return true
+            }
+
+            // Remove obsolete test keys
+            if key == "test_extension_signal" || key == "request_extension_test" {
+                return true
+            }
+
+            return false
+        }
+
+        // Remove the keys
+        for key in keysToRemove {
+            suite.removeObject(forKey: key)
+            removedCount += 1
+        }
+
+        suite.synchronize()
+
+        print("✅ [CLEANUP] Removed \(removedCount) obsolete keys")
+        print("📊 [CLEANUP] Remaining keys: \(allKeys.count - removedCount)")
+    }
+
     // NOUVEAU: Préchargement des données stats
     func preloadStatsData() {
         Task(priority: .background) {

@@ -31,24 +31,38 @@ struct AppUsageInfo: Identifiable {
     }
 }
 
+struct HourlyUsageData {
+    let hour: Int
+    let categories: [CategoryHourlyData]
+}
+
+struct CategoryHourlyData {
+    let name: String
+    let seconds: TimeInterval
+}
+
 struct UsageStats {
     let dailyTotal: TimeInterval
     let weeklyTotal: TimeInterval
     let topApps: [AppUsageInfo]
     let productiveTime: TimeInterval
     let unproductiveTime: TimeInterval
-    
+    let hourlyData: [HourlyUsageData]  // ✅ Données horaires réelles
+    let hasRealData: Bool  // ✅ Flag pour savoir si on a de vraies données
+
     var productivityPercentage: Int {
         let total = productiveTime + unproductiveTime
         return total > 0 ? Int((productiveTime / total) * 100) : 0
     }
-    
+
     static let empty = UsageStats(
         dailyTotal: 0,
         weeklyTotal: 0,
         topApps: [],
         productiveTime: 0,
-        unproductiveTime: 0
+        unproductiveTime: 0,
+        hourlyData: [],
+        hasRealData: false
     )
 }
 
@@ -124,11 +138,14 @@ class AppUsageManager: ObservableObject {
     }
     
     // MARK: - Real Data Loading avec DeviceActivity
-    
+
     func loadUsageData() {
         Task {
             if isAuthorized {
-                // D'abord essayer de charger les données de l'App Group (DeviceActivityReport)
+                // Démarrer le monitoring DeviceActivity pour générer les rapports
+                await startUsageMonitoring()
+
+                // Essayer de charger les données de l'App Group (DeviceActivityReport)
                 if loadDataFromAppGroup() {
                     debugPrint("✅ [APP_USAGE] Données chargées depuis DeviceActivityReport")
                 } else {
@@ -140,62 +157,149 @@ class AppUsageManager: ObservableObject {
             }
         }
     }
-    
-    private func loadDataFromAppGroup() -> Bool {
-        debugPrint("🔍 [APP_USAGE] === Tentative chargement App Group ===")
-        
-        // Pour debug: ignorer App Group et utiliser des données réalistes basées sur l'heure
-        debugPrint("🔄 [APP_USAGE] Utilisation de données simulées réalistes à la place")
-        
-        let currentHour = Calendar.current.component(.hour, from: .now)
-        let currentMinute = Calendar.current.component(.minute, from: .now)
-        
-        // Calcul basé sur l'heure actuelle (plus réaliste qu'App Group non fonctionnel)
-        let dailySeconds = TimeInterval((currentHour * 60 + currentMinute) * 60 / 10) // ~6min par heure écoulée
-        let weeklySeconds = dailySeconds * 7
-        
-        // S'assurer qu'on a des valeurs minimales visibles
-        let finalDaily = max(dailySeconds, 1800) // Minimum 30 minutes
-        let finalWeekly = max(weeklySeconds, 10800) // Minimum 3 heures
-        
-        debugPrint("📊 [APP_USAGE] === DONNÉES SIMULÉES RÉALISTES ===")
-        debugPrint("📊 [APP_USAGE] Heure actuelle: \(currentHour)h\(currentMinute)")
-        debugPrint("📊 [APP_USAGE] Daily calculé: \(finalDaily)s (\(formatTimeValue(finalDaily)))")
-        debugPrint("📊 [APP_USAGE] Weekly calculé: \(finalWeekly)s (\(formatTimeValue(finalWeekly)))")
-        
-        // Créer des apps simulées mais réalistes  
-        let topApps = [
-            AppUsageInfo(name: "Safari", bundleId: "com.apple.mobilesafari", dailyUsage: finalDaily * 0.4, isProductive: true),
-            AppUsageInfo(name: "Messages", bundleId: "com.apple.MobileSMS", dailyUsage: finalDaily * 0.3, isProductive: true),
-            AppUsageInfo(name: "Instagram", bundleId: "com.burbn.instagram", dailyUsage: finalDaily * 0.3, isProductive: false)
-        ]
-        
-        // Mettre à jour les stats avec les données réalistes
-        let newStats = UsageStats(
-            dailyTotal: finalDaily,
-            weeklyTotal: finalWeekly,
-            topApps: topApps,
-            productiveTime: finalDaily * 0.6,
-            unproductiveTime: finalDaily * 0.4
-        )
-        
-        DispatchQueue.main.async {
-            self.usageStats = newStats
-            self.isLoading = false
 
-            // Mettre à jour l'app la plus utilisée pour le toast
-            if let mostUsedApp = topApps.first {
-                self.topApp = mostUsedApp
-            }
+    // MARK: - Trigger DeviceActivity Report Generation
 
-            debugPrint("✅ [APP_USAGE] Stats mis à jour avec données simulées réalistes")
-            debugPrint("✅ [APP_USAGE] Daily: \(self.formatTimeValue(finalDaily)), Weekly: \(self.formatTimeValue(finalWeekly))")
-            if let topApp = self.topApp {
-                debugPrint("🏆 [APP_USAGE] App la plus utilisée: \(topApp.name) - \(self.formatTimeValue(topApp.dailyUsage))")
-            }
+    @Published var shouldShowReportTrigger = false
+
+    private func startUsageMonitoring() async {
+        debugPrint("🚀 [APP_USAGE] === Déclenchement rapport DeviceActivity ===")
+
+        // Pour que l'extension génère le rapport, on doit afficher DeviceActivityReport
+        // On va notifier la vue pour qu'elle l'affiche (même invisible)
+        await MainActor.run {
+            shouldShowReportTrigger = true
         }
 
-        return true
+        // Attendre un peu pour laisser le rapport se générer
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 secondes
+
+        debugPrint("✅ [APP_USAGE] Rapport déclenché, attente des données...")
+    }
+    
+    private func loadDataFromAppGroup() -> Bool {
+        debugPrint("🔍 [APP_USAGE] === Tentative chargement VRAIES données App Group ===")
+
+        guard let appGroup = UserDefaults(suiteName: "group.com.app.zenloop"),
+              let data = appGroup.data(forKey: "DAReportLatest") else {
+            debugPrint("❌ [APP_USAGE] Pas de données dans App Group")
+            return false
+        }
+
+        do {
+            // Décoder le SharedReportPayload depuis l'extension
+            let payload = try JSONDecoder().decode(SharedReportPayload.self, from: data)
+
+            debugPrint("✅ [APP_USAGE] === VRAIES DONNÉES DeviceActivity chargées ===")
+            debugPrint("📊 [APP_USAGE] Total: \(payload.totalSeconds)s (\(formatTimeValue(payload.totalSeconds)))")
+            debugPrint("📊 [APP_USAGE] Top apps: \(payload.topApps.count)")
+            debugPrint("📊 [APP_USAGE] Hourly data points: \(payload.hourlyData.count)")
+
+            // Convertir en AppUsageInfo
+            let topApps = payload.topApps.map { app in
+                AppUsageInfo(
+                    name: app.name,
+                    bundleId: app.bundleId ?? "unknown",
+                    dailyUsage: app.seconds,
+                    isProductive: true  // On peut améliorer en catégorisant
+                )
+            }
+
+            // Convertir hourly data
+            let hourlyData = payload.hourlyData.map { hourPoint in
+                HourlyUsageData(
+                    hour: hourPoint.hour,
+                    categories: hourPoint.categories.map { cat in
+                        CategoryHourlyData(name: cat.name, seconds: cat.seconds)
+                    }
+                )
+            }
+
+            // Calculer productive/unproductive à partir des catégories
+            var productiveTime: TimeInterval = 0
+            var unproductiveTime: TimeInterval = 0
+
+            for cat in payload.topCategories {
+                let name = cat.name.lowercased()
+                if name.contains("productivity") || name.contains("business") || name.contains("education") {
+                    productiveTime += cat.seconds
+                } else {
+                    unproductiveTime += cat.seconds
+                }
+            }
+
+            // Créer UsageStats avec VRAIES données
+            let newStats = UsageStats(
+                dailyTotal: payload.totalSeconds,
+                weeklyTotal: payload.totalSeconds * 7,  // Approximation
+                topApps: topApps,
+                productiveTime: productiveTime,
+                unproductiveTime: unproductiveTime,
+                hourlyData: hourlyData,
+                hasRealData: true  // ✅ Flag pour indiquer vraies données
+            )
+
+            DispatchQueue.main.async {
+                self.usageStats = newStats
+                self.isLoading = false
+
+                if let mostUsedApp = topApps.first {
+                    self.topApp = mostUsedApp
+                }
+
+                debugPrint("✅ [APP_USAGE] Stats mis à jour avec VRAIES données DeviceActivity")
+                debugPrint("✅ [APP_USAGE] Daily: \(self.formatTimeValue(payload.totalSeconds))")
+                debugPrint("✅ [APP_USAGE] Hourly breakdown available: \(hourlyData.count) hours")
+            }
+
+            return true
+
+        } catch {
+            debugPrint("❌ [APP_USAGE] Erreur décodage SharedReportPayload: \(error)")
+            return false
+        }
+    }
+
+    // Struct pour décoder (doit matcher l'extension)
+    private struct SharedReportPayload: Codable {
+        let intervalStart: TimeInterval
+        let intervalEnd: TimeInterval
+        let totalSeconds: Double
+        let averageDailySeconds: Double
+        let updatedAt: TimeInterval
+        let topCategories: [SharedReportCategory]
+        let days: [SharedReportDayPoint]
+        let todayScreenSeconds: Double
+        let todayOffScreenSeconds: Double
+        let topApps: [SharedReportApp]
+        let hourlyData: [SharedReportHourPoint]
+    }
+
+    private struct SharedReportApp: Codable {
+        let name: String
+        let seconds: Double
+        let bundleId: String?
+    }
+
+    private struct SharedReportCategory: Codable {
+        let name: String
+        let seconds: Double
+        let appCount: Int
+    }
+
+    private struct SharedReportDayPoint: Codable {
+        let dayStart: TimeInterval
+        let seconds: Double
+    }
+
+    private struct SharedReportHourPoint: Codable {
+        let hour: Int
+        let categories: [SharedReportHourCategory]
+    }
+
+    private struct SharedReportHourCategory: Codable {
+        let name: String
+        let seconds: Double
     }
     
     private func formatTimeValue(_ seconds: TimeInterval) -> String {
@@ -305,11 +409,13 @@ class AppUsageManager: ObservableObject {
         ]
         
         usageStats = UsageStats(
-            dailyTotal: 14400, // 4 heures 
+            dailyTotal: 14400, // 4 heures
             weeklyTotal: 100800, // 28 heures par semaine
             topApps: mockApps,
             productiveTime: 6300, // 1h45 productive
-            unproductiveTime: 8100 // 2h15 non-productive
+            unproductiveTime: 8100, // 2h15 non-productive
+            hourlyData: [],
+            hasRealData: false
         )
         
         debugPrint("📱 [APP_USAGE] Données fallback chargées:")

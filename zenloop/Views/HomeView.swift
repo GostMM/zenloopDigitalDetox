@@ -52,7 +52,7 @@ struct HomeView: View {
                 
                 // Contenu principal avec espacement amélioré
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 32) {
+                    LazyVStack(spacing: 10 ) {
                         // Timer Card en priorité absolue (toujours au top si idle)
                         if isIdle {
                             TimerCard(zenloopManager: zenloopManager, showContent: showContent)
@@ -70,7 +70,7 @@ struct HomeView: View {
                                 showContent: showContent
                             )
                         }
-                        
+
                         // Section principale selon l'état
                         primarySection
                         
@@ -199,12 +199,7 @@ struct HomeView: View {
     
     @ViewBuilder
     private var idleSections: some View {
-        CategoryChallengesRow(
-            zenloopManager: zenloopManager,
-            showContent: showContent
-        )
-        
-        MotivationSection(showContent: showContent, zenloopManager: zenloopManager)
+        EmptyView()
     }
     
     @ViewBuilder

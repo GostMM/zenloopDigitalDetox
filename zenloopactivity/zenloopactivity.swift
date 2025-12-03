@@ -16,7 +16,12 @@ struct zenloopactivity: DeviceActivityReportExtension {
         TotalActivityReport { activityReport in
             TotalActivityView(activityReport: activityReport)
         }
-        
+
+        // Stats report for HomeView usage chart (NEW)
+        StatsActivityReport { reportData in
+            StatsActivityView(reportData: reportData)
+        }
+
         // Header metrics widget (used in StatsView modernHeader)
         MetricsWidget { metricsData in
             MetricsView(metricsData: metricsData)

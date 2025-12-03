@@ -886,3 +886,35 @@
 "difficulty_easy" = "Einfach";
 "difficulty_medium" = "Mittel";
 "difficulty_hard" = "Schwer";
+
+// Session planning unified card
+"scheduled_sessions" = "Geplante Sitzungen";
+"no_sessions_yet" = "Noch Keine Sitzungen";
+"next_session_at" = "Nächste um";
+"tap_to_schedule" = "Tippen Sie, um Ihre erste Sitzung zu planen";
+"view_manage_all_sessions" = "Alle Sitzungen anzeigen und verwalten";
+"upcoming_sessions" = "Kommende Sitzungen";
+"view_all_sessions" = "Alle Sitzungen Anzeigen";
+"delete_session" = "Sitzung Löschen";
+"delete_session_confirmation" = "Sind Sie sicher, dass Sie diese geplante Sitzung löschen möchten?";
+
+// Scheduled label
+"scheduled" = "Geplant";
+
+// Dynamic Schedule Card
+"create_custom_session" = "Sitzung Erstellen";
+"personalize_your_focus" = "Personalisieren Sie Ihr Fokus-Erlebnis";
+"duration" = "Dauer";
+"apps_to_block" = "Zu blockierende Apps";
+"schedule_session" = "Sitzung Planen";
+"custom_focus_session" = "Benutzerdefinierter Fokus";
+"block" = "Blockieren";
+"personalized_session_description" = "Personalisierte Sitzung nach Ihren Bedürfnissen";
+
+// Compact schedule card
+"select_apps" = "Apps Auswählen";
+"focus_with_apps" = "Fokus • %d Apps";
+
+// Quick schedule card
+"quick_schedule" = "Schnellplanung";
+"quick_schedule_description" = "Tippen um Apps, Dauer auszuwählen & planen";

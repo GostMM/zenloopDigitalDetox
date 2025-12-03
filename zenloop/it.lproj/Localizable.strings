@@ -886,3 +886,35 @@
 "difficulty_easy" = "Facile";
 "difficulty_medium" = "Medio";
 "difficulty_hard" = "Difficile";
+
+// Session planning unified card
+"scheduled_sessions" = "Sessioni Programmate";
+"no_sessions_yet" = "Nessuna Sessione";
+"next_session_at" = "Prossima alle";
+"tap_to_schedule" = "Tocca per programmare la tua prima sessione";
+"view_manage_all_sessions" = "Visualizza e gestisci tutte le sessioni";
+"upcoming_sessions" = "Prossime Sessioni";
+"view_all_sessions" = "Visualizza Tutte le Sessioni";
+"delete_session" = "Elimina Sessione";
+"delete_session_confirmation" = "Sei sicuro di voler eliminare questa sessione programmata?";
+
+// Scheduled label
+"scheduled" = "Programmato";
+
+// Dynamic Schedule Card
+"create_custom_session" = "Crea Sessione";
+"personalize_your_focus" = "Personalizza la tua esperienza di concentrazione";
+"duration" = "Durata";
+"apps_to_block" = "App da Bloccare";
+"schedule_session" = "Programma Sessione";
+"custom_focus_session" = "Focus Personalizzato";
+"block" = "Blocca";
+"personalized_session_description" = "Sessione personalizzata su misura per te";
+
+// Compact schedule card
+"select_apps" = "Seleziona App";
+"focus_with_apps" = "Focus • %d app";
+
+// Quick schedule card
+"quick_schedule" = "Programmazione Rapida";
+"quick_schedule_description" = "Tocca per selezionare app, durata e programmare";

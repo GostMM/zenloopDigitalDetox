@@ -886,3 +886,35 @@
 "difficulty_easy" = "簡単";
 "difficulty_medium" = "普通";
 "difficulty_hard" = "難しい";
+
+// Session planning unified card
+"scheduled_sessions" = "予定されたセッション";
+"no_sessions_yet" = "セッションはまだありません";
+"next_session_at" = "次は";
+"tap_to_schedule" = "タップして最初のセッションをスケジュール";
+"view_manage_all_sessions" = "すべてのセッションを表示および管理";
+"upcoming_sessions" = "今後のセッション";
+"view_all_sessions" = "すべてのセッションを表示";
+"delete_session" = "セッションを削除";
+"delete_session_confirmation" = "このスケジュールされたセッションを削除してもよろしいですか？";
+
+// Scheduled label
+"scheduled" = "予定済み";
+
+// Dynamic Schedule Card
+"create_custom_session" = "セッションを作成";
+"personalize_your_focus" = "集中体験をカスタマイズ";
+"duration" = "期間";
+"apps_to_block" = "ブロックするアプリ";
+"schedule_session" = "セッションをスケジュール";
+"custom_focus_session" = "カスタム集中";
+"block" = "ブロック";
+"personalized_session_description" = "あなたのニーズに合わせたパーソナライズされたセッション";
+
+// Compact schedule card
+"select_apps" = "アプリを選択";
+"focus_with_apps" = "集中 • %dアプリ";
+
+// Quick schedule card
+"quick_schedule" = "クイックスケジュール";
+"quick_schedule_description" = "タップしてアプリ、期間を選択してスケジュール";

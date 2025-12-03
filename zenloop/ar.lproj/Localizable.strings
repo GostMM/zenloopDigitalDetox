@@ -886,3 +886,35 @@
 "difficulty_easy" = "سهل";
 "difficulty_medium" = "متوسط";
 "difficulty_hard" = "صعب";
+
+// Session planning unified card
+"scheduled_sessions" = "الجلسات المجدولة";
+"no_sessions_yet" = "لا توجد جلسات بعد";
+"next_session_at" = "التالية في";
+"tap_to_schedule" = "اضغط لجدولة جلستك الأولى";
+"view_manage_all_sessions" = "عرض وإدارة جميع الجلسات";
+"upcoming_sessions" = "الجلسات القادمة";
+"view_all_sessions" = "عرض جميع الجلسات";
+"delete_session" = "حذف الجلسة";
+"delete_session_confirmation" = "هل أنت متأكد من أنك تريد حذف هذه الجلسة المجدولة؟";
+
+// Scheduled label
+"scheduled" = "مجدول";
+
+// Dynamic Schedule Card
+"create_custom_session" = "إنشاء جلسة";
+"personalize_your_focus" = "خصص تجربة التركيز الخاصة بك";
+"duration" = "المدة";
+"apps_to_block" = "التطبيقات المراد حظرها";
+"schedule_session" = "جدولة الجلسة";
+"custom_focus_session" = "تركيز مخصص";
+"block" = "حظر";
+"personalized_session_description" = "جلسة مخصصة مصممة لتلبية احتياجاتك";
+
+// Compact schedule card
+"select_apps" = "اختر التطبيقات";
+"focus_with_apps" = "تركيز • %d تطبيقات";
+
+// Quick schedule card
+"quick_schedule" = "جدولة سريعة";
+"quick_schedule_description" = "اضغط لاختيار التطبيقات والمدة والجدولة";

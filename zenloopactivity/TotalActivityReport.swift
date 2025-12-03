@@ -80,7 +80,18 @@ struct SharedReportPayload: Codable {
     let days: [SharedReportDayPoint]
     let todayScreenSeconds: Double
     let todayOffScreenSeconds: Double
-    let topApps: [SharedReportApp]  // ✅ Ajout des top apps
+    let topApps: [SharedReportApp]
+    let hourlyData: [SharedReportHourPoint]  // ✅ Nouvelles données horaires
+}
+
+struct SharedReportHourPoint: Codable {
+    let hour: Int  // 0-23
+    let categories: [SharedReportHourCategory]
+}
+
+struct SharedReportHourCategory: Codable {
+    let name: String
+    let seconds: Double
 }
 
 struct SharedReportApp: Codable {
@@ -126,9 +137,12 @@ struct TotalActivityReport: DeviceActivityReportScene {
         var categoryDurationsByID: [String: TimeInterval] = [:]
         var categoryDisplayNameByID: [String: String] = [:]
         var categoryAppTokensByID: [String: Set<ApplicationToken>] = [:]
-        
+
         // Série journalière découpée finement
         var dailyDurations: [Date: TimeInterval] = [:]
+
+        // ✅ Données horaires par catégorie (pour le graphique)
+        var hourlyData: [Int: [String: TimeInterval]] = [:]  // [hour: [categoryName: duration]]
         
         // Intervalle global
         var globalStart: Date?
@@ -151,15 +165,24 @@ struct TotalActivityReport: DeviceActivityReportScene {
                 distribute(segment: seg, duration: segDur, calendar: cal) { dayStart, secs in
                     dailyDurations[dayStart, default: 0] += secs
                 }
-                
+
+                // ✅ Extraire l'heure pour les données horaires
+                let segmentHour = cal.component(.hour, from: seg.start)
+
                 // Catégories & apps
                 for await catActivity in segment.categories {
                     let cat: ActivityCategory = catActivity.category
                     let catID = stableCategoryID(cat)
                     let catName = displayName(for: cat)
-                    
+
                     categoryDisplayNameByID[catID] = catName
                     categoryDurationsByID[catID, default: 0] += catActivity.totalActivityDuration
+
+                    // ✅ Ajouter aux données horaires
+                    if hourlyData[segmentHour] == nil {
+                        hourlyData[segmentHour] = [:]
+                    }
+                    hourlyData[segmentHour]![catName, default: 0] += catActivity.totalActivityDuration
                     
                     for await app in catActivity.applications {
                         let dur = app.totalActivityDuration
@@ -233,6 +256,14 @@ struct TotalActivityReport: DeviceActivityReportScene {
             )
         }
 
+        // ✅ Formater les données horaires
+        let hourlyDataShared = (0..<24).map { hour -> SharedReportHourPoint in
+            let categories = (hourlyData[hour] ?? [:]).map { catName, secs in
+                SharedReportHourCategory(name: catName, seconds: secs)
+            }.sorted { $0.seconds > $1.seconds }
+            return SharedReportHourPoint(hour: hour, categories: categories)
+        }
+
         let payload = SharedReportPayload(
             intervalStart: start.timeIntervalSince1970,
             intervalEnd: end.timeIntervalSince1970,
@@ -247,7 +278,8 @@ struct TotalActivityReport: DeviceActivityReportScene {
             },
             todayScreenSeconds: todayScreen,
             todayOffScreenSeconds: todayOff,
-            topApps: topAppsShared
+            topApps: topAppsShared,
+            hourlyData: hourlyDataShared  // ✅ Ajouter les données horaires
         )
         persistSharedReport(payload)
         
