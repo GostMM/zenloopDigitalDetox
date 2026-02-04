@@ -1007,7 +1007,8 @@ struct BlockAppSheet: View {
                                     .foregroundColor(.white.opacity(0.5))
 
                                 Picker("", selection: $selectedMinutes) {
-                                    ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) { minute in
+                                    // ✅ Ajout de 1 et 2 minutes pour les tests
+                                    ForEach([0, 1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
                                         Text("\(minute)").tag(minute)
                                             .foregroundColor(.white)
                                     }
