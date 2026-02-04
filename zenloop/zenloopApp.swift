@@ -884,29 +884,25 @@ struct zenloopApp: App {
         let endTime = now.addingTimeInterval(duration)
         let calendar = Calendar.current
 
-        // ✅ CRITICAL: Utiliser les secondes pour précision!
-        let startDate = now.addingTimeInterval(5) // Commencer dans 5 secondes
-        let startComponents = DateComponents(
-            hour: calendar.component(.hour, from: startDate),
-            minute: calendar.component(.minute, from: startDate),
-            second: calendar.component(.second, from: startDate)
-        )
-        let endComponents = DateComponents(
-            hour: calendar.component(.hour, from: endTime),
-            minute: calendar.component(.minute, from: endTime),
-            second: calendar.component(.second, from: endTime)
-        )
+        // ✅ FIX: DeviceActivitySchedule a besoin d'un intervalle qui se répète dans la journée
+        // On doit utiliser l'heure du jour actuelle, PAS des secondes absolues
+        let nowComponents = calendar.dateComponents([.hour, .minute, .second], from: now)
+        let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endTime)
+
+        logger.critical("⏰ [SAVE_BLOCK] Current time: \(now)")
+        logger.critical("⏰ [SAVE_BLOCK] End time: \(endTime) (in \(Int(duration))s)")
+        logger.critical("⏰ [SAVE_BLOCK] Start: \(nowComponents.hour ?? 0):\(nowComponents.minute ?? 0):\(nowComponents.second ?? 0)")
+        logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(endComponents.minute ?? 0):\(endComponents.second ?? 0)")
 
         print("⏰ [SAVE_BLOCK] Current time: \(now)")
-        print("⏰ [SAVE_BLOCK] Start time: \(startDate) (in 5 seconds)")
         print("⏰ [SAVE_BLOCK] End time: \(endTime)")
         print("⏰ [SAVE_BLOCK] Duration: \(Int(duration))s (\(Int(duration/60))min)")
-        print("⏰ [SAVE_BLOCK] Start components: \(startComponents)")
+        print("⏰ [SAVE_BLOCK] Start components: \(nowComponents)")
         print("⏰ [SAVE_BLOCK] End components: \(endComponents)")
         print("⏰ [SAVE_BLOCK] Activity name: \(activityName)")
 
         let schedule = DeviceActivitySchedule(
-            intervalStart: startComponents,
+            intervalStart: nowComponents,
             intervalEnd: endComponents,
             repeats: false
         )
