@@ -874,57 +874,55 @@ struct zenloopApp: App {
             print("✅ [SAVE_BLOCK] Store count unchanged (good - no duplicate blocking)")
         }
 
-        // 4. Programmer le déblocage automatique avec DeviceActivity
+        // 4. Programmer le déblocage automatique
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("⏰ [SAVE_BLOCK] ========== SCHEDULING DEVICE ACTIVITY ==========")
-        let center = DeviceActivityCenter()
-        let deviceActivityName = DeviceActivityName(activityName)
+        print("⏰ [SAVE_BLOCK] ========== SCHEDULING AUTO-UNBLOCK ==========")
 
-        let now = Date()
-        let endTime = now.addingTimeInterval(duration)
-        let calendar = Calendar.current
+        let minimumDuration: TimeInterval = 15 * 60 // 15 minutes minimum pour DeviceActivity
 
-        // ✅ FIX: DeviceActivitySchedule a besoin d'un intervalle qui se répète dans la journée
-        // On doit utiliser l'heure du jour actuelle, PAS des secondes absolues
-        let nowComponents = calendar.dateComponents([.hour, .minute, .second], from: now)
-        let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endTime)
+        if duration >= minimumDuration {
+            // ✅ Durée >= 15min : Utiliser DeviceActivity (fonctionne en background)
+            logger.critical("⏰ [SAVE_BLOCK] Duration >= 15min, using DeviceActivity")
 
-        logger.critical("⏰ [SAVE_BLOCK] Current time: \(now)")
-        logger.critical("⏰ [SAVE_BLOCK] End time: \(endTime) (in \(Int(duration))s)")
-        logger.critical("⏰ [SAVE_BLOCK] Start: \(nowComponents.hour ?? 0):\(nowComponents.minute ?? 0):\(nowComponents.second ?? 0)")
-        logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(endComponents.minute ?? 0):\(endComponents.second ?? 0)")
+            let center = DeviceActivityCenter()
+            let deviceActivityName = DeviceActivityName(activityName)
+            let now = Date()
+            let endTime = now.addingTimeInterval(duration)
+            let calendar = Calendar.current
 
-        print("⏰ [SAVE_BLOCK] Current time: \(now)")
-        print("⏰ [SAVE_BLOCK] End time: \(endTime)")
-        print("⏰ [SAVE_BLOCK] Duration: \(Int(duration))s (\(Int(duration/60))min)")
-        print("⏰ [SAVE_BLOCK] Start components: \(nowComponents)")
-        print("⏰ [SAVE_BLOCK] End components: \(endComponents)")
-        print("⏰ [SAVE_BLOCK] Activity name: \(activityName)")
+            let nowComponents = calendar.dateComponents([.hour, .minute, .second], from: now)
+            let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endTime)
 
-        let schedule = DeviceActivitySchedule(
-            intervalStart: nowComponents,
-            intervalEnd: endComponents,
-            repeats: false
-        )
+            logger.critical("⏰ [SAVE_BLOCK] Start: \(nowComponents.hour ?? 0):\(nowComponents.minute ?? 0):\(nowComponents.second ?? 0)")
+            logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(endComponents.minute ?? 0):\(endComponents.second ?? 0)")
 
-        do {
-            try center.startMonitoring(deviceActivityName, during: schedule)
-            logger.critical("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
-            logger.critical("⏰ [SAVE_BLOCK] Monitoring will END at: \(endTime)")
-            logger.critical("⏰ [SAVE_BLOCK] intervalDidEnd() will be called automatically")
-            print("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
-            print("⏰ [SAVE_BLOCK] Monitoring will END at: \(endTime)")
-            print("⏰ [SAVE_BLOCK] intervalDidEnd() will be called automatically")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        } catch {
-            logger.critical("❌❌❌ [SAVE_BLOCK] DeviceActivity.startMonitoring() FAILED!")
-            logger.critical("❌ [SAVE_BLOCK] Error: \(error.localizedDescription)")
-            logger.critical("❌ [SAVE_BLOCK] This means intervalDidEnd will NEVER be called!")
-            print("❌❌❌ [SAVE_BLOCK] DeviceActivity.startMonitoring() FAILED!")
-            print("❌ [SAVE_BLOCK] Error: \(error.localizedDescription)")
-            print("❌ [SAVE_BLOCK] This means intervalDidEnd will NEVER be called!")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            let schedule = DeviceActivitySchedule(
+                intervalStart: nowComponents,
+                intervalEnd: endComponents,
+                repeats: false
+            )
+
+            do {
+                try center.startMonitoring(deviceActivityName, during: schedule)
+                logger.critical("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
+                logger.critical("⏰ [SAVE_BLOCK] intervalDidEnd() will be called at: \(endTime)")
+                print("✅ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock")
+            } catch {
+                logger.critical("❌ [SAVE_BLOCK] DeviceActivity failed: \(error.localizedDescription)")
+                logger.critical("⚠️ [SAVE_BLOCK] Falling back to Timer")
+                print("❌ [SAVE_BLOCK] DeviceActivity failed, using Timer fallback")
+                scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
+            }
+        } else {
+            // ⚠️ Durée < 15min : DeviceActivity ne supporte pas, utiliser Timer
+            logger.critical("⚠️ [SAVE_BLOCK] Duration < 15min (\(Int(duration/60))min)")
+            logger.critical("⚠️ [SAVE_BLOCK] DeviceActivity minimum is 15min, using Timer fallback")
+            logger.critical("⚠️ [SAVE_BLOCK] NOTE: Timer won't work if app is closed!")
+            print("⚠️ [SAVE_BLOCK] Duration too short for DeviceActivity (< 15min)")
+            print("⚠️ [SAVE_BLOCK] Using Timer (requires app to stay open)")
+            scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
         }
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // 5. Notification de succès
         let content = UNMutableNotificationContent()
@@ -948,6 +946,63 @@ struct zenloopApp: App {
         print("✅ [SAVE_BLOCK] BLOCK REQUEST COMPLETED SUCCESSFULLY")
         print("🔐 [SAVE_BLOCK] ========================================")
         #endif
+    }
+
+    /// Fallback pour les durées < 15min : utiliser un Timer local
+    static func scheduleTimerUnblock(blockId: String, duration: TimeInterval, appName: String, tokenData: Data) {
+        let logger = Logger(subsystem: "com.app.zenloop", category: "TimerUnblock")
+
+        logger.critical("⏰ [TIMER_UNBLOCK] Scheduling Timer for \(Int(duration))s")
+        logger.critical("⏰ [TIMER_UNBLOCK] Block: \(appName) (ID: \(blockId))")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            logger.critical("🔓 [TIMER_UNBLOCK] ===== TIMER FIRED =====")
+            logger.critical("🔓 [TIMER_UNBLOCK] Unblocking: \(appName)")
+
+            // Décoder le token
+            guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
+                  let token = selection.applicationTokens.first else {
+                logger.critical("❌ [TIMER_UNBLOCK] Failed to decode token")
+                return
+            }
+
+            // Retirer du DEFAULT store
+            let defaultStore = ManagedSettingsStore()
+            var blockedApps = defaultStore.shield.applications ?? Set()
+            let beforeCount = blockedApps.count
+
+            blockedApps.remove(token)
+            let afterCount = blockedApps.count
+
+            defaultStore.shield.applications = blockedApps.isEmpty ? nil : blockedApps
+
+            logger.critical("✅ [TIMER_UNBLOCK] Removed from DEFAULT store:")
+            logger.critical("   → Before: \(beforeCount) apps")
+            logger.critical("   → After: \(afterCount) apps")
+            logger.critical("   → Removed: \(beforeCount - afterCount) app(s)")
+
+            // Supprimer du BlockManager
+            let blockManager = BlockManager()
+            blockManager.removeBlock(id: blockId)
+
+            logger.critical("✅ [TIMER_UNBLOCK] App unblocked: \(appName)")
+
+            // Notification
+            let content = UNMutableNotificationContent()
+            content.title = NSLocalizedString("app_unblocked_title", comment: "")
+            content.body = String(format: NSLocalizedString("app_unblocked_body", comment: ""), appName)
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: "timer_unblock_\(blockId)",
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            )
+
+            UNUserNotificationCenter.current().add(request)
+        }
+
+        print("⏰ [TIMER_UNBLOCK] Timer scheduled for \(Int(duration/60)) minutes")
     }
 
     // ✅ NOUVEAU: Traiter les demandes de blocage depuis Report Extension
