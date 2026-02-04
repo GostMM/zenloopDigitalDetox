@@ -1131,3 +1131,7 @@
 // Quick schedule card
 "quick_schedule" = "Programmation Rapide";
 "quick_schedule_description" = "Touchez pour sélectionner apps, durée & programmer";
+
+// Notifications de blocage
+"app_blocked_title" = "✅ App Bloquée";
+"app_blocked_body" = "%@ est maintenant bloquée pour %d minutes";

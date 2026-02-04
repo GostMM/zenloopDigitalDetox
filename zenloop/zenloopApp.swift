@@ -659,8 +659,8 @@ struct zenloopApp: App {
 
         // Notification de succès
         let content = UNMutableNotificationContent()
-        content.title = "✅ App Bloquée"
-        content.body = "\(block.appName) est maintenant bloquée pour \(Int(block.originalDuration/60)) minutes"
+        content.title = NSLocalizedString("app_blocked_title", comment: "App blocked notification title")
+        content.body = String(format: NSLocalizedString("app_blocked_body", comment: "App blocked notification body"), block.appName, Int(block.originalDuration/60))
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -892,8 +892,8 @@ struct zenloopApp: App {
 
         // 5. Notification de succès
         let content = UNMutableNotificationContent()
-        content.title = "✅ App Bloquée"
-        content.body = "\(appName) est maintenant bloquée pour \(Int(duration/60)) minutes"
+        content.title = NSLocalizedString("app_blocked_title", comment: "App blocked notification title")
+        content.body = String(format: NSLocalizedString("app_blocked_body", comment: "App blocked notification body"), appName, Int(duration/60))
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -992,8 +992,8 @@ struct zenloopApp: App {
 
         // Notification de confirmation
         let content = UNMutableNotificationContent()
-        content.title = "✅ App Bloquée"
-        content.body = "\(appName) est maintenant bloquée pour \(Int(duration/60)) minutes"
+        content.title = NSLocalizedString("app_blocked_title", comment: "App blocked notification title")
+        content.body = String(format: NSLocalizedString("app_blocked_body", comment: "App blocked notification body"), appName, Int(duration/60))
         content.sound = .default
 
         let request = UNNotificationRequest(

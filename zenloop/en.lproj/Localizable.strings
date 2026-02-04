@@ -1129,3 +1129,7 @@
 // Quick schedule card
 "quick_schedule" = "Quick Schedule";
 "quick_schedule_description" = "Tap to select apps, pick duration & schedule";
+
+// Block notifications
+"app_blocked_title" = "✅ App Blocked";
+"app_blocked_body" = "%@ is now blocked for %d minutes";
