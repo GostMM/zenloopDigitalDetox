@@ -112,6 +112,18 @@ struct zenloopApp: App {
                     // 🌟 Compter l'ouverture de l'app pour le système de notation
                     AppRatingManager.shared.recordAppLaunch()
 
+                    // ✅ CRUCIAL: Écouter les URL schemes depuis le SceneDelegate
+                    NotificationCenter.default.addObserver(
+                        forName: NSNotification.Name("HandleURLScheme"),
+                        object: nil,
+                        queue: .main
+                    ) { notification in
+                        if let url = notification.userInfo?["url"] as? URL {
+                            print("🔗 [APP] Received URL from notification: \(url.absoluteString)")
+                            self.handleURL(url)
+                        }
+                    }
+
                     // 🎧 NOUVEAU: Démarrer l'écoute des commandes depuis l'extension
                     Task { @MainActor in
                         BlockCommandCoordinator.shared.startMonitoring()

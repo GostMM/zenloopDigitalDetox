@@ -95,6 +95,30 @@ class ZenloopSceneDelegate: NSObject, UIWindowSceneDelegate {
         print("🚀 [SCENE_DELEGATE] Scene will resign active - updating quick actions")
         QuickActionsManager.shared.updateQuickActions()
     }
+
+    // ✅ CRUCIAL: Handle URL schemes (including unblock URLs from extension)
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔗 [SCENE_DELEGATE] ========== URL RECEIVED IN SCENE ==========")
+        print("🔗 [SCENE_DELEGATE] Received \(URLContexts.count) URL(s)")
+
+        for context in URLContexts {
+            let url = context.url
+            print("🔗 [SCENE_DELEGATE] URL: \(url.absoluteString)")
+            print("   → Scheme: \(url.scheme ?? "nil")")
+            print("   → Host: \(url.host ?? "nil")")
+            print("   → Options: \(context.options)")
+
+            // Forward to handleURL in zenloopApp
+            NotificationCenter.default.post(
+                name: NSNotification.Name("HandleURLScheme"),
+                object: nil,
+                userInfo: ["url": url]
+            )
+        }
+
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    }
 }
 
 // MARK: - SwiftUI App Configuration
