@@ -279,6 +279,24 @@ struct BlockManager {
 
     @discardableResult
     func addBlock(appName: String, duration: TimeInterval, tokenData: Data? = nil, context: String = "") -> ActiveBlock {
+        blockLogger.critical("➕ [BlockManager] Demande d'ajout block: \(appName) pour \(Int(duration/60))min - Context: \(context)")
+
+        // ✅ VÉRIFIER SI UN BLOCK ACTIF EXISTE DÉJÀ POUR CETTE APP
+        let existingBlocks = getAllBlocks()
+        if let existingBlock = existingBlocks.first(where: {
+            $0.appName == appName && ($0.status == .active || $0.status == .paused)
+        }) {
+            blockLogger.critical("⚠️ [BlockManager] DUPLICATE DETECTED!")
+            blockLogger.critical("   → Block déjà actif pour \(appName)")
+            blockLogger.critical("   → ID existant: \(existingBlock.id)")
+            blockLogger.critical("   → Status: \(existingBlock.status.rawValue)")
+            blockLogger.critical("   → Remaining: \(Int(existingBlock.remainingDuration/60))min")
+            blockLogger.critical("   → SKIPPING new block creation to avoid duplicate")
+
+            // Retourner le block existant au lieu d'en créer un nouveau
+            return existingBlock
+        }
+
         let storeName = "block_\(UUID().uuidString.prefix(8))"
 
         // ✅ Utiliser tokenData si fourni, sinon Data vide (pour compatibilité)
@@ -291,7 +309,7 @@ struct BlockManager {
             tokenData: finalTokenData
         )
 
-        blockLogger.critical("➕ [BlockManager] Ajout d'un nouveau block: \(appName) pour \(Int(duration/60))min - Context: \(context)")
+        blockLogger.critical("✅ [BlockManager] Aucun block existant, création nouveau block")
         if tokenData != nil {
             blockLogger.critical("  → Token data: \(finalTokenData.count) bytes")
         } else {
