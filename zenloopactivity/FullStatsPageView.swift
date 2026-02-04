@@ -1014,11 +1014,16 @@ struct BlockAppSheet: View {
             return
         }
 
-        // 1️⃣ APPLIQUER LE SHIELD IMMÉDIATEMENT (pas d'attente)
-        print("🔒 [BLOCK_SHEET] Applying shield NOW...")
-        let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activityName.rawValue))
-        store.shield.applications = [app.token]
-        print("✅ [BLOCK_SHEET] Shield applied immediately!")
+        // 1️⃣ APPLIQUER LE SHIELD IMMÉDIATEMENT dans le store PAR DÉFAUT
+        // ✅ CRUCIAL: Utiliser le store par défaut (sans nom) pour la persistance!
+        // Le GlobalShieldManager utilise aussi ce store, donc cohérence garantie
+        print("🔒 [BLOCK_SHEET] Applying shield to DEFAULT store NOW...")
+        let store = ManagedSettingsStore() // ✅ Store par défaut = persistance!
+        var blockedApps = store.shield.applications ?? Set()
+        blockedApps.insert(app.token)
+        store.shield.applications = blockedApps
+        print("✅ [BLOCK_SHEET] Shield applied to DEFAULT store (will persist)!")
+        print("   → Total blocked apps in store: \(blockedApps.count)")
 
         // 2️⃣ ENVOYER LES DONNÉES À L'APP PRINCIPALE pour la sauvegarde
         print("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
