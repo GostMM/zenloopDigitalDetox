@@ -130,6 +130,9 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             // Nettoyer les données de blocage
             print("📱 [MONITOR] Cleaning up block activity")
             handleBlockActivityEnd(activity)
+
+            // ✅ CRUCIAL: Aussi retirer du DEFAULT store (utilisé par GlobalShieldManager)
+            removeFromDefaultStore(for: activity)
         } else if activity.rawValue.hasPrefix("scheduled_") {
             // Sauvegarder les stats de session
             print("⏰ [MONITOR] Saving session completion")
@@ -293,6 +296,61 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         print("✅ [DeviceActivity] All restrictions removed for \(activity.rawValue)")
         print("   Apps should now be accessible/visible")
+    }
+
+    /// ✅ CRUCIAL: Retirer le token du DEFAULT store (utilisé par GlobalShieldManager)
+    private func removeFromDefaultStore(for activity: DeviceActivityName) {
+        print("🔓 [MONITOR] === REMOVING FROM DEFAULT STORE ===")
+
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [MONITOR] Cannot access App Group")
+            return
+        }
+
+        // Récupérer le blockId depuis l'activity name
+        let activityName = activity.rawValue
+        let blockId = String(activityName.dropFirst("block-".count))
+
+        print("🔍 [MONITOR] Looking for block: \(blockId)")
+
+        // Charger le block pour obtenir le token
+        var blocks = loadBlocksFromAppGroup()
+        guard let block = blocks.first(where: { $0.id == blockId }) else {
+            print("⚠️ [MONITOR] Block not found in App Group: \(blockId)")
+            return
+        }
+
+        print("✅ [MONITOR] Block found: \(block.appName)")
+
+        // Décoder le token
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
+              let token = selection.applicationTokens.first else {
+            print("❌ [MONITOR] Failed to decode token")
+            return
+        }
+
+        print("✅ [MONITOR] Token decoded successfully")
+
+        // Retirer du DEFAULT store
+        let defaultStore = ManagedSettingsStore() // Store par défaut (sans nom)
+        var blockedApps = defaultStore.shield.applications ?? Set()
+        let beforeCount = blockedApps.count
+
+        blockedApps.remove(token)
+        let afterCount = blockedApps.count
+
+        defaultStore.shield.applications = blockedApps.isEmpty ? nil : blockedApps
+
+        print("🔓 [MONITOR] Removed from DEFAULT store:")
+        print("   → Before: \(beforeCount) apps")
+        print("   → After: \(afterCount) apps")
+        print("   → Removed: \(beforeCount - afterCount) app(s)")
+
+        if beforeCount == afterCount {
+            print("⚠️ [MONITOR] WARNING: Token was not in DEFAULT store!")
+        }
+
+        print("✅ [MONITOR] App unblocked from DEFAULT store: \(block.appName)")
     }
     
     // MARK: - Helper Methods
