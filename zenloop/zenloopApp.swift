@@ -792,15 +792,16 @@ struct zenloopApp: App {
 
     // ✅ NEW: Traiter les demandes de blocage via URL scheme
     static func handleSaveBlockRequest(appName: String, duration: TimeInterval, activityName: String, tokenData: Data) {
-        print("🔐 [SAVE_BLOCK] ========================================")
-        print("🔐 [SAVE_BLOCK] PROCESSING BLOCK REQUEST FROM REPORT EXTENSION")
-        print("   → App: \(appName)")
-        print("   → Duration: \(Int(duration/60))min")
-        print("   → ActivityName: \(activityName)")
-        print("   → Token Data: \(tokenData.count) bytes")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔐 [SAVE_BLOCK] ========== MAIN APP SAVE REQUEST ==========")
+        print("🔐 [SAVE_BLOCK] App: \(appName)")
+        print("🔐 [SAVE_BLOCK] Duration: \(Int(duration/60))min")
+        print("🔐 [SAVE_BLOCK] ActivityName: \(activityName)")
+        print("🔐 [SAVE_BLOCK] Token Data: \(tokenData.count) bytes")
 
         #if os(iOS)
         // 1. Décoder le token pour validation
+        print("🔍 [SAVE_BLOCK] Step 1: Decoding token...")
         guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
               let token = selection.applicationTokens.first else {
             print("❌ [SAVE_BLOCK] Failed to decode token")
@@ -808,9 +809,25 @@ struct zenloopApp: App {
         }
 
         print("✅ [SAVE_BLOCK] Token decoded successfully")
+        print("   → Token obtained from selection")
+
+        // 1.5. VÉRIFIER L'ÉTAT ACTUEL DU STORE AVANT DE SAUVEGARDER
+        print("🔍 [SAVE_BLOCK] Step 1.5: Checking current DEFAULT store state...")
+        let checkStore = ManagedSettingsStore()
+        let currentBlockedInStore = checkStore.shield.applications?.count ?? 0
+        print("🔐 [SAVE_BLOCK] Current blocked apps in DEFAULT store: \(currentBlockedInStore)")
 
         // 2. Sauvegarder le block dans BlockManager (l'app a les permissions!)
+        print("🔍 [SAVE_BLOCK] Step 2: Saving block to BlockManager...")
         let blockManager = BlockManager()
+
+        // Vérifier si ce block existe déjà
+        let existingBlocks = blockManager.getAllBlocks()
+        print("🔐 [SAVE_BLOCK] Current blocks in BlockManager: \(existingBlocks.count)")
+        for existingBlock in existingBlocks {
+            print("   → \(existingBlock.appName) | Status: \(existingBlock.status.rawValue) | ID: \(existingBlock.id)")
+        }
+
         let block = blockManager.addBlock(
             appName: appName,
             duration: duration,
@@ -820,10 +837,32 @@ struct zenloopApp: App {
 
         print("💾 [SAVE_BLOCK] Block saved with ID: \(block.id)")
 
+        // Vérifier combien de blocks on a maintenant
+        let updatedBlocks = blockManager.getAllBlocks()
+        print("🔐 [SAVE_BLOCK] After save, blocks in BlockManager: \(updatedBlocks.count)")
+
         // 3. ✅ PAS BESOIN D'APPLIQUER LE SHIELD ICI!
         // L'extension l'a déjà appliqué dans le store par défaut
         // On sauvegarde juste les métadonnées pour la persistence
-        print("✅ [SAVE_BLOCK] Shield already applied by extension, just saving metadata")
+        print("🔍 [SAVE_BLOCK] Step 3: Checking if shield needs to be applied...")
+        print("✅ [SAVE_BLOCK] Shield already applied by extension")
+        print("   → Extension applied shield to DEFAULT store BEFORE sending URL")
+        print("   → Main app is ONLY saving metadata (no re-blocking)")
+
+        // 3.5. VÉRIFIER L'ÉTAT DU STORE APRÈS SAUVEGARDE
+        print("🔍 [SAVE_BLOCK] Step 3.5: Verifying DEFAULT store state after save...")
+        let verifyStore = ManagedSettingsStore()
+        let afterBlockedInStore = verifyStore.shield.applications?.count ?? 0
+        print("🔐 [SAVE_BLOCK] After save, blocked apps in DEFAULT store: \(afterBlockedInStore)")
+
+        if afterBlockedInStore != currentBlockedInStore {
+            print("⚠️⚠️⚠️ [SAVE_BLOCK] STORE COUNT CHANGED!")
+            print("   → Before: \(currentBlockedInStore)")
+            print("   → After: \(afterBlockedInStore)")
+            print("   → Something modified the store during save!")
+        } else {
+            print("✅ [SAVE_BLOCK] Store count unchanged (good - no duplicate blocking)")
+        }
 
         // 4. Programmer le déblocage automatique avec DeviceActivity
         let center = DeviceActivityCenter()

@@ -30,13 +30,20 @@ class GlobalShieldManager: ObservableObject {
 
     /// Restaure TOUS les blocages actifs depuis App Group
     func restoreAllActiveBlocks() {
-        logger.critical("🔄 [GLOBAL_SHIELD] Restoring all active blocks...")
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.critical("🔄 [GLOBAL_SHIELD] ========== RESTORE ALL BLOCKS ==========")
+        logger.critical("⚠️ [GLOBAL_SHIELD] WARNING: This will OVERWRITE the DEFAULT store!")
 
         let activeBlocks = blockManager.getActiveBlocks()
-        logger.critical("   → Found \(activeBlocks.count) active blocks")
+        logger.critical("🔄 [GLOBAL_SHIELD] Found \(activeBlocks.count) active blocks in BlockManager")
+
+        // Vérifier l'état AVANT restauration
+        let beforeRestore = store.shield.applications?.count ?? 0
+        logger.critical("🔄 [GLOBAL_SHIELD] BEFORE restore: DEFAULT store has \(beforeRestore) blocked apps")
 
         guard !activeBlocks.isEmpty else {
-            logger.info("   → No blocks to restore")
+            logger.info("   → No blocks to restore, skipping")
+            logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             return
         }
 
@@ -44,8 +51,14 @@ class GlobalShieldManager: ObservableObject {
         // Collecter TOUS les tokens de toutes les apps bloquées
         var allBlockedTokens: Set<ApplicationToken> = []
 
+        logger.critical("🔄 [GLOBAL_SHIELD] Processing \(activeBlocks.count) blocks:")
         for block in activeBlocks {
-            guard block.status == .active else { continue }
+            logger.critical("   → Block: \(block.appName) | Status: \(block.status.rawValue) | ID: \(block.id)")
+
+            guard block.status == .active else {
+                logger.info("     → Skipped (not active)")
+                continue
+            }
 
             // Décoder le token
             guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
@@ -55,14 +68,25 @@ class GlobalShieldManager: ObservableObject {
             }
 
             allBlockedTokens.insert(token)
-            logger.info("✅ [GLOBAL_SHIELD] Token added: \(block.appName)")
+            logger.critical("✅ [GLOBAL_SHIELD] Token collected: \(block.appName)")
         }
 
+        logger.critical("🔄 [GLOBAL_SHIELD] Collected \(allBlockedTokens.count) tokens to apply")
+
         // ✅ APPLIQUER TOUS LES TOKENS EN UNE FOIS dans le store global
+        logger.critical("⚠️⚠️⚠️ [GLOBAL_SHIELD] OVERWRITING DEFAULT store with \(allBlockedTokens.count) apps...")
         store.shield.applications = allBlockedTokens
 
-        logger.critical("🛡️ [GLOBAL_SHIELD] Shield applied to \(allBlockedTokens.count) apps")
-        logger.critical("   → Store: DEFAULT (persists across restarts)")
+        // Vérifier APRÈS restauration
+        let afterRestore = store.shield.applications?.count ?? 0
+        logger.critical("🔄 [GLOBAL_SHIELD] AFTER restore: DEFAULT store has \(afterRestore) blocked apps")
+
+        if afterRestore != allBlockedTokens.count {
+            logger.error("❌ [GLOBAL_SHIELD] MISMATCH! Expected \(allBlockedTokens.count) but got \(afterRestore)")
+        }
+
+        logger.critical("🛡️ [GLOBAL_SHIELD] Restore complete!")
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         #endif
     }
 

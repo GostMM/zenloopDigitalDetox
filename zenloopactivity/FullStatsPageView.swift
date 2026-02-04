@@ -1017,13 +1017,41 @@ struct BlockAppSheet: View {
         // 1️⃣ APPLIQUER LE SHIELD IMMÉDIATEMENT dans le store PAR DÉFAUT
         // ✅ CRUCIAL: Utiliser le store par défaut (sans nom) pour la persistance!
         // Le GlobalShieldManager utilise aussi ce store, donc cohérence garantie
-        print("🔒 [BLOCK_SHEET] Applying shield to DEFAULT store NOW...")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔒 [BLOCK_SHEET] ========== STEP 1: APPLYING SHIELD ==========")
+        print("🔒 [BLOCK_SHEET] App: \(app.name)")
+        print("🔒 [BLOCK_SHEET] Duration: \(Int(duration/60)) minutes")
+        print("🔒 [BLOCK_SHEET] BlockID: \(blockId)")
+        print("🔒 [BLOCK_SHEET] ActivityName: \(activityName.rawValue)")
+
         let store = ManagedSettingsStore() // ✅ Store par défaut = persistance!
-        var blockedApps = store.shield.applications ?? Set()
+        print("🔒 [BLOCK_SHEET] Created DEFAULT ManagedSettingsStore")
+
+        let currentBlocked = store.shield.applications ?? Set()
+        print("🔒 [BLOCK_SHEET] Current blocked apps in store: \(currentBlocked.count)")
+
+        var blockedApps = currentBlocked
+        let beforeCount = blockedApps.count
         blockedApps.insert(app.token)
+        let afterCount = blockedApps.count
+
+        print("🔒 [BLOCK_SHEET] Before insert: \(beforeCount) apps")
+        print("🔒 [BLOCK_SHEET] After insert: \(afterCount) apps")
+        print("🔒 [BLOCK_SHEET] Actually added: \(afterCount > beforeCount)")
+
         store.shield.applications = blockedApps
-        print("✅ [BLOCK_SHEET] Shield applied to DEFAULT store (will persist)!")
-        print("   → Total blocked apps in store: \(blockedApps.count)")
+        print("✅ [BLOCK_SHEET] store.shield.applications = blockedApps EXECUTED")
+
+        // Vérifier immédiatement
+        let verifyBlocked = store.shield.applications?.count ?? 0
+        print("🔒 [BLOCK_SHEET] Verification: store now has \(verifyBlocked) blocked apps")
+
+        if verifyBlocked != afterCount {
+            print("⚠️ [BLOCK_SHEET] MISMATCH! Expected \(afterCount) but got \(verifyBlocked)")
+        }
+
+        print("✅ [BLOCK_SHEET] Shield applied to DEFAULT store!")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // 2️⃣ ENVOYER LES DONNÉES À L'APP PRINCIPALE pour la sauvegarde
         print("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
