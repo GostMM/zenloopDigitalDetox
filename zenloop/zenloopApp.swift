@@ -865,29 +865,53 @@ struct zenloopApp: App {
         }
 
         // 4. Programmer le déblocage automatique avec DeviceActivity
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("⏰ [SAVE_BLOCK] ========== SCHEDULING DEVICE ACTIVITY ==========")
         let center = DeviceActivityCenter()
         let deviceActivityName = DeviceActivityName(activityName)
 
-        let endTime = Date().addingTimeInterval(duration)
+        let now = Date()
+        let endTime = now.addingTimeInterval(duration)
         let calendar = Calendar.current
 
+        // ✅ CRITICAL: Utiliser les secondes pour précision!
+        let startDate = now.addingTimeInterval(5) // Commencer dans 5 secondes
+        let startComponents = DateComponents(
+            hour: calendar.component(.hour, from: startDate),
+            minute: calendar.component(.minute, from: startDate),
+            second: calendar.component(.second, from: startDate)
+        )
+        let endComponents = DateComponents(
+            hour: calendar.component(.hour, from: endTime),
+            minute: calendar.component(.minute, from: endTime),
+            second: calendar.component(.second, from: endTime)
+        )
+
+        print("⏰ [SAVE_BLOCK] Current time: \(now)")
+        print("⏰ [SAVE_BLOCK] Start time: \(startDate) (in 5 seconds)")
+        print("⏰ [SAVE_BLOCK] End time: \(endTime)")
+        print("⏰ [SAVE_BLOCK] Duration: \(Int(duration))s (\(Int(duration/60))min)")
+        print("⏰ [SAVE_BLOCK] Start components: \(startComponents)")
+        print("⏰ [SAVE_BLOCK] End components: \(endComponents)")
+        print("⏰ [SAVE_BLOCK] Activity name: \(activityName)")
+
         let schedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(
-                hour: calendar.component(.hour, from: Date()),
-                minute: calendar.component(.minute, from: Date())
-            ),
-            intervalEnd: DateComponents(
-                hour: calendar.component(.hour, from: endTime),
-                minute: calendar.component(.minute, from: endTime)
-            ),
+            intervalStart: startComponents,
+            intervalEnd: endComponents,
             repeats: false
         )
 
         do {
             try center.startMonitoring(deviceActivityName, during: schedule)
-            print("⏰ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock in \(Int(duration/60))min")
+            print("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
+            print("⏰ [SAVE_BLOCK] Monitoring will END at: \(endTime)")
+            print("⏰ [SAVE_BLOCK] intervalDidEnd() will be called automatically")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         } catch {
-            print("⚠️ [SAVE_BLOCK] DeviceActivity scheduling failed: \(error.localizedDescription)")
+            print("❌❌❌ [SAVE_BLOCK] DeviceActivity.startMonitoring() FAILED!")
+            print("❌ [SAVE_BLOCK] Error: \(error.localizedDescription)")
+            print("❌ [SAVE_BLOCK] This means intervalDidEnd will NEVER be called!")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         }
 
         // 5. Notification de succès

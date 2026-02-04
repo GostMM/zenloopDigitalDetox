@@ -119,8 +119,20 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
 
-        print("🔓 [MONITOR] ===== INTERVAL ENDED =====")
+        // ⚠️ CRITICAL DEBUG LOGS - DO NOT REMOVE
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔓🔓🔓 [MONITOR] ===== INTERVAL DID END CALLED =====")
+        print("🕐 [MONITOR] Time: \(Date())")
         print("🎯 [MONITOR] Activity: \(activity.rawValue)")
+        print("⚠️ [MONITOR] This method MUST unblock the app automatically!")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // Log to App Group for visibility
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        suite?.set(Date().timeIntervalSince1970, forKey: "last_intervalDidEnd_timestamp")
+        suite?.set(activity.rawValue, forKey: "last_intervalDidEnd_activity")
+        suite?.synchronize()
+        print("💾 [MONITOR] Logged to App Group: last_intervalDidEnd_timestamp")
 
         // ✅ APPLE-COMPLIANT: Retirer le shield quand l'intervalle se termine
         removeShield(for: activity)
@@ -128,22 +140,29 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // Gérer selon le type d'activité
         if activity.rawValue.hasPrefix("block-") {
             // Nettoyer les données de blocage
-            print("📱 [MONITOR] Cleaning up block activity")
+            print("📱 [MONITOR] Detected block- activity, processing...")
             handleBlockActivityEnd(activity)
 
             // ✅ CRUCIAL: Aussi retirer du DEFAULT store (utilisé par GlobalShieldManager)
+            print("🔑 [MONITOR] Now removing from DEFAULT store...")
             removeFromDefaultStore(for: activity)
+            print("✅ [MONITOR] DEFAULT store removal completed")
         } else if activity.rawValue.hasPrefix("scheduled_") {
             // Sauvegarder les stats de session
-            print("⏰ [MONITOR] Saving session completion")
+            print("⏰ [MONITOR] Detected scheduled_ activity")
             stopMonitoringIfSingleSession(activity: activity)
             saveChallengeCompletion(activityName: activity)
+        } else {
+            print("⚠️ [MONITOR] Unknown activity type: \(activity.rawValue)")
         }
 
         // Notifier l'app principale
         notifyMainApp(event: "intervalDidEnd", activity: activity.rawValue)
 
-        print("✅ [MONITOR] Shield removed, activity complete")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("✅✅✅ [MONITOR] INTERVAL DID END COMPLETE")
+        print("🔓 [MONITOR] App should be UNBLOCKED now!")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     }
     
     private func stopMonitoringIfSingleSession(activity: DeviceActivityName) {
