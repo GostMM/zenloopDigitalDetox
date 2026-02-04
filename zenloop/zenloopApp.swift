@@ -373,11 +373,40 @@ struct zenloopApp: App {
     
     func handleURL(_ url: URL) {
         print("🔗 [APP] Received URL: \(url.absoluteString)")
-        
+
         // Handle URL schemes for Quick Actions or deep linking
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let scheme = components.scheme,
               scheme == "zenloop" else {
+            return
+        }
+
+        // ✅ NEW: Gérer save-block depuis Report Extension (via URL scheme)
+        if components.host == "save-block" {
+            print("💾 [DEEP_LINK] Received save-block request from Report Extension")
+
+            let queryItems = components.queryItems ?? []
+
+            guard let appName = queryItems.first(where: { $0.name == "appName" })?.value,
+                  let durationStr = queryItems.first(where: { $0.name == "duration" })?.value,
+                  let duration = TimeInterval(durationStr),
+                  let activityName = queryItems.first(where: { $0.name == "activityName" })?.value,
+                  let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value,
+                  let tokenData = Data(base64Encoded: tokenBase64) else {
+                print("❌ [DEEP_LINK] Missing or invalid parameters in save-block URL")
+                return
+            }
+
+            print("✅ [DEEP_LINK] Parsed: \(appName), \(Int(duration/60))min, activityName: \(activityName)")
+            print("   → Token data: \(tokenData.count) bytes")
+
+            // Traiter le blocage depuis l'app principale (qui a les permissions d'écriture)
+            Self.handleSaveBlockRequest(
+                appName: appName,
+                duration: duration,
+                activityName: activityName,
+                tokenData: tokenData
+            )
             return
         }
 
@@ -572,6 +601,97 @@ struct zenloopApp: App {
                 print("⚠️ [APPLY_BLOCK] Notification error: \(error)")
             }
         }
+        #endif
+    }
+
+    // ✅ NEW: Traiter les demandes de blocage via URL scheme
+    static func handleSaveBlockRequest(appName: String, duration: TimeInterval, activityName: String, tokenData: Data) {
+        print("🔐 [SAVE_BLOCK] ========================================")
+        print("🔐 [SAVE_BLOCK] PROCESSING BLOCK REQUEST FROM REPORT EXTENSION")
+        print("   → App: \(appName)")
+        print("   → Duration: \(Int(duration/60))min")
+        print("   → ActivityName: \(activityName)")
+        print("   → Token Data: \(tokenData.count) bytes")
+
+        #if os(iOS)
+        // 1. Décoder le token pour validation
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
+              let token = selection.applicationTokens.first else {
+            print("❌ [SAVE_BLOCK] Failed to decode token")
+            return
+        }
+
+        print("✅ [SAVE_BLOCK] Token decoded successfully")
+
+        // 2. Sauvegarder le block dans BlockManager (l'app a les permissions!)
+        let blockManager = BlockManager()
+        let block = blockManager.addBlock(
+            appName: appName,
+            duration: duration,
+            tokenData: tokenData,
+            context: "FullStatsPageView (URL Scheme)"
+        )
+
+        print("💾 [SAVE_BLOCK] Block saved with ID: \(block.id)")
+
+        // 3. Appliquer le shield via GlobalShieldManager pour garantir la persistance
+        Task { @MainActor in
+            GlobalShieldManager.shared.addBlock(
+                token: token,
+                blockId: block.id,
+                appName: appName
+            )
+            print("🛡️ [SAVE_BLOCK] Shield applied via GlobalShieldManager")
+        }
+
+        // 4. Programmer le déblocage automatique avec DeviceActivity
+        // Note: Le shield a déjà été appliqué par l'extension, mais on programme le cleanup
+        let center = DeviceActivityCenter()
+        let deviceActivityName = DeviceActivityName(activityName)
+
+        let endTime = Date().addingTimeInterval(duration)
+        let calendar = Calendar.current
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(
+                hour: calendar.component(.hour, from: Date()),
+                minute: calendar.component(.minute, from: Date())
+            ),
+            intervalEnd: DateComponents(
+                hour: calendar.component(.hour, from: endTime),
+                minute: calendar.component(.minute, from: endTime)
+            ),
+            repeats: false
+        )
+
+        do {
+            try center.startMonitoring(deviceActivityName, during: schedule)
+            print("⏰ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock in \(Int(duration/60))min")
+        } catch {
+            print("⚠️ [SAVE_BLOCK] DeviceActivity scheduling failed: \(error.localizedDescription)")
+        }
+
+        // 5. Notification de succès
+        let content = UNMutableNotificationContent()
+        content.title = "✅ App Bloquée"
+        content.body = "\(appName) est maintenant bloquée pour \(Int(duration/60)) minutes"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "block_saved_\(block.id)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ [SAVE_BLOCK] Notification error: \(error)")
+            }
+        }
+
+        print("🔐 [SAVE_BLOCK] ========================================")
+        print("✅ [SAVE_BLOCK] BLOCK REQUEST COMPLETED SUCCESSFULLY")
+        print("🔐 [SAVE_BLOCK] ========================================")
         #endif
     }
 

@@ -1020,56 +1020,44 @@ struct BlockAppSheet: View {
         store.shield.applications = [app.token]
         print("✅ [BLOCK_SHEET] Shield applied immediately!")
 
-        // 2️⃣ ENREGISTRER LE BLOCK dans BlockManager pour l'UI
-        print("📝 [BLOCK_SHEET] Creating BlockManager instance...")
+        // 2️⃣ ENVOYER LES DONNÉES À L'APP PRINCIPALE pour la sauvegarde
+        print("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
+        print("📤 [BLOCK_SHEET] Opening main app to save block data...")
 
-        // Vérifier l'accès à l'App Group AVANT de créer BlockManager
-        if let testSuite = UserDefaults(suiteName: "group.com.app.zenloop") {
-            print("✅ [BLOCK_SHEET] App Group accessible")
-            print("   → Container: \(FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.zenloop")?.path ?? "nil")")
+        // Encoder les données pour l'URL
+        let blockData: [String: Any] = [
+            "appName": app.name,
+            "duration": duration,
+            "activityName": activityName.rawValue,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+
+        // Encoder le token séparément (base64)
+        let tokenBase64 = tokenData.base64EncodedString()
+
+        // Créer l'URL avec les paramètres
+        var urlComponents = URLComponents(string: "zenloop://save-block")!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "appName", value: app.name),
+            URLQueryItem(name: "duration", value: String(duration)),
+            URLQueryItem(name: "activityName", value: activityName.rawValue),
+            URLQueryItem(name: "tokenData", value: tokenBase64)
+        ]
+
+        if let url = urlComponents.url {
+            print("🔗 [BLOCK_SHEET] Opening main app with block data...")
+            openURL(url) { accepted in
+                if accepted {
+                    print("✅ [BLOCK_SHEET] Main app opened - block will be saved there")
+                } else {
+                    print("❌ [BLOCK_SHEET] Failed to open main app")
+                }
+            }
         } else {
-            print("❌ [BLOCK_SHEET] App Group NOT accessible!")
-            print("⚠️ [BLOCK_SHEET] Block will NOT be saved - Extension may not have App Group entitlement")
+            print("❌ [BLOCK_SHEET] Failed to create URL")
         }
 
-        let blockManager = BlockManager()
-
-        print("➕ [BLOCK_SHEET] Adding block to BlockManager...")
-        print("   → App: \(app.name)")
-        print("   → Duration: \(Int(duration/60)) minutes")
-
-        let block = blockManager.addBlock(
-            appName: app.name,
-            duration: duration,
-            tokenData: tokenData,
-            context: "Report Extension - BlockAppSheet"
-        )
-
-        print("✅ [BLOCK_SHEET] Block returned with ID: \(block.id)")
-        print("   → Status: \(block.status.rawValue)")
-        print("   → StoreName: \(block.storeName)")
-
-        // CRITIQUE: Forcer un flush des logs
-        fflush(stdout)
-
-        // Lier le storeName au blockId pour le cleanup
-        if let suite = UserDefaults(suiteName: "group.com.app.zenloop") {
-            suite.set(activityName.rawValue, forKey: "storeName_\(block.id)")
-            suite.synchronize()
-            print("🔗 [BLOCK_SHEET] StoreName linked: \(activityName.rawValue)")
-        }
-
-        // Vérifier immédiatement que le block est bien sauvegardé
-        print("🔍 [BLOCK_SHEET] Verifying block was saved...")
-        let allBlocks = blockManager.getAllBlocks()
-        print("📊 [BLOCK_SHEET] Total blocks in storage: \(allBlocks.count)")
-        if allBlocks.contains(where: { $0.id == block.id }) {
-            print("✅ [BLOCK_SHEET] Block found in storage - SAVE OK")
-        } else {
-            print("❌ [BLOCK_SHEET] Block NOT found in storage - SAVE FAILED!")
-        }
-
-        print("💾 [BLOCK_SHEET] Block registered in BlockManager: \(block.id)")
+        print("💾 [BLOCK_SHEET] Block will be saved by main app (has write permissions)")
 
         // 3️⃣ PROGRAMMER LE DÉBLOCAGE AUTOMATIQUE avec DeviceActivity
         let center = DeviceActivityCenter()
@@ -1090,43 +1078,9 @@ struct BlockAppSheet: View {
             repeats: false
         )
 
-        // Créer le payload pour le Monitor (pour le déblocage)
-        let payload = SelectionPayload(
-            sessionId: blockId,
-            apps: [app.token],
-            categories: [],
-            restrictionMode: .shield
-        )
-
-        if let payloadData = try? JSONEncoder().encode(payload),
-           let suite = UserDefaults(suiteName: "group.com.app.zenloop") {
-            suite.set(payloadData, forKey: "payload_\(activityName.rawValue)")
-
-            let blockInfo: [String: Any] = [
-                "id": blockId,
-                "appName": app.name,
-                "duration": duration,
-                "startTime": Date().timeIntervalSince1970,
-                "tokenData": tokenData,
-                "blockId": block.id // Lien vers le BlockManager
-            ]
-            suite.set(blockInfo, forKey: "block_info_\(blockId)")
-            suite.synchronize()
-        }
-
-        print("⏰ [BLOCK_SHEET] Scheduling auto-unblock...")
-        print("   → Activity: \(activityName.rawValue)")
-        print("   → End: \(endComponents.hour!):\(endComponents.minute!)")
-
-        do {
-            // DeviceActivity sert uniquement pour le déblocage automatique
-            try center.startMonitoring(activityName, during: schedule)
-            print("✅ [BLOCK_SHEET] Auto-unblock scheduled successfully")
-
-        } catch {
-            print("⚠️ [BLOCK_SHEET] Failed to schedule auto-unblock: \(error)")
-            print("   → Shield is still active, but no auto-unblock")
-        }
+        // Note: Le déblocage automatique sera géré par l'app principale via DeviceActivity
+        // Nous n'avons pas besoin de sauvegarder le payload ici car l'app le fera
+        print("✅ [BLOCK_SHEET] Shield applied, sending data to main app...")
 
         // Feedback visuel + fermeture
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
