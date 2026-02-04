@@ -205,15 +205,26 @@ class BlockCommandCoordinator: ObservableObject {
             return
         }
 
-        // Retirer le shield
-        let store = ManagedSettingsStore(named: .init(block.storeName))
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
+        // Décoder le token
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
+              let token = selection.applicationTokens.first else {
+            logger.error("❌ [COORDINATOR] Failed to decode token for unblock")
+            return
+        }
 
-        // Mettre à jour le status
-        blockManager.updateBlockStatus(id: id, status: .stopped)
+        // ✅ CRUCIAL: Retirer le shield via GlobalShieldManager
+        GlobalShieldManager.shared.removeBlock(
+            token: token,
+            blockId: block.id,
+            appName: block.appName
+        )
 
-        logger.critical("✅ [COORDINATOR] Block \(id) stopped successfully")
+        logger.critical("🛡️ [COORDINATOR] Shield removed via GlobalShieldManager")
+
+        // Supprimer le block de la persistence
+        blockManager.removeBlock(id: id)
+
+        logger.critical("✅ [COORDINATOR] Block \(id) stopped and removed successfully")
         #endif
     }
 
