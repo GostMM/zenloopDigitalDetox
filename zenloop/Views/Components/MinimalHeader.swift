@@ -45,8 +45,8 @@ struct MinimalHeader: View {
                         .offset(y: showContent ? 0 : -10)
                 }
                 .frame(maxWidth: adaptiveTextMaxWidth(totalWidth: geometry.size.width))
-                
-                Spacer(minLength: 8)
+
+                Spacer(minLength: 4)
                 
                 // TODO: Schedule button to be implemented in future version
                 /*
