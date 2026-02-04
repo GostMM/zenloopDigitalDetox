@@ -843,36 +843,27 @@ struct BlockAppSheet: View {
     let app: ExtensionAppUsage
     @Environment(\.dismiss) var dismiss
     @Environment(\.openURL) var openURL  // ✅ API officielle pour ouvrir des URLs depuis extensions
-    @State private var selectedDuration = 15 // minutes
+    @State private var selectedHours = 0
+    @State private var selectedMinutes = 15
     @State private var isBlocking = false
     @State private var showIcon = false
-    @State private var showCustomPicker = false
-    @State private var customHours = 0
-    @State private var customMinutes = 15
     var onBlockAdded: (() -> Void)?
 
-    private let durations = [5, 15, 30, 60, 120, 240] // en minutes
-    private let customDuration = -1 // Indicateur pour durée personnalisée
-
-    // Computed properties pour la durée personnalisée
-    private var totalCustomMinutes: Int {
-        customHours * 60 + customMinutes
+    // Computed property pour la durée totale
+    private var totalMinutes: Int {
+        selectedHours * 60 + selectedMinutes
     }
 
     private var blockButtonText: String {
-        if showCustomPicker {
-            let total = totalCustomMinutes
-            if total == 0 {
-                return "Sélectionnez une durée"
-            } else if customHours > 0 && customMinutes > 0 {
-                return "Bloquer \(customHours)h \(customMinutes)m"
-            } else if customHours > 0 {
-                return "Bloquer \(customHours)h"
-            } else {
-                return "Bloquer \(customMinutes)m"
-            }
+        let total = totalMinutes
+        if total == 0 {
+            return "Sélectionnez une durée"
+        } else if selectedHours > 0 && selectedMinutes > 0 {
+            return "Bloquer \(selectedHours)h \(selectedMinutes)m"
+        } else if selectedHours > 0 {
+            return "Bloquer \(selectedHours)h"
         } else {
-            return "Bloquer \(selectedDuration) min"
+            return "Bloquer \(selectedMinutes)m"
         }
     }
 
@@ -910,41 +901,65 @@ struct BlockAppSheet: View {
                     }
                     .padding(.top, 40)
 
-                    // Sélection de durée
-                    VStack(alignment: .leading, spacing: 16) {
+                    // Sélection de durée - Roulette compacte
+                    VStack(spacing: 12) {
                         Text("DURÉE")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white.opacity(0.5))
                             .tracking(1)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(durations, id: \.self) { duration in
-                                    DurationButton(
-                                        duration: duration,
-                                        isSelected: selectedDuration == duration && !showCustomPicker
-                                    ) {
-                                        showCustomPicker = false
-                                        selectedDuration = duration
+                        HStack(spacing: 16) {
+                            // Heures
+                            VStack(spacing: 4) {
+                                Text("Heures")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+
+                                Picker("", selection: $selectedHours) {
+                                    ForEach(0..<13) { hour in
+                                        Text("\(hour)").tag(hour)
+                                            .foregroundColor(.white)
                                     }
                                 }
-
-                                // Bouton durée personnalisée
-                                CustomDurationButton(
-                                    isSelected: showCustomPicker
-                                ) {
-                                    showCustomPicker = true
-                                }
+                                .pickerStyle(.wheel)
+                                .frame(width: 70, height: 100)
+                                .compositingGroup()
+                                .clipped()
                             }
-                            .padding(.horizontal, 20)
-                        }
-                        .padding(.horizontal, -20)
 
-                        // Custom picker si sélectionné
-                        if showCustomPicker {
-                            customDurationPicker
-                                .transition(.move(edge: .top).combined(with: .opacity))
+                            Text(":")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.white.opacity(0.3))
+                                .padding(.top, 20)
+
+                            // Minutes
+                            VStack(spacing: 4) {
+                                Text("Minutes")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+
+                                Picker("", selection: $selectedMinutes) {
+                                    ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) { minute in
+                                        Text("\(minute)").tag(minute)
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                                .pickerStyle(.wheel)
+                                .frame(width: 70, height: 100)
+                                .compositingGroup()
+                                .clipped()
+                            }
                         }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.white.opacity(0.08))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                                )
+                        )
                     }
                     .padding(.horizontal, 20)
 
@@ -983,7 +998,7 @@ struct BlockAppSheet: View {
                             )
                             .cornerRadius(16)
                         }
-                        .disabled(isBlocking || (showCustomPicker && totalCustomMinutes == 0))
+                        .disabled(isBlocking || totalMinutes == 0)
 
                         // Bouton Cancel
                         Button {
@@ -1031,57 +1046,13 @@ struct BlockAppSheet: View {
         }
     }
 
-    private var customDurationPicker: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 20) {
-                // Heures picker
-                VStack(spacing: 8) {
-                    Text("HEURES")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
-                        .tracking(0.5)
-
-                    Picker("Heures", selection: $customHours) {
-                        ForEach(0..<13) { hour in
-                            Text("\(hour)").tag(hour)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 80, height: 120)
-                }
-
-                // Minutes picker
-                VStack(spacing: 8) {
-                    Text("MINUTES")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
-                        .tracking(0.5)
-
-                    Picker("Minutes", selection: $customMinutes) {
-                        ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) { minute in
-                            Text("\(minute)").tag(minute)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 80, height: 120)
-                }
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
-        )
-    }
-
     private func blockApp() {
         guard !isBlocking else { return }
         isBlocking = true
 
         #if os(iOS)
-        // Utiliser la durée personnalisée si sélectionnée, sinon la durée prédéfinie
-        let durationMinutes = showCustomPicker ? totalCustomMinutes : selectedDuration
-        let duration = TimeInterval(durationMinutes * 60)
+        // Utiliser la durée sélectionnée dans les roulettes
+        let duration = TimeInterval(totalMinutes * 60)
         let blockId = UUID().uuidString
         let activityName = DeviceActivityName("block-\(blockId)")
 
@@ -1210,74 +1181,6 @@ struct BlockAppSheet: View {
         #endif
     }
 
-}
-
-// MARK: - Duration Button
-
-struct DurationButton: View {
-    let duration: Int
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var displayText: String {
-        if duration < 60 {
-            return "\(duration)m"
-        } else {
-            let hours = duration / 60
-            return "\(hours)h"
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Text(displayText)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(isSelected ? .black : .white)
-
-                if isSelected {
-                    Circle()
-                        .fill(Color.black)
-                        .frame(width: 6, height: 6)
-                } else {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 6, height: 6)
-                }
-            }
-            .frame(width: 80, height: 80)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.white : Color.white.opacity(0.1))
-            )
-        }
-    }
-}
-
-// MARK: - Custom Duration Button
-
-struct CustomDurationButton: View {
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: "clock.badge.plus")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(isSelected ? .black : .white)
-
-                Text("Custom")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(isSelected ? .black : .white.opacity(0.7))
-            }
-            .frame(width: 80, height: 80)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.white : Color.white.opacity(0.1))
-            )
-        }
-    }
 }
 
 // MARK: - Blocked App Row
