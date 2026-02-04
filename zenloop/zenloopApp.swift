@@ -820,18 +820,12 @@ struct zenloopApp: App {
 
         print("💾 [SAVE_BLOCK] Block saved with ID: \(block.id)")
 
-        // 3. Appliquer le shield via GlobalShieldManager pour garantir la persistance
-        Task { @MainActor in
-            GlobalShieldManager.shared.addBlock(
-                token: token,
-                blockId: block.id,
-                appName: appName
-            )
-            print("🛡️ [SAVE_BLOCK] Shield applied via GlobalShieldManager")
-        }
+        // 3. ✅ PAS BESOIN D'APPLIQUER LE SHIELD ICI!
+        // L'extension l'a déjà appliqué dans le store par défaut
+        // On sauvegarde juste les métadonnées pour la persistence
+        print("✅ [SAVE_BLOCK] Shield already applied by extension, just saving metadata")
 
         // 4. Programmer le déblocage automatique avec DeviceActivity
-        // Note: Le shield a déjà été appliqué par l'extension, mais on programme le cleanup
         let center = DeviceActivityCenter()
         let deviceActivityName = DeviceActivityName(activityName)
 
