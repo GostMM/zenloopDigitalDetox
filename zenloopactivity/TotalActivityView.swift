@@ -844,7 +844,11 @@ private struct EmptyStateCard: View {
             ExtensionCategoryUsage(categoryName: "Health & Fitness", duration: 1200, appCount: 1)
         ],
         todayScreenSeconds: 10800,
-        todayOffScreenSeconds: 28800
+        todayOffScreenSeconds: 28800,
+        hourlyData: [],
+        focusScore: 65,
+        topThreeMostUsed: [],
+        categoriesCount: 4
     ))
     .preferredColorScheme(ColorScheme.dark)
 }

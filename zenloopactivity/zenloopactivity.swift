@@ -58,5 +58,10 @@ struct zenloopactivity: DeviceActivityReportExtension {
         TopAppToastReport { topAppData in
             TopAppToastReportView(data: topAppData)
         }
+
+        // Full Stats Page - Opal-style full-screen stats (NEW)
+        FullStatsPageReport { activityReport in
+            FullStatsPageView(reportData: activityReport)
+        }
     }
 }

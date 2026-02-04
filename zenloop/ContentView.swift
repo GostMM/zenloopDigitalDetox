@@ -155,41 +155,19 @@ struct ContentView: View {
     }
     
     private var mainInterface: some View {
-        TabView(selection: $selectedTab) {
-            // Accueil - Vue principale avec chargement lazy
-            LazyTabView(selectedTab: selectedTab, targetTab: 0) {
-                HomeView()
-                    .environmentObject(zenloopManager)
+        ZStack {
+            // Content area
+            TabContentView(selectedTab: $selectedTab)
+                .environmentObject(zenloopManager)
+
+            // Custom Opal-style tab bar
+            VStack {
+                Spacer()
+                OpalTabBar(selectedTab: $selectedTab)
             }
-            .tabItem {
-                Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                Text(String(localized: "home"))
-            }
-            .tag(0)
-            
-            // Mindful Scroll - Chargement lazy
-            LazyTabView(selectedTab: selectedTab, targetTab: 1) {
-                MindfulScrollView()
-                    .environmentObject(zenloopManager)
-            }
-            .tabItem {
-                Image(systemName: selectedTab == 1 ? "lungs.fill" : "lungs")
-                Text(String(localized: "challenges"))
-            }
-            .tag(1)
-            
-            // Stats - Chargement lazy
-            LazyTabView(selectedTab: selectedTab, targetTab: 2) {
-                StatsView()
-                    .environmentObject(zenloopManager)
-            }
-            .tabItem {
-                Image(systemName: selectedTab == 2 ? "chart.bar.fill" : "chart.bar")
-                Text(String(localized: "stats"))
-            }
-            .tag(2)
+            .ignoresSafeArea(.keyboard)
+            .ignoresSafeArea(edges: .bottom)
         }
-        .tint(.accentColor)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToHome)) { _ in
             // Navigation automatique vers l'onglet Home
             withAnimation(.easeInOut(duration: 0.3)) {
@@ -199,6 +177,30 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation) {
             BreathingMeditationView(zenloopManager: zenloopManager)
         }
+    }
+}
+
+// MARK: - Tab Content View
+
+struct TabContentView: View {
+    @Binding var selectedTab: Int
+    @EnvironmentObject var zenloopManager: ZenloopManager
+
+    var body: some View {
+        Group {
+            switch selectedTab {
+            case 0:
+                HomeView()
+                    .environmentObject(zenloopManager)
+            case 1:
+                FullStatsView()
+                    .environmentObject(zenloopManager)
+            default:
+                HomeView()
+                    .environmentObject(zenloopManager)
+            }
+        }
+        .transition(.opacity)
     }
 }
 

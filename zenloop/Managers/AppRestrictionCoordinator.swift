@@ -129,7 +129,22 @@ final class AppRestrictionCoordinator: ObservableObject {
         }
 
         let targetStore = getManagedStore(for: sessionId)
-        let appTokens = blockedAppsSelection.applicationTokens
+
+        // Vérifier s'il y a une sélection temporaire d'une seule app via le flag
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+        var appTokens = blockedAppsSelection.applicationTokens
+
+        // Si le flag "use_single_app_token" est actif, on cherche dans blockedAppsSelection
+        if suite?.bool(forKey: "use_single_app_token") == true {
+            // Le token a déjà été ajouté à blockedAppsSelection via setBlockedApps() côté ZenloopManager
+            #if DEBUG
+            logger.debug("🔒 [AppRestriction] Using single app from blockedAppsSelection: \(appTokens.count) app(s)")
+            #endif
+
+            // Nettoyer le flag après utilisation
+            suite?.removeObject(forKey: "use_single_app_token")
+            suite?.synchronize()
+        }
 
         #if DEBUG
         let storeType = sessionId != nil ? "named(\(sessionId!))" : "default"

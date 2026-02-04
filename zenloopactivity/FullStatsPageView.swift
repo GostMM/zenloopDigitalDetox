@@ -1022,6 +1022,16 @@ struct BlockAppSheet: View {
 
         // 2️⃣ ENREGISTRER LE BLOCK dans BlockManager pour l'UI
         print("📝 [BLOCK_SHEET] Creating BlockManager instance...")
+
+        // Vérifier l'accès à l'App Group AVANT de créer BlockManager
+        if let testSuite = UserDefaults(suiteName: "group.com.app.zenloop") {
+            print("✅ [BLOCK_SHEET] App Group accessible")
+            print("   → Container: \(FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.zenloop")?.path ?? "nil")")
+        } else {
+            print("❌ [BLOCK_SHEET] App Group NOT accessible!")
+            print("⚠️ [BLOCK_SHEET] Block will NOT be saved - Extension may not have App Group entitlement")
+        }
+
         let blockManager = BlockManager()
 
         print("➕ [BLOCK_SHEET] Adding block to BlockManager...")

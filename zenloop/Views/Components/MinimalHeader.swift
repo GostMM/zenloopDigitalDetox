@@ -15,6 +15,8 @@ struct MinimalHeader: View {
     @StateObject private var purchaseManager = PurchaseManager.shared
     @State private var subscriptionStatus: SubscriptionStatus = .none
     @State private var showSubscriptionStatus = false
+    @State private var activeBlocksCount: Int = 0
+    @State private var showActiveBlocks = false
     
     // TODO: Schedule functionality to be implemented in future version
     // @State private var showingSchedulePicker = false
@@ -113,6 +115,38 @@ struct MinimalHeader: View {
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isScheduled)
                 */
                 
+                // Bouton Active Blocks
+                if activeBlocksCount > 0 {
+                    Button {
+                        showActiveBlocks = true
+                    } label: {
+                        ZStack {
+                            Image(systemName: "hand.raised.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    Circle()
+                                        .fill(Color.orange.opacity(0.2))
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.orange.opacity(0.4), lineWidth: 1.5)
+                                        )
+                                )
+
+                            // Badge count
+                            Text("\(activeBlocksCount)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 14, height: 14)
+                                .background(Circle().fill(Color.red))
+                                .offset(x: 10, y: -10)
+                        }
+                    }
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : -10)
+                }
+
                 // Section badges d'évolution
                 BadgeEvolutionView(showContent: showContent)
                     .opacity(showContent ? 1 : 0)
@@ -158,6 +192,16 @@ struct MinimalHeader: View {
         }
         .task {
             await updateSubscriptionStatus()
+            updateActiveBlocksCount()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            updateActiveBlocksCount()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ActiveBlocksDidChange"))) { _ in
+            updateActiveBlocksCount()
+        }
+        .sheet(isPresented: $showActiveBlocks) {
+            BlockControllerView()
         }
         // TODO: Schedule picker to be implemented in future version
         /*
@@ -294,9 +338,16 @@ struct MinimalHeader: View {
     */
     
     // MARK: - Subscription Status Methods
-    
+
     private func updateSubscriptionStatus() async {
         subscriptionStatus = await purchaseManager.getSubscriptionStatus()
+    }
+
+    // MARK: - Active Blocks Methods
+
+    private func updateActiveBlocksCount() {
+        let blockManager = BlockManager()
+        activeBlocksCount = blockManager.getActiveBlocks().count
     }
 }
 

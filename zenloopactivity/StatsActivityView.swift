@@ -176,7 +176,7 @@ struct StatsActivityView: View {
             // Header compact avec titre et total
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Your Progress")
+                    Text(NSLocalizedString("screen_time", comment: "Screen Time title"))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white.opacity(0.5))
 
@@ -187,21 +187,22 @@ struct StatsActivityView: View {
 
                 Spacer()
 
-                // Icône circulaire plus petite
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.blue.opacity(0.3), Color.cyan.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 44, height: 44)
-
-                    Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.blue)
+                // App la plus utilisée (remplace l'icône chart)
+                if let topApp = reportData.topApps.first {
+                    #if os(iOS)
+                    if let token = topApp.token {
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        placeholderAppIcon
+                    }
+                    #else
+                    placeholderAppIcon
+                    #endif
+                } else {
+                    placeholderAppIcon
                 }
             }
             .padding(.horizontal, 20)
@@ -222,53 +223,28 @@ struct StatsActivityView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 50)
             } else {
-                // Graphique à barres moderne compact
-                ModernBarChart(data: hourlyChartData)
-                    .frame(height: 100)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
-
-                // Légendes compactes
-                HStack(spacing: 12) {
-                    CompactLegend(
-                        icon: "briefcase.fill",
-                        color: .blue,
-                        title: "Work",
-                        duration: formatTime(categoryDurations.productivity)
-                    )
-
-                    CompactLegend(
-                        icon: "bubble.left.and.bubble.right.fill",
-                        color: .cyan,
-                        title: "Social",
-                        duration: formatTime(categoryDurations.social)
-                    )
-
-                    CompactLegend(
-                        icon: "gamecontroller.fill",
-                        color: .orange,
-                        title: "Games",
-                        duration: formatTime(categoryDurations.games)
-                    )
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
+                // GRAPHIQUE ET LÉGENDES RETIRÉS POUR RÉDUIRE LA HAUTEUR
+                // Seulement le séparateur + top apps
 
                 // Séparateur subtil
                 Rectangle()
                     .fill(Color.white.opacity(0.1))
                     .frame(height: 1)
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
 
-                // Top apps avec icônes élégantes
+                // Top apps avec jauges colorées
                 if !reportData.topApps.isEmpty {
+                    let maxDuration = reportData.topApps.first?.seconds ?? 1
+
                     VStack(spacing: 0) {
                         ForEach(Array(reportData.topApps.prefix(3).enumerated()), id: \.offset) { index, app in
                             StatsAppRow(
                                 app: app,
                                 duration: formatTime(app.seconds),
-                                rank: index + 1
+                                rank: index + 1,
+                                maxDuration: maxDuration
                             )
 
                             if index < min(2, reportData.topApps.count - 1) {
@@ -399,6 +375,24 @@ struct StatsActivityView: View {
     private func isGames(_ categoryName: String) -> Bool {
         let lower = categoryName.lowercased()
         return lower.contains("game") || lower.contains("entertainment")
+    }
+
+    // Placeholder pour l'icône d'app quand token non disponible
+    private var placeholderAppIcon: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(
+                LinearGradient(
+                    colors: [Color.blue.opacity(0.3), Color.cyan.opacity(0.2)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: 44, height: 44)
+            .overlay(
+                Image(systemName: "app.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.blue)
+            )
     }
 }
 
@@ -655,6 +649,7 @@ struct StatsAppRow: View {
     let app: StatsAppInfo
     let duration: String
     let rank: Int
+    let maxDuration: TimeInterval
 
     var body: some View {
         HStack(spacing: 12) {
@@ -685,14 +680,25 @@ struct StatsAppRow: View {
 
             Spacer()
 
-            // Badge rank
-            Text("#\(rank)")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(getRankColor(rank))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(getRankColor(rank).opacity(0.15))
-                .clipShape(Capsule())
+            // Mini jauge horizontale compacte à droite (comme badge)
+            ZStack(alignment: .leading) {
+                // Background
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 50, height: 6)
+
+                // Progression colorée
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: getIntensityGradient(percentage: app.seconds / maxDuration),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 50 * CGFloat(app.seconds / maxDuration), height: 6)
+                    .shadow(color: getIntensityColor(percentage: app.seconds / maxDuration).opacity(0.5), radius: 3, x: 0, y: 1)
+            }
         }
         .padding(.vertical, 8)
     }
@@ -707,12 +713,55 @@ struct StatsAppRow: View {
             )
     }
 
-    private func getRankColor(_ rank: Int) -> Color {
-        switch rank {
-        case 1: return .yellow
-        case 2: return .cyan
-        case 3: return .orange
-        default: return .white.opacity(0.5)
+    // Couleur selon l'intensité d'usage (0.0 à 1.0)
+    private func getIntensityColor(percentage: Double) -> Color {
+        switch percentage {
+        case 0.9...1.0:  // 90-100% = Violet/Magenta (EXTRÊME)
+            return Color(red: 0.8, green: 0.2, blue: 0.8)
+        case 0.7..<0.9:  // 70-90% = Rouge (Très élevé)
+            return Color(red: 1.0, green: 0.2, blue: 0.3)
+        case 0.5..<0.7:  // 50-70% = Orange (Élevé)
+            return Color(red: 1.0, green: 0.6, blue: 0.2)
+        case 0.3..<0.5:  // 30-50% = Jaune (Modéré)
+            return Color(red: 1.0, green: 0.8, blue: 0.2)
+        default:         // 0-30% = Vert (Faible)
+            return Color(red: 0.3, green: 0.8, blue: 0.4)
+        }
+    }
+
+    // Dégradé premium selon l'intensité
+    private func getIntensityGradient(percentage: Double) -> [Color] {
+        switch percentage {
+        case 0.9...1.0:  // Violet extrême
+            return [
+                Color(red: 0.6, green: 0.1, blue: 0.8),  // Violet foncé
+                Color(red: 0.9, green: 0.3, blue: 0.9),  // Magenta
+                Color(red: 0.8, green: 0.2, blue: 1.0)   // Violet clair
+            ]
+        case 0.7..<0.9:  // Rouge intense
+            return [
+                Color(red: 0.8, green: 0.1, blue: 0.2),  // Rouge foncé
+                Color(red: 1.0, green: 0.2, blue: 0.3),  // Rouge vif
+                Color(red: 1.0, green: 0.4, blue: 0.4)   // Rouge clair
+            ]
+        case 0.5..<0.7:  // Orange élevé
+            return [
+                Color(red: 1.0, green: 0.4, blue: 0.1),  // Orange foncé
+                Color(red: 1.0, green: 0.6, blue: 0.2),  // Orange
+                Color(red: 1.0, green: 0.7, blue: 0.3)   // Orange clair
+            ]
+        case 0.3..<0.5:  // Jaune modéré
+            return [
+                Color(red: 1.0, green: 0.7, blue: 0.1),  // Jaune doré
+                Color(red: 1.0, green: 0.8, blue: 0.2),  // Jaune
+                Color(red: 1.0, green: 0.9, blue: 0.4)   // Jaune clair
+            ]
+        default:         // Vert faible
+            return [
+                Color(red: 0.2, green: 0.7, blue: 0.3),  // Vert foncé
+                Color(red: 0.3, green: 0.8, blue: 0.4),  // Vert
+                Color(red: 0.5, green: 0.9, blue: 0.5)   // Vert clair
+            ]
         }
     }
 }

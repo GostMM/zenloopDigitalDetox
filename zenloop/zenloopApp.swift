@@ -9,6 +9,8 @@ import SwiftUI
 import DeviceActivity
 import UserNotifications
 import Firebase
+import FamilyControls
+import ManagedSettings
 
 @main
 struct zenloopApp: App {
@@ -17,9 +19,80 @@ struct zenloopApp: App {
     @StateObject private var quickActionsManager = QuickActionsManager.shared
     @StateObject private var quickActionsBridge = QuickActionsBridge.shared
     @State private var showSplash = true
+    @State private var isFirebaseConfigured = false
 
     init() {
-        FirebaseApp.configure()
+        // OPTIMIZATION: Firebase configuration moved to async Task
+        // This prevents blocking the main thread before first frame
+
+        // ✅ CRITIQUE: Initialiser le GlobalShieldManager (store par défaut)
+        // C'EST LUI qui gère la persistance !
+        Task { @MainActor in
+            _ = GlobalShieldManager.shared
+        }
+
+        // ✅ NOUVEAU: Initialiser BlockController pour écouter les demandes de blocage
+        // depuis l'extension DeviceActivityReport
+        _ = BlockController.shared
+
+        // Écouter les Darwin Notifications (inter-process)
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            { _, _, name, _, _ in
+                if let notificationName = name?.rawValue as String? {
+                    if notificationName == "com.app.zenloop.ApplyBlock" {
+                        print("📬 [MAIN APP] Received Darwin notification: ApplyBlock")
+
+                        // Traiter le blocage depuis App Group
+                        DispatchQueue.main.async {
+                            if let suite = UserDefaults(suiteName: "group.com.app.zenloop"),
+                               let blockId = suite.string(forKey: "pending_apply_block_id") {
+                                print("🔒 [MAIN APP] Applying block: \(blockId)")
+                                // Appliquer depuis ici
+                                Self.applyBlockStatic(blockId: blockId)
+
+                                // Nettoyer
+                                suite.removeObject(forKey: "pending_apply_block_id")
+                                suite.removeObject(forKey: "pending_apply_block_timestamp")
+                                suite.synchronize()
+                            }
+                        }
+                    }
+
+                    // ✅ NOUVEAU: Écouter les demandes de blocage depuis Report Extension
+                    if notificationName == "com.app.zenloop.RequestBlockFromReport" {
+                        print("📬 [MAIN APP] Received block request from Report Extension")
+
+                        DispatchQueue.main.async {
+                            Self.processReportExtensionBlockRequest()
+                        }
+                    }
+                }
+            },
+            "com.app.zenloop.ApplyBlock" as CFString,
+            nil,
+            .deliverImmediately
+        )
+
+        // ✅ Écouter aussi les demandes depuis Report Extension
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            { _, _, name, _, _ in
+                if let notificationName = name?.rawValue as String?,
+                   notificationName == "com.app.zenloop.RequestBlockFromReport" {
+                    print("📬 [MAIN APP] Received block request from Report Extension")
+
+                    DispatchQueue.main.async {
+                        Self.processReportExtensionBlockRequest()
+                    }
+                }
+            },
+            "com.app.zenloop.RequestBlockFromReport" as CFString,
+            nil,
+            .deliverImmediately
+        )
     }
 
     var body: some Scene {
@@ -38,32 +111,51 @@ struct zenloopApp: App {
                 .onAppear {
                     // 🌟 Compter l'ouverture de l'app pour le système de notation
                     AppRatingManager.shared.recordAppLaunch()
+
+                    // 🎧 NOUVEAU: Démarrer l'écoute des commandes depuis l'extension
+                    Task { @MainActor in
+                        BlockCommandCoordinator.shared.startMonitoring()
+                    }
+
+                    // 🚀 CRUCIAL: Activer le Monitor Extension pour qu'il puisse traiter les blocages
+                    MonitorActivator.shared.activateMonitor()
+
+                    // ✅ CRUCIAL: Vérifier IMMÉDIATEMENT s'il y a un block en attente
+                    checkAndApplyPendingBlocks()
+
+                    // ✅ NOUVEAU: Vérifier s'il y a des pending blocks depuis l'extension
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        BlockController.shared.processPendingBlockRequest()
+                    }
+
                     // Initialisation asynchrone pour éviter les lags au démarrage
                     Task {
+                        // OPTIMIZATION: Configure Firebase asynchronously (200-500ms saved on main thread)
+                        if !isFirebaseConfigured {
+                            FirebaseApp.configure()
+                            isFirebaseConfigured = true
+                        }
+
                         // Firebase: Enregistrer le device au premier lancement
                         await FirebaseManager.shared.registerDeviceOnFirstLaunch()
 
                         // Clean up obsolete App Group keys
                         cleanupAppGroup()
 
-                        // DEBUG: Test PurchaseManager initialization (background)
-                        print("🎯 App started - Testing PurchaseManager...")
-                        let manager = PurchaseManager.shared
-                        print("🎯 PurchaseManager instance created: \(manager)")
-                        print("🎯 Current products count: \(manager.products.count)")
-                        
+                        // REMOVED: Debug code that forced PurchaseManager initialization
+                        // This was causing 200-500ms delay at startup
+                        // PurchaseManager should be lazy-loaded only when needed
+
                         // REMOVED: Ne plus demander autorisation Screen Time automatiquement
                         // Les permissions seront demandées dans l'onboarding uniquement
-                        
+
                         // NOUVEAU: Précharger les données stats en arrière-plan
                         preloadStatsData()
-                        
-                        // TEST: Déclencher l'extension après 3 secondes pour voir si elle répond
-                        try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 secondes
-                        testExtensionResponse()
-                        
-                        // Surveiller l'extension status périodiquement
-                        startExtensionMonitoring()
+
+                        // DISABLED: Debug code that creates test payloads and polls App Group
+                        // try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 secondes
+                        // testExtensionResponse()
+                        // startExtensionMonitoring()
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
@@ -208,8 +300,21 @@ struct zenloopApp: App {
     // MARK: - App Group Cleanup
 
     func cleanupAppGroup() {
+        // OPTIMIZATION: Only run cleanup weekly to avoid I/O overhead at every launch
+        let lastCleanupKey = "last_appgroup_cleanup"
+        let weekInSeconds: TimeInterval = 7 * 24 * 60 * 60
+
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
             print("⚠️ [CLEANUP] Cannot access App Group")
+            return
+        }
+
+        // Check if cleanup is needed
+        let lastCleanup = suite.double(forKey: lastCleanupKey)
+        let timeSinceLastCleanup = Date().timeIntervalSince1970 - lastCleanup
+
+        if lastCleanup > 0 && timeSinceLastCleanup < weekInSeconds {
+            print("⏭️ [CLEANUP] Skipping - last cleanup was \(Int(timeSinceLastCleanup / 3600)) hours ago")
             return
         }
 
@@ -239,6 +344,8 @@ struct zenloopApp: App {
             removedCount += 1
         }
 
+        // Update last cleanup timestamp
+        suite.set(Date().timeIntervalSince1970, forKey: lastCleanupKey)
         suite.synchronize()
 
         print("✅ [CLEANUP] Removed \(removedCount) obsolete keys")
@@ -273,6 +380,22 @@ struct zenloopApp: App {
               scheme == "zenloop" else {
             return
         }
+
+        // ✅ CRUCIAL: Gérer apply-block depuis Report Extension
+        if components.host == "apply-block" {
+            let queryItems = components.queryItems ?? []
+            if let blockId = queryItems.first(where: { $0.name == "id" })?.value {
+                print("🔒 [DEEP_LINK] Applying block from Report Extension: \(blockId)")
+
+                // IMPORTANT: Traiter depuis App Group, pas depuis BlockManager
+                // Car le BlockManager pourrait ne pas encore avoir le block
+                // Il faut lire depuis les clés pending_block_*
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    Self.processReportExtensionBlockRequest()
+                }
+            }
+            return
+        }
         
         // Handle special widget actions with parameters
         if components.host == "quickfocus" {
@@ -298,6 +421,10 @@ struct zenloopApp: App {
             return
         case "newsession":
             handleSessionControl(.start)
+            return
+        case "block-app":
+            // Trigger immediate processing of pending app block
+            ZenloopManager.shared.checkForPendingAppBlock()
             return
         default:
             break
@@ -363,6 +490,187 @@ struct zenloopApp: App {
         }
     }
     
+    func checkAndApplyPendingBlocks() {
+        print("🔍 [CHECK_PENDING] Checking for pending blocks...")
+
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop"),
+              let blockId = suite.string(forKey: "pending_apply_block_id") else {
+            print("   → No pending blocks")
+            return
+        }
+
+        let timestamp = suite.double(forKey: "pending_apply_block_timestamp")
+        let age = Date().timeIntervalSince1970 - timestamp
+
+        // Si le block a plus de 5 minutes, l'ignorer
+        guard age < 300 else {
+            print("   → Pending block too old (\(Int(age))s), ignoring")
+            suite.removeObject(forKey: "pending_apply_block_id")
+            suite.removeObject(forKey: "pending_apply_block_timestamp")
+            suite.synchronize()
+            return
+        }
+
+        print("🚨 [CHECK_PENDING] Found pending block: \(blockId) (age: \(Int(age))s)")
+        print("   → Applying NOW...")
+
+        // Appliquer le block
+        Self.applyBlockStatic(blockId: blockId)
+
+        // Nettoyer
+        suite.removeObject(forKey: "pending_apply_block_id")
+        suite.removeObject(forKey: "pending_apply_block_timestamp")
+        suite.synchronize()
+
+        print("✅ [CHECK_PENDING] Pending block applied and cleared")
+    }
+
+    static func applyBlockStatic(blockId: String) {
+        print("🔒 [APPLY_BLOCK] Starting block application for ID: \(blockId)")
+
+        let blockManager = BlockManager()
+        guard let block = blockManager.getBlock(id: blockId) else {
+            print("❌ [APPLY_BLOCK] Block not found: \(blockId)")
+            return
+        }
+
+        #if os(iOS)
+        // Décoder le token
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
+              let token = selection.applicationTokens.first else {
+            print("❌ [APPLY_BLOCK] Failed to decode token")
+            return
+        }
+
+        print("✅ [APPLY_BLOCK] Token decoded for: \(block.appName)")
+
+        // ✅ UTILISER LE GLOBAL SHIELD MANAGER (store par défaut)
+        Task { @MainActor in
+            GlobalShieldManager.shared.addBlock(
+                token: token,
+                blockId: blockId,
+                appName: block.appName
+            )
+        }
+
+        print("🛡️ [APPLY_BLOCK] Block added to global shield")
+
+        // Notification de succès
+        let content = UNMutableNotificationContent()
+        content.title = "✅ App Bloquée"
+        content.body = "\(block.appName) est maintenant bloquée pour \(Int(block.originalDuration/60)) minutes"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "block_applied_\(blockId)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ [APPLY_BLOCK] Notification error: \(error)")
+            }
+        }
+        #endif
+    }
+
+    // ✅ NOUVEAU: Traiter les demandes de blocage depuis Report Extension
+    static func processReportExtensionBlockRequest() {
+        print("🔍 [REPORT_BLOCK] Processing block request from Report Extension")
+
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [REPORT_BLOCK] Cannot access App Group")
+            return
+        }
+
+        // Lire les données du blocage
+        guard let tokenData = suite.data(forKey: "pending_block_tokenData"),
+              let appName = suite.string(forKey: "pending_block_appName"),
+              let duration = suite.object(forKey: "pending_block_duration") as? TimeInterval,
+              let storeName = suite.string(forKey: "pending_block_storeName"),
+              let blockId = suite.string(forKey: "pending_block_id") else {
+            print("⚠️ [REPORT_BLOCK] No pending block data found")
+            return
+        }
+
+        print("📨 [REPORT_BLOCK] Found block request: \(appName) for \(Int(duration/60))min")
+
+        #if os(iOS)
+        // Décoder le token
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
+              let token = selection.applicationTokens.first else {
+            print("❌ [REPORT_BLOCK] Failed to decode token")
+            return
+        }
+
+        print("✅ [REPORT_BLOCK] Token decoded successfully")
+
+        // Créer le block dans BlockManager
+        let blockManager = BlockManager()
+        let block = blockManager.addBlock(
+            appName: appName,
+            duration: duration,
+            tokenData: tokenData,
+            context: "FullStatsPageView"
+        )
+
+        print("💾 [REPORT_BLOCK] Block saved: \(block.id)")
+
+        // Appliquer le shield via GlobalShieldManager
+        Task { @MainActor in
+            GlobalShieldManager.shared.addBlock(
+                token: token,
+                blockId: block.id,
+                appName: appName
+            )
+            print("🛡️ [REPORT_BLOCK] Shield applied for: \(appName)")
+        }
+
+        // Programmer le déblocage automatique
+        let unblockTime = Date().timeIntervalSince1970 + duration
+        let unblockInfo: [String: Any] = [
+            "blockId": block.id,
+            "storeName": storeName,
+            "appName": appName,
+            "unblockTime": unblockTime
+        ]
+
+        var scheduledUnblocks = suite.array(forKey: "scheduled_unblocks") as? [[String: Any]] ?? []
+        scheduledUnblocks.append(unblockInfo)
+        suite.set(scheduledUnblocks, forKey: "scheduled_unblocks")
+
+        // Nettoyer les clés pending_block_*
+        suite.removeObject(forKey: "pending_block_tokenData")
+        suite.removeObject(forKey: "pending_block_appName")
+        suite.removeObject(forKey: "pending_block_duration")
+        suite.removeObject(forKey: "pending_block_storeName")
+        suite.removeObject(forKey: "pending_block_id")
+        suite.removeObject(forKey: "pending_block_timestamp")
+        suite.synchronize()
+
+        print("✅ [REPORT_BLOCK] Block request processed successfully")
+
+        // Notification de confirmation
+        let content = UNMutableNotificationContent()
+        content.title = "✅ App Bloquée"
+        content.body = "\(appName) est maintenant bloquée pour \(Int(duration/60)) minutes"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "block_from_report_\(block.id)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ [REPORT_BLOCK] Notification error: \(error)")
+            }
+        }
+        #endif
+    }
+
     func checkForWidgetActions() {
         // Check for pending widget actions in App Group
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")

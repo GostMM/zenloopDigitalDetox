@@ -20,7 +20,7 @@ struct HomeView: View {
     @State private var showContent = false
     @State private var syncTimer: Timer?
 
-    
+
     // MARK: - Computed Properties
     
     private var isIdle: Bool {
@@ -215,11 +215,6 @@ struct HomeView: View {
     private var commonSections: some View {
         StatsInsightsSection(
             badgeManager: badgeManager,
-            zenloopManager: zenloopManager,
-            showContent: showContent
-        )
-        
-        RecentActivitySection(
             zenloopManager: zenloopManager,
             showContent: showContent
         )

@@ -22,6 +22,7 @@ struct SharedReportPayload: Codable {
     let todayScreenSeconds: Double
     let todayOffScreenSeconds: Double
     let topApps: [SharedReportApp]  // ✅ Ajout des top apps
+    let hourlyData: [SharedReportHourPoint]  // ✅ Ajout des données horaires
 }
 
 struct SharedReportApp: Codable {
@@ -39,14 +40,24 @@ struct SharedReportCategory: Codable {
 struct SharedReportDayPoint: Codable {
     let dayStart: TimeInterval
     let seconds: Double
-    
-    var date: Date { 
-        Date(timeIntervalSince1970: dayStart) 
+
+    var date: Date {
+        Date(timeIntervalSince1970: dayStart)
     }
-    
-    var hours: Double { 
-        seconds / 3600 
+
+    var hours: Double {
+        seconds / 3600
     }
+}
+
+struct SharedReportHourPoint: Codable {
+    let hour: Int
+    let categories: [SharedReportHourCategory]
+}
+
+struct SharedReportHourCategory: Codable {
+    let name: String
+    let seconds: Double
 }
 
 // MARK: - App Group Configuration

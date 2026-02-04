@@ -1148,6 +1148,8 @@ class ZenloopManager: ObservableObject {
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkForExtensionActivatedSession()
+                self?.checkForPendingAppBlock()
+                self?.checkAndUnblockExpiredApps()
             }
         }
     }
@@ -1237,7 +1239,127 @@ class ZenloopManager: ObservableObject {
         
         print("✅ [ZENLOOP] Finished processing session queue")
     }
-    
+
+    // MARK: - Pending App Block Monitoring
+
+    @MainActor
+    func checkForPendingAppBlock() {
+        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
+
+        guard let blockData = suite?.dictionary(forKey: "pending_app_block"),
+              let appName = blockData["appName"] as? String,
+              let duration = blockData["duration"] as? TimeInterval,
+              let timestamp = blockData["timestamp"] as? TimeInterval else {
+            return // Pas de blocage en attente
+        }
+
+        // Vérifier que la demande n'est pas trop ancienne (max 30 secondes)
+        let requestAge = Date().timeIntervalSince1970 - timestamp
+        guard requestAge < 30 else {
+            suite?.removeObject(forKey: "pending_app_block")
+            suite?.synchronize()
+            print("⏰ [APP_BLOCK] Request expired (age: \(Int(requestAge))s)")
+            return
+        }
+
+        print("🔒 [APP_BLOCK] Processing block request for: \(appName) (\(Int(duration/60))min)")
+
+        // Trouver l'app dans la sélection actuelle en utilisant le nom
+        let currentSelection = appRestrictionCoordinator.getAppsSelection()
+        var foundToken: ApplicationToken? = nil
+
+        for token in currentSelection.applicationTokens {
+            let app = Application(token: token)
+            let displayName = app.localizedDisplayName ?? app.bundleIdentifier ?? ""
+
+            // Comparer les noms (insensible à la casse)
+            if displayName.lowercased().contains(appName.lowercased()) ||
+               appName.lowercased().contains(displayName.lowercased()) {
+                foundToken = token
+                print("✅ [APP_BLOCK] Found matching app token for '\(appName)' (matched: \(displayName))")
+                break
+            }
+        }
+
+        // Si on a trouvé le token, créer une sélection avec uniquement cette app
+        if let token = foundToken {
+            var tempSelection = FamilyActivitySelection()
+            tempSelection.applicationTokens.insert(token)
+
+            // Mettre à jour temporairement la sélection
+            appRestrictionCoordinator.updateAppsSelection(tempSelection)
+
+            // Activer le flag pour utiliser cette sélection
+            suite?.set(true, forKey: "use_single_app_token")
+            suite?.synchronize()
+            print("💾 [APP_BLOCK] Set temporary single app token")
+        } else {
+            print("⚠️ [APP_BLOCK] App '\(appName)' not found in current selection, will block all selected apps")
+        }
+
+        // Créer une session de blocage pour cette app
+        let blockChallenge = ZenloopChallenge(
+            id: "app-block-\(UUID().uuidString)",
+            title: "🚫 \(appName)",
+            description: "Blocage temporaire de \(appName)",
+            duration: duration,
+            difficulty: .hard, // Hard = masquage complet
+            startTime: Date(),
+            isActive: true
+        )
+
+        // Si une session est déjà active, on la stoppe avant
+        if currentState == .active {
+            print("⚠️ [APP_BLOCK] Stopping current session before blocking app")
+            stopCurrentChallenge()
+
+            // Petit délai pour laisser le temps d'arrêter proprement
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.startAppBlockSession(blockChallenge)
+            }
+        } else {
+            startAppBlockSession(blockChallenge)
+        }
+
+        // Nettoyer la demande
+        suite?.removeObject(forKey: "pending_app_block")
+        suite?.synchronize()
+    }
+
+    private func startAppBlockSession(_ challenge: ZenloopChallenge) {
+        print("▶️ [APP_BLOCK] Starting block session: \(challenge.title)")
+
+        // Démarrer la session via le système normal
+        startSavedCustomChallenge(challenge)
+
+        print("✅ [APP_BLOCK] Session started successfully")
+    }
+
+    // MARK: - Auto-Unblock Expired Apps
+
+    @MainActor
+    private func checkAndUnblockExpiredApps() {
+        let blockManager = BlockManager()
+        let activeBlocks = blockManager.getActiveBlocks()
+
+        for block in activeBlocks {
+            // Vérifier si expiré
+            if block.isExpired {
+                print("🔓 [AUTO_UNBLOCK] Unblocking \(block.appName) (expired)")
+
+                // Débloquer l'app en nettoyant le store
+                let store = ManagedSettingsStore(named: .init(block.storeName))
+                store.clearAllSettings()
+
+                // Marquer comme expiré dans BlockManager
+                blockManager.updateBlockStatus(id: block.id, status: .expired)
+            }
+        }
+
+        // Nettoyer les blocages terminés (expired/stopped) de temps en temps
+        blockManager.removeExpiredAndStoppedBlocks()
+    }
+
     private func activateScheduledSession(_ challenge: ZenloopChallenge) {
         // VÉRIFICATION DE COHÉRENCE: S'il y a déjà une session active
         if currentState == .active, let existingChallenge = currentChallenge {

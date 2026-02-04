@@ -9,6 +9,9 @@ import ManagedSettings
 import FamilyControls
 import os.log
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.app.zenloop.zenloopactivity", category: "TotalActivityReport")
 
 // MARK: - Extension Types
 
@@ -20,6 +23,18 @@ struct ExtensionActivityReport {
     let categories: [ExtensionCategoryUsage]
     let todayScreenSeconds: TimeInterval
     let todayOffScreenSeconds: TimeInterval
+    let hourlyData: [ExtensionHourData]  // ← Nouvelles données horaires
+    // ✅ OPTIMIZED: Métriques pré-calculées
+    let focusScore: Int
+    let topThreeMostUsed: [ExtensionAppUsage]
+    let categoriesCount: Int
+}
+
+struct ExtensionHourData: Identifiable {
+    let id = UUID()
+    let hour: Int  // 0-23
+    let totalMinutes: Double
+    let categories: [String: Double]  // [categoryName: minutes]
 }
 
 struct ExtensionAppUsage: Identifiable, Hashable {
@@ -114,6 +129,7 @@ struct SharedReportDayPoint: Codable {
 
 extension DeviceActivityReport.Context {
     static let totalActivity = Self("TotalActivity")
+    static let fullStatsPage = Self("FullStatsPage")
 }
 
 // MARK: - Report Scene
@@ -150,12 +166,16 @@ struct TotalActivityReport: DeviceActivityReportScene {
         
         let cal = Calendar.current
         logger.critical("🔍 [REPORT] Start processing DeviceActivity data...")
-        
+
+        var segmentCount = 0
         for await datum in data {
             for await segment in datum.activitySegments {
                 let seg = segment.dateInterval
                 let segDur = segment.totalActivityDuration
                 guard segDur > 0 else { continue }
+
+                segmentCount += 1
+                logger.info("📍 [REPORT] Segment #\(segmentCount): \(seg.start) to \(seg.end), duration: \(segDur)s")
                 
                 totalDuration += segDur
                 if globalStart == nil || seg.start < globalStart! { globalStart = seg.start }
@@ -166,9 +186,6 @@ struct TotalActivityReport: DeviceActivityReportScene {
                     dailyDurations[dayStart, default: 0] += secs
                 }
 
-                // ✅ Extraire l'heure pour les données horaires
-                let segmentHour = cal.component(.hour, from: seg.start)
-
                 // Catégories & apps
                 for await catActivity in segment.categories {
                     let cat: ActivityCategory = catActivity.category
@@ -178,11 +195,13 @@ struct TotalActivityReport: DeviceActivityReportScene {
                     categoryDisplayNameByID[catID] = catName
                     categoryDurationsByID[catID, default: 0] += catActivity.totalActivityDuration
 
-                    // ✅ Ajouter aux données horaires
-                    if hourlyData[segmentHour] == nil {
-                        hourlyData[segmentHour] = [:]
+                    // ✅ Distribuer les données horaires sur toutes les heures couvertes par le segment
+                    distributeHourly(segment: seg, duration: catActivity.totalActivityDuration, calendar: cal) { hour, secs in
+                        if hourlyData[hour] == nil {
+                            hourlyData[hour] = [:]
+                        }
+                        hourlyData[hour]![catName, default: 0] += secs
                     }
-                    hourlyData[segmentHour]![catName, default: 0] += catActivity.totalActivityDuration
                     
                     for await app in catActivity.applications {
                         let dur = app.totalActivityDuration
@@ -292,7 +311,27 @@ struct TotalActivityReport: DeviceActivityReportScene {
         logger.info("✅ [REPORT] total=\(totalDuration, privacy: .public)s avgDaily=\(averageDaily, privacy: .public)s days=\(dayCount, privacy: .public)")
         logger.info("📊 [REPORT] apps=\(allApps.count, privacy: .public) topCats=\(top4.count, privacy: .public)")
         logger.info("📅 [REPORT] todayScreen=\(todayScreen, privacy: .public)s todayOff=\(todayOff, privacy: .public)s")
-        
+
+        // Convertir hourlyData en ExtensionHourData
+        logger.info("📊 [REPORT] Converting hourlyData to ExtensionHourData...")
+        logger.info("📊 [REPORT] hourlyData has \(hourlyData.count) hours with data")
+        for (hour, catData) in hourlyData.sorted(by: { $0.key < $1.key }) {
+            let totalSecs = catData.values.reduce(0, +)
+            logger.info("  → Hour \(hour): \(totalSecs)s = \(totalSecs/60.0)min")
+        }
+
+        let extensionHourlyData = (0..<24).compactMap { hour -> ExtensionHourData? in
+            guard let catData = hourlyData[hour], !catData.isEmpty else { return nil }
+            let totalMinutes = catData.values.reduce(0, +) / 60.0
+            return ExtensionHourData(hour: hour, totalMinutes: totalMinutes, categories: catData.mapValues { $0 / 60.0 })
+        }
+
+        logger.info("📊 [REPORT] Created \(extensionHourlyData.count) ExtensionHourData entries")
+
+        // ✅ OPTIMIZED: Pré-calculer le focus score
+        let focusScore = calculateFocusScore(from: allCategories)
+        logger.info("🎯 [REPORT] Calculated focus score: \(focusScore)%")
+
         return ExtensionActivityReport(
             totalDuration: totalDuration,
             averageDaily: averageDaily,
@@ -300,9 +339,41 @@ struct TotalActivityReport: DeviceActivityReportScene {
             allApps: allApps,
             categories: top4,
             todayScreenSeconds: todayScreen,
-            todayOffScreenSeconds: todayOff
+            todayOffScreenSeconds: todayOff,
+            hourlyData: extensionHourlyData,
+            focusScore: focusScore,
+            topThreeMostUsed: Array(allApps.prefix(3)),
+            categoriesCount: allCategories.count
         )
     }
+}
+
+// MARK: - Helpers
+
+/// ✅ OPTIMIZED: Calculer le focus score basé sur le temps productif vs distrayant
+private func calculateFocusScore(from categories: [ExtensionCategoryUsage]) -> Int {
+    guard !categories.isEmpty else { return 0 }
+
+    let distractingKeywords = ["Social", "Entertainment", "Games", "Photo", "Video"]
+
+    var productiveTime: TimeInterval = 0
+    var distractingTime: TimeInterval = 0
+
+    for category in categories {
+        let isDistracting = distractingKeywords.contains(where: { category.categoryName.contains($0) })
+
+        if isDistracting {
+            distractingTime += category.duration
+        } else {
+            productiveTime += category.duration
+        }
+    }
+
+    let totalTime = productiveTime + distractingTime
+    guard totalTime > 0 else { return 0 }
+
+    let score = Int((productiveTime / totalTime) * 100)
+    return score
 }
 
 // MARK: - Catégories & libellés
@@ -360,6 +431,57 @@ private func distribute(segment: DateInterval,
     }
 }
 
+/// Distribue une durée sur toutes les heures couvertes par un segment (SEULEMENT AUJOURD'HUI)
+private func distributeHourly(segment: DateInterval,
+                               duration: TimeInterval,
+                               calendar: Calendar,
+                               sink: (Int, TimeInterval) -> Void) {
+    guard duration > 0, segment.duration > 0 else { return }
+
+    // ✅ Limiter aux heures d'aujourd'hui seulement (de minuit à maintenant)
+    let todayStart = calendar.startOfDay(for: Date())
+    let now = Date()
+
+    // Intersection du segment avec aujourd'hui
+    let segmentStart = max(segment.start, todayStart)
+    let segmentEnd = min(segment.end, now)
+
+    guard segmentStart < segmentEnd else {
+        logger.info("🔍 [HOURLY] Segment is not in today's range, skipping")
+        return
+    }
+
+    let todayDuration = segmentEnd.timeIntervalSince(segmentStart)
+    let proportion = todayDuration / segment.duration
+    let todayAllocatedDuration = duration * proportion
+
+    logger.info("🔍 [HOURLY] Distributing \(todayAllocatedDuration)s from \(segmentStart) to \(segmentEnd) (today only)")
+
+    var cursor = segmentStart
+    let end = segmentEnd
+
+    while cursor < end {
+        // Trouver le début de l'heure suivante
+        let currentHour = calendar.component(.hour, from: cursor)
+        let startOfCurrentHour = calendar.date(bySetting: .minute, value: 0, of: cursor) ?? cursor
+        let startOfCurrentHourWithSeconds = calendar.date(bySetting: .second, value: 0, of: startOfCurrentHour) ?? startOfCurrentHour
+
+        guard let startOfNextHour = calendar.date(byAdding: .hour, value: 1, to: startOfCurrentHourWithSeconds) else { break }
+
+        let intervalEnd = min(startOfNextHour, end)
+        let overlap = intervalEnd.timeIntervalSince(cursor)
+
+        if overlap > 0 {
+            let hourProportion = overlap / todayDuration
+            let allocatedSeconds = todayAllocatedDuration * hourProportion
+            logger.info("  → Hour \(currentHour): \(allocatedSeconds)s (overlap: \(overlap)s, proportion: \(hourProportion))")
+            sink(currentHour, allocatedSeconds)
+        }
+
+        cursor = intervalEnd
+    }
+}
+
 // MARK: - Persistance App Group
 
 private func persistSharedReport(_ payload: SharedReportPayload) {
@@ -413,5 +535,202 @@ private func persistLegacyMirror(total: TimeInterval,
     shared.set(dict, forKey: "DeviceActivityData")
     shared.synchronize()
     logger.info("💾 [REPORT] Legacy mirror écrit (DeviceActivityData)")
+}
+
+// MARK: - Full Stats Page Report Scene
+
+struct FullStatsPageReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .init("FullStatsPage")
+    let content: (ExtensionActivityReport) -> FullStatsPageView
+
+    private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "FullStatsPageReport")
+    private let appGroupSuite = "group.com.app.zenloop"
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ExtensionActivityReport {
+        logger.critical("🚀 [FULLSTATS] === FullStatsPageReport makeConfiguration CALLED ===")
+        logger.critical("🚀 [FULLSTATS] Context: \(context.rawValue)")
+
+        var totalDuration: TimeInterval = 0
+
+        // Agrégations
+        var appDurations: [ApplicationToken: (name: String, duration: TimeInterval)] = [:]
+        var categoryDurationsByID: [String: TimeInterval] = [:]
+        var categoryDisplayNameByID: [String: String] = [:]
+        var categoryAppTokensByID: [String: Set<ApplicationToken>] = [:]
+        var dailyDurations: [Date: TimeInterval] = [:]
+        var hourlyData: [Int: [String: TimeInterval]] = [:]
+
+        var globalStart: Date?
+        var globalEnd: Date?
+
+        let cal = Calendar.current
+        logger.critical("🔍 [FULLSTATS] Start processing DeviceActivity data...")
+
+        var segmentCount = 0
+        for await datum in data {
+            for await segment in datum.activitySegments {
+                let seg = segment.dateInterval
+                let segDur = segment.totalActivityDuration
+                guard segDur > 0 else { continue }
+
+                segmentCount += 1
+                logger.critical("📍 [FULLSTATS] Segment #\(segmentCount): \(seg.start, privacy: .public) to \(seg.end, privacy: .public), duration: \(segDur)s")
+
+                totalDuration += segDur
+                if globalStart == nil || seg.start < globalStart! { globalStart = seg.start }
+                if globalEnd == nil || seg.end > globalEnd! { globalEnd = seg.end }
+
+                distribute(segment: seg, duration: segDur, calendar: cal) { dayStart, secs in
+                    dailyDurations[dayStart, default: 0] += secs
+                }
+
+                for await catActivity in segment.categories {
+                    let cat: ActivityCategory = catActivity.category
+                    let catID = stableCategoryID(cat)
+                    let catName = displayName(for: cat)
+
+                    categoryDisplayNameByID[catID] = catName
+                    categoryDurationsByID[catID, default: 0] += catActivity.totalActivityDuration
+
+                    // ✅ Distribuer les données horaires sur toutes les heures couvertes par le segment
+                    distributeHourly(segment: seg, duration: catActivity.totalActivityDuration, calendar: cal) { hour, secs in
+                        if hourlyData[hour] == nil {
+                            hourlyData[hour] = [:]
+                        }
+                        hourlyData[hour]![catName, default: 0] += secs
+                    }
+
+                    for await app in catActivity.applications {
+                        let dur = app.totalActivityDuration
+                        guard dur > 0 else { continue }
+                        let name = app.application.localizedDisplayName
+                            ?? app.application.bundleIdentifier
+                            ?? "Application"
+                        if let token = app.application.token {
+                            var cur = appDurations[token] ?? (name: name, duration: 0)
+                            if cur.name.isEmpty, !name.isEmpty { cur.name = name }
+                            cur.duration += dur
+                            appDurations[token] = cur
+
+                            var set = categoryAppTokensByID[catID] ?? []
+                            set.insert(token)
+                            categoryAppTokensByID[catID] = set
+                        }
+                    }
+                }
+            }
+        }
+
+        let allApps: [ExtensionAppUsage] = appDurations
+            .map { (token, v) in
+                #if os(iOS)
+                ExtensionAppUsage(name: v.name, duration: v.duration, token: token)
+                #else
+                ExtensionAppUsage(name: v.name, duration: v.duration)
+                #endif
+            }
+            .sorted { $0.duration > $1.duration }
+
+        let allCategories: [ExtensionCategoryUsage] = categoryDurationsByID.map { (catID, secs) in
+            let name = categoryDisplayNameByID[catID] ?? catID
+            let appCount = categoryAppTokensByID[catID]?.count ?? 0
+            return ExtensionCategoryUsage(categoryName: name, duration: secs, appCount: appCount)
+        }
+        .sorted { $0.duration > $1.duration }
+
+        let top4 = Array(allCategories.prefix(4))
+
+        let daysSorted = dailyDurations
+            .map { (cal.startOfDay(for: $0.key), $0.value) }
+            .reduce(into: [Date: TimeInterval]()) { acc, pair in
+                acc[pair.0, default: 0] += pair.1
+            }
+            .sorted { $0.key < $1.key }
+
+        let dayCount = max(1, daysSorted.count)
+        let averageDaily = totalDuration / Double(dayCount)
+
+        let start = globalStart ?? Date()
+        let end = globalEnd ?? start
+
+        let todayStart = cal.startOfDay(for: Date())
+        let todayScreen = dailyDurations[todayStart] ?? 0
+        let elapsedToday = max(0, Date().timeIntervalSince(todayStart))
+        let todayOff = max(0, elapsedToday - todayScreen)
+
+        let topAppsShared = Array(allApps.prefix(10)).map { app in
+            SharedReportApp(
+                name: app.name,
+                seconds: app.duration,
+                bundleId: nil
+            )
+        }
+
+        let hourlyDataShared = (0..<24).map { hour -> SharedReportHourPoint in
+            let categories = (hourlyData[hour] ?? [:]).map { catName, secs in
+                SharedReportHourCategory(name: catName, seconds: secs)
+            }.sorted { $0.seconds > $1.seconds }
+            return SharedReportHourPoint(hour: hour, categories: categories)
+        }
+
+        let payload = SharedReportPayload(
+            intervalStart: start.timeIntervalSince1970,
+            intervalEnd: end.timeIntervalSince1970,
+            totalSeconds: totalDuration,
+            averageDailySeconds: averageDaily,
+            updatedAt: Date().timeIntervalSince1970,
+            topCategories: top4.map {
+                SharedReportCategory(name: $0.categoryName, seconds: $0.duration, appCount: $0.appCount)
+            },
+            days: daysSorted.map {
+                SharedReportDayPoint(dayStart: $0.key.timeIntervalSince1970, seconds: $0.value)
+            },
+            todayScreenSeconds: todayScreen,
+            todayOffScreenSeconds: todayOff,
+            topApps: topAppsShared,
+            hourlyData: hourlyDataShared
+        )
+        persistSharedReport(payload)
+
+        logger.info("✅ [FULLSTATS] total=\(totalDuration, privacy: .public)s avgDaily=\(averageDaily, privacy: .public)s")
+        logger.info("📊 [FULLSTATS] apps=\(allApps.count, privacy: .public) topCats=\(top4.count, privacy: .public)")
+
+        // Convertir hourlyData en ExtensionHourData
+        logger.critical("📊 [FULLSTATS] Converting hourlyData to ExtensionHourData...")
+        logger.critical("📊 [FULLSTATS] hourlyData has \(hourlyData.count) hours with data")
+        for (hour, catData) in hourlyData.sorted(by: { $0.key < $1.key }) {
+            let totalSecs = catData.values.reduce(0, +)
+            logger.critical("  → Hour \(hour): \(totalSecs)s = \(totalSecs/60.0)min")
+        }
+
+        let extensionHourlyData = (0..<24).compactMap { hour -> ExtensionHourData? in
+            guard let catData = hourlyData[hour], !catData.isEmpty else { return nil }
+            let totalMinutes = catData.values.reduce(0, +) / 60.0
+            return ExtensionHourData(hour: hour, totalMinutes: totalMinutes, categories: catData.mapValues { $0 / 60.0 })
+        }
+
+        logger.critical("📊🚀🚀🚀 [FULLSTATS] Created \(extensionHourlyData.count) ExtensionHourData entries")
+        for data in extensionHourlyData {
+            logger.critical("  ✅ Hour \(data.hour): \(String(format: "%.1f", data.totalMinutes))min")
+        }
+
+        // ✅ OPTIMIZED: Pré-calculer le focus score
+        let focusScore = calculateFocusScore(from: allCategories)
+        logger.critical("🎯 [FULLSTATS] Calculated focus score: \(focusScore)%")
+
+        return ExtensionActivityReport(
+            totalDuration: totalDuration,
+            averageDaily: averageDaily,
+            averageWeekly: end.timeIntervalSince(start),
+            allApps: allApps,
+            categories: top4,
+            todayScreenSeconds: todayScreen,
+            todayOffScreenSeconds: todayOff,
+            hourlyData: extensionHourlyData,
+            focusScore: focusScore,
+            topThreeMostUsed: Array(allApps.prefix(3)),
+            categoriesCount: allCategories.count
+        )
+    }
 }
 
