@@ -10,6 +10,7 @@ import Foundation
 import UserNotifications
 import ManagedSettings
 import FamilyControls
+import os.log
 
 // MARK: - Shared Models
 
@@ -119,7 +120,16 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
 
+        let logger = Logger(subsystem: "com.app.zenloop.monitor", category: "IntervalEnd")
+
         // ⚠️ CRITICAL DEBUG LOGS - DO NOT REMOVE
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.critical("🔓🔓🔓 [MONITOR] ===== INTERVAL DID END CALLED =====")
+        logger.critical("🕐 [MONITOR] Time: \(Date())")
+        logger.critical("🎯 [MONITOR] Activity: \(activity.rawValue)")
+        logger.critical("⚠️ [MONITOR] This method MUST unblock the app automatically!")
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("🔓🔓🔓 [MONITOR] ===== INTERVAL DID END CALLED =====")
         print("🕐 [MONITOR] Time: \(Date())")

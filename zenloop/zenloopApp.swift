@@ -11,6 +11,7 @@ import UserNotifications
 import Firebase
 import FamilyControls
 import ManagedSettings
+import os.log
 
 @main
 struct zenloopApp: App {
@@ -792,6 +793,15 @@ struct zenloopApp: App {
 
     // ✅ NEW: Traiter les demandes de blocage via URL scheme
     static func handleSaveBlockRequest(appName: String, duration: TimeInterval, activityName: String, tokenData: Data) {
+        let logger = Logger(subsystem: "com.app.zenloop", category: "SaveBlock")
+
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.critical("🔐 [SAVE_BLOCK] ========== MAIN APP SAVE REQUEST ==========")
+        logger.critical("🔐 [SAVE_BLOCK] App: \(appName)")
+        logger.critical("🔐 [SAVE_BLOCK] Duration: \(Int(duration/60)) minutes")
+        logger.critical("🔐 [SAVE_BLOCK] Activity: \(activityName)")
+        logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("🔐 [SAVE_BLOCK] ========== MAIN APP SAVE REQUEST ==========")
         print("🔐 [SAVE_BLOCK] App: \(appName)")
@@ -903,11 +913,17 @@ struct zenloopApp: App {
 
         do {
             try center.startMonitoring(deviceActivityName, during: schedule)
+            logger.critical("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
+            logger.critical("⏰ [SAVE_BLOCK] Monitoring will END at: \(endTime)")
+            logger.critical("⏰ [SAVE_BLOCK] intervalDidEnd() will be called automatically")
             print("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
             print("⏰ [SAVE_BLOCK] Monitoring will END at: \(endTime)")
             print("⏰ [SAVE_BLOCK] intervalDidEnd() will be called automatically")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         } catch {
+            logger.critical("❌❌❌ [SAVE_BLOCK] DeviceActivity.startMonitoring() FAILED!")
+            logger.critical("❌ [SAVE_BLOCK] Error: \(error.localizedDescription)")
+            logger.critical("❌ [SAVE_BLOCK] This means intervalDidEnd will NEVER be called!")
             print("❌❌❌ [SAVE_BLOCK] DeviceActivity.startMonitoring() FAILED!")
             print("❌ [SAVE_BLOCK] Error: \(error.localizedDescription)")
             print("❌ [SAVE_BLOCK] This means intervalDidEnd will NEVER be called!")
