@@ -410,6 +410,32 @@ struct zenloopApp: App {
             return
         }
 
+        // ✅ NEW: Gérer unblock depuis Report Extension (via URL scheme)
+        if components.host == "unblock" {
+            print("🔓 [DEEP_LINK] Received unblock request from Report Extension")
+
+            let queryItems = components.queryItems ?? []
+
+            guard let blockId = queryItems.first(where: { $0.name == "blockId" })?.value,
+                  let appName = queryItems.first(where: { $0.name == "appName" })?.value,
+                  let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value,
+                  let tokenData = Data(base64Encoded: tokenBase64) else {
+                print("❌ [DEEP_LINK] Missing or invalid parameters in unblock URL")
+                return
+            }
+
+            print("✅ [DEEP_LINK] Parsed unblock: \(appName), blockId: \(blockId)")
+            print("   → Token data: \(tokenData.count) bytes")
+
+            // Traiter le déblocage depuis l'app principale
+            Self.handleUnblockRequest(
+                blockId: blockId,
+                appName: appName,
+                tokenData: tokenData
+            )
+            return
+        }
+
         // ✅ CRUCIAL: Gérer apply-block depuis Report Extension
         if components.host == "apply-block" {
             let queryItems = components.queryItems ?? []
@@ -601,6 +627,64 @@ struct zenloopApp: App {
                 print("⚠️ [APPLY_BLOCK] Notification error: \(error)")
             }
         }
+        #endif
+    }
+
+    // ✅ NEW: Traiter les demandes de déblocage via URL scheme
+    static func handleUnblockRequest(blockId: String, appName: String, tokenData: Data) {
+        print("🔓 [UNBLOCK] ========================================")
+        print("🔓 [UNBLOCK] PROCESSING UNBLOCK REQUEST FROM REPORT EXTENSION")
+        print("   → App: \(appName)")
+        print("   → BlockID: \(blockId)")
+        print("   → Token Data: \(tokenData.count) bytes")
+
+        #if os(iOS)
+        // 1. Décoder le token pour validation
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
+              let token = selection.applicationTokens.first else {
+            print("❌ [UNBLOCK] Failed to decode token")
+            return
+        }
+
+        print("✅ [UNBLOCK] Token decoded successfully")
+
+        // 2. Retirer le shield via GlobalShieldManager
+        Task { @MainActor in
+            GlobalShieldManager.shared.removeBlock(
+                token: token,
+                blockId: blockId,
+                appName: appName
+            )
+            print("🛡️ [UNBLOCK] Shield removed via GlobalShieldManager")
+        }
+
+        // 3. Supprimer le block du BlockManager
+        let blockManager = BlockManager()
+        blockManager.removeBlock(id: blockId)
+
+        print("💾 [UNBLOCK] Block removed from persistence")
+
+        // 4. Notification de confirmation
+        let content = UNMutableNotificationContent()
+        content.title = "✅ App Débloquée"
+        content.body = "\(appName) est maintenant accessible"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "unblock_\(blockId)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ [UNBLOCK] Notification error: \(error)")
+            }
+        }
+
+        print("🔓 [UNBLOCK] ========================================")
+        print("✅ [UNBLOCK] UNBLOCK REQUEST COMPLETED SUCCESSFULLY")
+        print("🔓 [UNBLOCK] ========================================")
         #endif
     }
 

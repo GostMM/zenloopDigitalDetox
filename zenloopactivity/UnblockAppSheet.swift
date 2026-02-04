@@ -15,6 +15,7 @@ private let unblockLogger = Logger(subsystem: "com.app.zenloop.zenloopactivity",
 struct UnblockAppSheet: View {
     let block: ActiveBlock
     @Environment(\.dismiss) var dismiss
+    @Environment(\.openURL) var openURL
     @State private var isUnblocking = false
     var onUnblocked: (() -> Void)?
 
@@ -114,25 +115,47 @@ struct UnblockAppSheet: View {
 
         #if os(iOS)
         unblockLogger.critical("🔓 [UNBLOCK] Unblocking app: \(block.appName)")
+        unblockLogger.critical("   → BlockID: \(block.id)")
+        unblockLogger.critical("   → StoreName: \(block.storeName)")
 
-        // 1. Marquer comme stoppé dans le storage local
+        // 1. Encoder le tokenData en base64 pour le passer via URL
+        let tokenBase64 = block.appTokenData.base64EncodedString()
+
+        // 2. Créer l'URL scheme pour débloquer via l'app principale
+        var urlComponents = URLComponents(string: "zenloop://unblock")!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "blockId", value: block.id),
+            URLQueryItem(name: "appName", value: block.appName),
+            URLQueryItem(name: "tokenData", value: tokenBase64)
+        ]
+
+        guard let url = urlComponents.url else {
+            unblockLogger.error("❌ [UNBLOCK] Failed to create URL")
+            isUnblocking = false
+            return
+        }
+
+        unblockLogger.critical("📤 [UNBLOCK] Opening main app with URL...")
+        unblockLogger.critical("   → URL: \(url.absoluteString.prefix(100))...")
+
+        // 3. Ouvrir l'app principale pour traiter le déblocage
+        openURL(url) { accepted in
+            if accepted {
+                unblockLogger.critical("✅ [UNBLOCK] Main app accepted unblock request")
+            } else {
+                unblockLogger.error("❌ [UNBLOCK] Main app rejected unblock request")
+            }
+        }
+
+        // 4. Marquer comme stoppé dans le storage local (pour la cohérence)
         let blockManager = BlockManager()
         blockManager.updateBlockStatus(id: block.id, status: .stopped)
 
-        // 2. IMPORTANT: Envoyer une commande à l'app principale pour nettoyer le ManagedSettingsStore
-        let command = BlockCommand.stopBlock(id: block.id)
-        blockManager.sendCommand(command)
-
-        unblockLogger.critical("📤 [UNBLOCK] Command sent to main app for unblocking")
-
-        // 3. Nettoyer les blocks stoppés localement
-        blockManager.removeExpiredAndStoppedBlocks()
-
-        unblockLogger.critical("✅ [UNBLOCK] Block removed from storage: \(block.appName)")
+        unblockLogger.critical("✅ [UNBLOCK] Unblock request sent to main app")
         #endif
 
         // Feedback visuel + fermeture
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             self.isUnblocking = false
             self.onUnblocked?()
             self.dismiss()
