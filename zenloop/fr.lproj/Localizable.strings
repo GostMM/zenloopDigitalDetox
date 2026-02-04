@@ -1135,3 +1135,5 @@
 // Notifications de blocage
 "app_blocked_title" = "✅ App Bloquée";
 "app_blocked_body" = "%@ est maintenant bloquée pour %d minutes";
+"app_unblocked_title" = "✅ App Débloquée";
+"app_unblocked_body" = "%@ est maintenant accessible";

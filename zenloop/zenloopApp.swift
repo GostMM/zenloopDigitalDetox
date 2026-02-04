@@ -767,8 +767,8 @@ struct zenloopApp: App {
         // 5. Notification de confirmation
         print("🔍 [MAIN_APP] Step 5: Sending notification...")
         let content = UNMutableNotificationContent()
-        content.title = "✅ App Débloquée"
-        content.body = "\(appName) est maintenant accessible"
+        content.title = NSLocalizedString("app_unblocked_title", comment: "App unblocked notification title")
+        content.body = String(format: NSLocalizedString("app_unblocked_body", comment: "App unblocked notification body"), appName)
         content.sound = .default
 
         let request = UNNotificationRequest(

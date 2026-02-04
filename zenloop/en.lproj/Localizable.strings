@@ -1133,3 +1133,5 @@
 // Block notifications
 "app_blocked_title" = "✅ App Blocked";
 "app_blocked_body" = "%@ is now blocked for %d minutes";
+"app_unblocked_title" = "✅ App Unblocked";
+"app_unblocked_body" = "%@ is now accessible";
