@@ -1035,6 +1035,9 @@ struct BlockAppSheet: View {
         let blockManager = BlockManager()
 
         print("➕ [BLOCK_SHEET] Adding block to BlockManager...")
+        print("   → App: \(app.name)")
+        print("   → Duration: \(Int(duration/60)) minutes")
+
         let block = blockManager.addBlock(
             appName: app.name,
             duration: duration,
@@ -1042,11 +1045,12 @@ struct BlockAppSheet: View {
             context: "Report Extension - BlockAppSheet"
         )
 
-        print("✅ [BLOCK_SHEET] Block added with ID: \(block.id)")
-        print("   → App: \(block.appName)")
-        print("   → Duration: \(Int(block.originalDuration/60)) minutes")
+        print("✅ [BLOCK_SHEET] Block returned with ID: \(block.id)")
         print("   → Status: \(block.status.rawValue)")
         print("   → StoreName: \(block.storeName)")
+
+        // CRITIQUE: Forcer un flush des logs
+        fflush(stdout)
 
         // Lier le storeName au blockId pour le cleanup
         if let suite = UserDefaults(suiteName: "group.com.app.zenloop") {

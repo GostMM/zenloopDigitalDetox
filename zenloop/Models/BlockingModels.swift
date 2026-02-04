@@ -241,7 +241,6 @@ struct BlockManager {
 
             // Si toujours rien, afficher debug
             if data == nil {
-                blockLogger.critical("📊 [BlockManager] Toutes les clés UserDefaults: \(suite.dictionaryRepresentation().keys.joined(separator: ", "))")
                 return []
             }
         } else {

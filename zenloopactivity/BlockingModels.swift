@@ -284,16 +284,23 @@ struct BlockManager {
     }
 
     func saveBlock(_ block: ActiveBlock) {
+        blockLogger.critical("🔄 [BlockManager] saveBlock called for: \(block.id)")
+
         var blocks = getAllBlocks()
+        blockLogger.critical("   → Current blocks count: \(blocks.count)")
 
         // Remplacer si existe, sinon ajouter
         if let index = blocks.firstIndex(where: { $0.id == block.id }) {
             blocks[index] = block
+            blockLogger.critical("   → Replacing existing block at index \(index)")
         } else {
             blocks.append(block)
+            blockLogger.critical("   → Appending new block, total: \(blocks.count)")
         }
 
+        blockLogger.critical("   → Calling save() with \(blocks.count) blocks...")
         save(blocks)
+        blockLogger.critical("   → save() returned")
     }
 
     func removeBlock(id: String) {
@@ -390,26 +397,44 @@ struct BlockManager {
     // MARK: - Private
 
     private func save(_ blocks: [ActiveBlock]) {
+        blockLogger.critical("💾 [BlockManager] save() called with \(blocks.count) blocks")
+
         guard let data = try? JSONEncoder().encode(blocks) else {
             blockLogger.error("❌ [BlockManager] JSON encode failed")
             return
         }
 
+        blockLogger.critical("   → Encoded to \(data.count) bytes")
+
         // DOUBLE PERSISTENCE: UserDefaults + FileManager
         // 1. UserDefaults
+        blockLogger.critical("   → Saving to UserDefaults...")
         suite?.set(data, forKey: key)
         suite?.synchronize()
+        blockLogger.critical("   → UserDefaults saved & synced")
+
+        // Vérifier immédiatement
+        if let verify = suite?.data(forKey: key) {
+            blockLogger.critical("   → ✅ Verification: \(verify.count) bytes in UserDefaults")
+        } else {
+            blockLogger.error("   → ❌ Verification FAILED: Nothing in UserDefaults!")
+        }
 
         // 2. FileManager (plus fiable sur simulateur)
         if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.app.zenloop") {
             let fileURL = containerURL.appendingPathComponent("active_blocks_v2.json")
+            blockLogger.critical("   → Saving to file: \(fileURL.path)")
             do {
                 try data.write(to: fileURL, options: [.atomic])
-                blockLogger.info("💾 [BlockManager] Saved: \(blocks.count) blocks (\(data.count) bytes)")
+                blockLogger.critical("   → ✅ File saved successfully")
             } catch {
-                blockLogger.error("❌ [BlockManager] File save error: \(error.localizedDescription)")
+                blockLogger.error("   → ❌ File save error: \(error.localizedDescription)")
             }
+        } else {
+            blockLogger.error("   → ❌ Container URL is nil!")
         }
+
+        blockLogger.critical("💾 [BlockManager] save() complete")
 
         // Notifier l'UI que les blocks ont changé
         NotificationCenter.default.post(name: NSNotification.Name("ActiveBlocksDidChange"), object: nil)
