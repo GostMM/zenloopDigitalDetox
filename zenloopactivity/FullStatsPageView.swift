@@ -551,8 +551,29 @@ struct FullStatsPageView: View {
     }
 
     private func loadActiveBlocks() {
+        logger.critical("🔍 [FULLSTATS] === LOADING ACTIVE BLOCKS ===")
+
         let blockManager = BlockManager()
-        activeBlocks = blockManager.getActiveBlocks()
+        let blocks = blockManager.getActiveBlocks()
+
+        logger.critical("📊 [FULLSTATS] Found \(blocks.count) active blocks")
+        for block in blocks {
+            logger.critical("  → Block: \(block.appName)")
+            logger.critical("     ID: \(block.id)")
+            logger.critical("     Status: \(block.status.rawValue)")
+            logger.critical("     Remaining: \(block.formattedRemainingTime)")
+            logger.critical("     StoreName: \(block.storeName)")
+        }
+
+        activeBlocks = blocks
+
+        if blocks.isEmpty {
+            logger.warning("⚠️ [FULLSTATS] No active blocks found!")
+            logger.warning("   This could mean:")
+            logger.warning("   1. No blocks were created")
+            logger.warning("   2. BlockManager failed to save")
+            logger.warning("   3. BlockManager failed to read from App Group")
+        }
     }
 
     // MARK: - Block Refresh Timer
@@ -1000,18 +1021,38 @@ struct BlockAppSheet: View {
         print("✅ [BLOCK_SHEET] Shield applied immediately!")
 
         // 2️⃣ ENREGISTRER LE BLOCK dans BlockManager pour l'UI
+        print("📝 [BLOCK_SHEET] Creating BlockManager instance...")
         let blockManager = BlockManager()
+
+        print("➕ [BLOCK_SHEET] Adding block to BlockManager...")
         let block = blockManager.addBlock(
             appName: app.name,
             duration: duration,
             tokenData: tokenData,
-            context: "Report Extension"
+            context: "Report Extension - BlockAppSheet"
         )
+
+        print("✅ [BLOCK_SHEET] Block added with ID: \(block.id)")
+        print("   → App: \(block.appName)")
+        print("   → Duration: \(Int(block.originalDuration/60)) minutes")
+        print("   → Status: \(block.status.rawValue)")
+        print("   → StoreName: \(block.storeName)")
 
         // Lier le storeName au blockId pour le cleanup
         if let suite = UserDefaults(suiteName: "group.com.app.zenloop") {
             suite.set(activityName.rawValue, forKey: "storeName_\(block.id)")
             suite.synchronize()
+            print("🔗 [BLOCK_SHEET] StoreName linked: \(activityName.rawValue)")
+        }
+
+        // Vérifier immédiatement que le block est bien sauvegardé
+        print("🔍 [BLOCK_SHEET] Verifying block was saved...")
+        let allBlocks = blockManager.getAllBlocks()
+        print("📊 [BLOCK_SHEET] Total blocks in storage: \(allBlocks.count)")
+        if allBlocks.contains(where: { $0.id == block.id }) {
+            print("✅ [BLOCK_SHEET] Block found in storage - SAVE OK")
+        } else {
+            print("❌ [BLOCK_SHEET] Block NOT found in storage - SAVE FAILED!")
         }
 
         print("💾 [BLOCK_SHEET] Block registered in BlockManager: \(block.id)")
