@@ -412,20 +412,53 @@ struct zenloopApp: App {
 
         // ✅ NEW: Gérer unblock depuis Report Extension (via URL scheme)
         if components.host == "unblock" {
-            print("🔓 [DEEP_LINK] Received unblock request from Report Extension")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("🔓 [DEEP_LINK] ========== UNBLOCK URL RECEIVED ==========")
+            print("🔓 [DEEP_LINK] Full URL: \(url.absoluteString)")
+            print("🔓 [DEEP_LINK] Scheme: \(url.scheme ?? "nil")")
+            print("🔓 [DEEP_LINK] Host: \(url.host ?? "nil")")
 
             let queryItems = components.queryItems ?? []
+            print("🔓 [DEEP_LINK] Query items count: \(queryItems.count)")
 
-            guard let blockId = queryItems.first(where: { $0.name == "blockId" })?.value,
-                  let appName = queryItems.first(where: { $0.name == "appName" })?.value,
-                  let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value,
-                  let tokenData = Data(base64Encoded: tokenBase64) else {
-                print("❌ [DEEP_LINK] Missing or invalid parameters in unblock URL")
+            for (index, item) in queryItems.enumerated() {
+                print("   → Item \(index): name=\(item.name), value=\(item.value?.prefix(50) ?? "nil")...")
+            }
+
+            print("🔍 [DEEP_LINK] Extracting parameters...")
+
+            guard let blockId = queryItems.first(where: { $0.name == "blockId" })?.value else {
+                print("❌❌❌ [DEEP_LINK] ERROR: Missing blockId parameter!")
+                return
+            }
+            print("   ✅ blockId: \(blockId)")
+
+            guard let appName = queryItems.first(where: { $0.name == "appName" })?.value else {
+                print("❌❌❌ [DEEP_LINK] ERROR: Missing appName parameter!")
+                return
+            }
+            print("   ✅ appName: \(appName)")
+
+            guard let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value else {
+                print("❌❌❌ [DEEP_LINK] ERROR: Missing tokenData parameter!")
+                return
+            }
+            print("   ✅ tokenBase64 length: \(tokenBase64.count) chars")
+            print("   → tokenBase64 preview: \(tokenBase64.prefix(50))...")
+
+            print("🔍 [DEEP_LINK] Decoding base64 to Data...")
+            guard let tokenData = Data(base64Encoded: tokenBase64) else {
+                print("❌❌❌ [DEEP_LINK] ERROR: Failed to decode base64 to Data!")
+                print("   → Base64 string might be invalid")
                 return
             }
 
-            print("✅ [DEEP_LINK] Parsed unblock: \(appName), blockId: \(blockId)")
-            print("   → Token data: \(tokenData.count) bytes")
+            print("✅✅✅ [DEEP_LINK] All parameters parsed successfully!")
+            print("   → blockId: \(blockId)")
+            print("   → appName: \(appName)")
+            print("   → tokenData: \(tokenData.count) bytes")
+
+            print("🔍 [DEEP_LINK] Calling handleUnblockRequest()...")
 
             // Traiter le déblocage depuis l'app principale
             Self.handleUnblockRequest(
@@ -433,6 +466,8 @@ struct zenloopApp: App {
                 appName: appName,
                 tokenData: tokenData
             )
+
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             return
         }
 
@@ -632,39 +667,93 @@ struct zenloopApp: App {
 
     // ✅ NEW: Traiter les demandes de déblocage via URL scheme
     static func handleUnblockRequest(blockId: String, appName: String, tokenData: Data) {
-        print("🔓 [UNBLOCK] ========================================")
-        print("🔓 [UNBLOCK] PROCESSING UNBLOCK REQUEST FROM REPORT EXTENSION")
-        print("   → App: \(appName)")
-        print("   → BlockID: \(blockId)")
-        print("   → Token Data: \(tokenData.count) bytes")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔓 [MAIN_APP] ========== UNBLOCK HANDLER CALLED ==========")
+        print("🔓 [MAIN_APP] App: \(appName)")
+        print("🔓 [MAIN_APP] BlockID: \(blockId)")
+        print("🔓 [MAIN_APP] Token Data: \(tokenData.count) bytes")
+        print("🔓 [MAIN_APP] Current thread: \(Thread.current)")
 
         #if os(iOS)
         // 1. Décoder le token pour validation
-        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
-              let token = selection.applicationTokens.first else {
-            print("❌ [UNBLOCK] Failed to decode token")
+        print("🔍 [MAIN_APP] Step 1: Decoding token from data...")
+        print("   → TokenData bytes: \(tokenData.count)")
+
+        guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData) else {
+            print("❌❌❌ [MAIN_APP] ERROR: Failed to decode FamilyActivitySelection!")
+            print("   → TokenData might be corrupted")
+            print("   → TokenData hex: \(tokenData.prefix(50).map { String(format: "%02x", $0) }.joined())")
             return
         }
 
-        print("✅ [UNBLOCK] Token decoded successfully")
+        print("✅ [MAIN_APP] FamilyActivitySelection decoded")
+        print("   → Application tokens count: \(selection.applicationTokens.count)")
+
+        guard let token = selection.applicationTokens.first else {
+            print("❌❌❌ [MAIN_APP] ERROR: No application token in selection!")
+            print("   → Selection has 0 tokens")
+            return
+        }
+
+        print("✅✅✅ [MAIN_APP] Token decoded successfully!")
+        print("   → Token obtained from selection")
 
         // 2. Retirer le shield via GlobalShieldManager
+        print("🔍 [MAIN_APP] Step 2: Removing shield via GlobalShieldManager...")
+        print("   → Calling GlobalShieldManager.shared.removeBlock()")
+        print("   → This will update the global ManagedSettingsStore")
+
         Task { @MainActor in
+            print("🔍 [MAIN_APP] → Running on MainActor...")
             GlobalShieldManager.shared.removeBlock(
                 token: token,
                 blockId: blockId,
                 appName: appName
             )
-            print("🛡️ [UNBLOCK] Shield removed via GlobalShieldManager")
+            print("✅✅✅ [MAIN_APP] GlobalShieldManager.removeBlock() COMPLETED!")
+            print("   → Shield should be removed now")
         }
 
         // 3. Supprimer le block du BlockManager
+        print("🔍 [MAIN_APP] Step 3: Removing block from BlockManager...")
         let blockManager = BlockManager()
+
+        // Vérifier si le block existe avant de le supprimer
+        if let existingBlock = blockManager.getBlock(id: blockId) {
+            print("   → Block found in storage:")
+            print("   → Name: \(existingBlock.appName)")
+            print("   → Status: \(existingBlock.status.rawValue)")
+            print("   → StoreName: \(existingBlock.storeName)")
+        } else {
+            print("⚠️ [MAIN_APP] Block not found in BlockManager (might be already removed)")
+        }
+
         blockManager.removeBlock(id: blockId)
+        print("✅ [MAIN_APP] BlockManager.removeBlock() called")
 
-        print("💾 [UNBLOCK] Block removed from persistence")
+        // Vérifier que le block a bien été supprimé
+        let remainingBlocks = blockManager.getActiveBlocks()
+        print("   → Remaining active blocks: \(remainingBlocks.count)")
+        for block in remainingBlocks {
+            print("     - \(block.appName) (\(block.status.rawValue))")
+        }
 
-        // 4. Notification de confirmation
+        print("💾 [MAIN_APP] Block removed from persistence")
+
+        // 4. Nettoyer aussi le store individuel (au cas où)
+        print("🔍 [MAIN_APP] Step 4: Cleaning individual store as fallback...")
+        if let block = blockManager.getAllBlocks().first(where: { $0.id == blockId }) {
+            let store = ManagedSettingsStore(named: .init(block.storeName))
+            store.shield.applications = nil
+            store.shield.applicationCategories = nil
+            store.clearAllSettings()
+            print("✅ [MAIN_APP] Individual store cleared: \(block.storeName)")
+        } else {
+            print("⚠️ [MAIN_APP] Block not found, cannot clear individual store")
+        }
+
+        // 5. Notification de confirmation
+        print("🔍 [MAIN_APP] Step 5: Sending notification...")
         let content = UNMutableNotificationContent()
         content.title = "✅ App Débloquée"
         content.body = "\(appName) est maintenant accessible"
@@ -678,13 +767,14 @@ struct zenloopApp: App {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("⚠️ [UNBLOCK] Notification error: \(error)")
+                print("⚠️ [MAIN_APP] Notification error: \(error)")
+            } else {
+                print("✅ [MAIN_APP] Notification scheduled")
             }
         }
 
-        print("🔓 [UNBLOCK] ========================================")
-        print("✅ [UNBLOCK] UNBLOCK REQUEST COMPLETED SUCCESSFULLY")
-        print("🔓 [UNBLOCK] ========================================")
+        print("🔓 [MAIN_APP] ========== UNBLOCK HANDLER COMPLETE ==========")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         #endif
     }
 
