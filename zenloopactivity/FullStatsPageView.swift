@@ -499,15 +499,8 @@ struct FullStatsPageView: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    // Icon
-                    Image(systemName: "hand.raised.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.red.opacity(0.9))
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Circle()
-                                .fill(Color.red.opacity(0.15))
-                        )
+                    // Pile d'icônes des apps bloquées
+                    blockedAppsStack
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Apps Bloquées")
@@ -548,6 +541,81 @@ struct FullStatsPageView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    // Pile d'icônes des apps bloquées
+    private var blockedAppsStack: some View {
+        ZStack {
+            ForEach(Array(activeBlocks.prefix(3).enumerated()), id: \.element.id) { index, block in
+                // Essayer de récupérer le token de l'app
+                if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
+                   let token = selection.applicationTokens.first {
+
+                    ZStack(alignment: .bottomTrailing) {
+                        // Icône de l'app
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .frame(width: 40, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Color.black.opacity(0.2), lineWidth: 2)
+                            )
+
+                        // Badge cadenas
+                        ZStack {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 18, height: 18)
+
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .offset(x: 4, y: 4)
+                    }
+                    .offset(x: CGFloat(index * 12))
+                    .zIndex(Double(3 - index))
+                } else {
+                    // Fallback si pas de token
+                    ZStack(alignment: .bottomTrailing) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.3, green: 0.4, blue: 0.6),
+                                            Color(red: 0.2, green: 0.3, blue: 0.5)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 40, height: 40)
+
+                            Text(String(block.appName.prefix(1)).uppercased())
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+
+                        // Badge cadenas
+                        ZStack {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 18, height: 18)
+
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .offset(x: 4, y: 4)
+                    }
+                    .offset(x: CGFloat(index * 12))
+                    .zIndex(Double(3 - index))
+                }
+            }
+        }
+        .frame(width: CGFloat(40 + (min(activeBlocks.count, 3) - 1) * 12), height: 40)
     }
 
     private func loadActiveBlocks() {
@@ -1197,14 +1265,49 @@ struct BlockedAppRow: View {
             showUnblockSheet = true
         } label: {
             HStack(spacing: 12) {
-                // Lock icon
-                ZStack {
-                    Circle()
-                        .fill(Color.red.opacity(0.2))
-                        .frame(width: 32, height: 32)
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.red)
+                // Icône de l'app avec cadenas
+                ZStack(alignment: .bottomTrailing) {
+                    // Essayer d'afficher l'icône réelle
+                    if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
+                       let token = selection.applicationTokens.first {
+
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        // Fallback: placeholder
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.3, green: 0.4, blue: 0.6),
+                                            Color(red: 0.2, green: 0.3, blue: 0.5)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 48, height: 48)
+
+                            Text(String(block.appName.prefix(1)).uppercased())
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+
+                    // Badge cadenas
+                    ZStack {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 22, height: 22)
+
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .offset(x: 4, y: 4)
                 }
 
                 // App name
