@@ -2,251 +2,223 @@
 //  zenloop
 //
 //  Created by MROIVILI MOUSTOIFA on 03/08/2025.
+//  Refactored to match TimerCard minimal style
 //
 
 import SwiftUI
+import FamilyControls
 
 struct ActiveChallengeSection: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
     @Environment(\.scenePhase) private var scenePhase
-    
+
     var body: some View {
-        VStack(spacing: 20) {
-            // En-tête
-            activeChallengeHeader
-            
-            // Contenu principal
+        VStack(spacing: 16) {
             if let challenge = zenloopManager.currentChallenge {
-                challengeDetailsCard(challenge: challenge)
+                // Progress + Timer (style compact)
+                progressAndTimerSection
+
+                // Blocked Apps (style horizontal comme TimerCard)
+                if challenge.blockedAppsCount > 0 {
+                    blockedAppsSection(challenge: challenge)
+                }
+
+                // App Open Attempts (si > 0)
+                if challenge.appOpenAttempts > 0 {
+                    appAttemptsWarning(challenge: challenge)
+                }
             }
         }
+        .padding(.horizontal, 20)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.4), value: showContent)
+        .animation(Animation.spring(response: 0.8, dampingFraction: 0.8).delay(0.4), value: showContent)
         .onAppear {
-            // Si on arrive dans la vue avec une session active, on garantit le tick
             if zenloopManager.currentState == .active {
                 zenloopManager.startStateMonitoring()
             }
         }
-        .onChange(of: zenloopManager.currentState) { newState in
-            // Re-démarre le monitoring à chaque passage en actif
+        .onChange(of: zenloopManager.currentState) { _, newState in
             if newState == .active {
                 zenloopManager.startStateMonitoring()
             }
         }
-        .onChange(of: scenePhase) { phase in
-            // Au retour au premier plan, on relance le monitoring si besoin
-            if phase == .active, zenloopManager.currentState == .active {
+        .onChange(of: scenePhase) {
+            if scenePhase == .active, zenloopManager.currentState == .active {
                 zenloopManager.startStateMonitoring()
             }
         }
     }
-    
-    // MARK: - Sub-components
-    
-    private var activeChallengeHeader: some View {
-        HStack {
-            Text(String(localized: "active_session"))
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            StatusBadge(state: zenloopManager.currentState)
-        }
-        .padding(.horizontal, 20)
-    }
-    
-    private func challengeDetailsCard(challenge: ZenloopChallenge) -> some View {
-        VStack(spacing: 16) {
-            challengeInfo(challenge: challenge)
-            progressSection
-            blockedAppsSection(challenge: challenge)
-            // Note: Les boutons d'action sont gérés par HeroSection > ContextualActionsSection
-        }
-        .padding(20)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        .padding(.horizontal, 20)
-    }
-    
-    private func challengeInfo(challenge: ZenloopChallenge) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(challenge.title)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Text(String(localized: "started_at", defaultValue: "Started at \(formatTime(challenge.startTime))", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%@", with: formatTime(challenge.startTime)))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            
-            Spacer()
-            
-            DifficultyBadge(difficulty: challenge.difficulty)
-        }
-    }
-    
-    private var progressSection: some View {
-        VStack(spacing: 12) {
-            // Barre de progression
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.white.opacity(0.2))
-                        .frame(height: 12)
-                    
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(stateGradient)
-                        .frame(width: geometry.size.width * zenloopManager.currentProgress, height: 12)
-                        .animation(.easeInOut(duration: 0.5), value: zenloopManager.currentProgress)
+
+    // MARK: - Progress & Timer Section
+
+    private var progressAndTimerSection: some View {
+        HStack(alignment: .center, spacing: 20) {
+            // Progress (gauche)
+            VStack(alignment: .leading, spacing: 10) {
+                // Label
+                HStack(spacing: 10) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.cyan)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("PROGRESS")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.4))
+                            .tracking(0.5)
+
+                        Text("\(Int(zenloopManager.currentProgress * 100))%")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+
+                    Spacer()
                 }
-            }
-            .frame(height: 12)
-            
-            // Stats de progression
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "progression"))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                    
-                    Text("\(Int(zenloopManager.currentProgress * 100))%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                        .id("progress-\(Int(zenloopManager.currentProgress * 100))")
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(localized: "time_remaining"))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                    
-                    Text(zenloopManager.currentTimeRemaining)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(stateColor)
-                        .id("time-remaining-\(zenloopManager.currentTimeRemaining)")
-                }
-            }
-        }
-    }
-    
-    private func blockedAppsSection(challenge: ZenloopChallenge) -> some View {
-        Group {
-            if challenge.blockedAppsCount > 0 {
-                VStack(spacing: 12) {
-                    SelectedAppsView(selection: zenloopManager.getAppsSelection(), maxDisplayCount: 6)
-                    
-                    if challenge.appOpenAttempts > 0 {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.orange)
-                            
-                            Text(challenge.appOpenAttempts > 1 
-                                ? String(localized: "opening_attempts_plural", defaultValue: "\(challenge.appOpenAttempts) opening attempts", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(challenge.appOpenAttempts)")
-                                : String(localized: "opening_attempts", defaultValue: "\(challenge.appOpenAttempts) opening attempt", table: nil, bundle: .main, comment: "").replacingOccurrences(of: "%d", with: "\(challenge.appOpenAttempts)"))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.orange)
-                            
-                            Spacer()
-                        }
+
+                // Barre de progression
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(.white.opacity(0.15))
+                            .frame(height: 8)
+
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(stateGradient)
+                            .frame(width: geometry.size.width * zenloopManager.currentProgress, height: 8)
+                            .animation(.easeInOut(duration: 0.5), value: zenloopManager.currentProgress)
                     }
                 }
+                .frame(height: 8)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Timer (droite - très grand)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("TIME LEFT")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .tracking(0.5)
+
+                Text(zenloopManager.currentTimeRemaining)
+                    .font(.system(size: 32, weight: .heavy))
+                    .foregroundColor(stateColor)
+                    .monospacedDigit()
             }
         }
+        .padding(.vertical, 14)
     }
-    
-    
+
+    // MARK: - Blocked Apps Section
+
+    private func blockedAppsSection(challenge: ZenloopChallenge) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Label
+            HStack(spacing: 10) {
+                Image(systemName: "shield.checkered")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.purple)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("BLOCKED APPS")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4))
+                        .tracking(0.5)
+
+                    Text("\(challenge.blockedAppsCount) apps")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+            }
+
+            // Apps en pile horizontale - version simplifiée
+            HStack(spacing: -8) {
+                ForEach(Array(zenloopManager.getAppsSelection().applicationTokens.prefix(8)), id: \.self) { token in
+                    Label(token)
+                        .labelStyle(.iconOnly)
+                        .frame(width: 32, height: 32)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                }
+
+                if zenloopManager.getAppsSelection().applicationTokens.count > 8 {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.4))
+                            .frame(width: 32, height: 32)
+                            .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+
+                        Text("+\(zenloopManager.getAppsSelection().applicationTokens.count - 8)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                Spacer()
+            }
+        }
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - App Attempts Warning
+
+    private func appAttemptsWarning(challenge: ZenloopChallenge) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("BLOCKED ATTEMPTS")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .tracking(0.5)
+
+                Text(challenge.appOpenAttempts > 1
+                    ? "\(challenge.appOpenAttempts) attempts blocked"
+                    : "1 attempt blocked")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.orange)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+    }
+
+    // MARK: - Helpers
+
     private var stateColor: Color {
         switch zenloopManager.currentState {
-        case .active: return .orange
+        case .active: return .cyan
         case .paused: return .mint
-        case .completed: return .purple
-        default: return .cyan
+        case .completed: return .green
+        default: return .white
         }
     }
-    
+
     private var stateGradient: LinearGradient {
         LinearGradient(
-            colors: [stateColor, stateColor.opacity(0.8)],
+            colors: [stateColor, stateColor.opacity(0.7)],
             startPoint: .leading,
             endPoint: .trailing
         )
     }
-    
+
     private func formatTime(_ date: Date?) -> String {
-        guard let date = date else { return "Inconnue" }
+        guard let date = date else { return "--:--" }
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }
 }
 
-struct StatusBadge: View {
-    let state: ZenloopState
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(stateColor)
-                .frame(width: 6, height: 6)
-            
-            Text(stateText)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(stateColor)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
-    
-    private var stateColor: Color {
-        switch state {
-        case .idle: return .cyan
-        case .active: return .orange
-        case .paused: return .mint
-        case .completed: return .purple
-        }
-    }
-    
-    private var stateText: String {
-        switch state {
-        case .idle: return "Libre"
-        case .active: return "Actif"
-        case .paused: return "Pause"
-        case .completed: return "Terminé"
-        }
-    }
-}
-
-struct DifficultyBadge: View {
-    let difficulty: DifficultyLevel
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: difficulty.icon)
-                .font(.system(size: 10))
-                .foregroundColor(difficulty.color)
-            
-            Text(difficulty.rawValue)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(difficulty.color)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
-}
-
-#Preview {
-    ActiveChallengeSection(
-        zenloopManager: ZenloopManager.shared,
-        showContent: true
-    )
-    .background(Color.black)
-}
+// Note: StatusBadge and DifficultyBadge removed (not needed in minimal style)
+// SelectedAppsView replaced by StackedAppIcons
