@@ -97,36 +97,50 @@ struct ActiveChallengeSection: View {
 
                 Spacer()
 
-                // Boutons Pause/Stop (droite)
-                HStack(spacing: 8) {
+                // Boutons Pause/Stop (droite, vertical)
+                VStack(spacing: 6) {
                     // Pause Button
                     Button(action: { zenloopManager.requestPause() }) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Image(systemName: "pause.circle.fill")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 16, weight: .bold))
                             Text("Pause")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.mint.opacity(0.3))
-                        .cornerRadius(8)
+                        .frame(width: 90)
+                        .padding(.vertical, 8)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(10)
+                        .shadow(color: Color.yellow.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
 
                     // Stop Button
                     Button(action: { zenloopManager.stopCurrentChallenge() }) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Image(systemName: "stop.circle.fill")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 16, weight: .bold))
                             Text("Stop")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.red.opacity(0.3))
-                        .cornerRadius(8)
+                        .frame(width: 90)
+                        .padding(.vertical, 8)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.red.opacity(0.8), Color.red.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(10)
+                        .shadow(color: Color.red.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                 }
             }
