@@ -2,7 +2,7 @@
 //  zenloop
 //
 //  Created by MROIVILI MOUSTOIFA on 03/08/2025.
-//  Refactored to match TimerCard minimal style
+//  Refactored: Timer en grand, Blocked Apps au-dessus, Jauge épaisse
 //
 
 import SwiftUI
@@ -14,15 +14,18 @@ struct ActiveChallengeSection: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             if let challenge = zenloopManager.currentChallenge {
-                // Progress + Timer (style compact)
-                progressAndTimerSection
+                // Timer en très grand (en haut, centré)
+                timerSection
 
-                // Blocked Apps (style horizontal comme TimerCard)
+                // Blocked Apps (au-dessus de la jauge)
                 if challenge.blockedAppsCount > 0 {
                     blockedAppsSection(challenge: challenge)
                 }
+
+                // Progress bar (plus épaisse et énergique)
+                progressBarSection
 
                 // App Open Attempts (si > 0)
                 if challenge.appOpenAttempts > 0 {
@@ -33,7 +36,7 @@ struct ActiveChallengeSection: View {
         .padding(.horizontal, 20)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
-        .animation(Animation.spring(response: 0.8, dampingFraction: 0.8).delay(0.4), value: showContent)
+        .animation(Animation.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
         .onAppear {
             if zenloopManager.currentState == .active {
                 zenloopManager.startStateMonitoring()
@@ -51,61 +54,19 @@ struct ActiveChallengeSection: View {
         }
     }
 
-    // MARK: - Progress & Timer Section
+    // MARK: - Timer Section (très grand, centré)
 
-    private var progressAndTimerSection: some View {
-        HStack(alignment: .center, spacing: 20) {
-            // Progress (gauche)
-            VStack(alignment: .leading, spacing: 10) {
-                // Label
-                HStack(spacing: 10) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.cyan)
+    private var timerSection: some View {
+        VStack(spacing: 6) {
+            Text("TIME REMAINING")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.white.opacity(0.4))
+                .tracking(1)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("PROGRESS")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
-                            .tracking(0.5)
-
-                        Text("\(Int(zenloopManager.currentProgress * 100))%")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-
-                    Spacer()
-                }
-
-                // Barre de progression
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(.white.opacity(0.15))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(stateGradient)
-                            .frame(width: geometry.size.width * zenloopManager.currentProgress, height: 8)
-                            .animation(.easeInOut(duration: 0.5), value: zenloopManager.currentProgress)
-                    }
-                }
-                .frame(height: 8)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Timer (droite - très grand)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("TIME LEFT")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(0.5)
-
-                Text(zenloopManager.currentTimeRemaining)
-                    .font(.system(size: 32, weight: .heavy))
-                    .foregroundColor(stateColor)
-                    .monospacedDigit()
-            }
+            Text(zenloopManager.currentTimeRemaining)
+                .font(.system(size: 52, weight: .heavy))
+                .foregroundColor(stateColor)
+                .monospacedDigit()
         }
         .padding(.vertical, 14)
     }
@@ -134,7 +95,7 @@ struct ActiveChallengeSection: View {
                 Spacer()
             }
 
-            // Apps en pile horizontale - version simplifiée
+            // Apps en pile horizontale
             HStack(spacing: -8) {
                 ForEach(Array(zenloopManager.getAppsSelection().applicationTokens.prefix(8)), id: \.self) { token in
                     Label(token)
@@ -160,6 +121,42 @@ struct ActiveChallengeSection: View {
 
                 Spacer()
             }
+        }
+    }
+
+    // MARK: - Progress Bar Section (épaisse et énergique)
+
+    private var progressBarSection: some View {
+        VStack(spacing: 10) {
+            // Progress percentage
+            HStack {
+                Text("PROGRESS")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .tracking(0.5)
+
+                Spacer()
+
+                Text("\(Int(zenloopManager.currentProgress * 100))%")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            // Barre de progression ÉPAISSE
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.white.opacity(0.15))
+                        .frame(height: 16)
+
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(stateGradient)
+                        .frame(width: geometry.size.width * zenloopManager.currentProgress, height: 16)
+                        .animation(.easeInOut(duration: 0.5), value: zenloopManager.currentProgress)
+                        .shadow(color: stateColor.opacity(0.5), radius: 8, x: 0, y: 0)
+                }
+            }
+            .frame(height: 16)
         }
         .padding(.vertical, 12)
     }
@@ -211,14 +208,4 @@ struct ActiveChallengeSection: View {
             endPoint: .trailing
         )
     }
-
-    private func formatTime(_ date: Date?) -> String {
-        guard let date = date else { return "--:--" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
-    }
 }
-
-// Note: StatusBadge and DifficultyBadge removed (not needed in minimal style)
-// SelectedAppsView replaced by StackedAppIcons

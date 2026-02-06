@@ -70,27 +70,34 @@ struct HomeView: View {
                                 showContent: showContent
                             )
 
-                            // Quick Block Modes Section
+                            // Quick Block Modes Section (en idle seulement ici)
                             QuickBlockModesSection(showContent: showContent)
                         }
 
-                        // Section principale selon l'état
-                        primarySection
-                        
                         // Sections conditionnelles selon l'état avec transitions fluides
                         Group {
                             if isIdle {
+                                // Hero Section (actions) en idle
+                                primarySection
                                 idleSections
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .bottom).combined(with: .opacity),
                                         removal: .move(edge: .top).combined(with: .opacity)
                                     ))
                             } else {
+                                // Active: Challenge Section + Hero (boutons) + Quick Block
                                 activeSections
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .top).combined(with: .opacity),
                                         removal: .move(edge: .bottom).combined(with: .opacity)
                                     ))
+
+                                // Hero Section (boutons pause/stop) après la session active
+                                primarySection
+
+                                // Quick Block Modes toujours visible
+                                QuickBlockModesSection(showContent: showContent)
+                                    .padding(.top, 20)
                             }
                         }
                         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isIdle)
