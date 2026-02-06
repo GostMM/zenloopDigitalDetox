@@ -847,6 +847,21 @@ struct zenloopApp: App {
 
         print("💾 [SAVE_BLOCK] Block saved with ID: \(block.id)")
 
+        // ✅ CRUCIAL: Stocker le mapping activityName → blockId pour le Monitor
+        logger.critical("🔗 [SAVE_BLOCK] Storing activityName → blockId mapping")
+        logger.critical("   → Activity: \(activityName)")
+        logger.critical("   → BlockID: \(block.id)")
+
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            logger.critical("❌ [SAVE_BLOCK] Cannot store mapping - no App Group access")
+            return
+        }
+
+        suite.set(block.id, forKey: "blockId_for_activity_\(activityName)")
+        suite.synchronize()
+
+        logger.critical("✅ [SAVE_BLOCK] Mapping stored: blockId_for_activity_\(activityName) = \(block.id)")
+
         // Vérifier combien de blocks on a maintenant
         let updatedBlocks = blockManager.getAllBlocks()
         print("🔐 [SAVE_BLOCK] After save, blocks in BlockManager: \(updatedBlocks.count)")
@@ -878,47 +893,58 @@ struct zenloopApp: App {
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("⏰ [SAVE_BLOCK] ========== SCHEDULING AUTO-UNBLOCK ==========")
 
-        let minimumDuration: TimeInterval = 15 * 60 // 15 minutes minimum pour DeviceActivity
+        let minimumDuration: TimeInterval = 16 * 60 // 16 minutes minimum pour DeviceActivity (Apple requirement)
 
         if duration >= minimumDuration {
-            // ✅ Durée >= 15min : Utiliser DeviceActivity (fonctionne en background)
-            logger.critical("⏰ [SAVE_BLOCK] Duration >= 15min, using DeviceActivity")
+            // ✅ Durée >= 16min : Utiliser DeviceActivity (fonctionne en background)
+            logger.critical("⏰ [SAVE_BLOCK] Duration >= 16min, using DeviceActivity")
 
             let center = DeviceActivityCenter()
             let deviceActivityName = DeviceActivityName(activityName)
             let now = Date()
-            let endTime = now.addingTimeInterval(duration)
             let calendar = Calendar.current
 
-            let nowComponents = calendar.dateComponents([.hour, .minute, .second], from: now)
+            // ✅ IMPORTANT: Démarrer dans 1 seconde (contourner le problème "now")
+            let startTime = now.addingTimeInterval(1)
+            let endTime = now.addingTimeInterval(duration)
+
+            let startComponents = calendar.dateComponents([.hour, .minute, .second], from: startTime)
             let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endTime)
 
-            logger.critical("⏰ [SAVE_BLOCK] Start: \(nowComponents.hour ?? 0):\(nowComponents.minute ?? 0):\(nowComponents.second ?? 0)")
-            logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(endComponents.minute ?? 0):\(endComponents.second ?? 0)")
+            logger.critical("⏰ [SAVE_BLOCK] Now: \(now)")
+            logger.critical("⏰ [SAVE_BLOCK] Start: \(startComponents.hour ?? 0):\(String(format: "%02d", startComponents.minute ?? 0)):\(String(format: "%02d", startComponents.second ?? 0))")
+            logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(String(format: "%02d", endComponents.minute ?? 0)):\(String(format: "%02d", endComponents.second ?? 0))")
+            logger.critical("⏰ [SAVE_BLOCK] Total duration: \(Int(duration))s (\(Int(duration/60))min)")
 
             let schedule = DeviceActivitySchedule(
-                intervalStart: nowComponents,
+                intervalStart: startComponents,
                 intervalEnd: endComponents,
                 repeats: false
             )
 
+            logger.critical("📅 [SAVE_BLOCK] DeviceActivitySchedule created (repeats: false)")
+
             do {
+                logger.critical("🚀 [SAVE_BLOCK] Calling center.startMonitoring()...")
                 try center.startMonitoring(deviceActivityName, during: schedule)
                 logger.critical("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
-                logger.critical("⏰ [SAVE_BLOCK] intervalDidEnd() will be called at: \(endTime)")
+                logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                logger.critical("🎯 [SAVE_BLOCK] Monitor will call intervalDidStart in ~1 second")
+                logger.critical("🎯 [SAVE_BLOCK] Monitor will call intervalDidEnd at: \(endTime)")
+                logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                 print("✅ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock")
             } catch {
-                logger.critical("❌ [SAVE_BLOCK] DeviceActivity failed: \(error.localizedDescription)")
+                logger.critical("❌❌❌ [SAVE_BLOCK] DeviceActivity failed: \(error.localizedDescription)")
                 logger.critical("⚠️ [SAVE_BLOCK] Falling back to Timer")
                 print("❌ [SAVE_BLOCK] DeviceActivity failed, using Timer fallback")
                 scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
             }
         } else {
-            // ⚠️ Durée < 15min : DeviceActivity ne supporte pas, utiliser Timer
-            logger.critical("⚠️ [SAVE_BLOCK] Duration < 15min (\(Int(duration/60))min)")
-            logger.critical("⚠️ [SAVE_BLOCK] DeviceActivity minimum is 15min, using Timer fallback")
+            // ⚠️ Durée < 16min : DeviceActivity ne supporte pas, utiliser Timer
+            logger.critical("⚠️ [SAVE_BLOCK] Duration < 16min (\(Int(duration/60))min)")
+            logger.critical("⚠️ [SAVE_BLOCK] DeviceActivity minimum is 16min, using Timer fallback")
             logger.critical("⚠️ [SAVE_BLOCK] NOTE: Timer won't work if app is closed!")
-            print("⚠️ [SAVE_BLOCK] Duration too short for DeviceActivity (< 15min)")
+            print("⚠️ [SAVE_BLOCK] Duration too short for DeviceActivity (< 16min)")
             print("⚠️ [SAVE_BLOCK] Using Timer (requires app to stay open)")
             scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
         }

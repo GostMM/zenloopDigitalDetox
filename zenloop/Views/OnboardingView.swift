@@ -19,20 +19,44 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-            // Background optimisé pour de meilleures performances
-            OptimizedBackground(currentState: .idle)
-                .ignoresSafeArea(.all, edges: .all)
-            
+            // Background noir avec jeu de lumière subtil
+            Color.black
+                .ignoresSafeArea()
+
+            // Lumière douce en haut
+            RadialGradient(
+                colors: [
+                    .white.opacity(0.05),
+                    .clear
+                ],
+                center: .top,
+                startRadius: 0,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
+
+            // Lumière douce en bas
+            RadialGradient(
+                colors: [
+                    .white.opacity(0.03),
+                    .clear
+                ],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Header avec logo et progress
+                // Header minimaliste
                 OnboardingHeader(
                     currentPage: currentPage,
                     totalPages: pages.count,
                     showContent: showContent
                 )
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
                 // Contenu principal
                 TabView(selection: $currentPage) {
                     ForEach(0..<pages.count, id: \.self) { index in
@@ -55,8 +79,8 @@ struct OnboardingView: View {
                     onGetStarted: { handleOnboardingComplete() },
                     onboardingManager: onboardingManager
                 )
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
             }
         }
         .fullScreenCover(isPresented: $showPaywall) {
@@ -112,35 +136,25 @@ struct OnboardingHeader: View {
     let currentPage: Int
     let totalPages: Int
     let showContent: Bool
-    
+
     var body: some View {
         HStack {
-            // Logo Zenloop
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Zenloop")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text(String(localized: "digital_wellness"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.cyan.opacity(0.8))
-            }
-            
+            // Logo simple
+            Text("Zenloop")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+
             Spacer()
-            
-            // Progress indicator
-            HStack(spacing: 8) {
+
+            // Progress dots minimalistes
+            HStack(spacing: 6) {
                 ForEach(0..<totalPages, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(index <= currentPage ? .cyan : .white.opacity(0.3))
-                        .frame(width: index <= currentPage ? 24 : 8, height: 4)
-                        .animation(.easeInOut(duration: 0.3), value: currentPage)
+                    Circle()
+                        .fill(index == currentPage ? .white : .white.opacity(0.3))
+                        .frame(width: 8, height: 8)
                 }
             }
         }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : -20)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.1), value: showContent)
     }
 }
 
@@ -151,206 +165,57 @@ struct OnboardingPageView: View {
     let showContent: Bool
     @ObservedObject var onboardingManager: OnboardingManager
     @State private var isRequesting = false
-    
+
     var body: some View {
-        VStack(spacing: 40) {
+        VStack(spacing: 0) {
             Spacer()
-            
-            // Icon principal avec animations améliorées
-            if page.icon == "chart.line.uptrend.xyaxis" {
-                // Page 3 : Page de résultats avec stats
-                ResultsStatsAnimation(showContent: showContent, color: page.color)
-            } else if page.title.contains("Sessions") && page.title.contains("Insights") {
-                // Page 2 : Animation spéciale avec multiples icônes
-                ProFeatureAnimation(showContent: showContent, color: page.color)
-            } else {
-                // Pages normales : Animation standard
-                StandardIconAnimation(icon: page.icon, color: page.color, showContent: showContent)
+
+            // Icône avec léger halo
+            ZStack {
+                // Halo doux
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                .white.opacity(0.1),
+                                .white.opacity(0.05),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 20,
+                            endRadius: 80
+                        )
+                    )
+                    .frame(width: 160, height: 160)
+
+                // Icône
+                Image(systemName: page.icon)
+                    .font(.system(size: 60, weight: .regular))
+                    .foregroundColor(.white)
+                    .shadow(color: .white.opacity(0.3), radius: 20)
             }
-            
+            .padding(.bottom, 40)
+
             // Contenu textuel
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 Text(page.title)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
-                
+                    .shadow(color: .white.opacity(0.2), radius: 10)
+
                 Text(page.description)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.white.opacity(0.75))
                     .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 30)
-                
-                // Contenu spécifique pour les pages de permission
-                if page.isPermissionPage {
-                    permissionContent
-                        .padding(.top, 20)
-                }
+                    .lineSpacing(6)
+                    .padding(.horizontal, 40)
             }
-            .opacity(showContent ? 1 : 0)
-            .offset(y: showContent ? 0 : 30)
-            .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.5), value: showContent)
-            
+
             Spacer()
         }
-        .padding(.horizontal, 20)
-    }
-    
-    @ViewBuilder
-    private var permissionContent: some View {
-        switch page.permissionType {
-        case .screenTime:
-            screenTimePermissionContent
-        case .notifications:
-            notificationPermissionContent
-        case .none:
-            EmptyView()
-        }
-    }
-    
-    @ViewBuilder
-    private var screenTimePermissionContent: some View {
-        VStack(spacing: 16) {
-            // Bénéfices Screen Time
-            VStack(spacing: 12) {
-                PermissionBenefit(
-                    icon: "apps.iphone",
-                    text: String(localized: "block_distracting_apps"),
-                    color: .cyan
-                )
-                
-                PermissionBenefit(
-                    icon: "chart.bar.fill",
-                    text: String(localized: "track_usage_patterns"),
-                    color: .cyan
-                )
-                
-                PermissionBenefit(
-                    icon: "target",
-                    text: String(localized: "create_focus_sessions"),
-                    color: .cyan
-                )
-            }
-            
-            // Status et messages
-            VStack(spacing: 12) {
-                if onboardingManager.screenTimeStatus == .granted {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(String(localized: "authorized"))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                    .background(.green.opacity(0.15), in: Capsule())
-                } else if onboardingManager.screenTimeStatus == .denied {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
-                            Text(String(localized: "access_required"))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.red)
-                        }
-                        
-                        Text(String(localized: "screen_time_required_to_continue"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.red.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-                } else {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundColor(.orange)
-                            Text(String(localized: "authorization_needed"))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.orange)
-                        }
-                        
-                        Text(String(localized: "screen_time_required_message"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var notificationPermissionContent: some View {
-        VStack(spacing: 16) {
-            // Exemples de notifications (compactés)
-            VStack(spacing: 8) {
-                CompactNotificationExample(
-                    icon: "clock.badge.checkmark",
-                    text: "Rappels 15 min avant vos sessions",
-                    color: .orange
-                )
-                
-                CompactNotificationExample(
-                    icon: "lightbulb.fill",
-                    text: "Conseils quotidiens de bien-être",
-                    color: .orange
-                )
-                
-                CompactNotificationExample(
-                    icon: "shield.checkered",
-                    text: "Alertes quand vous ouvrez une app bloquée",
-                    color: .orange
-                )
-            }
-            
-            // Status - montrer tous les états
-            VStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    if onboardingManager.notificationStatus == .granted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(String(localized: "enabled"))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.green)
-                    } else if onboardingManager.notificationStatus == .denied {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                        Text("Refusé - Aller dans Réglages")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.red)
-                    } else {
-                        Image(systemName: "questionmark.circle.fill")
-                            .foregroundColor(.orange)
-                        Text("Pas encore demandé")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.orange)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(backgroundColorForStatus.opacity(0.15), in: Capsule())
-            }
-        }
-    }
-    
-    private var backgroundColorForStatus: Color {
-        switch onboardingManager.notificationStatus {
-        case .granted:
-            return .green
-        case .denied:
-            return .red
-        default:
-            return .orange
-        }
+        .padding(.horizontal, 24)
     }
 }
 
@@ -408,38 +273,26 @@ struct OnboardingBottomActions: View {
                     onNext()
                 }
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     if isRequesting {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(0.8)
+                            .tint(.white)
                     } else {
                         Text(cachedButtonText)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                     }
-
-                    if !isRequesting {
-                        Image(systemName: cachedButtonIcon)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                    }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .frame(height: 56)
                 .background(
-                    LinearGradient(
-                        colors: [.cyan, .blue],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.white.opacity(0.2))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
                 )
-                .shadow(color: .cyan.opacity(0.3), radius: 12, x: 0, y: 6)
             }
             .buttonStyle(PlainButtonStyle())
             .disabled(isRequesting)
@@ -567,337 +420,7 @@ struct OnboardingPage {
             permissionType: nil
         )
         // Note: Le paywall s'affichera après cette page
-        // Les permissions Screen Time et Notifications seront demandées APRÈS le paywall
     ]
-}
-
-// MARK: - Supporting Components
-
-struct PermissionBenefit: View {
-    let icon: String
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 24, height: 24)
-            
-            Text(text)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
-            
-            Spacer()
-        }
-    }
-}
-
-struct CompactNotificationExample: View {
-    let icon: String
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 20, height: 20)
-            
-            Text(text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
-            
-            Spacer()
-        }
-    }
-}
-
-struct NotificationExample: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 28, height: 28)
-                .background(color.opacity(0.15), in: Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-// MARK: - Enhanced Animations
-
-struct StandardIconAnimation: View {
-    let icon: String
-    let color: Color
-    let showContent: Bool
-    
-    var body: some View {
-        ZStack {
-            // Cercles d'animation concentriques
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .stroke(color.opacity(0.2 - Double(index) * 0.05), lineWidth: 2)
-                    .frame(width: 140 + CGFloat(index * 20), height: 140 + CGFloat(index * 20))
-                    .scaleEffect(showContent ? 1.0 + Double(index) * 0.1 : 0.8)
-                    .animation(
-                        .easeInOut(duration: 2.0 + Double(index) * 0.5)
-                        .repeatForever(autoreverses: true)
-                        .delay(Double(index) * 0.3),
-                        value: showContent
-                    )
-            }
-            
-            // Cercle principal avec dégradé
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            color.opacity(0.4),
-                            color.opacity(0.2),
-                            color.opacity(0.05)
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 80
-                    )
-                )
-                .frame(width: 140, height: 140)
-                .overlay(
-                    Circle()
-                        .stroke(color.opacity(0.3), lineWidth: 2)
-                )
-                .shadow(color: color.opacity(0.3), radius: 20, x: 0, y: 10)
-            
-            // Icône principale
-            Image(systemName: icon)
-                .font(.system(size: 40, weight: .medium))
-                .foregroundColor(color)
-                .shadow(color: color.opacity(0.4), radius: 8, x: 0, y: 2)
-        }
-        .scaleEffect(showContent ? 1.0 : 0.5)
-        .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.3), value: showContent)
-    }
-}
-
-struct ProFeatureAnimation: View {
-    let showContent: Bool
-    let color: Color
-    @State private var rotationAngle: Double = 0
-    @State private var pulseScale: CGFloat = 1.0
-    
-    private let features = [
-        (icon: "target", color: Color.blue, position: CGPoint(x: 0, y: -60)),
-        (icon: "trophy.fill", color: Color.purple, position: CGPoint(x: -50, y: 30)),
-        (icon: "chart.line.uptrend.xyaxis", color: Color.green, position: CGPoint(x: 50, y: 30))
-    ]
-    
-    var body: some View {
-        ZStack {
-            // Cercle central animé
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            color.opacity(0.3),
-                            color.opacity(0.1),
-                            .clear
-                        ],
-                        center: .center,
-                        startRadius: 20,
-                        endRadius: 100
-                    )
-                )
-                .frame(width: 160, height: 160)
-                .scaleEffect(pulseScale)
-                .animation(
-                    .easeInOut(duration: 2.0)
-                    .repeatForever(autoreverses: true),
-                    value: showContent
-                )
-            
-            // Fonctionnalités orbitales
-            ForEach(0..<features.count, id: \.self) { index in
-                let feature = features[index]
-                
-                VStack(spacing: 4) {
-                    Image(systemName: feature.icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            LinearGradient(
-                                colors: [feature.color, feature.color.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            in: Circle()
-                        )
-                        .shadow(color: feature.color.opacity(0.4), radius: 8, x: 0, y: 2)
-                }
-                .offset(x: feature.position.x, y: feature.position.y)
-                .rotationEffect(.degrees(rotationAngle))
-                .opacity(showContent ? 1 : 0)
-                .scaleEffect(showContent ? 1 : 0.3)
-                .animation(
-                    .spring(response: 0.8, dampingFraction: 0.7)
-                    .delay(0.5 + Double(index) * 0.2),
-                    value: showContent
-                )
-            }
-            
-            // Icône centrale
-            Image(systemName: "sparkles")
-                .font(.system(size: 32, weight: .medium))
-                .foregroundColor(.white)
-                .frame(width: 60, height: 60)
-                .background(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: Circle()
-                )
-                .shadow(color: color.opacity(0.5), radius: 12, x: 0, y: 4)
-                .scaleEffect(showContent ? 1.0 : 0.1)
-                .animation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.3), value: showContent)
-        }
-        .onAppear {
-            if showContent {
-                startAnimations()
-            }
-        }
-        .onChange(of: showContent) { _, newValue in
-            if newValue {
-                startAnimations()
-            } else {
-                stopAnimations()
-            }
-        }
-    }
-    
-    private func startAnimations() {
-        pulseScale = 1.2
-        
-        // Rotation lente et continue
-        withAnimation(
-            .linear(duration: 10.0)
-            .repeatForever(autoreverses: false)
-        ) {
-            rotationAngle = 360
-        }
-    }
-    
-    private func stopAnimations() {
-        pulseScale = 1.0
-        rotationAngle = 0
-    }
-}
-
-// MARK: - Results Stats Animation
-struct ResultsStatsAnimation: View {
-    let showContent: Bool
-    let color: Color
-    @State private var animateStats = false
-
-    var body: some View {
-        VStack(spacing: 20) {
-            // Stats impressionnantes
-            HStack(spacing: 20) {
-                StatBubble(
-                    value: "10K+",
-                    label: String(localized: "active_users"),
-                    color: .cyan,
-                    showContent: showContent,
-                    delay: 0.3
-                )
-
-                StatBubble(
-                    value: "2.5h",
-                    label: String(localized: "avg_time_saved"),
-                    color: .green,
-                    showContent: showContent,
-                    delay: 0.5
-                )
-            }
-
-            HStack(spacing: 20) {
-                StatBubble(
-                    value: "94%",
-                    label: String(localized: "success_rate"),
-                    color: .purple,
-                    showContent: showContent,
-                    delay: 0.7
-                )
-
-                StatBubble(
-                    value: "4.9★",
-                    label: String(localized: "app_rating"),
-                    color: .orange,
-                    showContent: showContent,
-                    delay: 0.9
-                )
-            }
-        }
-    }
-}
-
-struct StatBubble: View {
-    let value: String
-    let label: String
-    let color: Color
-    let showContent: Bool
-    let delay: Double
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(value)
-                .font(.system(size: 32, weight: .black))
-                .foregroundColor(color)
-                .shadow(color: color.opacity(0.5), radius: 8)
-
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-        }
-        .frame(width: 140, height: 100)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(color.opacity(0.5), lineWidth: 2)
-                )
-        )
-        .shadow(color: color.opacity(0.3), radius: 15)
-        .scaleEffect(showContent ? 1.0 : 0.5)
-        .opacity(showContent ? 1 : 0)
-        .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(delay), value: showContent)
-    }
 }
 
 #Preview {

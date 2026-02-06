@@ -92,11 +92,11 @@ struct HomeView: View {
                         }
                         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isIdle)
                         
-                        // Sections communes
-                        commonSections
+                        // Sections communes supprimées (stats card)
+                        // commonSections
 
-                        // Espace de respiration en bas pour la card des top apps
-                        Spacer(minLength: topAppsDisplayManager.shouldShowCard ? 300 : 80)
+                        // Espace de respiration en bas
+                        Spacer(minLength: 80)
                     }
                     .padding(.horizontal, 0)
                 }

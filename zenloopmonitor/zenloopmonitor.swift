@@ -148,21 +148,28 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         removeShield(for: activity)
 
         // Gérer selon le type d'activité
+        logger.critical("🔍 [MONITOR] Checking activity type: \(activity.rawValue)")
+
         if activity.rawValue.hasPrefix("block-") {
             // Nettoyer les données de blocage
+            logger.critical("📱 [MONITOR] Detected block- activity, processing...")
             print("📱 [MONITOR] Detected block- activity, processing...")
             handleBlockActivityEnd(activity)
 
             // ✅ CRUCIAL: Aussi retirer du DEFAULT store (utilisé par GlobalShieldManager)
+            logger.critical("🔑 [MONITOR] Now removing from DEFAULT store...")
             print("🔑 [MONITOR] Now removing from DEFAULT store...")
             removeFromDefaultStore(for: activity)
+            logger.critical("✅ [MONITOR] DEFAULT store removal completed")
             print("✅ [MONITOR] DEFAULT store removal completed")
         } else if activity.rawValue.hasPrefix("scheduled_") {
             // Sauvegarder les stats de session
+            logger.critical("⏰ [MONITOR] Detected scheduled_ activity")
             print("⏰ [MONITOR] Detected scheduled_ activity")
             stopMonitoringIfSingleSession(activity: activity)
             saveChallengeCompletion(activityName: activity)
         } else {
+            logger.critical("⚠️ [MONITOR] Unknown activity type: \(activity.rawValue)")
             print("⚠️ [MONITOR] Unknown activity type: \(activity.rawValue)")
         }
 
@@ -329,35 +336,61 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
     /// ✅ CRUCIAL: Retirer le token du DEFAULT store (utilisé par GlobalShieldManager)
     private func removeFromDefaultStore(for activity: DeviceActivityName) {
+        let logger = Logger(subsystem: "com.app.zenloop.monitor", category: "DefaultStore")
+
+        logger.critical("🔓 [MONITOR] === REMOVING FROM DEFAULT STORE ===")
         print("🔓 [MONITOR] === REMOVING FROM DEFAULT STORE ===")
 
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            logger.critical("❌ [MONITOR] Cannot access App Group")
             print("❌ [MONITOR] Cannot access App Group")
             return
         }
 
-        // Récupérer le blockId depuis l'activity name
+        // ✅ CRUCIAL: Récupérer le VRAI blockId depuis le mapping
         let activityName = activity.rawValue
-        let blockId = String(activityName.dropFirst("block-".count))
+        let mappingKey = "blockId_for_activity_\(activityName)"
 
+        logger.critical("🔍 [MONITOR] Looking for mapping: \(mappingKey)")
+        print("🔍 [MONITOR] Looking for mapping: \(mappingKey)")
+
+        guard let blockId = suite.string(forKey: mappingKey) else {
+            logger.critical("❌ [MONITOR] No mapping found for activity: \(activityName)")
+            print("❌ [MONITOR] No mapping found for activity: \(activityName)")
+            logger.critical("⚠️ [MONITOR] Cannot unblock without blockId mapping!")
+            print("⚠️ [MONITOR] Cannot unblock without blockId mapping!")
+            return
+        }
+
+        logger.critical("✅ [MONITOR] Found blockId from mapping: \(blockId)")
+        print("✅ [MONITOR] Found blockId from mapping: \(blockId)")
+
+        logger.critical("🔍 [MONITOR] Looking for block: \(blockId)")
         print("🔍 [MONITOR] Looking for block: \(blockId)")
 
         // Charger le block pour obtenir le token
         var blocks = loadBlocksFromAppGroup()
+        logger.critical("🔍 [MONITOR] Loaded \(blocks.count) blocks from App Group")
+        print("🔍 [MONITOR] Loaded \(blocks.count) blocks from App Group")
+
         guard let block = blocks.first(where: { $0.id == blockId }) else {
+            logger.critical("⚠️ [MONITOR] Block not found in App Group: \(blockId)")
             print("⚠️ [MONITOR] Block not found in App Group: \(blockId)")
             return
         }
 
+        logger.critical("✅ [MONITOR] Block found: \(block.appName)")
         print("✅ [MONITOR] Block found: \(block.appName)")
 
         // Décoder le token
         guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
               let token = selection.applicationTokens.first else {
+            logger.critical("❌ [MONITOR] Failed to decode token")
             print("❌ [MONITOR] Failed to decode token")
             return
         }
 
+        logger.critical("✅ [MONITOR] Token decoded successfully")
         print("✅ [MONITOR] Token decoded successfully")
 
         // Retirer du DEFAULT store
@@ -370,16 +403,30 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         defaultStore.shield.applications = blockedApps.isEmpty ? nil : blockedApps
 
+        logger.critical("🔓 [MONITOR] Removed from DEFAULT store:")
+        logger.critical("   → Before: \(beforeCount) apps")
+        logger.critical("   → After: \(afterCount) apps")
+        logger.critical("   → Removed: \(beforeCount - afterCount) app(s)")
+
         print("🔓 [MONITOR] Removed from DEFAULT store:")
         print("   → Before: \(beforeCount) apps")
         print("   → After: \(afterCount) apps")
         print("   → Removed: \(beforeCount - afterCount) app(s)")
 
         if beforeCount == afterCount {
+            logger.critical("⚠️ [MONITOR] WARNING: Token was not in DEFAULT store!")
             print("⚠️ [MONITOR] WARNING: Token was not in DEFAULT store!")
         }
 
+        logger.critical("✅ [MONITOR] App unblocked from DEFAULT store: \(block.appName)")
         print("✅ [MONITOR] App unblocked from DEFAULT store: \(block.appName)")
+
+        // ✅ Nettoyer le mapping après déblocage
+        suite.removeObject(forKey: mappingKey)
+        suite.synchronize()
+
+        logger.critical("🧹 [MONITOR] Cleaned up mapping: \(mappingKey)")
+        print("🧹 [MONITOR] Cleaned up mapping: \(mappingKey)")
     }
     
     // MARK: - Helper Methods

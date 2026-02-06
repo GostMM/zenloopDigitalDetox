@@ -116,14 +116,20 @@ struct ScheduleConfigurationModal: View {
             .sheet(isPresented: $showDifficultyModal) {
                 DifficultySelectionModal(
                     selectedDifficulty: $selectedDifficulty,
-                    autoDifficulty: autoSuggestedDifficulty,
-                    onConfirm: {
-                        showDifficultyModal = false
+                    autoDifficulty: autoSuggestedDifficulty
+                )
+                .presentationDetents([.height(400)])
+                .presentationDragIndicator(.visible)
+            }
+            .onChange(of: selectedDifficulty) { oldValue, newValue in
+                // Quand une difficulté est sélectionnée dans le modal, fermer et planifier
+                if showDifficultyModal && newValue != nil {
+                    showDifficultyModal = false
+                    // Attendre que le modal se ferme avant de planifier
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         scheduleSession()
                     }
-                )
-                .presentationDetents([.height(460)])
-                .presentationDragIndicator(.visible)
+                }
             }
             .onAppear {
                 print("🔄 [MODAL] onAppear pour session: \(session.sessionId)")

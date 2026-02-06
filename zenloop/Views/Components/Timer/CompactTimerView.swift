@@ -11,7 +11,7 @@ import ManagedSettings
 import DeviceActivity
 
 struct CompactTimerView: View {
-    let selectedConcentrationType: ConcentrationType
+    let selectedDifficulty: DifficultyLevel?
     let formattedDuration: String
     let hasSelectedApps: Bool
     let selectedAppsCount: Int
@@ -19,200 +19,174 @@ struct CompactTimerView: View {
     let selectedApps: FamilyActivitySelection
     let taskGoalsCount: Int
 
-    let onEditConcentrationType: () -> Void
+    let onEditDifficulty: () -> Void
     let onEditDuration: () -> Void
     let onEditGoals: () -> Void
     let onEditApps: () -> Void
     let onStartSession: () -> Void
 
+    // Computed properties pour la difficulté
+    private var difficultyTitle: String {
+        selectedDifficulty?.rawValue ?? "Auto"
+    }
+
+    private var difficultyIcon: String {
+        selectedDifficulty?.icon ?? "sparkles"
+    }
+
+    private var difficultyColor: Color {
+        selectedDifficulty?.color ?? .cyan
+    }
+
     var body: some View {
-        VStack(spacing: 10) {
-            // Ligne 1: Type + Duration
-            HStack(spacing: 8) {
-                // Type de concentration
-                Button(action: onEditConcentrationType) {
+        VStack(spacing: 16) {
+            // Section 1: App Selection + Duration
+            HStack(alignment: .center, spacing: 20) {
+                // Apps (gauche)
+                Button(action: onEditApps) {
+                    VStack(spacing: 10) {
+                        // Icône + Label
+                        HStack(spacing: 10) {
+                            Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(hasSelectedApps ? .purple : .orange)
+                                .symbolEffect(.bounce, value: hasSelectedApps)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("APPS TO BLOCK")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.4))
+                                    .tracking(0.5)
+
+                                Text(hasSelectedApps ? "\(selectedAppsCount) selected" : "Tap to select")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(hasSelectedApps ? .white : .orange)
+                            }
+
+                            Spacer()
+                        }
+
+                        // Pile d'icônes (si apps sélectionnées)
+                        if hasSelectedApps {
+                            HStack(spacing: 0) {
+                                StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
+                                Spacer()
+                            }
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Duration (droite - très grand avec icône)
+                Button(action: onEditDuration) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.cyan.opacity(0.6))
+
+                        Text(formattedDuration)
+                            .font(.system(size: 36, weight: .heavy))
+                            .foregroundColor(.cyan)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            // Section 2: Difficulty + Goals
+            HStack(spacing: 12) {
+                // Difficulty (gauche)
+                Button(action: onEditDifficulty) {
                     HStack(spacing: 8) {
-                        Image(systemName: selectedConcentrationType.icon)
+                        Image(systemName: difficultyIcon)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(selectedConcentrationType.primaryColor)
-                            .frame(width: 28, height: 28)
+                            .foregroundColor(difficultyColor)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("MODE")
-                                .font(.system(size: 7, weight: .bold))
+                            Text("RESTRICTION")
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
-                                .tracking(0.8)
+                                .tracking(0.5)
 
-                            Text(selectedConcentrationType.title)
+                            Text(difficultyTitle)
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white)
                         }
 
                         Spacer()
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(selectedConcentrationType.primaryColor.opacity(0.2), lineWidth: 1)
-                            )
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
-                .frame(maxWidth: .infinity)
-
-                // Duration
-                Button(action: onEditDuration) {
-                    VStack(spacing: 3) {
-                        Text("TIME")
-                            .font(.system(size: 7, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
-                            .tracking(0.8)
-
-                        Text(formattedDuration)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.cyan)
-                    }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(.cyan.opacity(0.2), lineWidth: 1)
-                            )
-                    )
                 }
                 .buttonStyle(PlainButtonStyle())
-                .frame(width: 90)
-            }
 
-            // Ligne 2: Goals + Status
-            HStack(spacing: 8) {
-                // Goals
+                // Goals (droite)
                 Button(action: onEditGoals) {
                     HStack(spacing: 8) {
-                        Image(systemName: "target")
-                            .font(.system(size: 14, weight: .semibold))
+                        Image(systemName: taskGoalsCount > 0 ? "checkmark.circle.fill" : "circle.dashed")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(taskGoalsCount > 0 ? .yellow : .white.opacity(0.3))
-                            .frame(width: 24, height: 24)
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text("GOALS")
-                                .font(.system(size: 7, weight: .bold))
+                                .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
-                                .tracking(0.8)
+                                .tracking(0.5)
 
-                            Text(taskGoalsCount > 0 ? "\(taskGoalsCount) goals" : "Add goals")
-                                .font(.system(size: 12, weight: .bold))
+                            Text(taskGoalsCount > 0 ? "\(taskGoalsCount) added" : "Optional")
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(taskGoalsCount > 0 ? .white : .white.opacity(0.5))
                         }
 
                         Spacer()
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(.white.opacity(0.05))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke((taskGoalsCount > 0 ? Color.yellow : Color.white).opacity(0.2), lineWidth: 1)
-                            )
-                    )
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PlainButtonStyle())
-                .frame(maxWidth: .infinity)
-
-                // Status indicator
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill((hasSelectedApps ? Color.green : Color.orange).opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke((hasSelectedApps ? Color.green : Color.orange).opacity(0.3), lineWidth: 1)
-                        )
-
-                    Image(systemName: hasSelectedApps ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(hasSelectedApps ? .green : .orange)
-                }
-                .frame(width: 54)
             }
+            .padding(.horizontal, 20)
 
-            // Ligne 3: Apps
-            Button(action: onEditApps) {
-                HStack(spacing: 10) {
-                    Image(systemName: "shield.checkered")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(hasSelectedApps ? .purple : .orange)
-                        .frame(width: 24, height: 24)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("BLOCKED APPS")
-                            .font(.system(size: 7, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
-                            .tracking(0.8)
-
-                        Text(hasSelectedApps ? "\(selectedAppsCount) apps" : "Tap to select")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(hasSelectedApps ? .white : .orange)
-                    }
-
-                    Spacer()
-
-                    if hasSelectedApps {
-                        CompactAppIconsRow(selectedApps: selectedApps, maxToShow: 4)
-                    } else {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 22, weight: .regular))
-                            .foregroundColor(.white.opacity(0.2))
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke((hasSelectedApps ? Color.purple : Color.orange).opacity(0.2), lineWidth: 1)
-                        )
-                )
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // Start button
+            // Section 3: CTA Button
             if hasSelectedApps && isIdle {
                 Button(action: onStartSession) {
                     HStack(spacing: 8) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 13, weight: .bold))
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 18, weight: .bold))
 
-                        Text(String(localized: "start_session"))
-                            .font(.system(size: 14, weight: .bold))
+                        Text("Start Focus Session")
+                            .font(.system(size: 15, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, 14)
                     .background(
                         LinearGradient(
-                            colors: [selectedConcentrationType.primaryColor, selectedConcentrationType.accentColor],
+                            colors: [
+                                difficultyColor,
+                                difficultyColor.opacity(0.8)
+                            ],
                             startPoint: .leading,
                             endPoint: .trailing
                         ),
-                        in: RoundedRectangle(cornerRadius: 10)
+                        in: RoundedRectangle(cornerRadius: 14)
                     )
-                    .shadow(color: selectedConcentrationType.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .shadow(
+                        color: difficultyColor.opacity(0.4),
+                        radius: 10,
+                        x: 0,
+                        y: 5
+                    )
                 }
-                .padding(.top, 2)
+                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(14)
+        .padding(.vertical, 16)
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: hasSelectedApps)
     }
 }
 
@@ -254,30 +228,6 @@ struct ModernConfigCard: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                color.opacity(0.08),
-                                .white.opacity(0.02)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        LinearGradient(
-                            colors: [color.opacity(0.3), color.opacity(0.1)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
             .scaleEffect(isPressed ? 0.95 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
@@ -350,33 +300,6 @@ struct ModernAppsCard: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                (hasSelectedApps ? Color.purple : Color.orange).opacity(0.08),
-                                .white.opacity(0.02)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                (hasSelectedApps ? Color.purple : Color.orange).opacity(0.3),
-                                (hasSelectedApps ? Color.purple : Color.orange).opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
             .scaleEffect(isPressed ? 0.98 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
@@ -421,14 +344,6 @@ struct PulsatingChip: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(color.opacity(isPulsing ? 0.25 : 0.15))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(color.opacity(isPulsing ? 0.5 : 0.3), lineWidth: 1)
-            )
             .scaleEffect(isPulsing ? 1.05 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
@@ -541,34 +456,6 @@ struct ConfigButton: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
             .frame(minHeight: 85)
-            .background(
-                ZStack {
-                    // Gradient de fond subtil
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    color.opacity(0.15),
-                                    color.opacity(0.05),
-                                    .white.opacity(0.03)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    // Bordure avec gradient
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(
-                            LinearGradient(
-                                colors: [color.opacity(0.4), color.opacity(0.15)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.5
-                        )
-                }
-            )
             .overlay(alignment: .topTrailing) {
                 if showBadge {
                     Circle()
@@ -819,4 +706,78 @@ struct AppIconsStack: View {
 private enum AppOrCategory {
     case app(ApplicationToken)
     case category(ActivityCategoryToken)
+}
+
+// MARK: - Stacked App Icons (pile horizontale compacte)
+
+struct StackedAppIcons: View {
+    let selectedApps: FamilyActivitySelection
+    let maxToShow: Int
+
+    var body: some View {
+        let apps = Array(selectedApps.applicationTokens.prefix(maxToShow))
+        let categories = Array(selectedApps.categoryTokens.prefix(maxToShow - apps.count))
+        let allItems = apps.map { AppOrCategory.app($0) } + categories.map { AppOrCategory.category($0) }
+        let totalCount = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+
+        HStack(spacing: -10) {
+            ForEach(Array(allItems.enumerated()), id: \.offset) { index, item in
+                Group {
+                    switch item {
+                    case .app(let token):
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 16))
+                            .frame(width: 40, height: 40)
+                            .background(.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Color.black.opacity(0.3), lineWidth: 2)
+                            )
+                            .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+
+                    case .category(let token):
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 16))
+                            .frame(width: 40, height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(.purple.opacity(0.25))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(.purple.opacity(0.4), lineWidth: 2)
+                            )
+                            .shadow(color: .purple.opacity(0.2), radius: 3, x: 0, y: 2)
+                    }
+                }
+                .zIndex(Double(maxToShow - index))
+            }
+
+            // Badge "+X" si plus d'apps
+            if totalCount > allItems.count {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.15),
+                                    Color.white.opacity(0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+
+                    Text("+\(totalCount - allItems.count)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .zIndex(-1)
+            }
+        }
+    }
 }

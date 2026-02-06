@@ -55,20 +55,6 @@ struct UpcomingSessionsCard: View {
             .background(
                 RoundedRectangle(cornerRadius: 24)
                     .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.4, green: 0.7, blue: 1.0).opacity(0.3),
-                                        Color(red: 0.6, green: 0.4, blue: 1.0).opacity(0.3)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
             )
             .shadow(color: Color(red: 0.5, green: 0.55, blue: 1.0).opacity(0.2), radius: 20, x: 0, y: 10)
             .padding(.horizontal, 20)
@@ -169,10 +155,6 @@ struct UpcomingSessionRow: View {
                 .background(
                     RoundedRectangle(cornerRadius: 8)
                         .fill(difficultyColor.opacity(0.12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(difficultyColor.opacity(0.3), lineWidth: 1)
-                        )
                 )
 
                 // Center - Session info
@@ -257,20 +239,6 @@ struct UpcomingSessionRow: View {
                     Spacer()
                 }
             }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            difficultyColor.opacity(0.3),
-                            difficultyColor.opacity(0.1)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
         )
         .shadow(color: difficultyColor.opacity(0.15), radius: 8, x: 0, y: 4)
         .alert(String(localized: "cancel_scheduled_session"), isPresented: $showCancelAlert) {

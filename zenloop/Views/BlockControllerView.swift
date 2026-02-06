@@ -27,12 +27,19 @@ struct BlockControllerView: View {
                 } else {
                     // Liste des apps restreintes
                     ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(restrictedApps) { app in
+                        LazyVStack(spacing: 12) {
+                            ForEach(Array(restrictedApps.enumerated()), id: \.element.id) { index, app in
                                 RestrictedAppCard(app: app, onUpdate: loadRestrictedApps)
+                                    .transition(.asymmetric(
+                                        insertion: .scale(scale: 0.9).combined(with: .opacity),
+                                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                                    ))
+                                    .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(Double(index) * 0.05), value: restrictedApps.count)
                             }
                         }
-                        .padding(20)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 30)
                     }
                 }
             }
@@ -98,18 +105,27 @@ struct BlockControllerView: View {
     private func loadRestrictedApps() {
         var apps: [RestrictedApp] = []
 
-        // 1. Scanner tous les ManagedSettingsStore actifs
+        // ✅ IMPORTANT: Utiliser le DEFAULT store (sans nom) comme FullStatsPageView
+        let defaultStore = ManagedSettingsStore()
+
+        // 1. Scanner tous les blocks actifs depuis BlockManager
         let blockManager = BlockManager()
         var activeBlocks = blockManager.getActiveBlocks()
+
+        print("🔍 [CONTROLLER] Found \(activeBlocks.count) active blocks in BlockManager")
+        print("📦 [CONTROLLER] Default store has \(defaultStore.shield.applications?.count ?? 0) blocked apps")
 
         // 2. Vérifier et nettoyer les blocks expirés
         for block in activeBlocks where block.isExpired {
             print("🧹 [CLEANUP] Block expiré détecté: \(block.appName)")
 
-            let store = ManagedSettingsStore(named: .init(block.storeName))
-            store.shield.applications = nil
-            store.shield.applicationCategories = nil
-            print("✅ [CLEANUP] App \(block.appName) débloquée")
+            // Récupérer le token pour le retirer du shield
+            if let token = block.getApplicationToken() {
+                var currentBlocked = defaultStore.shield.applications ?? Set()
+                currentBlocked.remove(token)
+                defaultStore.shield.applications = currentBlocked
+                print("✅ [CLEANUP] App \(block.appName) retirée du shield")
+            }
 
             blockManager.updateBlockStatus(id: block.id, status: .expired)
         }
@@ -121,24 +137,20 @@ struct BlockControllerView: View {
         activeBlocks = blockManager.getActiveBlocks()
 
         // 5. Créer la liste des apps restreintes
+        // ✅ On fait confiance au BlockManager - pas besoin de vérifier le store
         for block in activeBlocks {
-            let store = ManagedSettingsStore(named: .init(block.storeName))
-
-            // Vérifier si le store a effectivement des apps bloquées
-            if let blockedApps = store.shield.applications, !blockedApps.isEmpty {
-                let app = RestrictedApp(
-                    id: block.id,
-                    name: block.appName,
-                    storeName: block.storeName,
-                    status: block.status,
-                    remainingTime: block.formattedRemainingTime,
-                    progress: block.progress,
-                    startDate: block.startDate,
-                    endDate: block.endDate,
-                    isPaused: block.status == .paused
-                )
-                apps.append(app)
-            }
+            let app = RestrictedApp(
+                id: block.id,
+                name: block.appName,
+                storeName: block.storeName,
+                status: block.status,
+                remainingTime: block.formattedRemainingTime,
+                progress: block.progress,
+                startDate: block.startDate,
+                endDate: block.endDate,
+                isPaused: block.status == .paused
+            )
+            apps.append(app)
         }
 
         restrictedApps = apps.sorted { $0.endDate < $1.endDate }
@@ -177,139 +189,198 @@ struct RestrictedAppCard: View {
     let app: RestrictedApp
     let onUpdate: () -> Void
     @State private var showExtendSheet = false
+    @State private var showIcon = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Header
-            HStack {
-                // Icône + Nom
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(statusColor.opacity(0.2))
-                            .frame(width: 48, height: 48)
+        HStack(spacing: 14) {
+            // ✅ Icône réelle de l'app avec lock badge
+            ZStack(alignment: .bottomTrailing) {
+                #if os(iOS)
+                if showIcon, let token = getAppToken() {
+                    Label(token)
+                        .labelStyle(.iconOnly)
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(statusColor.opacity(0.4), lineWidth: 2)
+                        )
+                        .shadow(color: statusColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                } else {
+                    placeholderIcon
+                }
+                #else
+                placeholderIcon
+                #endif
 
-                        Image(systemName: "hand.raised.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(statusColor)
-                    }
+                // Badge cadenas animé
+                ZStack {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 22, height: 22)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
+                    Image(systemName: app.status == .paused ? "pause.fill" : "lock.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .offset(x: 4, y: 4)
+                .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    showIcon = true
+                }
+            }
 
-                        Text(statusText)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(statusColor)
-                    }
+            // Infos compactes
+            VStack(alignment: .leading, spacing: 6) {
+                // Nom + status
+                HStack(spacing: 8) {
+                    Text(app.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 6, height: 6)
                 }
 
-                Spacer()
+                // Progress bar ultra-fine
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.white.opacity(0.12))
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(
+                                LinearGradient(
+                                    colors: progressGradient,
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * app.progress)
+                    }
+                }
+                .frame(height: 4)
 
                 // Temps restant
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(app.remainingTime)
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-
-                    Text("restant")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-                }
+                Text(app.remainingTime)
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.7))
             }
 
-            // Progress Bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.1))
+            Spacer(minLength: 8)
 
-                    // Progress
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: progressGradient,
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geometry.size.width * app.progress)
-                }
-            }
-            .frame(height: 8)
-
-            // Controls
-            HStack(spacing: 12) {
+            // Boutons compacts verticaux
+            VStack(spacing: 6) {
                 // Pause/Resume
                 if app.status == .active {
-                    ControlActionButton(
-                        icon: "pause.fill",
-                        label: "Pause",
-                        color: .blue
-                    ) {
+                    compactButton(icon: "pause.fill", color: .blue) {
                         pauseApp()
                     }
                 } else if app.status == .paused {
-                    ControlActionButton(
-                        icon: "play.fill",
-                        label: "Reprendre",
-                        color: .green
-                    ) {
+                    compactButton(icon: "play.fill", color: .green) {
                         resumeApp()
                     }
                 }
 
-                // Extend
-                ControlActionButton(
-                    icon: "plus.circle.fill",
-                    label: "Ajouter",
-                    color: .purple
-                ) {
-                    showExtendSheet = true
+                // Stop
+                compactButton(icon: "xmark", color: .red) {
+                    stopApp()
                 }
 
-                Spacer()
-
-                // Stop (plus gros bouton)
-                Button {
-                    stopApp()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Débloquer")
-                            .font(.system(size: 15, weight: .bold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            colors: [.red, .red.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
+                // Extend
+                compactButton(icon: "plus", color: .purple) {
+                    showExtendSheet = true
                 }
             }
         }
-        .padding(20)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.05))
+            RoundedRectangle(cornerRadius: 18)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.04)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(statusColor.opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    statusColor.opacity(0.3),
+                                    statusColor.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
                 )
         )
+        .shadow(color: statusColor.opacity(0.15), radius: 10, x: 0, y: 4)
         .sheet(isPresented: $showExtendSheet) {
             ExtendSheet(appName: app.name, blockId: app.id, onExtend: { seconds in
                 extendApp(by: seconds)
                 showExtendSheet = false
             })
+        }
+    }
+
+    // ✅ Récupérer le token de l'app pour afficher l'icône réelle
+    private func getAppToken() -> ApplicationToken? {
+        let blockManager = BlockManager()
+        guard let block = blockManager.getBlock(id: app.id) else { return nil }
+        return block.getApplicationToken()
+    }
+
+    private var placeholderIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            statusColor.opacity(0.3),
+                            statusColor.opacity(0.2)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 56, height: 56)
+
+            Text(String(app.name.prefix(1)).uppercased())
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(statusColor.opacity(0.4), lineWidth: 2)
+        )
+    }
+
+    private func compactButton(icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .overlay(
+                            Circle()
+                                .strokeBorder(color.opacity(0.3), lineWidth: 1)
+                        )
+                )
         }
     }
 
@@ -348,15 +419,25 @@ struct RestrictedAppCard: View {
     private func pauseApp() {
         print("⏸️ [CONTROLLER] Pause de \(app.name)")
 
-        let store = ManagedSettingsStore(named: .init(app.storeName))
+        // ✅ Utiliser le DEFAULT store
+        let defaultStore = ManagedSettingsStore()
+        let blockManager = BlockManager()
 
-        // Retirer toutes les restrictions
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-        store.dateAndTime.requireAutomaticDateAndTime = false
+        // Récupérer le block pour avoir le token
+        if let block = blockManager.getBlock(id: app.id),
+           let token = block.getApplicationToken() {
+
+            // Retirer cette app du shield
+            var currentBlocked = defaultStore.shield.applications ?? Set()
+            let beforeCount = currentBlocked.count
+            currentBlocked.remove(token)
+            let afterCount = currentBlocked.count
+
+            defaultStore.shield.applications = currentBlocked
+            print("📦 [CONTROLLER] Removed token from shield: \(beforeCount) → \(afterCount)")
+        }
 
         // Mettre à jour le status
-        let blockManager = BlockManager()
         blockManager.updateBlockStatus(id: app.id, status: .paused)
 
         onUpdate()
@@ -366,32 +447,53 @@ struct RestrictedAppCard: View {
     private func resumeApp() {
         print("▶️ [CONTROLLER] Reprise de \(app.name)")
 
-        // Note: On ne peut pas facilement réappliquer la restriction ici
-        // car on n'a pas accès au token de l'app
-        // L'utilisateur doit utiliser l'extension pour Resume
-
-        print("⚠️ [CONTROLLER] Resume depuis l'app non supporté")
-        print("💡 [CONTROLLER] Utilisez Full Stats Page pour reprendre le blocage")
-
-        // Juste mettre à jour le status
+        // ✅ Maintenant on peut réappliquer le shield avec le token stocké
+        let defaultStore = ManagedSettingsStore()
         let blockManager = BlockManager()
+
+        // Récupérer le block pour avoir le token
+        if let block = blockManager.getBlock(id: app.id),
+           let token = block.getApplicationToken() {
+
+            // Ajouter cette app au shield
+            var currentBlocked = defaultStore.shield.applications ?? Set()
+            let beforeCount = currentBlocked.count
+            currentBlocked.insert(token)
+            let afterCount = currentBlocked.count
+
+            defaultStore.shield.applications = currentBlocked
+            print("📦 [CONTROLLER] Added token to shield: \(beforeCount) → \(afterCount)")
+        }
+
+        // Mettre à jour le status
         blockManager.updateBlockStatus(id: app.id, status: .active)
 
         onUpdate()
+        print("✅ [CONTROLLER] \(app.name) repris")
     }
 
     private func stopApp() {
         print("⏹️ [CONTROLLER] Arrêt de \(app.name)")
 
-        let store = ManagedSettingsStore(named: .init(app.storeName))
+        // ✅ Utiliser le DEFAULT store
+        let defaultStore = ManagedSettingsStore()
+        let blockManager = BlockManager()
 
-        // Retirer toutes les restrictions définitivement
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-        store.dateAndTime.requireAutomaticDateAndTime = false
+        // Récupérer le block pour avoir le token
+        if let block = blockManager.getBlock(id: app.id),
+           let token = block.getApplicationToken() {
+
+            // Retirer cette app du shield définitivement
+            var currentBlocked = defaultStore.shield.applications ?? Set()
+            let beforeCount = currentBlocked.count
+            currentBlocked.remove(token)
+            let afterCount = currentBlocked.count
+
+            defaultStore.shield.applications = currentBlocked
+            print("📦 [CONTROLLER] Removed token from shield: \(beforeCount) → \(afterCount)")
+        }
 
         // Marquer comme arrêté
-        let blockManager = BlockManager()
         blockManager.updateBlockStatus(id: app.id, status: .stopped)
 
         onUpdate()
@@ -406,37 +508,6 @@ struct RestrictedAppCard: View {
 
         onUpdate()
         print("✅ [CONTROLLER] \(app.name) étendu")
-    }
-}
-
-// MARK: - Control Action Button
-
-struct ControlActionButton: View {
-    let icon: String
-    let label: String
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(label)
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            .foregroundColor(color)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(color.opacity(0.15))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(color.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
     }
 }
 

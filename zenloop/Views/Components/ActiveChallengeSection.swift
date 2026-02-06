@@ -68,10 +68,6 @@ struct ActiveChallengeSection: View {
         }
         .padding(20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(stateColor.opacity(0.3), lineWidth: 1)
-        )
         .padding(.horizontal, 20)
     }
     
@@ -207,10 +203,6 @@ struct StatusBadge: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(stateColor.opacity(0.3), lineWidth: 1)
-        )
     }
     
     private var stateColor: Color {
@@ -248,10 +240,6 @@ struct DifficultyBadge: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(difficulty.color.opacity(0.3), lineWidth: 1)
-        )
     }
 }
 

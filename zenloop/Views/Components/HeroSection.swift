@@ -54,10 +54,6 @@ struct CompactStateIndicator: View {
                     Circle()
                         .fill(stateColor.opacity(0.2))
                         .frame(width: 32, height: 32)
-                        .overlay(
-                            Circle()
-                                .stroke(stateColor, lineWidth: 2)
-                        )
                         .scaleEffect(currentState == .active ? 1.1 : 1.0)
                         .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: currentState == .active)
                     
@@ -66,10 +62,6 @@ struct CompactStateIndicator: View {
                         .foregroundColor(stateColor)
                 }
                 .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle()
-                        .stroke(stateColor.opacity(0.3), lineWidth: 1)
-                )
             }
             .buttonStyle(ScaleButtonStyle())
             .sheet(isPresented: $showDetails) {
@@ -200,10 +192,6 @@ struct StateVisualIndicator: View {
                     )
                 )
                 .frame(width: 110, height: 110)
-                .overlay(
-                    Circle()
-                        .stroke(stateColor.opacity(0.3), lineWidth: 2)
-                )
                 .scaleEffect(currentState == .active ? 1.05 : 1.0)
                 .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: currentState == .active)
             
@@ -292,11 +280,7 @@ struct ProgressSection: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(.white.opacity(0.15))
                         .frame(height: 12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(.white.opacity(0.1), lineWidth: 1)
-                        )
-                    
+
                     // Barre de progression avec dégradé
                     RoundedRectangle(cornerRadius: 8)
                         .fill(
@@ -307,10 +291,6 @@ struct ProgressSection: View {
                             )
                         )
                         .frame(width: geometry.size.width * zenloopManager.currentProgress, height: 8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(stateColor.opacity(0.3), lineWidth: 1)
-                        )
                         .animation(.easeInOut(duration: 0.5), value: zenloopManager.currentProgress)
                 }
             }
@@ -443,10 +423,6 @@ struct DifficultyIndicator: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(difficulty.color.opacity(0.3), lineWidth: 1)
-                )
         )
     }
 }
@@ -535,17 +511,6 @@ struct ModernQuickActionButton: View {
             }
             .frame(width: (UIScreen.main.bounds.width - 64) / 2, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: [color.opacity(0.6), color.opacity(0.2)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: isPressed ? 2 : 1
-                    )
-            )
             .shadow(
                 color: color.opacity(0.3),
                 radius: isPressed ? 12 : 8,
@@ -726,10 +691,6 @@ struct ModernActionButton: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 20)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(color.opacity(isPressed ? 0.6 : 0.3), lineWidth: isPressed ? 2 : 1)
-            )
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .brightness(isPressed ? 0.05 : 0.0)
         }
@@ -793,13 +754,9 @@ struct SelectedAppsDisplaySection: View {
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(.cyan.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(.cyan.opacity(0.2), lineWidth: 1)
-                )
         )
     }
-    
+
 }
 
 // MARK: - Compact App Item View
@@ -816,10 +773,6 @@ struct CompactAppItemView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(.white.opacity(0.1), lineWidth: 0.5)
-                    )
             )
     }
 }
@@ -837,10 +790,6 @@ struct CompactCategoryItemView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.purple.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(.purple.opacity(0.3), lineWidth: 1)
-                    )
             )
     }
 }
@@ -965,10 +914,6 @@ struct TaskGoalCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
-                )
         )
     }
 }

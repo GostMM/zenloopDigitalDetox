@@ -26,22 +26,43 @@ struct SessionPlanningRow: View {
     @State private var isInitialLoad = true // Pour éviter d'ouvrir le modal au chargement
 
     var body: some View {
-        CompactScheduleCard(
-            selectedDuration: $selectedDuration,
-            selectedApps: $selectedApps,
-            onSelectApps: {
-                showingAppPicker = true
-            },
-            onSchedule: {
-                // Créer et afficher la modal de scheduling
-                if let session = createDynamicSession() {
-                    selectedSession = session
-                    showingScheduleModal = true
-                }
-            },
-            showContent: showContent
-        )
-        .padding(.horizontal, 20)
+        VStack(spacing: 0) {
+            // Divider subtil
+            HStack {
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.0),
+                                Color.white.opacity(0.1),
+                                Color.white.opacity(0.0)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 20)
+
+            CompactScheduleCard(
+                selectedDuration: $selectedDuration,
+                selectedApps: $selectedApps,
+                onSelectApps: {
+                    showingAppPicker = true
+                },
+                onSchedule: {
+                    // Créer et afficher la modal de scheduling
+                    if let session = createDynamicSession() {
+                        selectedSession = session
+                        showingScheduleModal = true
+                    }
+                },
+                showContent: showContent
+            )
+            .padding(.horizontal, 20)
+        }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 20)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.7), value: showContent)
@@ -289,157 +310,124 @@ struct CompactScheduleCard: View {
     ]
 
     private var selectedAppsCount: Int {
-        let count = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
-        print("🔍 [COMPACT_CARD] selectedAppsCount = \(count), appTokens: \(selectedApps.applicationTokens.count), categoryTokens: \(selectedApps.categoryTokens.count)")
-        print("🔍 [COMPACT_CARD] applicationTokens array: \(Array(selectedApps.applicationTokens))")
-        return count
+        selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+    }
+
+    private var hasSelectedApps: Bool {
+        selectedAppsCount > 0
+    }
+
+    private var formattedDuration: String {
+        let hours = Int(selectedDuration) / 3600
+        let minutes = (Int(selectedDuration) % 3600) / 60
+
+        if hours > 0 {
+            if minutes > 0 {
+                return "\(hours)h \(minutes)m"
+            }
+            return "\(hours)h"
+        }
+        return "\(minutes)m"
     }
 
     var body: some View {
-        let _ = print("🎨 [COMPACT_CARD] Body refresh - selectedAppsCount: \(selectedAppsCount)")
-        let _ = print("🎨 [COMPACT_CARD] showContent: \(showContent)")
+        VStack(spacing: 16) {
+            // Section 1: App Selection + Duration (inspiré de CompactTimerView)
+            HStack(alignment: .center, spacing: 20) {
+                // Apps (left)
+                Button(action: onSelectApps) {
+                    VStack(spacing: 10) {
+                        HStack(spacing: 10) {
+                            Image(systemName: hasSelectedApps ? "calendar.badge.checkmark" : "calendar.badge.clock")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(.purple)
 
-        return VStack(alignment: .leading, spacing: 12) {
-            // Header: Icône + Titre + Description
-            Button(action: onSelectApps) {
-                HStack(spacing: 12) {
-                    // Icône
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.purple.opacity(0.25), .purple.opacity(0.1)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 48, height: 48)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("PLANIFIER")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .tracking(0.5)
 
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.purple)
-                    }
-
-                    // Titre + Description
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "quick_schedule"))
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-
-                        Text(String(localized: "quick_schedule_description"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    // Chevron
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.4))
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            // Apps sélectionnées - GRILLE SIMPLE (code du modal qui fonctionnait)
-            if selectedAppsCount > 0 {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 6), spacing: 4) {
-                    // Applications individuelles
-                    ForEach(Array(selectedApps.applicationTokens.prefix(12)), id: \.self) { token in
-                        Label(token)
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 20))
-                            .frame(width: 32, height: 32)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.white.opacity(0.1), lineWidth: 0.5)
-                            )
-                    }
-
-                    // Catégories
-                    ForEach(Array(selectedApps.categoryTokens.prefix(4)), id: \.self) { token in
-                        Label(token)
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 20))
-                            .frame(width: 32, height: 32)
-                            .background(.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.purple.opacity(0.3), lineWidth: 1)
-                            )
-                    }
-                }
-            }
-
-            // Durées + Schedule Button
-            HStack(spacing: 8) {
-                // Durées plus compactes
-                HStack(spacing: 5) {
-                    ForEach(durations, id: \.0) { duration in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                selectedDuration = duration.0
+                                Text(hasSelectedApps ? "\(selectedAppsCount) apps" : "Choisir apps")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.9))
                             }
-                        }) {
-                            Text(duration.1)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(selectedDuration == duration.0 ? .white : .white.opacity(0.5))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(selectedDuration == duration.0 ? Color.cyan.opacity(0.3) : Color.white.opacity(0.05))
-                                        .overlay(
-                                            Capsule()
-                                                .stroke(selectedDuration == duration.0 ? Color.cyan : Color.clear, lineWidth: 1.5)
-                                        )
-                                )
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .fixedSize()
+
+                        // Pile d'apps si sélectionnées
+                        if hasSelectedApps {
+                            StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
+                        }
                     }
                 }
+                .buttonStyle(PlainButtonStyle())
 
                 Spacer()
 
-                // Schedule button plus compact
-                Button(action: onSchedule) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.right.circle.fill")
-                            .font(.system(size: 13, weight: .semibold))
+                // Duration (right) - GRANDE
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("DURÉE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(0.5)
 
-                        Text(String(localized: "schedule"))
-                            .font(.system(size: 13, weight: .semibold))
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.purple)
+                        Text(formattedDuration)
+                            .font(.system(size: 32, weight: .heavy))
+                            .foregroundColor(.white)
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        LinearGradient(
-                            colors: [.purple, .purple.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(20)
-                    .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .fixedSize()
             }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(.purple.opacity(0.3), lineWidth: 1)
+
+            // Section 2: Durées sélectionnables
+            HStack(spacing: 8) {
+                ForEach(durations, id: \.0) { duration in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                            selectedDuration = duration.0
+                        }
+                    }) {
+                        Text(duration.1)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(selectedDuration == duration.0 ? .white : .white.opacity(0.5))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(selectedDuration == duration.0 ? Color.purple.opacity(0.3) : Color.white.opacity(0.05))
+                            )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+
+            // Section 3: Schedule Button
+            Button(action: onSchedule) {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 16, weight: .bold))
+
+                    Text("Planifier la session")
+                        .font(.system(size: 16, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    LinearGradient(
+                        colors: [.purple, .purple.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
-        )
-        .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
+                .cornerRadius(16)
+                .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
     }
 }
 
@@ -498,10 +486,6 @@ struct PopularSessionCard: View {
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(.black.opacity(0.6))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(session.accentColor.color.opacity(0.8), lineWidth: 1)
-                                        )
                                 )
                                 
                                 // Badge de configuration
@@ -545,17 +529,6 @@ struct PopularSessionCard: View {
             }
             .frame(width: 160, height: 140)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: [session.accentColor.color.opacity(0.6), session.accentColor.color.opacity(0.3)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: isPressed ? 2 : 1
-                    )
-            )
             .shadow(
                 color: session.accentColor.color.opacity(0.3),
                 radius: isPressed ? 12 : 8,

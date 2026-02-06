@@ -1008,7 +1008,7 @@ struct BlockAppSheet: View {
 
                                 Picker("", selection: $selectedMinutes) {
                                     // ✅ Ajout de 1 et 2 minutes pour les tests
-                                    ForEach([0, 1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
+                                    ForEach([0, 1, 2, 5, 10, 15,16, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
                                         Text("\(minute)").tag(minute)
                                             .foregroundColor(.white)
                                     }
@@ -1120,22 +1120,24 @@ struct BlockAppSheet: View {
         isBlocking = true
 
         #if os(iOS)
+        let blockLogger = Logger(subsystem: "com.app.zenloop.zenloopactivity", category: "BlockSheet")
+
         // Utiliser la durée sélectionnée dans les roulettes
         let duration = TimeInterval(totalMinutes * 60)
         let blockId = UUID().uuidString
         let activityName = DeviceActivityName("block-\(blockId)")
 
-        print("🎯 [BLOCK_SHEET] Starting IMMEDIATE block + auto-unblock")
-        print("   → App: \(app.name)")
-        print("   → Duration: \(Int(duration/60)) minutes")
-        print("   → BlockID: \(blockId)")
+        blockLogger.critical("🎯 [BLOCK_SHEET] Starting IMMEDIATE block + auto-unblock")
+        blockLogger.critical("   → App: \(app.name)")
+        blockLogger.critical("   → Duration: \(Int(duration/60)) minutes")
+        blockLogger.critical("   → BlockID: \(blockId)")
 
         // Encoder le token
         var selection = FamilyActivitySelection()
         selection.applicationTokens = [app.token]
 
         guard let tokenData = try? JSONEncoder().encode(selection) else {
-            print("❌ [BLOCK_SHEET] Failed to encode token")
+            blockLogger.error("❌ [BLOCK_SHEET] Failed to encode token")
             self.isBlocking = false
             return
         }
@@ -1143,45 +1145,45 @@ struct BlockAppSheet: View {
         // 1️⃣ APPLIQUER LE SHIELD IMMÉDIATEMENT dans le store PAR DÉFAUT
         // ✅ CRUCIAL: Utiliser le store par défaut (sans nom) pour la persistance!
         // Le GlobalShieldManager utilise aussi ce store, donc cohérence garantie
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔒 [BLOCK_SHEET] ========== STEP 1: APPLYING SHIELD ==========")
-        print("🔒 [BLOCK_SHEET] App: \(app.name)")
-        print("🔒 [BLOCK_SHEET] Duration: \(Int(duration/60)) minutes")
-        print("🔒 [BLOCK_SHEET] BlockID: \(blockId)")
-        print("🔒 [BLOCK_SHEET] ActivityName: \(activityName.rawValue)")
+        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        blockLogger.critical("🔒 [BLOCK_SHEET] ========== STEP 1: APPLYING SHIELD ==========")
+        blockLogger.critical("🔒 [BLOCK_SHEET] App: \(app.name)")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Duration: \(Int(duration/60)) minutes")
+        blockLogger.critical("🔒 [BLOCK_SHEET] BlockID: \(blockId)")
+        blockLogger.critical("🔒 [BLOCK_SHEET] ActivityName: \(activityName.rawValue)")
 
         let store = ManagedSettingsStore() // ✅ Store par défaut = persistance!
-        print("🔒 [BLOCK_SHEET] Created DEFAULT ManagedSettingsStore")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Created DEFAULT ManagedSettingsStore")
 
         let currentBlocked = store.shield.applications ?? Set()
-        print("🔒 [BLOCK_SHEET] Current blocked apps in store: \(currentBlocked.count)")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Current blocked apps in store: \(currentBlocked.count)")
 
         var blockedApps = currentBlocked
         let beforeCount = blockedApps.count
         blockedApps.insert(app.token)
         let afterCount = blockedApps.count
 
-        print("🔒 [BLOCK_SHEET] Before insert: \(beforeCount) apps")
-        print("🔒 [BLOCK_SHEET] After insert: \(afterCount) apps")
-        print("🔒 [BLOCK_SHEET] Actually added: \(afterCount > beforeCount)")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Before insert: \(beforeCount) apps")
+        blockLogger.critical("🔒 [BLOCK_SHEET] After insert: \(afterCount) apps")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Actually added: \(afterCount > beforeCount)")
 
         store.shield.applications = blockedApps
-        print("✅ [BLOCK_SHEET] store.shield.applications = blockedApps EXECUTED")
+        blockLogger.critical("✅ [BLOCK_SHEET] store.shield.applications = blockedApps EXECUTED")
 
         // Vérifier immédiatement
         let verifyBlocked = store.shield.applications?.count ?? 0
-        print("🔒 [BLOCK_SHEET] Verification: store now has \(verifyBlocked) blocked apps")
+        blockLogger.critical("🔒 [BLOCK_SHEET] Verification: store now has \(verifyBlocked) blocked apps")
 
         if verifyBlocked != afterCount {
-            print("⚠️ [BLOCK_SHEET] MISMATCH! Expected \(afterCount) but got \(verifyBlocked)")
+            blockLogger.critical("⚠️ [BLOCK_SHEET] MISMATCH! Expected \(afterCount) but got \(verifyBlocked)")
         }
 
-        print("✅ [BLOCK_SHEET] Shield applied to DEFAULT store!")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        blockLogger.critical("✅ [BLOCK_SHEET] Shield applied to DEFAULT store!")
+        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // 2️⃣ ENVOYER LES DONNÉES À L'APP PRINCIPALE pour la sauvegarde
-        print("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
-        print("📤 [BLOCK_SHEET] Opening main app to save block data...")
+        blockLogger.critical("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
+        blockLogger.critical("📤 [BLOCK_SHEET] Opening main app to save block data...")
 
         // Encoder les données pour l'URL
         let blockData: [String: Any] = [
@@ -1204,42 +1206,51 @@ struct BlockAppSheet: View {
         ]
 
         if let url = urlComponents.url {
-            print("🔗 [BLOCK_SHEET] Opening main app with block data...")
+            blockLogger.critical("🔗 [BLOCK_SHEET] Opening main app with block data...")
             openURL(url) { accepted in
                 if accepted {
-                    print("✅ [BLOCK_SHEET] Main app opened - block will be saved there")
+                    blockLogger.critical("✅ [BLOCK_SHEET] Main app opened - block will be saved there")
                 } else {
-                    print("❌ [BLOCK_SHEET] Failed to open main app")
+                    blockLogger.error("❌ [BLOCK_SHEET] Failed to open main app")
                 }
             }
         } else {
-            print("❌ [BLOCK_SHEET] Failed to create URL")
+            blockLogger.error("❌ [BLOCK_SHEET] Failed to create URL")
         }
 
-        print("💾 [BLOCK_SHEET] Block will be saved by main app (has write permissions)")
+        blockLogger.critical("💾 [BLOCK_SHEET] Block will be saved by main app (has write permissions)")
 
-        // 3️⃣ PROGRAMMER LE DÉBLOCAGE AUTOMATIQUE avec DeviceActivity
-        let center = DeviceActivityCenter()
+        // 3️⃣ DEMANDER À L'APP PRINCIPALE DE PROGRAMMER LE MONITORING
+        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        blockLogger.critical("⏰ [BLOCK_SHEET] ========== STEP 3: REQUESTING MAIN APP TO SCHEDULE ==========")
+        blockLogger.critical("⚠️ [BLOCK_SHEET] Extensions cannot call DeviceActivityCenter.startMonitoring()")
+        blockLogger.critical("⚠️ [BLOCK_SHEET] Main app will handle the scheduling instead")
+
         let now = Date()
-        let calendar = Calendar.current
+        blockLogger.critical("⏰ [BLOCK_SHEET] Now: \(now)")
+        blockLogger.critical("⏰ [BLOCK_SHEET] Duration: \(duration) seconds (\(Int(duration/60)) minutes)")
 
-        // Début = dans 1 seconde (contourner le problème "now")
-        let startDate = now.addingTimeInterval(1)
-        let startComponents = calendar.dateComponents([.hour, .minute, .second], from: startDate)
+        // Sauvegarder le payload pour que le Monitor puisse l'utiliser plus tard
+        if let suite = UserDefaults(suiteName: "group.com.app.zenloop") {
+            let payload = SelectionPayload(
+                sessionId: blockId,
+                apps: [app.token],
+                categories: [],
+                restrictionMode: .shield
+            )
 
-        // Fin = start + duration
-        let endDate = now.addingTimeInterval(duration)
-        let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endDate)
+            if let payloadData = try? JSONEncoder().encode(payload) {
+                suite.set(payloadData, forKey: "payload_\(activityName.rawValue)")
+                suite.synchronize()
+                blockLogger.critical("💾 [BLOCK_SHEET] Payload saved to App Group: payload_\(activityName.rawValue)")
+            } else {
+                blockLogger.error("❌ [BLOCK_SHEET] Failed to encode payload")
+            }
+        } else {
+            blockLogger.error("❌ [BLOCK_SHEET] Cannot access App Group")
+        }
 
-        let schedule = DeviceActivitySchedule(
-            intervalStart: startComponents,
-            intervalEnd: endComponents,
-            repeats: false
-        )
-
-        // Note: Le déblocage automatique sera géré par l'app principale via DeviceActivity
-        // Nous n'avons pas besoin de sauvegarder le payload ici car l'app le fera
-        print("✅ [BLOCK_SHEET] Shield applied, sending data to main app...")
+        blockLogger.critical("✅ [BLOCK_SHEET] Shield applied, main app will schedule monitoring")
 
         // Feedback visuel + fermeture
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {

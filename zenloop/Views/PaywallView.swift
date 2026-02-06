@@ -7,6 +7,8 @@
 import SwiftUI
 import StoreKit
 import UIKit
+import AVKit
+import AVFoundation
 
 struct PaywallView: View {
     @Binding var isOnboardingComplete: Bool?
@@ -32,273 +34,132 @@ struct PaywallView: View {
         self._isOnboardingComplete = .constant(nil)
     }
     @State private var showContent = false
-    @State private var selectedPlan: PricingPlan = .yearly  // Sélection par défaut sur le plan le plus populaire
+    @State private var selectedPlan: PricingPlan = .lifetime  // Sélection par défaut sur achat unique
     @State private var isPurchasing = false
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var rotationAngle: Double = 0
-    @State private var messageIndex = 0
-    @State private var glowIntensity: Double = 0.3
     @State private var purchaseError: String?
-   
+
     // Haptic Feedback
     private let impactLight = UIImpactFeedbackGenerator(style: .light)
     private let impactMedium = UIImpactFeedbackGenerator(style: .medium)
     private let impactHeavy = UIImpactFeedbackGenerator(style: .heavy)
     private let notificationFeedback = UINotificationFeedbackGenerator()
    
-    private let hypnoticMessages = [
-        String(localized: "hypnotic_unlock_potential"),
-        String(localized: "hypnotic_stop_scrolling"),
-        String(localized: "hypnotic_focus_master"),
-        String(localized: "hypnotic_time_is_gold"),
-        String(localized: "hypnotic_transform_productivity"),
-        String(localized: "hypnotic_unlock_superpower"),
-        String(localized: "hypnotic_take_control_now"),
-        String(localized: "hypnotic_premium_version")
-    ]
-   
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Background hypnotique
-                HypnoticBackground()
-                    .ignoresSafeArea(.all, edges: .all)
-               
-                // Interface principale avec scroll
-                VStack(spacing: 0) {
-                    // Header compact fixe
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Zenloop")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
+        ZStack {
+            // Background vidéo en plein écran
+            VideoBackgroundView()
 
-                            HStack(spacing: 4) {
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.yellow)
-                                Text("PREMIUM")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.yellow)
-                            }
+            // Dégradé dark en bas pour lisibilité
+            VStack {
+                Spacer()
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        .black.opacity(0.3),
+                        .black.opacity(0.6)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 350)
+                .allowsHitTesting(false)
+            }
+            .ignoresSafeArea()
+
+            // Interface principale minimaliste
+            VStack(spacing: 0) {
+                // Header avec titre à gauche
+                HStack {
+                    Text("Zenloop Premium")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.8), radius: 10)
+
+                    Spacer()
+
+                    Button(action: {
+                        impactLight.impactOccurred()
+                        Task {
+                            await FirebaseManager.shared.trackPaywallAction(action: .dismissed)
                         }
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 36, height: 36)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
 
-                        Spacer()
+                    Spacer()
 
-                        Button(action: {
-                            impactLight.impactOccurred()
-                            // Firebase: Tracker la fermeture du paywall
-                            Task {
-                                await FirebaseManager.shared.trackPaywallAction(action: .dismissed)
+                    // Plans en row horizontal compact
+                    HStack(spacing: 12) {
+                        // LIFETIME - Achat unique
+                        CompactPlanCard(
+                            plan: .lifetime,
+                            isSelected: selectedPlan == .lifetime,
+                            purchaseManager: purchaseManager,
+                            onSelect: {
+                                impactMedium.impactOccurred()
+                                selectedPlan = .lifetime
                             }
-                            dismiss()
-                        }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
-                                .frame(width: 28, height: 28)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
+                        )
+
+                        // MONTHLY - Abonnement
+                        CompactPlanCard(
+                            plan: .monthly,
+                            isSelected: selectedPlan == .monthly,
+                            purchaseManager: purchaseManager,
+                            onSelect: {
+                                impactMedium.impactOccurred()
+                                selectedPlan = .monthly
+                            }
+                        )
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 10)
+                    .padding(.bottom, 20)
+                    .opacity(showContent ? 1 : 0)
 
-                    // Contenu scrollable
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 24) {
-                            // Centre hypnotique (plus compact)
-                            VStack(spacing: 20) {
-                                // Cercle central hypnotique (réduit)
-                                ZStack {
-                                    // Anneaux animés
-                                    ForEach(0..<4, id: \.self) { index in
-                                        Circle()
-                                            .stroke(
-                                                LinearGradient(
-                                                    colors: [
-                                                        .cyan.opacity(0.8 - Double(index) * 0.15),
-                                                        .purple.opacity(0.6 - Double(index) * 0.1),
-                                                        .pink.opacity(0.4 - Double(index) * 0.08)
-                                                    ],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 2 - CGFloat(index) * 0.3
-                                            )
-                                            .frame(width: 80 + CGFloat(index * 15), height: 80 + CGFloat(index * 15))
-                                            .rotationEffect(.degrees(rotationAngle + Double(index * 45)))
-                                            .scaleEffect(pulseScale + Double(index) * 0.05)
-                                            .opacity(glowIntensity + Double(index) * 0.1)
-                                    }
-
-                                    // Centre lumineux
-                                    Circle()
-                                        .fill(
-                                            RadialGradient(
-                                                colors: [.white.opacity(0.9), .cyan.opacity(0.7), .purple.opacity(0.5)],
-                                                center: .center,
-                                                startRadius: 0,
-                                                endRadius: 40
-                                            )
-                                        )
-                                        .frame(width: 80, height: 80)
-                                        .shadow(color: .cyan, radius: 15)
-                                        .shadow(color: .purple, radius: 20)
-                                        .scaleEffect(pulseScale)
-
-                                    // Icône couronne
-                                    Image(systemName: "crown.fill")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .scaleEffect(pulseScale)
-                                        .shadow(color: .white, radius: 8)
-                                }
-                                .padding(.top, 20)
-
-                                // Message hypnotique animé
-                                Text(hypnoticMessages[messageIndex])
-                                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.center)
-                                    .shadow(color: .cyan, radius: 8)
-                                    .scaleEffect(showContent ? 1.0 : 0.8)
-                                    .opacity(showContent ? 1 : 0)
-                                    .padding(.horizontal, 20)
-
-                                // Sous-message
-                                Text(String(localized: "paywall_ultimate_experience"))
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-                                    .opacity(showContent ? 1 : 0)
-                                    .padding(.horizontal, 20)
-                            }
-
-                            // Bénéfices Premium (compact et impactant)
-                            VStack(spacing: 10) {
-                                PremiumFeatureRow(icon: "infinity", text: String(localized: "unlimited_focus_sessions"), color: .cyan)
-                                PremiumFeatureRow(icon: "chart.line.uptrend.xyaxis", text: String(localized: "advanced_analytics"), color: .purple)
-                                PremiumFeatureRow(icon: "bell.badge.fill", text: String(localized: "smart_reminders"), color: .orange)
-                                PremiumFeatureRow(icon: "lock.shield.fill", text: String(localized: "priority_support"), color: .green)
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                            .padding(.horizontal, 16)
-
-                            // Tous les plans visibles simultanément - ORDRE OPTIMISÉ
-                            VStack(spacing: 12) {
-                                // 1️⃣ YEARLY - POPULAIRE (meilleur rapport qualité/prix)
-                                PremiumPlanCard(
-                                    plan: .yearly,
-                                    isSelected: selectedPlan == .yearly,
-                                    isCompact: false,
-                                    purchaseManager: purchaseManager,
-                                    onSelect: {
-                                        impactMedium.impactOccurred()
-                                        selectedPlan = .yearly
-                                    }
-                                )
-
-                                // 2️⃣ MONTHLY - Option flexible
-                                PremiumPlanCard(
-                                    plan: .monthly,
-                                    isSelected: selectedPlan == .monthly,
-                                    isCompact: false,
-                                    purchaseManager: purchaseManager,
-                                    onSelect: {
-                                        impactMedium.impactOccurred()
-                                        selectedPlan = .monthly
-                                    }
-                                )
-
-                                // 3️⃣ LIFETIME - Premium (pour les convaincus)
-                                PremiumPlanCard(
-                                    plan: .lifetime,
-                                    isSelected: selectedPlan == .lifetime,
-                                    isCompact: false,
-                                    purchaseManager: purchaseManager,
-                                    onSelect: {
-                                        impactMedium.impactOccurred()
-                                        selectedPlan = .lifetime
-                                    }
-                                )
-                            }
-                            .padding(.horizontal, 16)
-
-                            // Espace avant le bouton
-                            Spacer(minLength: 20)
-                        }
-                    }
-
-                    // CTA et footer fixes en bas
-                    VStack(spacing: 12) {
-                        // CTA hypnotique
+                    // CTA minimaliste
+                    VStack(spacing: 14) {
                         Button(action: {
                             impactHeavy.impactOccurred()
                             purchasePlan()
                         }) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 10) {
                                 if isPurchasing {
                                     ProgressView()
-                                        .scaleEffect(0.8)
                                         .tint(.white)
                                 } else {
-                                    Image(systemName: "crown.fill")
-                                        .font(.system(size: 16, weight: .bold))
+                                    Text(String(localized: "unlock_your_potential_cta"))
+                                        .font(.system(size: 18, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
-
-                                Text(isPurchasing ? String(localized: "activating") : String(localized: "unlock_your_potential_cta"))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+                            .frame(height: 56)
                             .background(
-                                ZStack {
-                                    // Background principal
-                                    LinearGradient(
-                                        colors: [.cyan, .purple, .pink],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-
-                                    // Overlay animé
-                                    LinearGradient(
-                                        colors: [.white.opacity(0.3), .clear, .white.opacity(0.3)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                    .offset(x: showContent ? 200 : -200)
-                                    .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: showContent)
-                                }
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.white.opacity(0.2))
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 25))
-                            .shadow(color: .cyan.opacity(0.5), radius: 15, x: 0, y: 5)
-                            .shadow(color: .purple.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .scaleEffect(isPurchasing ? 0.95 : 1.0)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(.white.opacity(0.3), lineWidth: 1)
+                            )
                         }
                         .disabled(isPurchasing)
 
-                        // Garantie et restore
-                        VStack(spacing: 8) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.shield.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.green)
-
-                                Text(String(localized: "money_back_guarantee_7_days"))
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-
+                        // Footer compact
+                        VStack(spacing: 12) {
                             Button(String(localized: "restore_purchases")) {
                                 impactLight.impactOccurred()
                                 Task {
-                                    // Firebase: Tracker la restauration
                                     await FirebaseManager.shared.trackPaywallAction(action: .restorePurchases)
-
                                     do {
                                         try await purchaseManager.restorePurchases()
                                         if purchaseManager.isPremium {
@@ -312,47 +173,46 @@ struct PaywallView: View {
                                     }
                                 }
                             }
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.cyan)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
 
-                            // Legal links
                             HStack(spacing: 8) {
                                 Link(String(localized: "privacy_policy"), destination: URL(string: "https://www.zenloop.me/privacy-policy")!)
-                                    .font(.system(size: 10, weight: .regular))
+                                    .font(.system(size: 11))
                                     .foregroundColor(.white.opacity(0.5))
 
                                 Text("•")
-                                    .font(.system(size: 10))
                                     .foregroundColor(.white.opacity(0.3))
 
                                 Link(String(localized: "terms_of_use"), destination: URL(string: "https://www.zenloop.me/eula")!)
-                                    .font(.system(size: 10, weight: .regular))
+                                    .font(.system(size: 11))
                                     .foregroundColor(.white.opacity(0.5))
                             }
                         }
-                        .opacity(showContent ? 1 : 0)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
-                    .background(.ultraThinMaterial)
-                }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+                    .opacity(showContent ? 1 : 0)
             }
         }
         .fullScreenCover(isPresented: $showPermissionsSetup) {
             PermissionsSetupView(isOnboardingComplete: $isOnboardingComplete)
         }
         .onAppear {
-            // Feedback haptique d'entrée
             impactMedium.impactOccurred()
-            startAnimations()
-           
+
+            // Animation d'apparition simple
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2)) {
+                showContent = true
+            }
+
             // Firebase: Tracker l'affichage du paywall
             Task {
                 print("📱 [PAYWALL] PaywallView appeared - tracking viewed action")
                 await FirebaseManager.shared.trackPaywallAction(action: .viewed)
                 print("📱 [PAYWALL] Tracking call completed")
             }
-           
+
             // Force reload products si nécessaire
             Task {
                 if purchaseManager.products.isEmpty {
@@ -363,36 +223,6 @@ struct PaywallView: View {
                 for product in purchaseManager.products {
                     print("📦 \(product.id): \(product.displayPrice)")
                 }
-            }
-        }
-    }
-   
-    private func startAnimations() {
-        // Animation d'apparition
-        withAnimation(.easeOut(duration: 0.8)) {
-            showContent = true
-        }
-       
-        // Rotation continue
-        withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
-            rotationAngle = 360
-        }
-       
-        // Pulsation hypnotique
-        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
-            pulseScale = 1.2
-        }
-       
-        // Variation du glow
-        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
-            glowIntensity = 0.8
-        }
-       
-        // Messages rotatifs avec feedback haptique
-        Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
-            impactLight.impactOccurred()
-            withAnimation(.easeInOut(duration: 0.5)) {
-                messageIndex = (messageIndex + 1) % hypnoticMessages.count
             }
         }
     }
@@ -474,108 +304,326 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - Background Hypnotique
-struct HypnoticBackground: View {
-    @State private var phase: Double = 0
-    @State private var waveOffset: Double = 0
-   
+// MARK: - Video Background
+struct VideoBackgroundView: View {
+    @StateObject private var playerViewModel = VideoPlayerViewModel()
+
     var body: some View {
-        ZStack {
-            // Base sombre
-            LinearGradient(
-                colors: [
-                    Color(red: 0.01, green: 0.01, blue: 0.05),
-                    Color(red: 0.05, green: 0.01, blue: 0.08),
-                    Color(red: 0.08, green: 0.02, blue: 0.12),
-                    Color(red: 0.01, green: 0.05, blue: 0.10)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+        // Vidéo en plein écran SANS AUCUNE SUPERPOSITION
+        if let player = playerViewModel.player {
+            PaywallVideoPlayerView(player: player)
+                .edgesIgnoringSafeArea(.all)
+                .onAppear {
+                    print("🎬 [VIDEO] VideoBackgroundView appeared")
+                    // Force play au cas où
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        if player.rate == 0 {
+                            player.play()
+                            print("▶️ [VIDEO] Force play from view")
+                        }
+                    }
+                }
+        } else {
+            // Fond noir en attendant
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+                .overlay(
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(1.5)
+                )
+                .onAppear {
+                    playerViewModel.setupPlayer()
+                }
+        }
+    }
+}
+
+// MARK: - Paywall Video Player UIViewRepresentable
+struct PaywallVideoPlayerView: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> UIView {
+        print("🎬 [VIDEO UI] Creating UIView for video player")
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .black // Fond noir pour test
+
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.videoGravity = .resizeAspectFill
+        playerLayer.frame = view.bounds
+        view.layer.insertSublayer(playerLayer, at: 0)
+
+        context.coordinator.playerLayer = playerLayer
+
+        // Forcer le player à jouer
+        DispatchQueue.main.async {
+            player.play()
+            print("✅ [VIDEO UI] UIView created, forcing play. Rate: \(player.rate)")
+        }
+
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            context.coordinator.playerLayer?.frame = uiView.bounds
+            print("🔄 [VIDEO UI] Updated frame: \(uiView.bounds), rate: \(player.rate)")
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator {
+        var playerLayer: AVPlayerLayer?
+    }
+}
+
+// MARK: - Video Player ViewModel
+class VideoPlayerViewModel: ObservableObject {
+    @Published var player: AVPlayer?
+    private var playerLooper: AVPlayerLooper?
+    private var statusObserver: NSKeyValueObservation?
+    private var timeObserver: Any?
+
+    func setupPlayer() {
+        print("🎬 [VIDEO] Starting video setup...")
+        
+        // IMPORTANT: Configurer l'audio session pour vidéo muette
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("✅ [VIDEO] Audio session configured")
+        } catch {
+            print("⚠️ [VIDEO] Audio session error: \(error)")
+        }
+
+        // Essayer d'abord avec le nom exact de votre asset
+        var videoURL: URL?
+        
+        // Option 1: NSDataAsset (si la vidéo est dans Assets.xcassets)
+        if let asset = NSDataAsset(name: "Zenloop") {
+            print("✅ [VIDEO] Found NSDataAsset 'Zenloop', size: \(asset.data.count) bytes")
+
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("zenloop_paywall.mp4")
+
+            do {
+                if FileManager.default.fileExists(atPath: tempURL.path) {
+                    try FileManager.default.removeItem(at: tempURL)
+                }
+                try asset.data.write(to: tempURL)
+                videoURL = tempURL
+                print("✅ [VIDEO] Video written to temp: \(tempURL)")
+            } catch {
+                print("❌ [VIDEO] Failed to write video: \(error)")
+            }
+        }
+
+        // Option 2: Bundle resource (si la vidéo est dans le dossier du projet)
+        if videoURL == nil {
+            // Essayez différentes variantes du nom
+            let possibleNames = [
+                ("Zenloop", "mp4"),
+                ("Zenloop 2.1", "mp4"),
+                ("Zenloopvideo", "mp4")
+            ]
+
+            for (name, ext) in possibleNames {
+                if let bundleURL = Bundle.main.url(forResource: name, withExtension: ext) {
+                    videoURL = bundleURL
+                    print("✅ [VIDEO] Found video in bundle: \(name).\(ext)")
+                    break
+                }
+            }
+        }
+        
+        guard let url = videoURL else {
+            print("❌ [VIDEO] No video found. Check asset name in Assets.xcassets or bundle")
+            return
+        }
+        
+        setupPlayerWithURL(url)
+    }
+
+    private func setupPlayerWithURL(_ url: URL) {
+        print("🎬 [VIDEO] Setting up player with URL: \(url)")
+        
+        let asset = AVAsset(url: url)
+        let playerItem = AVPlayerItem(asset: asset)
+        let queuePlayer = AVQueuePlayer(playerItem: playerItem)
+        
+        // Configuration essentielle
+        queuePlayer.isMuted = true
+        queuePlayer.automaticallyWaitsToMinimizeStalling = false
+        queuePlayer.actionAtItemEnd = .none
+        
+        // Observer le statut
+        statusObserver = playerItem.observe(\.status, options: [.new, .initial]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                switch item.status {
+                case .readyToPlay:
+                    print("✅ [VIDEO] Status: Ready to play")
+                    print("📐 [VIDEO] Video size: \(item.presentationSize)")
+                    print("⏱️ [VIDEO] Duration: \(item.duration.seconds)s")
+                    print("🎬 [VIDEO] Has video tracks: \(item.asset.tracks.count)")
+                    queuePlayer.play()
+                    print("▶️ [VIDEO] Play() called - rate: \(queuePlayer.rate)")
+                case .failed:
+                    if let error = item.error {
+                        print("❌ [VIDEO] Failed: \(error.localizedDescription)")
+                    }
+                case .unknown:
+                    print("⏳ [VIDEO] Status: Unknown")
+                @unknown default:
+                    break
+                }
+            }
+        }
+        
+        // Observer pour vérifier que la vidéo joue réellement
+        timeObserver = queuePlayer.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 1, preferredTimescale: 1),
+            queue: .main
+        ) { time in
+            let currentTime = CMTimeGetSeconds(time)
+            if currentTime > 0 {
+                print("▶️ [VIDEO] Playing at \(String(format: "%.1f", currentTime))s")
+            }
+        }
+        
+        // Setup du looper APRÈS avoir configuré les observers
+        playerLooper = AVPlayerLooper(player: queuePlayer, templateItem: playerItem)
+        
+        self.player = queuePlayer
+        print("✅ [VIDEO] Player setup complete")
+        
+        // Force play après un court délai
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if queuePlayer.rate == 0 {
+                queuePlayer.play()
+                print("🔄 [VIDEO] Force play after delay")
+            }
+        }
+    }
+
+    func cleanup() {
+        if let observer = timeObserver {
+            player?.removeTimeObserver(observer)
+        }
+        statusObserver?.invalidate()
+        statusObserver = nil
+        player?.pause()
+        player = nil
+        playerLooper = nil
+        timeObserver = nil
+        print("🧹 [VIDEO] Cleanup complete")
+    }
+}
+
+// MARK: - Compact Plan Card (Horizontal)
+struct CompactPlanCard: View {
+    let plan: PricingPlan
+    let isSelected: Bool
+    let purchaseManager: PurchaseManager
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(spacing: 12) {
+                // Titre compact
+                Text(plan == .lifetime ? "Achat unique" : "Mensuel")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+
+                // Prix principal
+                Text(realPrice)
+                    .font(.system(size: 32, weight: .black))
+                    .foregroundColor(.white)
+
+                // Sous-titre
+                Text(plan == .lifetime ? "Accès à vie" : "/mois")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(isSelected ? .white.opacity(0.25) : .white.opacity(0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(isSelected ? .white : .white.opacity(0.3), lineWidth: isSelected ? 2.5 : 1.5)
+                    )
             )
-           
-            // Particules flottantes hypnotiques
-            ForEach(0..<30, id: \.self) { index in  // Augmenté pour plus de magnificence
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                .cyan.opacity(0.4),
-                                .purple.opacity(0.3),
-                                .pink.opacity(0.2),
-                                .clear
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 30
-                        )
-                    )
-                    .frame(width: CGFloat.random(in: 10...60))  // Tailles variées pour plus de dynamisme
-                    .position(
-                        x: CGFloat.random(in: 0...UIScreen.main.bounds.width) + CGFloat(sin(phase + Double(index)) * 40),
-                        y: CGFloat.random(in: 0...UIScreen.main.bounds.height) + CGFloat(cos(phase + Double(index) * 0.7) * 50)
-                    )
-                    .opacity(0.5 + sin(phase + Double(index) * 0.5) * 0.3)
-                    .scaleEffect(0.7 + sin(phase + Double(index) * 0.3) * 0.3)
-                    .blur(radius: 2)  // Ajout de blur pour un effet plus doux et hypnotique
-            }
-           
-            // Vagues hypnotiques
-            ForEach(0..<4, id: \.self) { index in  // Une vague supplémentaire
-                WaveShape(offset: waveOffset + Double(index) * 0.25, amplitude: 25 + Double(index) * 8)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                .cyan.opacity(0.3 - Double(index) * 0.08),
-                                .purple.opacity(0.2 - Double(index) * 0.04),
-                                .pink.opacity(0.1 - Double(index) * 0.02),
-                                .clear
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        lineWidth: 2.5 - Double(index) * 0.5
-                    )
-                    .offset(y: CGFloat(index * 80))
-                    .blur(radius: 1)  // Blur léger pour adoucir
-            }
+            .shadow(color: isSelected ? .white.opacity(0.3) : .clear, radius: 12)
         }
-        .onAppear {
-            // Animation des particules
-            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {  // Durée allongée pour plus de fluidité
-                phase = .pi * 2
-            }
-           
-            // Animation des vagues
-            withAnimation(.linear(duration: 10).repeatForever(autoreverses: false)) {  // Durée ajustée
-                waveOffset = .pi * 2
-            }
-        }
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+    }
+
+    private var realPrice: String {
+        return purchaseManager.priceForPlan(plan)
     }
 }
 
-struct WaveShape: Shape {
-    var offset: Double
-    var amplitude: Double
-   
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let midHeight = rect.height / 2
-        let wavelength = rect.width / 2.5  // Ajusté pour des vagues plus douces
-       
-        path.move(to: CGPoint(x: 0, y: midHeight))
-       
-        for x in stride(from: 0, through: rect.width, by: 1) {
-            let relativeX = x / wavelength
-            let sine = sin(relativeX + offset)
-            let y = midHeight + sine * amplitude
-            path.addLine(to: CGPoint(x: x, y: y))
+// MARK: - Minimal Plan Card (Vertical - Legacy)
+struct MinimalPlanCard: View {
+    let plan: PricingPlan
+    let isSelected: Bool
+    let purchaseManager: PurchaseManager
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(plan == .lifetime ? "Achat unique" : "Abonnement")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text(plan == .lifetime ? "Accès à vie" : "Annulable à tout moment")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(realPrice)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+
+                    if plan == .monthly {
+                        Text("/\(String(localized: "per_month"))")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(isSelected ? .white.opacity(0.25) : .white.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(isSelected ? .white.opacity(0.6) : .white.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                    )
+            )
         }
-       
-        return path
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+    }
+
+    private var realPrice: String {
+        return purchaseManager.priceForPlan(plan)
     }
 }
 
-// MARK: - Plan Card Redesigned
+// MARK: - Plan Card Redesigned (Legacy - kept for reference)
 struct PremiumPlanCard: View {
     let plan: PricingPlan
     let isSelected: Bool
@@ -785,36 +833,6 @@ struct PremiumPlanCard: View {
     }
 }
 
-// MARK: - Premium Feature Row
-struct PremiumFeatureRow: View {
-    let icon: String
-    let text: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(color.opacity(0.2))
-                )
-
-            Text(text)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
-
-            Spacer()
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 18))
-                .foregroundColor(color)
-        }
-    }
-}
-
 // MARK: - Permissions Setup View (After Purchase)
 struct PermissionsSetupView: View {
     @Binding var isOnboardingComplete: Bool?
@@ -829,34 +847,54 @@ struct PermissionsSetupView: View {
 
     var body: some View {
         ZStack {
-            OptimizedBackground(currentState: .idle)
+            // Background noir avec jeu de lumière comme l'onboarding
+            Color.black
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "final_setup"))
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
+            // Lumière douce en haut
+            RadialGradient(
+                colors: [
+                    .white.opacity(0.05),
+                    .clear
+                ],
+                center: .top,
+                startRadius: 0,
+                endRadius: 400
+            )
+            .ignoresSafeArea()
 
-                        Text(String(localized: "two_quick_steps"))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
+            // Lumière douce en bas
+            RadialGradient(
+                colors: [
+                    .white.opacity(0.03),
+                    .clear
+                ],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Header minimaliste
+                HStack {
+                    Text(String(localized: "final_setup"))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
 
                     Spacer()
 
-                    // Progress
-                    Text("\(currentStep + 1)/2")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.ultraThinMaterial, in: Capsule())
+                    // Progress dots
+                    HStack(spacing: 6) {
+                        ForEach(0..<2, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentStep ? .white : .white.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                        }
+                    }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
 
                 Spacer()
 
@@ -869,38 +907,32 @@ struct PermissionsSetupView: View {
 
                 Spacer()
 
-                // Action buttons
-                VStack(spacing: 12) {
+                // Action buttons style paywall
+                VStack(spacing: 14) {
                     // Primary action button
                     Button(action: handleAction) {
-                    HStack(spacing: 12) {
-                        if isRequesting {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text(buttonText)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
-
-                            Image(systemName: currentStep == 1 ? "checkmark" : "arrow.right")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
+                        HStack(spacing: 10) {
+                            if isRequesting {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(buttonText)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
                         }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.white.opacity(0.2))
                         )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .cyan.opacity(0.3), radius: 12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                        )
                     }
                     .disabled(isRequesting)
-                    .opacity(isRequesting ? 0.6 : 1.0)
 
                     // Skip button for notifications step
                     if currentStep == 1 && onboardingManager.notificationStatus != .granted {
@@ -909,14 +941,14 @@ struct PermissionsSetupView: View {
                             finishSetup()
                         }) {
                             Text(String(localized: "skip_for_now"))
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white.opacity(0.7))
                         }
                         .disabled(isRequesting)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
             }
         }
         .onAppear {
@@ -929,38 +961,45 @@ struct PermissionsSetupView: View {
 
     @ViewBuilder
     private var screenTimePermissionStep: some View {
-        VStack(spacing: 30) {
-            // Icon
+        VStack(spacing: 32) {
+            // Icône avec halo
             ZStack {
+                // Halo doux
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [.cyan.opacity(0.3), .cyan.opacity(0.1), .clear],
+                            colors: [
+                                .white.opacity(0.1),
+                                .white.opacity(0.05),
+                                .clear
+                            ],
                             center: .center,
                             startRadius: 20,
                             endRadius: 80
                         )
                     )
-                    .frame(width: 140, height: 140)
+                    .frame(width: 160, height: 160)
 
                 Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundColor(.cyan)
+                    .font(.system(size: 60, weight: .regular))
+                    .foregroundColor(.white)
+                    .shadow(color: .white.opacity(0.3), radius: 20)
             }
-            .scaleEffect(showContent ? 1.0 : 0.5)
-            .opacity(showContent ? 1 : 0)
 
+            // Texte
             VStack(spacing: 16) {
                 Text(String(localized: "screen_time_access"))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
+                    .shadow(color: .white.opacity(0.2), radius: 10)
 
                 Text(String(localized: "screen_time_explanation"))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.white.opacity(0.75))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+                    .lineSpacing(6)
+                    .padding(.horizontal, 40)
 
                 // Status
                 if onboardingManager.screenTimeStatus == .granted {
@@ -968,55 +1007,64 @@ struct PermissionsSetupView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                         Text(String(localized: "authorized"))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.green)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.green.opacity(0.15), in: Capsule())
                     .padding(.top, 10)
                 }
             }
-            .opacity(showContent ? 1 : 0)
         }
+        .padding(.horizontal, 24)
     }
 
     @ViewBuilder
     private var notificationPermissionStep: some View {
-        VStack(spacing: 30) {
-            // Icon
+        VStack(spacing: 32) {
+            // Icône avec halo
             ZStack {
+                // Halo doux
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [.orange.opacity(0.3), .orange.opacity(0.1), .clear],
+                            colors: [
+                                .white.opacity(0.1),
+                                .white.opacity(0.05),
+                                .clear
+                            ],
                             center: .center,
                             startRadius: 20,
                             endRadius: 80
                         )
                     )
-                    .frame(width: 140, height: 140)
+                    .frame(width: 160, height: 160)
 
                 Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundColor(.orange)
+                    .font(.system(size: 60, weight: .regular))
+                    .foregroundColor(.white)
+                    .shadow(color: .white.opacity(0.3), radius: 20)
             }
-            .scaleEffect(showContent ? 1.0 : 0.5)
-            .opacity(showContent ? 1 : 0)
 
+            // Texte
             VStack(spacing: 16) {
                 Text(String(localized: "smart_notifications"))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
+                    .shadow(color: .white.opacity(0.2), radius: 10)
 
                 Text(String(localized: "notification_explanation"))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.white.opacity(0.75))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+                    .lineSpacing(6)
+                    .padding(.horizontal, 40)
 
                 Text(String(localized: "optional_can_skip"))
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundColor(.white.opacity(0.6))
-                    .padding(.top, 8)
 
                 // Status
                 if onboardingManager.notificationStatus == .granted {
@@ -1024,14 +1072,17 @@ struct PermissionsSetupView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                         Text(String(localized: "enabled"))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.green)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.green.opacity(0.15), in: Capsule())
                     .padding(.top, 10)
                 }
             }
-            .opacity(showContent ? 1 : 0)
         }
+        .padding(.horizontal, 24)
     }
 
     private var buttonText: String {

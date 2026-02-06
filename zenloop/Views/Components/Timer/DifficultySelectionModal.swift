@@ -10,7 +10,6 @@ import SwiftUI
 struct DifficultySelectionModal: View {
     @Binding var selectedDifficulty: DifficultyLevel?
     let autoDifficulty: DifficultyLevel
-    let onConfirm: () -> Void
     @Environment(\.dismiss) var dismiss
 
     // Réutiliser le même feedback generator
@@ -49,43 +48,6 @@ struct DifficultySelectionModal: View {
                             selectedDifficulty = difficulty
                         }
                     )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
-
-            // Boutons
-            VStack(spacing: 8) {
-                Button {
-                    impactFeedback.impactOccurred()
-                    onConfirm()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(String(localized: "start_session"))
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(14)
-                }
-
-                Button {
-                    dismiss()
-                } label: {
-                    Text(String(localized: "cancel"))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-                        .frame(height: 40)
                 }
             }
             .padding(.horizontal, 16)

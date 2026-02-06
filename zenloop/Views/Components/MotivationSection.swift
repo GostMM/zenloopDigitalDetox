@@ -150,11 +150,7 @@ struct MotivationalTipCard: View {
                     ),
                     in: Circle()
                 )
-                .overlay(
-                    Circle()
-                        .stroke(tip.color.opacity(0.4), lineWidth: 1)
-                )
-            
+
             // Contenu plus aéré
             VStack(alignment: .leading, spacing: 8) {
                 Text(tip.title)
@@ -172,10 +168,6 @@ struct MotivationalTipCard: View {
         }
         .padding(20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
-        )
         .padding(.horizontal, 20)
     }
 }
@@ -212,10 +204,6 @@ struct InlineQuickButton: View {
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(color.opacity(0.3), lineWidth: 1)
-                    )
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .brightness(isPressed ? 0.1 : 0.0)
@@ -251,11 +239,7 @@ struct QuickStartCard: View {
                         ),
                         in: Circle()
                     )
-                    .overlay(
-                        Circle()
-                            .stroke(color.opacity(0.4), lineWidth: 1)
-                    )
-                
+
                 // Texte plus lisible
                 VStack(spacing: 4) {
                     Text(title)
@@ -271,10 +255,6 @@ struct QuickStartCard: View {
             }
             .frame(width: 110, height: 100) // Dimensions plus généreuses
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(.white.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(ScaleButtonStyle())
     }

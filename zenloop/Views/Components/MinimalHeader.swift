@@ -25,28 +25,26 @@ struct MinimalHeader: View {
     // @State private var scheduledDuration = 25
     
     var body: some View {
-        GeometryReader { geometry in
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(currentGreeting)
-                        .font(.system(size: adaptiveGreetingSize(width: geometry.size.width), weight: .light, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : -20)
-                    
-                    Text(statusText)
-                        .font(.system(size: adaptiveStatusSize(width: geometry.size.width), weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : -10)
-                }
-                .frame(maxWidth: adaptiveTextMaxWidth(totalWidth: geometry.size.width))
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentGreeting)
+                    .font(.system(size: 22, weight: .light, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : -20)
 
-                Spacer(minLength: 4)
+                Text(statusText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : -10)
+            }
+
+            Spacer(minLength: 4)
                 
                 // TODO: Schedule button to be implemented in future version
                 /*
@@ -162,23 +160,22 @@ struct MinimalHeader: View {
                     }
                 }
                 
-                // Indicateur d'état minimal
-                Circle()
-                    .fill(stateColor)
-                    .frame(width: 12, height: 12)
-                    .overlay(
-                        Circle()
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                    )
-                    .scaleEffect(currentState == .active ? 1.3 : 1.0)
-                    .animation(
-                        currentState == .active ?
-                        .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
-                        .easeOut(duration: 0.3),
-                        value: currentState
-                    )
-                    .opacity(showContent ? 1 : 0)
-            }
+            // Indicateur d'état minimal
+            Circle()
+                .fill(stateColor)
+                .frame(width: 12, height: 12)
+                .overlay(
+                    Circle()
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                )
+                .scaleEffect(currentState == .active ? 1.3 : 1.0)
+                .animation(
+                    currentState == .active ?
+                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
+                    .easeOut(duration: 0.3),
+                    value: currentState
+                )
+                .opacity(showContent ? 1 : 0)
         }
         .frame(height: 44) // Hauteur optimisée pour réduire l'espacement
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)

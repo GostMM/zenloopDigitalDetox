@@ -16,8 +16,6 @@ struct TimerCard: View {
     @State private var showingAppSelection = false
     @State private var selectedApps = FamilyActivitySelection()
     @State private var hasSelectedApps = false
-    @State private var selectedConcentrationType: ConcentrationType = .deep
-    @State private var showingConcentrationPicker = false
     @State private var showingDurationModal = false
     @State private var showingGoalsModal = false
     @State private var taskGoals: [(text: String, isCompleted: Bool)] = []
@@ -44,29 +42,16 @@ struct TimerCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header minimaliste
-            HStack {
-                Text(String(localized: "take_your_time"))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(0.5)
-
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 12)
-
             CompactTimerView(
-                selectedConcentrationType: selectedConcentrationType,
+                selectedDifficulty: selectedDifficulty,
                 formattedDuration: formattedDuration,
                 hasSelectedApps: hasSelectedApps,
                 selectedAppsCount: zenloopManager.selectedAppsCount,
                 isIdle: zenloopManager.currentState == .idle,
                 selectedApps: selectedApps,
                 taskGoalsCount: taskGoals.count,
-                onEditConcentrationType: {
-                    showingConcentrationPicker = true
+                onEditDifficulty: {
+                    showingDifficultySelector = true
                 },
                 onEditDuration: {
                     showingDurationModal = true
@@ -80,18 +65,9 @@ struct TimerCard: View {
                 onStartSession: startSession
             )
         }
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
-        )
-        .padding(.horizontal, 20)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.25), value: showContent)
-        .sheet(isPresented: $showingConcentrationPicker) {
-            ConcentrationTypePickerView(selectedType: $selectedConcentrationType)
-        }
         .sheet(isPresented: $showingDurationModal) {
             DurationSelectionModal(
                 selectedHours: $selectedHours,
@@ -111,14 +87,20 @@ struct TimerCard: View {
         .sheet(isPresented: $showingDifficultySelector) {
             DifficultySelectionModal(
                 selectedDifficulty: $selectedDifficulty,
-                autoDifficulty: calculateAutoDifficulty(),
-                onConfirm: {
-                    showingDifficultySelector = false
+                autoDifficulty: calculateAutoDifficulty()
+            )
+            .presentationDetents([.height(400)])
+            .presentationDragIndicator(.hidden)
+        }
+        .onChange(of: selectedDifficulty) { oldValue, newValue in
+            // Quand une difficulté est sélectionnée dans le modal, fermer et lancer
+            if showingDifficultySelector && newValue != nil {
+                showingDifficultySelector = false
+                // Attendre que le modal se ferme avant de lancer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     confirmStartSession()
                 }
-            )
-            .presentationDetents([.height(460)])
-            .presentationDragIndicator(.hidden)
+            }
         }
         .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)
         .onChange(of: selectedApps) { oldSelection, newSelection in
@@ -154,7 +136,7 @@ struct TimerCard: View {
 
     private func startSession() {
         gatekeeper.performIfAllowed(.startCustomSession) {
-            showingDifficultySelector = true
+            confirmStartSession()
         }
     }
 
@@ -163,9 +145,9 @@ struct TimerCard: View {
         impactFeedback.impactOccurred()
 
         let totalMinutes = selectedHours * 60 + selectedMinutes
-        let title = "\(selectedConcentrationType.title) - \(formattedDuration)"
-        let duration = TimeInterval(totalMinutes * 60)
         let difficulty: DifficultyLevel = selectedDifficulty ?? (totalMinutes <= 20 ? .easy : totalMinutes <= 60 ? .medium : .hard)
+        let title = "Session \(difficulty.rawValue) - \(formattedDuration)"
+        let duration = TimeInterval(totalMinutes * 60)
 
         print("🚀 [TIMER_CARD] Démarrage session: \(title), difficulté: \(difficulty.rawValue)")
 
