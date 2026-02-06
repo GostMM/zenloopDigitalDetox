@@ -57,6 +57,11 @@ struct QuickBlockModesSection: View {
                         onSchedule: {
                             selectedCategoryType = categoryType
                             showingScheduleModal = true
+                        },
+                        onUnblock: {
+                            Task {
+                                await viewModel.unblock(categoryType: categoryType)
+                            }
                         }
                     )
                 }
@@ -107,6 +112,7 @@ struct QuickBlockModeCard: View {
     let onTap: () -> Void
     let onBlockNow: () -> Void
     let onSchedule: () -> Void
+    let onUnblock: () -> Void
     @State private var currentTime = Date()
 
     // Timer pour update l'affichage
@@ -174,31 +180,65 @@ struct QuickBlockModeCard: View {
                 // Overlay de session active (si en cours)
                 if let category = category,
                    category.isActive,
-                   let endTime = category.scheduledStartTime?.addingTimeInterval(category.scheduledDuration ?? 0),
-                   endTime > currentTime {
-                    ZStack {
-                        // Fond semi-transparent
-                        Rectangle()
-                            .fill(Color.black.opacity(0.7))
+                   let startTime = category.scheduledStartTime,
+                   let duration = category.scheduledDuration {
+                    let endTime = startTime.addingTimeInterval(duration)
+                    let isPermanentBlock = duration >= 12 * 60 * 60 // Plus de 12h = blocage permanent
 
-                        VStack(spacing: 8) {
-                            // Icône de session active
-                            Image(systemName: "shield.fill")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.green)
+                    if endTime > currentTime {
+                        ZStack {
+                            // Fond semi-transparent avec effet glassmorphism
+                            Rectangle()
+                                .fill(Color.black.opacity(0.75))
+                                .overlay(
+                                    Rectangle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.green.opacity(0.3), Color.green.opacity(0.1)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                )
 
-                            // Temps restant
-                            Text(timeRemaining(until: endTime))
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
+                            VStack(spacing: 8) {
+                                // Icône de session active avec animation pulse
+                                Image(systemName: "shield.fill")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(.green)
+                                    .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 0)
 
-                            Text("Blocage actif")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.8))
+                                // Temps restant ou statut permanent
+                                if isPermanentBlock {
+                                    Text("ACTIF")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.white)
+                                } else {
+                                    Text(timeRemaining(until: endTime))
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+
+                                Text(isPermanentBlock ? "Blocage permanent" : "Blocage actif")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.8))
+
+                                // Bouton débloquer
+                                Button(action: onUnblock) {
+                                    Text("Débloquer")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 6)
+                                        .background(Color.red.opacity(0.8))
+                                        .cornerRadius(8)
+                                }
+                                .padding(.top, 4)
+                            }
                         }
+                        .frame(height: 140)
+                        .cornerRadius(16, corners: [.topLeft, .topRight])
                     }
-                    .frame(height: 140)
-                    .cornerRadius(16, corners: [.topLeft, .topRight])
                 }
             }
             .onReceive(timer) { _ in
@@ -345,9 +385,41 @@ class QuickBlockViewModel: ObservableObject {
             )
         }
 
-        // Marquer comme actif
+        // Marquer comme actif avec durée par défaut de 24h (blocage permanent jusqu'à déblocage manuel)
+        let startTime = Date()
+        let duration: TimeInterval = 24 * 60 * 60 // 24 heures
+
         categories[categoryType]?.isActive = true
+        categories[categoryType]?.scheduledStartTime = startTime
+        categories[categoryType]?.scheduledDuration = duration
         saveSelection(for: categoryType)
+
+        print("✅ [QUICK_BLOCK] Blocked until: \(startTime.addingTimeInterval(duration))")
+    }
+
+    func unblock(categoryType: QuickBlockCategoryType) async {
+        guard let category = categories[categoryType] else { return }
+
+        print("🔓 [QUICK_BLOCK] Unblocking \(categoryType.displayName)")
+
+        // Débloquer via GlobalShieldManager
+        let selection = category.selection
+        for token in selection.applicationTokens {
+            let blockId = "quick_block_\(categoryType.rawValue)_\(UUID().uuidString)"
+            GlobalShieldManager.shared.removeBlock(
+                token: token,
+                blockId: blockId,
+                appName: categoryType.displayName
+            )
+        }
+
+        // Marquer comme inactif
+        categories[categoryType]?.isActive = false
+        categories[categoryType]?.scheduledStartTime = nil
+        categories[categoryType]?.scheduledDuration = nil
+        saveSelection(for: categoryType)
+
+        print("✅ [QUICK_BLOCK] Unblocked \(categoryType.displayName)")
     }
 
     func markSessionActive(categoryType: QuickBlockCategoryType, startTime: Date, duration: TimeInterval) {
