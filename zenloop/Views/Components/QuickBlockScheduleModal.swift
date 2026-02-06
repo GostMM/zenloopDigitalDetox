@@ -298,22 +298,17 @@ struct QuickBlockScheduleModal: View {
         print("   → Difficulty: \(selectedDifficulty.rawValue)")
 
         Task {
-            // Créer un challenge temporaire pour le scheduling
-            let challenge = ZenloopChallenge(
-                id: "quick_block_\(categoryType.rawValue)_\(UUID().uuidString)",
-                title: categoryType.displayName,
-                description: "Blocage rapide: \(categoryType.displayName)",
-                duration: selectedDuration,
-                difficulty: selectedDifficulty,
-                taskGoal: nil,
-                apps: selectedApps
-            )
-
             // Scheduler via ScheduledSessionsCoordinator
             let coordinator = ScheduledSessionsCoordinator.shared
-            coordinator.scheduleSession(
-                challenge: challenge,
-                startTime: selectedStartTime
+            let notificationManager = SessionNotificationManager.shared
+
+            coordinator.scheduleCustomChallenge(
+                title: categoryType.displayName,
+                duration: selectedDuration,
+                difficulty: selectedDifficulty,
+                apps: selectedApps,
+                startTime: selectedStartTime,
+                notificationManager: notificationManager
             )
 
             // Notifier le ViewModel
@@ -335,8 +330,7 @@ struct QuickBlockScheduleModal: View {
                 description: "Blocage rapide: \(categoryType.displayName)",
                 duration: selectedDuration,
                 difficulty: selectedDifficulty,
-                taskGoal: nil,
-                apps: selectedApps
+                taskGoal: nil
             )
 
             // Démarrer via zenloopManager
