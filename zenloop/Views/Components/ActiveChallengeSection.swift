@@ -74,25 +74,61 @@ struct ActiveChallengeSection: View {
     // MARK: - Blocked Apps Section
 
     private func blockedAppsSection(challenge: ZenloopChallenge) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Label
-            HStack(spacing: 10) {
-                Image(systemName: "shield.checkered")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.purple)
+        VStack(alignment: .leading, spacing: 12) {
+            // Label + Boutons d'action (Pause/Stop à droite)
+            HStack(spacing: 12) {
+                // Blocked Apps Label (gauche)
+                HStack(spacing: 10) {
+                    Image(systemName: "shield.checkered")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.purple)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("BLOCKED APPS")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
-                        .tracking(0.5)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("BLOCKED APPS")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.4))
+                            .tracking(0.5)
 
-                    Text("\(challenge.blockedAppsCount) apps")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
+                        Text("\(challenge.blockedAppsCount) apps")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
 
                 Spacer()
+
+                // Boutons Pause/Stop (droite)
+                HStack(spacing: 8) {
+                    // Pause Button
+                    Button(action: { zenloopManager.requestPause() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Pause")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.mint.opacity(0.3))
+                        .cornerRadius(8)
+                    }
+
+                    // Stop Button
+                    Button(action: { zenloopManager.stopCurrentChallenge() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Stop")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.red.opacity(0.3))
+                        .cornerRadius(8)
+                    }
+                }
             }
 
             // Apps en pile horizontale

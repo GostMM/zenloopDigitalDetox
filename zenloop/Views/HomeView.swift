@@ -85,15 +85,12 @@ struct HomeView: View {
                                         removal: .move(edge: .top).combined(with: .opacity)
                                     ))
                             } else {
-                                // Active: Challenge Section + Hero (boutons) + Quick Block
+                                // Active: Challenge Section (avec boutons Pause/Stop intégrés) + Quick Block
                                 activeSections
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .top).combined(with: .opacity),
                                         removal: .move(edge: .bottom).combined(with: .opacity)
                                     ))
-
-                                // Hero Section (boutons pause/stop) après la session active
-                                primarySection
 
                                 // Quick Block Modes toujours visible
                                 QuickBlockModesSection(showContent: showContent)
