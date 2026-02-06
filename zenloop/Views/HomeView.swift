@@ -69,6 +69,9 @@ struct HomeView: View {
                                 zenloopManager: zenloopManager,
                                 showContent: showContent
                             )
+
+                            // Quick Block Modes Section
+                            QuickBlockModesSection(showContent: showContent)
                         }
 
                         // Section principale selon l'état

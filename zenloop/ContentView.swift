@@ -190,14 +190,23 @@ struct TabContentView: View {
         Group {
             switch selectedTab {
             case 0:
-                HomeView()
-                    .environmentObject(zenloopManager)
+                NavigationStack {
+                    HomeView()
+                        .environmentObject(zenloopManager)
+                        .navigationBarHidden(true)
+                }
             case 1:
-                FullStatsView()
-                    .environmentObject(zenloopManager)
+                NavigationStack {
+                    FullStatsView()
+                        .environmentObject(zenloopManager)
+                        .navigationBarHidden(true)
+                }
             default:
-                HomeView()
-                    .environmentObject(zenloopManager)
+                NavigationStack {
+                    HomeView()
+                        .environmentObject(zenloopManager)
+                        .navigationBarHidden(true)
+                }
             }
         }
         .transition(.opacity)
