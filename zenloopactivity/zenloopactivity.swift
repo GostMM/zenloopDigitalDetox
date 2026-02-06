@@ -63,5 +63,22 @@ struct zenloopactivity: DeviceActivityReportExtension {
         FullStatsPageReport { activityReport in
             FullStatsPageView(reportData: activityReport)
         }
+
+        // Quick Block Category Reports - liste des apps par catégorie
+        QuickBlockSocialReport { reportData in
+            CategoryAppsListView(reportData: reportData)
+        }
+
+        QuickBlockProductivityReport { reportData in
+            CategoryAppsListView(reportData: reportData)
+        }
+
+        QuickBlockGamingReport { reportData in
+            CategoryAppsListView(reportData: reportData)
+        }
+
+        QuickBlockAdultReport { reportData in
+            CategoryAppsListView(reportData: reportData)
+        }
     }
 }

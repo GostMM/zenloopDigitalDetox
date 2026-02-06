@@ -537,6 +537,123 @@ private func persistLegacyMirror(total: TimeInterval,
     logger.info("💾 [REPORT] Legacy mirror écrit (DeviceActivityData)")
 }
 
+// MARK: - Quick Block Category Report Scenes
+
+private let qbLogger = Logger(subsystem: "com.app.zenloop.activity", category: "QuickBlockReport")
+
+struct QuickBlockSocialReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .init("QuickBlockCategory_social")
+    let content: (CategoryAppsReport) -> CategoryAppsListView
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> CategoryAppsReport {
+        qbLogger.critical("🚀🚀🚀 [QB_SOCIAL] makeConfiguration CALLED")
+        return await buildCategoryReport(data: data, categoryType: .social, targetCategories: ["socialNetworking"])
+    }
+}
+
+struct QuickBlockProductivityReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .init("QuickBlockCategory_productivity")
+    let content: (CategoryAppsReport) -> CategoryAppsListView
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> CategoryAppsReport {
+        qbLogger.critical("🚀🚀🚀 [QB_PRODUCTIVITY] makeConfiguration CALLED")
+        return await buildCategoryReport(data: data, categoryType: .productivity, targetCategories: ["productivity", "business"])
+    }
+}
+
+struct QuickBlockGamingReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .init("QuickBlockCategory_gaming")
+    let content: (CategoryAppsReport) -> CategoryAppsListView
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> CategoryAppsReport {
+        qbLogger.critical("🚀🚀🚀 [QB_GAMING] makeConfiguration CALLED")
+        return await buildCategoryReport(data: data, categoryType: .gaming, targetCategories: ["games", "entertainment"])
+    }
+}
+
+struct QuickBlockAdultReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .init("QuickBlockCategory_adult")
+    let content: (CategoryAppsReport) -> CategoryAppsListView
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> CategoryAppsReport {
+        qbLogger.critical("🚀🚀🚀 [QB_ADULT] makeConfiguration CALLED")
+        // Adult content = Web filtering, pas d'apps spécifiques
+        return CategoryAppsReport(
+            categoryName: "Adult Content",
+            categoryType: .adult,
+            apps: [],
+            totalDuration: 0,
+            appsCount: 0
+        )
+    }
+}
+
+// Helper function to build category report
+private func buildCategoryReport(
+    data: DeviceActivityResults<DeviceActivityData>,
+    categoryType: QuickBlockCategoryType,
+    targetCategories: [String]
+) async -> CategoryAppsReport {
+    qbLogger.critical("📊 [QB_BUILD] Building report for \(categoryType.rawValue)")
+
+    var appsByToken: [ApplicationToken: (name: String, duration: TimeInterval)] = [:]
+    var totalDuration: TimeInterval = 0
+
+    for await datum in data {
+        for await segment in datum.activitySegments {
+            for await catActivity in segment.categories {
+                let cat = catActivity.category
+                let catID = stableCategoryID(cat)
+
+                // Check if this category matches our target
+                let matches = targetCategories.contains { target in
+                    catID.lowercased().contains(target.lowercased())
+                }
+
+                guard matches else { continue }
+
+                qbLogger.critical("✅ [QB_BUILD] Found matching category: \(catID)")
+
+                for await app in catActivity.applications {
+                    let dur = app.totalActivityDuration
+                    guard dur > 0 else { continue }
+
+                    let name = app.application.localizedDisplayName
+                        ?? app.application.bundleIdentifier
+                        ?? "Application"
+
+                    if let token = app.application.token {
+                        var current = appsByToken[token] ?? (name: name, duration: 0)
+                        current.duration += dur
+                        if current.name.isEmpty { current.name = name }
+                        appsByToken[token] = current
+                        totalDuration += dur
+                    }
+                }
+            }
+        }
+    }
+
+    let apps = appsByToken.map { token, info in
+        CategoryAppUsage(
+            name: info.name,
+            bundleIdentifier: nil, // TODO: Extract from token if possible
+            duration: info.duration,
+            token: token
+        )
+    }.sorted { $0.duration > $1.duration }
+
+    qbLogger.critical("📊 [QB_BUILD] Found \(apps.count) apps, total: \(totalDuration)s")
+
+    return CategoryAppsReport(
+        categoryName: categoryType.title,
+        categoryType: categoryType,
+        apps: apps,
+        totalDuration: totalDuration,
+        appsCount: apps.count
+    )
+}
+
 // MARK: - Full Stats Page Report Scene
 
 struct FullStatsPageReport: DeviceActivityReportScene {
