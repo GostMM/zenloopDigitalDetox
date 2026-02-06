@@ -12,6 +12,7 @@ struct ActiveChallengeSection: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showBreathingView = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -42,7 +43,7 @@ struct ActiveChallengeSection: View {
                 zenloopManager.startStateMonitoring()
             }
         }
-        .onChange(of: zenloopManager.currentState) { _, newState in
+        .onChange(of: zenloopManager.currentState) { newState in
             if newState == .active {
                 zenloopManager.startStateMonitoring()
             }
@@ -50,6 +51,15 @@ struct ActiveChallengeSection: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active, zenloopManager.currentState == .active {
                 zenloopManager.startStateMonitoring()
+            }
+        }
+        .fullScreenCover(isPresented: $showBreathingView) {
+            BreathingMeditationView(zenloopManager: zenloopManager)
+        }
+        .onChange(of: showBreathingView) { isShowing in
+            // Quand la vue se ferme, stop la session
+            if !isShowing && zenloopManager.currentState != .idle {
+                zenloopManager.stopCurrentChallenge()
             }
         }
     }
@@ -97,32 +107,57 @@ struct ActiveChallengeSection: View {
 
                 Spacer()
 
-                // Boutons Pause/Stop (droite, vertical)
+                // Boutons Pause/Resume/Stop (droite, vertical)
                 VStack(spacing: 6) {
-                    // Pause Button
-                    Button(action: { zenloopManager.requestPause() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "pause.circle.fill")
-                                .font(.system(size: 16, weight: .bold))
-                            Text("Pause")
-                                .font(.system(size: 13, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(width: 90)
-                        .padding(.vertical, 8)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    // Pause/Resume Button (change selon l'état)
+                    if zenloopManager.currentState == .paused {
+                        // Resume Button
+                        Button(action: { zenloopManager.resumeChallenge() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Resume")
+                                    .font(.system(size: 13, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 90)
+                            .padding(.vertical, 8)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.green.opacity(0.8), Color.green.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .cornerRadius(10)
-                        .shadow(color: Color.yellow.opacity(0.3), radius: 4, x: 0, y: 2)
+                            .cornerRadius(10)
+                            .shadow(color: Color.green.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
+                    } else {
+                        // Pause Button
+                        Button(action: { zenloopManager.requestPause() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "pause.circle.fill")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("Pause")
+                                    .font(.system(size: 13, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 90)
+                            .padding(.vertical, 8)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .cornerRadius(10)
+                            .shadow(color: Color.yellow.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
                     }
 
-                    // Stop Button
-                    Button(action: { zenloopManager.stopCurrentChallenge() }) {
+                    // Stop Button → Affiche BreathingMeditationView
+                    Button(action: { showBreathingView = true }) {
                         HStack(spacing: 6) {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: 16, weight: .bold))
