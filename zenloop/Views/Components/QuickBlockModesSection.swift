@@ -11,8 +11,10 @@ import SwiftUI
 import FamilyControls
 
 struct QuickBlockModesSection: View {
+    @EnvironmentObject var zenloopManager: ZenloopManager
     @StateObject private var viewModel = QuickBlockViewModel()
     @State private var showingPicker = false
+    @State private var showingScheduleModal = false
     @State private var selectedCategoryType: QuickBlockCategoryType?
     let showContent: Bool
 
@@ -53,7 +55,8 @@ struct QuickBlockModesSection: View {
                             }
                         },
                         onSchedule: {
-                            // TODO: Implémenter la sheet de scheduling
+                            selectedCategoryType = categoryType
+                            showingScheduleModal = true
                         }
                     )
                 }
@@ -76,6 +79,24 @@ struct QuickBlockModesSection: View {
                 }
             )
         )
+        .sheet(isPresented: $showingScheduleModal) {
+            if let categoryType = selectedCategoryType,
+               let category = viewModel.categories[categoryType],
+               category.hasAppsSelected {
+                QuickBlockScheduleModal(
+                    categoryType: categoryType,
+                    selectedApps: category.selection,
+                    zenloopManager: zenloopManager,
+                    onSessionStarted: { startTime, duration in
+                        viewModel.markSessionActive(
+                            categoryType: categoryType,
+                            startTime: startTime,
+                            duration: duration
+                        )
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -86,6 +107,10 @@ struct QuickBlockModeCard: View {
     let onTap: () -> Void
     let onBlockNow: () -> Void
     let onSchedule: () -> Void
+    @State private var currentTime = Date()
+
+    // Timer pour update l'affichage
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -110,9 +135,23 @@ struct QuickBlockModeCard: View {
                 }
                 .frame(height: 140)
 
-                // Texte au-dessus de l'image
-                VStack {
+                // Contenu de l'image
+                VStack(spacing: 0) {
+                    // Bouton de sélection d'apps (en haut à droite)
+                    HStack {
+                        Spacer()
+                        Button(action: onTap) {
+                            Image(systemName: category?.hasAppsSelected == true ? "checkmark.circle.fill" : "plus.circle.fill")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
+                        }
+                    }
+                    .padding(12)
+
                     Spacer()
+
+                    // Texte au-dessus de l'image
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Image(systemName: categoryType.systemIcon)
@@ -131,9 +170,39 @@ struct QuickBlockModeCard: View {
                     .padding(12)
                 }
                 .frame(height: 140)
+
+                // Overlay de session active (si en cours)
+                if let category = category,
+                   category.isActive,
+                   let endTime = category.scheduledStartTime?.addingTimeInterval(category.scheduledDuration ?? 0),
+                   endTime > currentTime {
+                    ZStack {
+                        // Fond semi-transparent
+                        Rectangle()
+                            .fill(Color.black.opacity(0.7))
+
+                        VStack(spacing: 8) {
+                            // Icône de session active
+                            Image(systemName: "shield.fill")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.green)
+
+                            // Temps restant
+                            Text(timeRemaining(until: endTime))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+
+                            Text("Blocage actif")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
+                    .frame(height: 140)
+                    .cornerRadius(16, corners: [.topLeft, .topRight])
+                }
             }
-            .onTapGesture {
-                onTap()
+            .onReceive(timer) { _ in
+                currentTime = Date()
             }
 
             // Pile des apps sélectionnées
@@ -217,6 +286,22 @@ struct QuickBlockModeCard: View {
         .background(Color.white.opacity(0.05))
         .cornerRadius(16)
     }
+
+    // MARK: - Helper
+    private func timeRemaining(until endTime: Date) -> String {
+        let remaining = endTime.timeIntervalSince(currentTime)
+        guard remaining > 0 else { return "0:00" }
+
+        let hours = Int(remaining) / 3600
+        let minutes = (Int(remaining) % 3600) / 60
+        let seconds = Int(remaining) % 60
+
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
 }
 
 // MARK: - ViewModel
@@ -265,15 +350,24 @@ class QuickBlockViewModel: ObservableObject {
         saveSelection(for: categoryType)
     }
 
+    func markSessionActive(categoryType: QuickBlockCategoryType, startTime: Date, duration: TimeInterval) {
+        categories[categoryType]?.isActive = true
+        categories[categoryType]?.scheduledStartTime = startTime
+        categories[categoryType]?.scheduledDuration = duration
+        saveSelection(for: categoryType)
+        print("✅ [QUICK_BLOCK] Marked \(categoryType.displayName) as active until \(startTime.addingTimeInterval(duration))")
+    }
+
     // MARK: - Persistence
     private func saveSelection(for type: QuickBlockCategoryType) {
         guard let category = categories[type] else { return }
 
         do {
-            let data = try JSONEncoder().encode(category.selection)
-            sharedDefaults?.set(data, forKey: "quick_block_\(type.rawValue)_selection")
+            // Sauvegarder tout le modèle QuickBlockCategory
+            let data = try JSONEncoder().encode(category)
+            sharedDefaults?.set(data, forKey: "quick_block_\(type.rawValue)_category")
             sharedDefaults?.synchronize()
-            print("💾 [QUICK_BLOCK] Saved selection for \(type.displayName)")
+            print("💾 [QUICK_BLOCK] Saved category for \(type.displayName) (active: \(category.isActive))")
         } catch {
             print("❌ [QUICK_BLOCK] Failed to save: \(error)")
         }
@@ -281,13 +375,13 @@ class QuickBlockViewModel: ObservableObject {
 
     private func loadSelections() {
         for type in QuickBlockCategoryType.allCases {
-            guard let data = sharedDefaults?.data(forKey: "quick_block_\(type.rawValue)_selection"),
-                  let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) else {
+            guard let data = sharedDefaults?.data(forKey: "quick_block_\(type.rawValue)_category"),
+                  let category = try? JSONDecoder().decode(QuickBlockCategory.self, from: data) else {
                 continue
             }
 
-            categories[type]?.selection = selection
-            print("📖 [QUICK_BLOCK] Loaded selection for \(type.displayName)")
+            categories[type] = category
+            print("📖 [QUICK_BLOCK] Loaded category for \(type.displayName) (active: \(category.isActive))")
         }
     }
 }
