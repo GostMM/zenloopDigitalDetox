@@ -285,38 +285,40 @@ struct QuickBlockModeCard: View {
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.7))
 
-                    // Boutons d'action
-                    HStack(spacing: 8) {
-                        Button(action: onBlockNow) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 10))
-                                Text("Bloquer")
-                                    .font(.system(size: 12, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.red.opacity(0.8), Color.red],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .cornerRadius(8)
-                        }
-
-                        Button(action: onSchedule) {
-                            Image(systemName: "calendar.badge.plus")
-                                .font(.system(size: 11))
+                    // Boutons d'action (ne pas afficher si déjà bloqué)
+                    if !category.isActive {
+                        HStack(spacing: 8) {
+                            Button(action: onBlockNow) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "shield.fill")
+                                        .font(.system(size: 10))
+                                    Text("Bloquer")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
                                 .foregroundColor(.white)
-                                .padding(7)
-                                .background(Color.white.opacity(0.2))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.red.opacity(0.8), Color.red],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                                 .cornerRadius(8)
+                            }
+
+                            Button(action: onSchedule) {
+                                Image(systemName: "calendar.badge.plus")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white)
+                                    .padding(7)
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
                         }
+                        .padding(.bottom, 10)
                     }
-                    .padding(.bottom, 10)
                 }
                 .frame(maxWidth: .infinity)
                 .background(Color.black.opacity(0.4))
