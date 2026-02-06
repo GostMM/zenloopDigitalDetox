@@ -297,55 +297,35 @@ struct QuickBlockScheduleModal: View {
         print("   → Duration: \(formatDuration(selectedDuration))")
         print("   → Difficulty: \(selectedDifficulty.rawValue)")
 
-        Task {
-            // Scheduler via ScheduledSessionsCoordinator
-            let coordinator = ScheduledSessionsCoordinator.shared
-            let notificationManager = SessionNotificationManager.shared
+        // Scheduler via ZenloopManager
+        zenloopManager.scheduleCustomChallenge(
+            title: categoryType.displayName,
+            duration: selectedDuration,
+            difficulty: selectedDifficulty,
+            apps: selectedApps,
+            startTime: selectedStartTime
+        )
 
-            coordinator.scheduleCustomChallenge(
-                title: categoryType.displayName,
-                duration: selectedDuration,
-                difficulty: selectedDifficulty,
-                apps: selectedApps,
-                startTime: selectedStartTime,
-                notificationManager: notificationManager
-            )
-
-            // Notifier le ViewModel
-            await MainActor.run {
-                onSessionStarted(selectedStartTime, selectedDuration)
-                dismiss()
-            }
-        }
+        // Notifier le ViewModel
+        onSessionStarted(selectedStartTime, selectedDuration)
+        dismiss()
     }
 
     private func startNow() {
         print("▶️ [QUICK_BLOCK] Starting session NOW for \(categoryType.displayName)")
 
-        Task {
-            // Créer un challenge et démarrer immédiatement
-            let challenge = ZenloopChallenge(
-                id: "quick_block_\(categoryType.rawValue)_\(UUID().uuidString)",
-                title: categoryType.displayName,
-                description: "Blocage rapide: \(categoryType.displayName)",
-                duration: selectedDuration,
-                difficulty: selectedDifficulty,
-                taskGoal: nil
-            )
+        // Démarrer via ZenloopManager
+        zenloopManager.startCustomChallenge(
+            title: categoryType.displayName,
+            duration: selectedDuration,
+            difficulty: selectedDifficulty,
+            apps: selectedApps,
+            taskGoal: nil
+        )
 
-            // Démarrer via zenloopManager
-            await zenloopManager.startChallenge(
-                challenge,
-                with: selectedApps,
-                duration: selectedDuration
-            )
-
-            // Notifier le ViewModel
-            await MainActor.run {
-                onSessionStarted(Date(), selectedDuration)
-                dismiss()
-            }
-        }
+        // Notifier le ViewModel
+        onSessionStarted(Date(), selectedDuration)
+        dismiss()
     }
 
     // MARK: - Helpers
