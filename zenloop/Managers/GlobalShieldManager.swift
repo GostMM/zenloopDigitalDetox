@@ -24,8 +24,17 @@ class GlobalShieldManager: ObservableObject {
 
     private init() {
         logger.critical("🛡️ [GLOBAL_SHIELD] Initializing with DEFAULT store (key to persistence)")
-        // Restaurer tous les blocages au démarrage
-        restoreAllActiveBlocks()
+
+        // ✅ OPTIMIZATION: Skip restore if user hasn't completed onboarding
+        // No blocks can exist before onboarding is complete
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
+
+        if hasCompletedOnboarding {
+            // Restaurer tous les blocages au démarrage
+            restoreAllActiveBlocks()
+        } else {
+            logger.info("⏭️ [GLOBAL_SHIELD] Skipping restore - onboarding not completed")
+        }
     }
 
     /// Restaure TOUS les blocages actifs depuis App Group

@@ -125,20 +125,27 @@ struct zenloopApp: App {
                         }
                     }
 
+                    // ✅ OPTIMIZATION: Skip block-related checks during onboarding
+                    let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
+
                     // 🎧 NOUVEAU: Démarrer l'écoute des commandes depuis l'extension
-                    Task { @MainActor in
-                        BlockCommandCoordinator.shared.startMonitoring()
+                    if hasCompletedOnboarding {
+                        Task { @MainActor in
+                            BlockCommandCoordinator.shared.startMonitoring()
+                        }
                     }
 
-                    // 🚀 CRUCIAL: Activer le Monitor Extension pour qu'il puisse traiter les blocages
-                    MonitorActivator.shared.activateMonitor()
+                    if hasCompletedOnboarding {
+                        // 🚀 CRUCIAL: Activer le Monitor Extension pour qu'il puisse traiter les blocages
+                        MonitorActivator.shared.activateMonitor()
 
-                    // ✅ CRUCIAL: Vérifier IMMÉDIATEMENT s'il y a un block en attente
-                    checkAndApplyPendingBlocks()
+                        // ✅ CRUCIAL: Vérifier IMMÉDIATEMENT s'il y a un block en attente
+                        checkAndApplyPendingBlocks()
 
-                    // ✅ NOUVEAU: Vérifier s'il y a des pending blocks depuis l'extension
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        BlockController.shared.processPendingBlockRequest()
+                        // ✅ NOUVEAU: Vérifier s'il y a des pending blocks depuis l'extension
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            BlockController.shared.processPendingBlockRequest()
+                        }
                     }
 
                     // Initialisation asynchrone pour éviter les lags au démarrage

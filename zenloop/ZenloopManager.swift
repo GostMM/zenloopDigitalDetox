@@ -537,14 +537,22 @@ class ZenloopManager: ObservableObject {
     
     @MainActor
     private func initializeCriticalComponents() {
-        // Seulement les composants critiques pour l'UI
-        self.checkAuthorizationStatus() // Rapide - juste un status check
-        
         // État minimal pour permettre l'affichage
         self.currentState = .idle
         self.currentProgress = 0.0
         self.currentTimeRemaining = "00:00"
-        
+
+        // ✅ OPTIMIZATION: Skip Screen Time check during onboarding
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
+
+        if hasCompletedOnboarding {
+            self.checkAuthorizationStatus() // Rapide - juste un status check
+        } else {
+            #if DEBUG
+            self.logger.debug("⏭️ [ZENLOOP] Skipping auth check - onboarding not completed")
+            #endif
+        }
+
         #if DEBUG
         self.logger.debug("✅ [ZENLOOP] Composants critiques initialisés")
         #endif
