@@ -13,6 +13,7 @@ struct ActiveChallengeSection: View {
     let showContent: Bool
     @Environment(\.scenePhase) private var scenePhase
     @State private var showBreathingView = false
+    @State private var shouldStopSession = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -53,14 +54,19 @@ struct ActiveChallengeSection: View {
                 zenloopManager.startStateMonitoring()
             }
         }
-        .fullScreenCover(isPresented: $showBreathingView) {
-            BreathingMeditationView(zenloopManager: zenloopManager)
-        }
-        .onChange(of: showBreathingView) { isShowing in
-            // Quand la vue se ferme, stop la session
-            if !isShowing && zenloopManager.currentState != .idle {
+        .fullScreenCover(isPresented: $showBreathingView, onDismiss: {
+            // Stop uniquement si l'utilisateur a choisi "Stop"
+            if shouldStopSession && zenloopManager.currentState != .idle {
                 zenloopManager.stopCurrentChallenge()
             }
+            shouldStopSession = false
+        }) {
+            BreathingMeditationView(
+                zenloopManager: zenloopManager,
+                onStopRequested: {
+                    shouldStopSession = true
+                }
+            )
         }
     }
 

@@ -108,6 +108,7 @@ final class HapticsManager: ObservableObject {
 
 struct BreathingMeditationView: View {
     @ObservedObject var zenloopManager: ZenloopManager
+    let onStopRequested: () -> Void
     @Environment(\.dismiss) private var dismiss
     
     @StateObject private var haptics = HapticsManager()
@@ -305,14 +306,14 @@ struct BreathingMeditationView: View {
             BreathingDecisionSheet(
                 onContinue: {
                     haptics.selection()
-                    zenloopManager.resumeChallenge()
-                    zenloopManager.showBreathingMeditation = false
+                    // L'utilisateur veut continuer - juste fermer la vue
                     showDecisionSheet = false
                     dismiss()
                 },
                 onStop: {
                     haptics.success()
-                    zenloopManager.stopCurrentChallenge()
+                    // L'utilisateur veut arrêter - notifier le parent
+                    onStopRequested()
                     showDecisionSheet = false
                     dismiss()
                 }
@@ -786,5 +787,10 @@ struct BreathingDecisionSheet: View {
 }
 
 #Preview {
-    BreathingMeditationView(zenloopManager: ZenloopManager.shared)
+    BreathingMeditationView(
+        zenloopManager: ZenloopManager.shared,
+        onStopRequested: {
+            print("Stop requested")
+        }
+    )
 }

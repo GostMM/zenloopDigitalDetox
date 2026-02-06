@@ -174,8 +174,17 @@ struct ContentView: View {
                 selectedTab = 0
             }
         }
-        .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation) {
-            BreathingMeditationView(zenloopManager: zenloopManager)
+        .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation, onDismiss: {
+            // Si l'utilisateur ferme la vue, on ne fait rien
+            // La logique de stop est gérée par onStopRequested
+        }) {
+            BreathingMeditationView(
+                zenloopManager: zenloopManager,
+                onStopRequested: {
+                    // Stop la session quand l'utilisateur choisit "Stop"
+                    zenloopManager.stopCurrentChallenge()
+                }
+            )
         }
     }
 }
