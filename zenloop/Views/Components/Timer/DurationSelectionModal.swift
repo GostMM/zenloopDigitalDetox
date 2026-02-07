@@ -29,15 +29,28 @@ struct DurationSelectionModal: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Drag Indicator
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 10)
+        ZStack {
+            // Background gradient as base
+            LinearGradient(
+                colors: [
+                    Color(red: 0.10, green: 0.10, blue: 0.12),
+                    Color(red: 0.08, green: 0.08, blue: 0.10)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            // Header
-            VStack(spacing: 4) {
+            // Content on top
+            VStack(spacing: 0) {
+                // Drag Indicator
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 10)
+
+                // Header
+                VStack(spacing: 4) {
                 Text(String(localized: "duration"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
@@ -178,17 +191,8 @@ struct DurationSelectionModal: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 20)
+            }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.10, green: 0.10, blue: 0.12),
-                    Color(red: 0.08, green: 0.08, blue: 0.10)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
     }
 
     // MARK: - Control Methods
@@ -265,32 +269,9 @@ struct QuickDurationButton: View {
         } label: {
             Text(label)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
+                .foregroundColor(isSelected ? .cyan : .white.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            isSelected
-                                ? LinearGradient(
-                                    colors: [.cyan.opacity(0.3), .blue.opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [.white.opacity(0.1), .white.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(
-                                    isSelected ? Color.cyan.opacity(0.5) : Color.white.opacity(0.15),
-                                    lineWidth: isSelected ? 1.5 : 1
-                                )
-                        )
-                )
         }
         .buttonStyle(PlainButtonStyle())
     }
