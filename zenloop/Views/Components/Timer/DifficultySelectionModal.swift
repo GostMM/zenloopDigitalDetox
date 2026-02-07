@@ -16,44 +16,8 @@ struct DifficultySelectionModal: View {
     private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Drag Indicator
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 10)
-
-            // Header
-            VStack(spacing: 4) {
-                Text(String(localized: "difficulty_modal_title"))
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text(String(localized: "difficulty_modal_subtitle"))
-                    .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding(.top, 12)
-            .padding(.bottom, 18)
-
-            // Options
-            VStack(spacing: 8) {
-                ForEach(DifficultyLevel.allCases) { difficulty in
-                    DifficultyOptionCard(
-                        difficulty: difficulty,
-                        isSelected: (selectedDifficulty ?? autoDifficulty) == difficulty,
-                        isAuto: selectedDifficulty == nil && difficulty == autoDifficulty,
-                        onTap: {
-                            impactFeedback.impactOccurred()
-                            selectedDifficulty = difficulty
-                        }
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 20)
-        }
-        .background(
+        ZStack {
+            // Background gradient as base
             LinearGradient(
                 colors: [
                     Color(red: 0.10, green: 0.10, blue: 0.12),
@@ -62,7 +26,47 @@ struct DifficultySelectionModal: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-        )
+            .ignoresSafeArea()
+
+            // Content on top
+            VStack(spacing: 0) {
+                // Drag Indicator
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 10)
+
+                // Header
+                VStack(spacing: 4) {
+                    Text(String(localized: "difficulty_modal_title"))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text(String(localized: "difficulty_modal_subtitle"))
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 18)
+
+                // Options
+                VStack(spacing: 8) {
+                    ForEach(DifficultyLevel.allCases) { difficulty in
+                        DifficultyOptionCard(
+                            difficulty: difficulty,
+                            isSelected: (selectedDifficulty ?? autoDifficulty) == difficulty,
+                            isAuto: selectedDifficulty == nil && difficulty == autoDifficulty,
+                            onTap: {
+                                impactFeedback.impactOccurred()
+                                selectedDifficulty = difficulty
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
+            }
+        }
     }
 }
 
