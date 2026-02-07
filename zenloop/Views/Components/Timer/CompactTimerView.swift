@@ -42,14 +42,17 @@ struct CompactTimerView: View {
         VStack(spacing: 16) {
             // Section 1: App Selection + Duration
             HStack(alignment: .center, spacing: 20) {
-                // Apps (aligné à droite)
+                // Apps (gauche)
                 Button(action: onEditApps) {
                     VStack(spacing: 10) {
                         // Icône + Label
                         HStack(spacing: 10) {
-                            Spacer()
+                            Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(hasSelectedApps ? .purple : .orange)
+                                .symbolEffect(.bounce, value: hasSelectedApps)
 
-                            VStack(alignment: .trailing, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text("APPS TO BLOCK")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.white.opacity(0.4))
@@ -60,22 +63,19 @@ struct CompactTimerView: View {
                                     .foregroundColor(hasSelectedApps ? .white : .orange)
                             }
 
-                            Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundColor(hasSelectedApps ? .purple : .orange)
-                                .symbolEffect(.bounce, value: hasSelectedApps)
+                            Spacer()
                         }
 
                         // Pile d'icônes (si apps sélectionnées)
                         if hasSelectedApps {
                             HStack(spacing: 0) {
-                                Spacer()
                                 StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
+                                Spacer()
                             }
                             .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -96,14 +96,16 @@ struct CompactTimerView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
 
-            // Section 2: Difficulty + Goals (alignés à droite)
+            // Section 2: Difficulty + Goals
             HStack(spacing: 12) {
-                // Difficulty (aligné à droite)
+                // Difficulty (gauche)
                 Button(action: onEditDifficulty) {
                     HStack(spacing: 8) {
-                        Spacer()
+                        Image(systemName: difficultyIcon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(difficultyColor)
 
-                        VStack(alignment: .trailing, spacing: 1) {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text("RESTRICTION")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
@@ -114,9 +116,7 @@ struct CompactTimerView: View {
                                 .foregroundColor(.white)
                         }
 
-                        Image(systemName: difficultyIcon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(difficultyColor)
+                        Spacer()
                     }
                     .frame(maxWidth: .infinity)
                 }
