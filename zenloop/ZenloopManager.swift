@@ -91,14 +91,27 @@ struct AppDetail: Identifiable {
     }
 }
 
+struct TaskGoal: Codable, Identifiable {
+    let id: String
+    var text: String
+    var isCompleted: Bool
+
+    init(text: String, isCompleted: Bool = false) {
+        self.id = UUID().uuidString
+        self.text = text
+        self.isCompleted = isCompleted
+    }
+}
+
 struct ZenloopChallenge: Identifiable, Codable {
     let id: String
     let title: String
     let description: String
     let duration: TimeInterval
     let difficulty: DifficultyLevel
-    var taskGoal: String? = nil // Objectif/tâche à accomplir
+    var taskGoal: String? = nil // Objectif/tâche à accomplir (legacy)
     var taskCompleted: Bool = false // Si la tâche a été accomplie
+    var taskGoals: [TaskGoal] = [] // Liste des objectifs multiples
     var startTime: Date?
     var pausedTime: Date?
     var pauseDuration: TimeInterval = 0
@@ -111,7 +124,7 @@ struct ZenloopChallenge: Identifiable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, description, duration, difficulty
-        case taskGoal, taskCompleted
+        case taskGoal, taskCompleted, taskGoals
         case startTime, pausedTime, pauseDuration
         case isActive, isCompleted, blockedAppsCount, blockedAppsNames
         case appOpenAttempts, attemptedApps

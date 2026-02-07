@@ -29,6 +29,11 @@ struct ActiveChallengeSection: View {
                 // Progress bar (plus épaisse et énergique)
                 progressBarSection
 
+                // Goals section (afficher si goals existent)
+                if !challenge.taskGoals.isEmpty {
+                    goalsSection(challenge: challenge)
+                }
+
                 // App Open Attempts (si > 0)
                 if challenge.appOpenAttempts > 0 {
                     appAttemptsWarning(challenge: challenge)
@@ -296,7 +301,55 @@ struct ActiveChallengeSection: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Helpers
+        // MARK: - Goals Section
+
+    private func goalsSection(challenge: ZenloopChallenge) -> some View {
+        VStack(spacing: 6) {
+            let goals = challenge.taskGoals
+            let pairCount = goals.count / 2
+            let hasOddGoal = goals.count % 2 != 0
+
+            // Grille 2x2 pour les paires
+            ForEach(0..<pairCount, id: \.self) { rowIndex in
+                HStack(spacing: 6) {
+                    // Goal gauche
+                    goalCard(goal: goals[rowIndex * 2])
+
+                    // Goal droit
+                    goalCard(goal: goals[rowIndex * 2 + 1])
+                }
+            }
+
+            // Goal impair seul si nécessaire
+            if hasOddGoal {
+                goalCard(goal: goals[goals.count - 1])
+            }
+        }
+    }
+
+    private func goalCard(goal: TaskGoal) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: goal.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(goal.isCompleted ? .green : .yellow.opacity(0.6))
+
+            Text(goal.text)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(goal.isCompleted ? .white.opacity(0.5) : .white.opacity(0.9))
+                .strikethrough(goal.isCompleted, color: .white.opacity(0.5))
+                .lineLimit(1)
+
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(goal.isCompleted ? .green.opacity(0.08) : .yellow.opacity(0.05))
+        )
+    }
+
+// MARK: - Helpers
 
     private var stateColor: Color {
         switch zenloopManager.currentState {
