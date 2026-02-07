@@ -81,39 +81,7 @@ struct GoalsSectionView: View {
 
             // Liste des objectifs en grille 2x2 + 1 si impair
             if !taskGoals.isEmpty {
-                VStack(spacing: 6) {
-                    // Afficher les goals 2 par 2
-                    let pairCount = taskGoals.count / 2
-                    let hasOddGoal = taskGoals.count % 2 != 0
-
-                    // Grille 2x2 pour les paires
-                    ForEach(0..<pairCount, id: \.self) { rowIndex in
-                        HStack(spacing: 6) {
-                            // Goal gauche
-                            GoalCard(
-                                goal: taskGoals[rowIndex * 2],
-                                onToggle: { onToggleGoalCompletion(rowIndex * 2) },
-                                onRemove: { onRemoveGoal(rowIndex * 2) }
-                            )
-
-                            // Goal droit
-                            GoalCard(
-                                goal: taskGoals[rowIndex * 2 + 1],
-                                onToggle: { onToggleGoalCompletion(rowIndex * 2 + 1) },
-                                onRemove: { onRemoveGoal(rowIndex * 2 + 1) }
-                            )
-                        }
-                    }
-
-                    // Goal impair seul si nécessaire
-                    if hasOddGoal {
-                        GoalCard(
-                            goal: taskGoals[taskGoals.count - 1],
-                            onToggle: { onToggleGoalCompletion(taskGoals.count - 1) },
-                            onRemove: { onRemoveGoal(taskGoals.count - 1) }
-                        )
-                    }
-                }
+                goalsGridView
             } else {
                 Text(String(localized: "add_goal_optional"))
                     .font(.system(size: 12, weight: .regular))
@@ -131,6 +99,43 @@ struct GoalsSectionView: View {
                         .stroke(taskGoals.isEmpty ? .white.opacity(0.08) : .yellow.opacity(0.25), lineWidth: 1)
                 )
         )
+    }
+
+    // MARK: - Goals Grid View
+
+    private var goalsGridView: some View {
+        VStack(spacing: 6) {
+            let pairCount = taskGoals.count / 2
+            let hasOddGoal = taskGoals.count % 2 != 0
+
+            // Grille 2x2 pour les paires
+            ForEach(0..<pairCount, id: \.self) { rowIndex in
+                HStack(spacing: 6) {
+                    // Goal gauche
+                    GoalCard(
+                        goal: taskGoals[rowIndex * 2],
+                        onToggle: { onToggleGoalCompletion(rowIndex * 2) },
+                        onRemove: { onRemoveGoal(rowIndex * 2) }
+                    )
+
+                    // Goal droit
+                    GoalCard(
+                        goal: taskGoals[rowIndex * 2 + 1],
+                        onToggle: { onToggleGoalCompletion(rowIndex * 2 + 1) },
+                        onRemove: { onRemoveGoal(rowIndex * 2 + 1) }
+                    )
+                }
+            }
+
+            // Goal impair seul si nécessaire
+            if hasOddGoal {
+                GoalCard(
+                    goal: taskGoals[taskGoals.count - 1],
+                    onToggle: { onToggleGoalCompletion(taskGoals.count - 1) },
+                    onRemove: { onRemoveGoal(taskGoals.count - 1) }
+                )
+            }
+        }
     }
 }
 
