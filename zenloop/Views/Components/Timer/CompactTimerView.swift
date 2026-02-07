@@ -42,17 +42,14 @@ struct CompactTimerView: View {
         VStack(spacing: 16) {
             // Section 1: App Selection + Duration
             HStack(alignment: .center, spacing: 20) {
-                // Apps (gauche)
+                // Apps (aligné à droite)
                 Button(action: onEditApps) {
                     VStack(spacing: 10) {
                         // Icône + Label
                         HStack(spacing: 10) {
-                            Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundColor(hasSelectedApps ? .purple : .orange)
-                                .symbolEffect(.bounce, value: hasSelectedApps)
+                            Spacer()
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .trailing, spacing: 2) {
                                 Text("APPS TO BLOCK")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.white.opacity(0.4))
@@ -63,19 +60,22 @@ struct CompactTimerView: View {
                                     .foregroundColor(hasSelectedApps ? .white : .orange)
                             }
 
-                            Spacer()
+                            Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundColor(hasSelectedApps ? .purple : .orange)
+                                .symbolEffect(.bounce, value: hasSelectedApps)
                         }
 
                         // Pile d'icônes (si apps sélectionnées)
                         if hasSelectedApps {
                             HStack(spacing: 0) {
-                                StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
                                 Spacer()
+                                StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
                             }
                             .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -96,16 +96,14 @@ struct CompactTimerView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
 
-            // Section 2: Difficulty + Goals
+            // Section 2: Difficulty + Goals (alignés à droite)
             HStack(spacing: 12) {
-                // Difficulty (gauche)
+                // Difficulty (aligné à droite)
                 Button(action: onEditDifficulty) {
                     HStack(spacing: 8) {
-                        Image(systemName: difficultyIcon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(difficultyColor)
+                        Spacer()
 
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .trailing, spacing: 1) {
                             Text("RESTRICTION")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
@@ -116,20 +114,20 @@ struct CompactTimerView: View {
                                 .foregroundColor(.white)
                         }
 
-                        Spacer()
+                        Image(systemName: difficultyIcon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(difficultyColor)
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Goals (droite)
+                // Goals (aligné à droite)
                 Button(action: onEditGoals) {
                     HStack(spacing: 8) {
-                        Image(systemName: taskGoalsCount > 0 ? "checkmark.circle.fill" : "circle.dashed")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(taskGoalsCount > 0 ? .yellow : .white.opacity(0.3))
+                        Spacer()
 
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .trailing, spacing: 1) {
                             Text("GOALS")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
@@ -140,7 +138,9 @@ struct CompactTimerView: View {
                                 .foregroundColor(taskGoalsCount > 0 ? .white : .white.opacity(0.5))
                         }
 
-                        Spacer()
+                        Image(systemName: taskGoalsCount > 0 ? "checkmark.circle.fill" : "circle.dashed")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(taskGoalsCount > 0 ? .yellow : .white.opacity(0.3))
                     }
                     .frame(maxWidth: .infinity)
                 }
