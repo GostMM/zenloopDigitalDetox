@@ -176,41 +176,6 @@ struct DifficultyOptionCard: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 11)
             }
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        isSelected
-                            ? LinearGradient(
-                                colors: [
-                                    difficulty.color.opacity(0.15),
-                                    difficulty.color.opacity(0.08)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            : LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.06),
-                                    Color.white.opacity(0.03)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                isSelected ? difficulty.color.opacity(0.5) : Color.white.opacity(0.1),
-                                lineWidth: isSelected ? 1.5 : 1
-                            )
-                    )
-            )
-            .shadow(
-                color: isSelected ? difficulty.color.opacity(0.2) : .clear,
-                radius: 8,
-                x: 0,
-                y: 4
-            )
         }
         .buttonStyle(PlainButtonStyle())
     }
