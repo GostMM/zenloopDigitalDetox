@@ -27,15 +27,28 @@ struct GoalsManagementModal: View {
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Drag Indicator
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 10)
+        ZStack {
+            // Background gradient as base
+            LinearGradient(
+                colors: [
+                    Color(red: 0.10, green: 0.10, blue: 0.12),
+                    Color(red: 0.08, green: 0.08, blue: 0.10)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            // Header
-            VStack(spacing: 4) {
+            // Content on top
+            VStack(spacing: 0) {
+                // Drag Indicator
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 10)
+
+                // Header
+                VStack(spacing: 4) {
                 HStack {
                     Image(systemName: "target")
                         .font(.system(size: 20, weight: .semibold))
@@ -224,17 +237,8 @@ struct GoalsManagementModal: View {
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 20)
+            }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.10, green: 0.10, blue: 0.12),
-                    Color(red: 0.08, green: 0.08, blue: 0.10)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
     }
 
     // MARK: - Goal Management
@@ -300,14 +304,6 @@ struct GoalRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(goal.isCompleted ? .green.opacity(0.1) : .yellow.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(goal.isCompleted ? .green.opacity(0.3) : .yellow.opacity(0.25), lineWidth: 1)
-                )
-        )
     }
 }
 
@@ -334,14 +330,6 @@ struct SuggestionButton: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.white.opacity(0.08))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(.yellow.opacity(0.2), lineWidth: 1)
-                    )
-            )
         }
         .buttonStyle(PlainButtonStyle())
     }
