@@ -103,11 +103,16 @@ struct GoalsSectionView: View {
 
     // MARK: - Goals Grid View
 
+    private var pairCount: Int {
+        taskGoals.count / 2
+    }
+
+    private var hasOddGoal: Bool {
+        taskGoals.count % 2 != 0
+    }
+
     private var goalsGridView: some View {
         VStack(spacing: 6) {
-            let pairCount = taskGoals.count / 2
-            let hasOddGoal = taskGoals.count % 2 != 0
-
             // Grille 2x2 pour les paires
             ForEach(0..<pairCount, id: \.self) { rowIndex in
                 HStack(spacing: 6) {

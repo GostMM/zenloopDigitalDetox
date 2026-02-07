@@ -186,9 +186,13 @@ struct ActiveChallengeSection: View {
                 }
             }
 
-            // Apps en pile horizontale
+            // Apps et catégories en pile horizontale
             HStack(spacing: -8) {
-                ForEach(Array(zenloopManager.getAppsSelection().applicationTokens.prefix(8)), id: \.self) { token in
+                let selection = zenloopManager.getAppsSelection()
+                let totalCount = selection.applicationTokens.count + selection.categoryTokens.count
+
+                // Afficher les apps
+                ForEach(Array(selection.applicationTokens.prefix(6)), id: \.self) { token in
                     Label(token)
                         .labelStyle(.iconOnly)
                         .frame(width: 32, height: 32)
@@ -197,14 +201,25 @@ struct ActiveChallengeSection: View {
                         .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
                 }
 
-                if zenloopManager.getAppsSelection().applicationTokens.count > 8 {
+                // Afficher les catégories
+                ForEach(Array(selection.categoryTokens.prefix(6)), id: \.self) { token in
+                    Label(token)
+                        .labelStyle(.iconOnly)
+                        .frame(width: 32, height: 32)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                }
+
+                // Afficher +X si plus de 8 items au total
+                if totalCount > 8 {
                     ZStack {
                         Circle()
                             .fill(Color.gray.opacity(0.4))
                             .frame(width: 32, height: 32)
                             .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
 
-                        Text("+\(zenloopManager.getAppsSelection().applicationTokens.count - 8)")
+                        Text("+\(totalCount - 8)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.white)
                     }

@@ -729,7 +729,8 @@ class ZenloopManager: ObservableObject {
             isActive: true
         )
         
-        challenge.blockedAppsCount = apps.applicationTokens.count
+        // Compter les apps ET les catégories
+        challenge.blockedAppsCount = apps.applicationTokens.count + apps.categoryTokens.count
         challenge.blockedAppsNames = self.generateAppNamesFromSelection(apps)
         self.updateAppsSelection(apps)
         
