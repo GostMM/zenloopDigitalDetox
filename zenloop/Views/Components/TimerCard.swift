@@ -93,13 +93,9 @@ struct TimerCard: View {
             .presentationDragIndicator(.hidden)
         }
         .onChange(of: selectedDifficulty) { oldValue, newValue in
-            // Quand une difficulté est sélectionnée dans le modal, fermer et lancer
+            // Quand une difficulté est sélectionnée dans le modal, juste fermer
             if showingDifficultySelector && newValue != nil {
                 showingDifficultySelector = false
-                // Attendre que le modal se ferme avant de lancer
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    confirmStartSession()
-                }
             }
         }
         .familyActivityPicker(isPresented: $showingAppSelection, selection: $selectedApps)

@@ -122,13 +122,9 @@ struct ScheduleConfigurationModal: View {
                 .presentationDragIndicator(.visible)
             }
             .onChange(of: selectedDifficulty) { oldValue, newValue in
-                // Quand une difficulté est sélectionnée dans le modal, fermer et planifier
+                // Quand une difficulté est sélectionnée dans le modal, juste fermer
                 if showDifficultyModal && newValue != nil {
                     showDifficultyModal = false
-                    // Attendre que le modal se ferme avant de planifier
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        scheduleSession()
-                    }
                 }
             }
             .onAppear {
