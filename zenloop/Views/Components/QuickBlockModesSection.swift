@@ -245,12 +245,27 @@ struct QuickBlockModeCard: View {
                 currentTime = Date()
             }
 
-            // Pile des apps sélectionnées
+            // Pile des apps et catégories sélectionnées
             if let category = category, category.hasAppsSelected {
                 VStack(spacing: 8) {
-                    // Preview des apps (max 4 tokens en pile)
+                    // Preview des apps et catégories (max 4 tokens en pile)
                     HStack(spacing: -10) {
-                        ForEach(Array(category.selection.applicationTokens.prefix(4)), id: \.self) { token in
+                        // Afficher les apps
+                        ForEach(Array(category.selection.applicationTokens.prefix(3)), id: \.self) { token in
+                            Label(token)
+                                .labelStyle(.iconOnly)
+                                .frame(width: 36, height: 36)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                                )
+                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                        }
+
+                        // Afficher les catégories
+                        ForEach(Array(category.selection.categoryTokens.prefix(3)), id: \.self) { token in
                             Label(token)
                                 .labelStyle(.iconOnly)
                                 .frame(width: 36, height: 36)
