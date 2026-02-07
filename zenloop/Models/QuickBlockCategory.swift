@@ -19,9 +19,9 @@ enum QuickBlockCategoryType: String, CaseIterable, Codable, Identifiable {
     var displayName: String {
         switch self {
         case .social: return "No Social Media"
-        case .productivity: return "No AI & Productivity"
+        case .productivity: return "No AI"
         case .gaming: return "No Gaming"
-        case .adult: return "No Adult Content"
+        case .adult: return "No Porn"
         }
     }
 

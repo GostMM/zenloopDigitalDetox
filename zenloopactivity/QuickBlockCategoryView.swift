@@ -208,15 +208,18 @@ struct QuickBlockCategoryView: View {
                 ForEach(Array(selectedApps.categoryTokens), id: \.self) { token in
                     VStack(spacing: 8) {
                         // Icône de catégorie
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(category.color.opacity(0.2))
-                                .frame(width: 70, height: 70)
-
-                            Label(token)
-                                .labelStyle(.iconOnly)
-                                .font(.system(size: 42))
-                        }
+                        Label(token)
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 42))
+                            .frame(width: 70, height: 70)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(category.color.opacity(0.2))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(category.color.opacity(0.3), lineWidth: 1)
+                            )
 
                         // Nom de la catégorie
                         Label(token)
