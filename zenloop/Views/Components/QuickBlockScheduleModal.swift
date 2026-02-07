@@ -203,11 +203,6 @@ struct QuickBlockScheduleModal: View {
                 .foregroundColor(.white.opacity(0.6))
                 .padding(.top, 4)
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
-        )
     }
 
     // MARK: - Start Time Section
