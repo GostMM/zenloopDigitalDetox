@@ -111,12 +111,12 @@ struct SessionPlanningRow: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
                             .foregroundColor(.orange)
-                        
-                        Text("Session non trouvée")
+
+                        Text(String(localized: "session_not_found"))
                             .font(.title2)
                             .foregroundColor(.white)
-                        
-                        Button("Fermer") {
+
+                        Button(String(localized: "close")) {
                             showingScheduleModal = false
                         }
                         .foregroundColor(.blue)
@@ -343,12 +343,12 @@ struct CompactScheduleCard: View {
                                 .foregroundColor(.purple)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("PLANIFIER")
+                                Text(String(localized: "schedule_label"))
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.white.opacity(0.5))
                                     .tracking(0.5)
 
-                                Text(hasSelectedApps ? "\(selectedAppsCount) apps" : "Choisir apps")
+                                Text(hasSelectedApps ? String(localized: "apps_count", defaultValue: "\(selectedAppsCount) apps").replacingOccurrences(of: "%d", with: "\(selectedAppsCount)") : String(localized: "choose_apps"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.9))
                             }
@@ -366,7 +366,7 @@ struct CompactScheduleCard: View {
 
                 // Duration (right) - GRANDE
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("DURÉE")
+                    Text(String(localized: "duration_label"))
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.white.opacity(0.5))
                         .tracking(0.5)
@@ -410,7 +410,7 @@ struct CompactScheduleCard: View {
                     Image(systemName: "calendar.badge.plus")
                         .font(.system(size: 16, weight: .bold))
 
-                    Text("Planifier la session")
+                    Text(String(localized: "schedule_the_session"))
                         .font(.system(size: 16, weight: .bold))
                 }
                 .foregroundColor(.white)

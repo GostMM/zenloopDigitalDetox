@@ -136,7 +136,7 @@ struct FullStatsPageView: View {
                 .font(.system(size: 56, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
 
-            Text("SCREEN TIME TODAY")
+            Text(String(localized: "screen_time_today"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.white.opacity(0.4))
                 .tracking(1.5)
@@ -151,7 +151,7 @@ struct FullStatsPageView: View {
         HStack(spacing: 20) {
             // Most Used
             VStack(spacing: 8) {
-                Text("MOST USED")
+                Text(String(localized: "most_used_label"))
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white.opacity(0.4))
                     .tracking(1)
@@ -175,7 +175,7 @@ struct FullStatsPageView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(focusScoreColor(reportData.focusScore))
 
-                Text("FOCUS SCORE")
+                Text(String(localized: "focus_score_label"))
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white.opacity(0.4))
                     .tracking(1)
@@ -190,7 +190,7 @@ struct FullStatsPageView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
 
-                Text("CATEGORIES")
+                Text(String(localized: "categories_label"))
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.white.opacity(0.4))
                     .tracking(1)
@@ -208,7 +208,7 @@ struct FullStatsPageView: View {
                     .fill(Color(red: 0.4, green: 0.6, blue: 0.3))
                     .frame(width: 8, height: 8)
 
-                Text("PRODUCTIVE")
+                Text(String(localized: "productive_label"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.white.opacity(0.6))
                     .tracking(0.5)
@@ -223,7 +223,7 @@ struct FullStatsPageView: View {
                     .fill(Color(red: 1.0, green: 0.3, blue: 0.3))
                     .frame(width: 8, height: 8)
 
-                Text("DISTRACTING")
+                Text(String(localized: "distracting_label"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.white.opacity(0.6))
                     .tracking(0.5)
@@ -306,7 +306,7 @@ struct FullStatsPageView: View {
                 )
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Time Offline")
+                Text(String(localized: "time_offline"))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
 
@@ -358,9 +358,9 @@ struct FullStatsPageView: View {
 
     private var formattedOfflinePercentage: String {
         let totalSeconds = reportData.todayScreenSeconds + reportData.todayOffScreenSeconds
-        guard totalSeconds > 0 else { return "0% of your day" }
+        guard totalSeconds > 0 else { return "0% \(String(localized: "of_your_day"))" }
         let percentage = Int((reportData.todayOffScreenSeconds / totalSeconds) * 100)
-        return "\(percentage)% of your day"
+        return "\(percentage)% \(String(localized: "of_your_day"))"
     }
 
     // MARK: - Apps List
@@ -503,11 +503,14 @@ struct FullStatsPageView: View {
                     blockedAppsStack
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Apps Bloquées")
+                        Text(String(localized: "apps_blocked_title"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
 
-                        Text("\(activeBlocks.count) app\(activeBlocks.count > 1 ? "s" : "")")
+                        Text(activeBlocks.count > 1
+                            ? String(localized: "apps_plural_blocked", defaultValue: "\(activeBlocks.count) apps").replacingOccurrences(of: "%d", with: "\(activeBlocks.count)")
+                            : String(localized: "app_singular_blocked", defaultValue: "\(activeBlocks.count) app").replacingOccurrences(of: "%d", with: "\(activeBlocks.count)")
+                        )
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.5))
                     }
@@ -791,7 +794,7 @@ struct FullStatsAppRow: View {
                             .foregroundColor(.white)
                             .opacity(isBlocked ? 0.6 : 1.0)
 
-                        Text(isBlocked ? "Bloquée" : formatTime(app.duration))
+                        Text(isBlocked ? String(localized: "blocked_status") : formatTime(app.duration))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(isBlocked ? .red.opacity(0.8) : .white.opacity(0.5))
                     }
@@ -887,7 +890,7 @@ struct FullStatsAppRow: View {
 
     private var categoryLabel: String {
         // Simuler (tu peux utiliser de vraies données de catégorie)
-        index == 0 ? "Distracting" : "Productive"
+        index == 0 ? String(localized: "distracting_category") : String(localized: "productive_category")
     }
 
     private var categoryColor: Color {
@@ -925,13 +928,17 @@ struct BlockAppSheet: View {
     private var blockButtonText: String {
         let total = totalMinutes
         if total == 0 {
-            return "Sélectionnez une durée"
+            return String(localized: "select_duration")
         } else if selectedHours > 0 && selectedMinutes > 0 {
-            return "Bloquer \(selectedHours)h \(selectedMinutes)m"
+            return String(localized: "block_hours_minutes", defaultValue: "Block \(selectedHours)h \(selectedMinutes)m")
+                .replacingOccurrences(of: "%dh", with: "\(selectedHours)h")
+                .replacingOccurrences(of: "%dm", with: "\(selectedMinutes)m")
         } else if selectedHours > 0 {
-            return "Bloquer \(selectedHours)h"
+            return String(localized: "block_hours", defaultValue: "Block \(selectedHours)h")
+                .replacingOccurrences(of: "%dh", with: "\(selectedHours)h")
         } else {
-            return "Bloquer \(selectedMinutes)m"
+            return String(localized: "block_minutes", defaultValue: "Block \(selectedMinutes)m")
+                .replacingOccurrences(of: "%dm", with: "\(selectedMinutes)m")
         }
     }
 
@@ -962,7 +969,7 @@ struct BlockAppSheet: View {
                             .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.white)
 
-                        Text("Bloquer temporairement cette app")
+                        Text(String(localized: "block_temporarily"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                             .multilineTextAlignment(.center)
@@ -971,7 +978,7 @@ struct BlockAppSheet: View {
 
                     // Sélection de durée - Roulette compacte
                     VStack(spacing: 12) {
-                        Text("DURÉE")
+                        Text(String(localized: "duration_picker_label"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white.opacity(0.5))
                             .tracking(1)
@@ -979,7 +986,7 @@ struct BlockAppSheet: View {
                         HStack(spacing: 16) {
                             // Heures
                             VStack(spacing: 4) {
-                                Text("Heures")
+                                Text(String(localized: "hours_label"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.5))
 
@@ -1002,7 +1009,7 @@ struct BlockAppSheet: View {
 
                             // Minutes
                             VStack(spacing: 4) {
-                                Text("Minutes")
+                                Text(String(localized: "minutes_label"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.5))
 
@@ -1073,7 +1080,7 @@ struct BlockAppSheet: View {
                         Button {
                             dismiss()
                         } label: {
-                            Text("Annuler")
+                            Text(String(localized: "cancel_button"))
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.6))
                                 .frame(maxWidth: .infinity)
@@ -1328,7 +1335,7 @@ struct BlockedAppRow: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
 
-                    Text(block.status == .paused ? "En pause" : "Bloquée")
+                    Text(block.status == .paused ? String(localized: "paused_status") : String(localized: "blocked_status"))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.5))
                 }

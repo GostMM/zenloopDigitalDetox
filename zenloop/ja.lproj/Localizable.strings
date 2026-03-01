@@ -918,3 +918,69 @@
 // Quick schedule card
 "quick_schedule" = "クイックスケジュール";
 "quick_schedule_description" = "タップしてアプリ、期間を選択してスケジュール";
+
+// CompactTimerView
+"apps_to_block_label" = "ブロックするアプリ";
+"apps_selected_count" = "%d個選択";
+"restriction_label" = "制限";
+"goals_label" = "目標";
+"goals_added_count" = "%d個追加";
+"optional_label" = "オプション";
+"start_focus_session" = "集中セッションを開始";
+
+// SessionPlanningRow
+"session_not_found" = "セッションが見つかりません";
+"close" = "閉じる";
+"schedule_label" = "スケジュール";
+"choose_apps" = "アプリを選択";
+"duration_label" = "期間";
+"schedule_the_session" = "セッションをスケジュール";
+"apps_count" = "%dアプリ";
+
+// QuickBlockModesSection
+"active_status" = "アクティブ";
+"permanent_block" = "永続ブロック";
+"active_block" = "アクティブブロック";
+"unblock" = "ブロック解除";
+"apps_selected_singular" = "%d個のアプリを選択";
+"apps_selected_plural" = "%d個のアプリを選択";
+"block_now" = "ブロック";
+
+// QuickBlockCategoryView
+"edit_apps" = "編集 (%d)";
+"select_apps_button" = "アプリを選択";
+"selected_apps_title" = "選択されたアプリ";
+"no_apps_selected" = "アプリが選択されていません";
+"tap_to_select_apps" = "下のボタンをタップしてブロックするアプリを選択してください";
+"no_social_title" = "ソーシャルメディアなし";
+"no_ai_title" = "AIなし";
+"no_porn_title" = "ポルノなし";
+"no_gaming_title" = "ゲームなし";
+"no_social_description" = "ソーシャルネットワークをブロックして、集中して生産的に過ごしましょう。";
+"no_ai_description" = "AIアシスタントの使用を制限して、自然な創造性を刺激しましょう。";
+"no_porn_description" = "不適切なコンテンツから身を守り、正しい道を歩み続けましょう。";
+"no_gaming_description" = "ゲーム時間をコントロールし、目標を優先しましょう。";
+
+// FullStatsView
+"full_stats_ios_only" = "完全な統計表示はiOSでのみ利用可能";
+
+// HeroSection
+"pause_label" = "一時停止";
+"take_a_break" = "休憩する";
+"stop_label" = "停止";
+"end_session" = "セッション終了";
+"resume_label" = "再開";
+"continue_session" = "セッション続行";
+"session_completed" = "セッション完了";
+"great_work" = "素晴らしい！";
+"start_new_session" = "新しいセッションを開始";
+
+// PaywallView
+"zenloop_premium" = "Zenloop Premium";
+"seven_day_trial" = "7日間無料トライアル";
+"one_time_purchase" = "買い切り";
+"lifetime_access" = "永久アクセス";
+"monthly_plan" = "月額";
+"per_month_short" = "/月";
+"subscription_plan" = "サブスクリプション";
+"cancel_anytime" = "いつでもキャンセル可能";

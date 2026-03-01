@@ -918,3 +918,69 @@
 // Quick schedule card
 "quick_schedule" = "快速安排";
 "quick_schedule_description" = "点击选择应用、时长并安排";
+
+// CompactTimerView
+"apps_to_block_label" = "要屏蔽的应用";
+"apps_selected_count" = "已选择%d个";
+"restriction_label" = "限制";
+"goals_label" = "目标";
+"goals_added_count" = "已添加%d个";
+"optional_label" = "可选";
+"start_focus_session" = "开始专注会话";
+
+// SessionPlanningRow
+"session_not_found" = "未找到会话";
+"close" = "关闭";
+"schedule_label" = "安排";
+"choose_apps" = "选择应用";
+"duration_label" = "时长";
+"schedule_the_session" = "安排会话";
+"apps_count" = "%d应用";
+
+// QuickBlockModesSection
+"active_status" = "活动中";
+"permanent_block" = "永久屏蔽";
+"active_block" = "活动屏蔽";
+"unblock" = "解除屏蔽";
+"apps_selected_singular" = "已选择%d个应用";
+"apps_selected_plural" = "已选择%d个应用";
+"block_now" = "屏蔽";
+
+// QuickBlockCategoryView
+"edit_apps" = "编辑 (%d)";
+"select_apps_button" = "选择应用";
+"selected_apps_title" = "已选择的应用";
+"no_apps_selected" = "未选择应用";
+"tap_to_select_apps" = "点击下方按钮选择要屏蔽的应用";
+"no_social_title" = "无社交媒体";
+"no_ai_title" = "无AI";
+"no_porn_title" = "无色情";
+"no_gaming_title" = "无游戏";
+"no_social_description" = "屏蔽社交网络以保持专注和高效。";
+"no_ai_description" = "限制AI助手的使用以激发您的自然创造力。";
+"no_porn_description" = "保护自己免受不当内容影响，保持正确方向。";
+"no_gaming_description" = "控制您的游戏时间并优先考虑您的目标。";
+
+// FullStatsView
+"full_stats_ios_only" = "完整统计视图仅在iOS上可用";
+
+// HeroSection
+"pause_label" = "暂停";
+"take_a_break" = "休息一下";
+"stop_label" = "停止";
+"end_session" = "结束会话";
+"resume_label" = "恢复";
+"continue_session" = "继续会话";
+"session_completed" = "会话完成";
+"great_work" = "干得好！";
+"start_new_session" = "开始新会话";
+
+// PaywallView
+"zenloop_premium" = "Zenloop Premium";
+"seven_day_trial" = "7天免费试用";
+"one_time_purchase" = "一次性购买";
+"lifetime_access" = "终身访问";
+"monthly_plan" = "每月";
+"per_month_short" = "/月";
+"subscription_plan" = "订阅";
+"cancel_anytime" = "随时可取消";

@@ -1135,3 +1135,69 @@
 "app_blocked_body" = "%@ is now blocked for %d minutes";
 "app_unblocked_title" = "✅ App Unblocked";
 "app_unblocked_body" = "%@ is now accessible";
+
+// CompactTimerView
+"apps_to_block_label" = "APPS TO BLOCK";
+"apps_selected_count" = "%d selected";
+"restriction_label" = "RESTRICTION";
+"goals_label" = "GOALS";
+"goals_added_count" = "%d added";
+"optional_label" = "Optional";
+"start_focus_session" = "Start Focus Session";
+
+// SessionPlanningRow
+"session_not_found" = "Session not found";
+"close" = "Close";
+"schedule_label" = "SCHEDULE";
+"choose_apps" = "Choose apps";
+"duration_label" = "DURATION";
+"schedule_the_session" = "Schedule the session";
+"apps_count" = "%d apps";
+
+// QuickBlockModesSection
+"active_status" = "ACTIVE";
+"permanent_block" = "Permanent block";
+"active_block" = "Active block";
+"unblock" = "Unblock";
+"apps_selected_singular" = "%d app selected";
+"apps_selected_plural" = "%d apps selected";
+"block_now" = "Block";
+
+// QuickBlockCategoryView
+"edit_apps" = "Edit (%d)";
+"select_apps_button" = "Select apps";
+"selected_apps_title" = "Selected apps";
+"no_apps_selected" = "No apps selected";
+"tap_to_select_apps" = "Tap the button below to select apps to block";
+"no_social_title" = "No Social Media";
+"no_ai_title" = "No AI";
+"no_porn_title" = "No Porn";
+"no_gaming_title" = "No Gaming";
+"no_social_description" = "Block social networks to stay focused and productive.";
+"no_ai_description" = "Limit AI assistant usage to stimulate your natural creativity.";
+"no_porn_description" = "Protect yourself from inappropriate content and stay on track.";
+"no_gaming_description" = "Control your gaming time and prioritize your goals.";
+
+// FullStatsView
+"full_stats_ios_only" = "Full stats view available on iOS only";
+
+// HeroSection
+"pause_label" = "PAUSE";
+"take_a_break" = "Take a break";
+"stop_label" = "STOP";
+"end_session" = "End session";
+"resume_label" = "RESUME";
+"continue_session" = "Continue session";
+"session_completed" = "SESSION COMPLETED";
+"great_work" = "Great work!";
+"start_new_session" = "Start new session";
+
+// PaywallView
+"zenloop_premium" = "Zenloop Premium";
+"seven_day_trial" = "7-day free trial";
+"one_time_purchase" = "One-time purchase";
+"lifetime_access" = "Lifetime access";
+"monthly_plan" = "Monthly";
+"per_month_short" = "/month";
+"subscription_plan" = "Subscription";
+"cancel_anytime" = "Cancel anytime";

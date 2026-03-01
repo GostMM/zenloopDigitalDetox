@@ -918,3 +918,69 @@
 // Quick schedule card
 "quick_schedule" = "جدولة سريعة";
 "quick_schedule_description" = "اضغط لاختيار التطبيقات والمدة والجدولة";
+
+// CompactTimerView
+"apps_to_block_label" = "التطبيقات المراد حظرها";
+"apps_selected_count" = "%d محدد";
+"restriction_label" = "القيود";
+"goals_label" = "الأهداف";
+"goals_added_count" = "%d مضافة";
+"optional_label" = "اختياري";
+"start_focus_session" = "بدء جلسة التركيز";
+
+// SessionPlanningRow
+"session_not_found" = "الجلسة غير موجودة";
+"close" = "إغلاق";
+"schedule_label" = "جدولة";
+"choose_apps" = "اختر التطبيقات";
+"duration_label" = "المدة";
+"schedule_the_session" = "جدولة الجلسة";
+"apps_count" = "%d تطبيقات";
+
+// QuickBlockModesSection
+"active_status" = "نشط";
+"permanent_block" = "حظر دائم";
+"active_block" = "حظر نشط";
+"unblock" = "إلغاء الحظر";
+"apps_selected_singular" = "تطبيق واحد محدد";
+"apps_selected_plural" = "%d تطبيقات محددة";
+"block_now" = "حظر";
+
+// QuickBlockCategoryView
+"edit_apps" = "تعديل (%d)";
+"select_apps_button" = "اختر التطبيقات";
+"selected_apps_title" = "التطبيقات المحددة";
+"no_apps_selected" = "لا توجد تطبيقات محددة";
+"tap_to_select_apps" = "اضغط على الزر أدناه لاختيار التطبيقات المراد حظرها";
+"no_social_title" = "بدون وسائل التواصل الاجتماعي";
+"no_ai_title" = "بدون الذكاء الاصطناعي";
+"no_porn_title" = "بدون محتوى إباحي";
+"no_gaming_title" = "بدون ألعاب";
+"no_social_description" = "احظر شبكات التواصل الاجتماعي للبقاء مركزًا ومنتجًا.";
+"no_ai_description" = "قلل استخدام مساعدي الذكاء الاصطناعي لتحفيز إبداعك الطبيعي.";
+"no_porn_description" = "احمِ نفسك من المحتوى غير المناسب وابقَ على المسار الصحيح.";
+"no_gaming_description" = "تحكم في وقت اللعب وحدد أولويات أهدافك.";
+
+// FullStatsView
+"full_stats_ios_only" = "عرض الإحصائيات الكامل متاح على iOS فقط";
+
+// HeroSection
+"pause_label" = "إيقاف مؤقت";
+"take_a_break" = "خذ استراحة";
+"stop_label" = "إيقاف";
+"end_session" = "إنهاء الجلسة";
+"resume_label" = "استئناف";
+"continue_session" = "متابعة الجلسة";
+"session_completed" = "اكتملت الجلسة";
+"great_work" = "عمل رائع!";
+"start_new_session" = "بدء جلسة جديدة";
+
+// PaywallView
+"zenloop_premium" = "Zenloop Premium";
+"seven_day_trial" = "7 أيام تجربة مجانية";
+"one_time_purchase" = "شراء لمرة واحدة";
+"lifetime_access" = "وصول مدى الحياة";
+"monthly_plan" = "شهري";
+"per_month_short" = "/شهر";
+"subscription_plan" = "اشتراك";
+"cancel_anytime" = "قابل للإلغاء في أي وقت";

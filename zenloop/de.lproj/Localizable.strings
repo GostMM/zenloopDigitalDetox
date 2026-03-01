@@ -918,3 +918,69 @@
 // Quick schedule card
 "quick_schedule" = "Schnellplanung";
 "quick_schedule_description" = "Tippen um Apps, Dauer auszuwählen & planen";
+
+// CompactTimerView
+"apps_to_block_label" = "APPS ZU BLOCKIEREN";
+"apps_selected_count" = "%d ausgewählt";
+"restriction_label" = "EINSCHRÄNKUNG";
+"goals_label" = "ZIELE";
+"goals_added_count" = "%d hinzugefügt";
+"optional_label" = "Optional";
+"start_focus_session" = "Fokus-Sitzung Starten";
+
+// SessionPlanningRow
+"session_not_found" = "Sitzung nicht gefunden";
+"close" = "Schließen";
+"schedule_label" = "PLANEN";
+"choose_apps" = "Apps wählen";
+"duration_label" = "DAUER";
+"schedule_the_session" = "Sitzung planen";
+"apps_count" = "%d Apps";
+
+// QuickBlockModesSection
+"active_status" = "AKTIV";
+"permanent_block" = "Permanente Sperre";
+"active_block" = "Aktive Sperre";
+"unblock" = "Entsperren";
+"apps_selected_singular" = "%d App ausgewählt";
+"apps_selected_plural" = "%d Apps ausgewählt";
+"block_now" = "Blockieren";
+
+// QuickBlockCategoryView
+"edit_apps" = "Bearbeiten (%d)";
+"select_apps_button" = "Apps auswählen";
+"selected_apps_title" = "Ausgewählte Apps";
+"no_apps_selected" = "Keine Apps ausgewählt";
+"tap_to_select_apps" = "Tippen Sie auf die Schaltfläche unten, um Apps zum Blockieren auszuwählen";
+"no_social_title" = "Keine sozialen Medien";
+"no_ai_title" = "Keine KI";
+"no_porn_title" = "Kein Porno";
+"no_gaming_title" = "Keine Spiele";
+"no_social_description" = "Blockieren Sie soziale Netzwerke, um konzentriert und produktiv zu bleiben.";
+"no_ai_description" = "Begrenzen Sie die Nutzung von KI-Assistenten, um Ihre natürliche Kreativität zu fördern.";
+"no_porn_description" = "Schützen Sie sich vor unangemessenen Inhalten und bleiben Sie auf dem richtigen Weg.";
+"no_gaming_description" = "Kontrollieren Sie Ihre Spielzeit und priorisieren Sie Ihre Ziele.";
+
+// FullStatsView
+"full_stats_ios_only" = "Vollständige Statistikansicht nur auf iOS verfügbar";
+
+// HeroSection
+"pause_label" = "PAUSE";
+"take_a_break" = "Pause machen";
+"stop_label" = "STOPP";
+"end_session" = "Sitzung beenden";
+"resume_label" = "FORTSETZEN";
+"continue_session" = "Sitzung fortsetzen";
+"session_completed" = "SITZUNG ABGESCHLOSSEN";
+"great_work" = "Großartige Arbeit!";
+"start_new_session" = "Neue Sitzung starten";
+
+// PaywallView
+"zenloop_premium" = "Zenloop Premium";
+"seven_day_trial" = "7 Tage kostenlos testen";
+"one_time_purchase" = "Einmaliger Kauf";
+"lifetime_access" = "Lebenslanger Zugang";
+"monthly_plan" = "Monatlich";
+"per_month_short" = "/Monat";
+"subscription_plan" = "Abonnement";
+"cancel_anytime" = "Jederzeit kündbar";

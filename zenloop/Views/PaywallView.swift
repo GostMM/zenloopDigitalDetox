@@ -68,12 +68,19 @@ struct PaywallView: View {
 
             // Interface principale minimaliste
             VStack(spacing: 0) {
-                // Header avec titre à gauche
+                // Header avec titre et sous-titre à gauche
                 HStack {
-                    Text("Zenloop Premium")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.8), radius: 10)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "zenloop_premium"))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.8), radius: 10)
+
+                        Text(String(localized: "seven_day_trial"))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                            .shadow(color: .black.opacity(0.6), radius: 8)
+                    }
 
                     Spacer()
 
@@ -532,7 +539,7 @@ struct CompactPlanCard: View {
         Button(action: onSelect) {
             VStack(spacing: 12) {
                 // Titre compact
-                Text(plan == .lifetime ? "Achat unique" : "Mensuel")
+                Text(plan == .lifetime ? String(localized: "one_time_purchase") : String(localized: "monthly_plan"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
 
@@ -542,7 +549,7 @@ struct CompactPlanCard: View {
                     .foregroundColor(.white)
 
                 // Sous-titre
-                Text(plan == .lifetime ? "Accès à vie" : "/mois")
+                Text(plan == .lifetime ? String(localized: "lifetime_access") : String(localized: "per_month_short"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -579,11 +586,11 @@ struct MinimalPlanCard: View {
         Button(action: onSelect) {
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(plan == .lifetime ? "Achat unique" : "Abonnement")
+                    Text(plan == .lifetime ? String(localized: "one_time_purchase") : String(localized: "subscription_plan"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text(plan == .lifetime ? "Accès à vie" : "Annulable à tout moment")
+                    Text(plan == .lifetime ? String(localized: "lifetime_access") : String(localized: "cancel_anytime"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(.white.opacity(0.7))
                 }

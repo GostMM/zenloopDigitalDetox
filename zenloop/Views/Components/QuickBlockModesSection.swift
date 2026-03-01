@@ -210,7 +210,7 @@ struct QuickBlockModeCard: View {
 
                                 // Temps restant ou statut permanent
                                 if isPermanentBlock {
-                                    Text("ACTIF")
+                                    Text(String(localized: "active_status"))
                                         .font(.system(size: 20, weight: .bold))
                                         .foregroundColor(.white)
                                 } else {
@@ -219,13 +219,13 @@ struct QuickBlockModeCard: View {
                                         .foregroundColor(.white)
                                 }
 
-                                Text(isPermanentBlock ? "Blocage permanent" : "Blocage actif")
+                                Text(isPermanentBlock ? String(localized: "permanent_block") : String(localized: "active_block"))
                                     .font(.system(size: 12))
                                     .foregroundColor(.white.opacity(0.8))
 
                                 // Bouton débloquer
                                 Button(action: onUnblock) {
-                                    Text("Débloquer")
+                                    Text(String(localized: "unblock"))
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 16)
@@ -296,7 +296,10 @@ struct QuickBlockModeCard: View {
                     }
                     .padding(.top, 10)
 
-                    Text("\(category.appsCount) app\(category.appsCount > 1 ? "s" : "") sélectionnée\(category.appsCount > 1 ? "s" : "")")
+                    Text(category.appsCount > 1
+                        ? String(localized: "apps_selected_plural", defaultValue: "\(category.appsCount) apps selected").replacingOccurrences(of: "%d", with: "\(category.appsCount)")
+                        : String(localized: "apps_selected_singular", defaultValue: "\(category.appsCount) app selected").replacingOccurrences(of: "%d", with: "\(category.appsCount)")
+                    )
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.7))
 
@@ -307,7 +310,7 @@ struct QuickBlockModeCard: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "shield.fill")
                                         .font(.system(size: 10))
-                                    Text("Bloquer")
+                                    Text(String(localized: "block_now"))
                                         .font(.system(size: 12, weight: .semibold))
                                 }
                                 .foregroundColor(.white)

@@ -125,6 +125,12 @@ struct TimerCard: View {
                 zenloopManager.updateAppsSelection(FamilyActivitySelection())
             }
         }
+        .onChange(of: zenloopManager.currentState) { oldState, newState in
+            // Recharger les apps quand l'état change (ex: session programmée qui démarre)
+            selectedApps = zenloopManager.getAppsSelection()
+            hasSelectedApps = !selectedApps.applicationTokens.isEmpty || !selectedApps.categoryTokens.isEmpty
+            print("🔄 [TIMER_CARD] State changed: \(oldState) -> \(newState), Apps: \(selectedApps.applicationTokens.count), HasSelectedApps: \(hasSelectedApps)")
+        }
         .premiumGated()
     }
 

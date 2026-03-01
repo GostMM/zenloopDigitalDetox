@@ -80,7 +80,7 @@ struct FullStatsView: View {
                 .animation(.easeInOut(duration: 0.3), value: showContent)
             }
             #else
-            Text("Full stats view available on iOS only")
+            Text(String(localized: "full_stats_ios_only"))
                 .foregroundColor(.white)
             #endif
 
@@ -160,7 +160,7 @@ struct InstantStatsPreview: View {
                         .font(.system(size: 56, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Text("SCREEN TIME TODAY")
+                    Text(String(localized: "screen_time_today"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.white.opacity(0.4))
                         .tracking(1.5)
@@ -171,7 +171,7 @@ struct InstantStatsPreview: View {
                 // Metrics row avec données cachées
                 HStack(spacing: 20) {
                     VStack(spacing: 8) {
-                        Text("MOST USED")
+                        Text(String(localized: "most_used_label"))
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(1)
@@ -192,7 +192,7 @@ struct InstantStatsPreview: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(focusScoreColor(cachedData?.focusScore ?? 0))
 
-                        Text("FOCUS SCORE")
+                        Text(String(localized: "focus_score_label"))
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(1)
@@ -205,7 +205,7 @@ struct InstantStatsPreview: View {
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
 
-                        Text("CATEGORIES")
+                        Text(String(localized: "categories_label"))
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(1)

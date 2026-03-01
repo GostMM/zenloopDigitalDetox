@@ -94,7 +94,9 @@ struct QuickBlockCategoryView: View {
                             Image(systemName: selectedAppsCount > 0 ? "pencil.circle.fill" : "plus.circle.fill")
                                 .font(.system(size: 20, weight: .bold))
 
-                            Text(selectedAppsCount > 0 ? "Modifier (\(selectedAppsCount))" : "Sélectionner des apps")
+                            Text(selectedAppsCount > 0
+                                ? String(localized: "edit_apps", defaultValue: "Edit (\(selectedAppsCount))").replacingOccurrences(of: "%d", with: "\(selectedAppsCount)")
+                                : String(localized: "select_apps_button"))
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .foregroundColor(.white)
@@ -162,7 +164,7 @@ struct QuickBlockCategoryView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Titre de la section
             HStack(spacing: 8) {
-                Text("Apps sélectionnées")
+                Text(String(localized: "selected_apps_title"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
 
@@ -252,11 +254,11 @@ struct QuickBlockCategoryView: View {
                 .font(.system(size: 56, weight: .light))
                 .foregroundColor(.white.opacity(0.3))
 
-            Text("Aucune app sélectionnée")
+            Text(String(localized: "no_apps_selected"))
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white.opacity(0.7))
 
-            Text("Tapez sur le bouton ci-dessous pour sélectionner les apps à bloquer")
+            Text(String(localized: "tap_to_select_apps"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white.opacity(0.5))
                 .multilineTextAlignment(.center)
@@ -310,23 +312,23 @@ enum BlockCategory: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .noSocial: return "No Social Media"
-        case .noAI: return "No AI"
-        case .noPorn: return "No Porn"
-        case .noGaming: return "No Gaming"
+        case .noSocial: return String(localized: "no_social_title")
+        case .noAI: return String(localized: "no_ai_title")
+        case .noPorn: return String(localized: "no_porn_title")
+        case .noGaming: return String(localized: "no_gaming_title")
         }
     }
 
     var description: String {
         switch self {
         case .noSocial:
-            return "Bloquez les réseaux sociaux pour rester concentré et productif."
+            return String(localized: "no_social_description")
         case .noAI:
-            return "Limitez l'utilisation des assistants IA pour stimuler votre créativité naturelle."
+            return String(localized: "no_ai_description")
         case .noPorn:
-            return "Protégez-vous des contenus inappropriés et restez sur le bon chemin."
+            return String(localized: "no_porn_description")
         case .noGaming:
-            return "Contrôlez votre temps de jeu et priorisez vos objectifs."
+            return String(localized: "no_gaming_description")
         }
     }
 

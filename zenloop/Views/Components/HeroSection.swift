@@ -66,12 +66,12 @@ struct ActiveSessionActions: View {
                         .foregroundColor(.mint)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("PAUSE")
+                        Text(String(localized: "pause_label"))
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(0.5)
 
-                        Text("Take a break")
+                        Text(String(localized: "take_a_break"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -90,12 +90,12 @@ struct ActiveSessionActions: View {
                         .foregroundColor(.red)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("STOP")
+                        Text(String(localized: "stop_label"))
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(0.5)
 
-                        Text("End session")
+                        Text(String(localized: "end_session"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -125,12 +125,12 @@ struct PausedSessionActions: View {
                         .foregroundColor(.green)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("RESUME")
+                        Text(String(localized: "resume_label"))
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(0.5)
 
-                        Text("Continue session")
+                        Text(String(localized: "continue_session"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -149,12 +149,12 @@ struct PausedSessionActions: View {
                         .foregroundColor(.red)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("STOP")
+                        Text(String(localized: "stop_label"))
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white.opacity(0.4))
                             .tracking(0.5)
 
-                        Text("End session")
+                        Text(String(localized: "end_session"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -184,12 +184,12 @@ struct CompletedSessionActions: View {
                     .symbolEffect(.bounce, value: true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SESSION COMPLETED")
+                    Text(String(localized: "session_completed"))
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.white.opacity(0.4))
                         .tracking(0.5)
 
-                    Text("Great work!")
+                    Text(String(localized: "great_work"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -204,7 +204,7 @@ struct CompletedSessionActions: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.cyan)
 
-                    Text("Start new session")
+                    Text(String(localized: "start_new_session"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
 

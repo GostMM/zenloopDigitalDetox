@@ -53,12 +53,12 @@ struct CompactTimerView: View {
                                 .symbolEffect(.bounce, value: hasSelectedApps)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("APPS TO BLOCK")
+                                Text(String(localized: "apps_to_block_label"))
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.white.opacity(0.4))
                                     .tracking(0.5)
 
-                                Text(hasSelectedApps ? "\(selectedAppsCount) selected" : "Tap to select")
+                                Text(hasSelectedApps ? String(localized: "apps_selected_count", defaultValue: "\(selectedAppsCount) selected").replacingOccurrences(of: "%d", with: "\(selectedAppsCount)") : String(localized: "tap_to_select"))
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(hasSelectedApps ? .white : .orange)
                             }
@@ -106,7 +106,7 @@ struct CompactTimerView: View {
                             .foregroundColor(difficultyColor)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("RESTRICTION")
+                            Text(String(localized: "restriction_label"))
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
                                 .tracking(0.5)
@@ -128,12 +128,12 @@ struct CompactTimerView: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 1) {
-                            Text("GOALS")
+                            Text(String(localized: "goals_label"))
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.white.opacity(0.4))
                                 .tracking(0.5)
 
-                            Text(taskGoalsCount > 0 ? "\(taskGoalsCount) added" : "Optional")
+                            Text(taskGoalsCount > 0 ? String(localized: "goals_added_count", defaultValue: "\(taskGoalsCount) added").replacingOccurrences(of: "%d", with: "\(taskGoalsCount)") : String(localized: "optional_label"))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(taskGoalsCount > 0 ? .white : .white.opacity(0.5))
                         }
@@ -155,7 +155,7 @@ struct CompactTimerView: View {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 18, weight: .bold))
 
-                        Text("Start Focus Session")
+                        Text(String(localized: "start_focus_session"))
                             .font(.system(size: 15, weight: .bold))
                     }
                     .foregroundColor(.white)

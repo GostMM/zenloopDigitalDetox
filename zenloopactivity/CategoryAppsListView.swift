@@ -435,10 +435,10 @@ enum QuickBlockCategoryType: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .social: return "No Social Media"
-        case .productivity: return "No AI"
-        case .gaming: return "No Gaming"
-        case .adult: return "No Porn"
+        case .social: return String(localized: "no_social_title")
+        case .productivity: return String(localized: "no_ai_title")
+        case .gaming: return String(localized: "no_gaming_title")
+        case .adult: return String(localized: "no_porn_title")
         }
     }
 
