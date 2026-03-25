@@ -9,6 +9,7 @@ import SwiftUI
 import DeviceActivity
 import UserNotifications
 import Firebase
+import FirebaseFirestore
 import FamilyControls
 import ManagedSettings
 import os.log
@@ -23,7 +24,7 @@ struct zenloopApp: App {
     @State private var isFirebaseConfigured = false
 
     init() {
-        // OPTIMIZATION: Firebase configuration moved to async Task
+        // OPTIMIZATION: Firebase configuration moved to .onAppear (synchronous)
         // This prevents blocking the main thread before first frame
 
         // ✅ CRITIQUE: Initialiser le GlobalShieldManager (store par défaut)
@@ -148,34 +149,35 @@ struct zenloopApp: App {
                         }
                     }
 
-                    // Initialisation asynchrone pour éviter les lags au démarrage
-                    Task {
-                        // OPTIMIZATION: Configure Firebase asynchronously (200-500ms saved on main thread)
-                        if !isFirebaseConfigured {
-                            FirebaseApp.configure()
-                            isFirebaseConfigured = true
-                        }
+                    // ✅ FIX: Configurer Firebase de manière SYNCHRONE
+                    // Firebase DOIT être configuré avant tout accès à Auth ou Firestore
+                    if !isFirebaseConfigured {
+                        FirebaseApp.configure()
 
+                        // Configure Firestore offline persistence (for social features)
+                        let db = Firestore.firestore()
+                        let settings = FirestoreSettings()
+                        settings.isPersistenceEnabled = true
+                        settings.cacheSizeBytes = FirestoreCacheSizeUnlimited
+                        db.settings = settings
+
+                        isFirebaseConfigured = true
+
+                        // ✅ FIX: Maintenant que Firebase est prêt, configurer l'auth
+                        // Ceci va vérifier l'état d'auth et charger les sessions
+                        AuthenticationManager.shared.configure()
+                    }
+
+                    // Le reste peut rester asynchrone
+                    Task {
                         // Firebase: Enregistrer le device au premier lancement
                         await FirebaseManager.shared.registerDeviceOnFirstLaunch()
 
                         // Clean up obsolete App Group keys
                         cleanupAppGroup()
 
-                        // REMOVED: Debug code that forced PurchaseManager initialization
-                        // This was causing 200-500ms delay at startup
-                        // PurchaseManager should be lazy-loaded only when needed
-
-                        // REMOVED: Ne plus demander autorisation Screen Time automatiquement
-                        // Les permissions seront demandées dans l'onboarding uniquement
-
                         // NOUVEAU: Précharger les données stats en arrière-plan
                         preloadStatsData()
-
-                        // DISABLED: Debug code that creates test payloads and polls App Group
-                        // try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 secondes
-                        // testExtensionResponse()
-                        // startExtensionMonitoring()
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
@@ -184,8 +186,6 @@ struct zenloopApp: App {
                         print("📱 App entered background")
                         // Update Quick Actions when app goes to background
                         quickActionsManager.updateOnAppBackground()
-                        // DISABLED: Test code that was creating payload_test_extension_* keys
-                        // scheduleAppTerminationTest()
                     case .inactive:
                         print("📱 App became inactive")
                     case .active:
@@ -282,40 +282,11 @@ struct zenloopApp: App {
                 
                 print("📡 [APP] Extension status: \(status) at \(initTime)")
                 
-                // Extension detected - debug notification removed
-                // sendAppNotification(
-                //     title: "📡 EXTENSION DÉTECTÉE", 
-                //     body: "Extension initialisée: \(status)"
-                // )
-                
                 // Arrêter le timer après avoir détecté l'extension
                 timer.invalidate()
             }
         }
     }
-    
-    // Extension debug notifications disabled - function commented out
-    /*
-    func sendAppNotification(title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(
-            identifier: "app_notification_\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: trigger
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Erreur notification app: \(error)")
-            }
-        }
-    }
-    */
     
     // MARK: - App Group Cleanup
 
@@ -435,50 +406,26 @@ struct zenloopApp: App {
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             print("🔓 [DEEP_LINK] ========== UNBLOCK URL RECEIVED ==========")
             print("🔓 [DEEP_LINK] Full URL: \(url.absoluteString)")
-            print("🔓 [DEEP_LINK] Scheme: \(url.scheme ?? "nil")")
-            print("🔓 [DEEP_LINK] Host: \(url.host ?? "nil")")
 
             let queryItems = components.queryItems ?? []
-            print("🔓 [DEEP_LINK] Query items count: \(queryItems.count)")
-
-            for (index, item) in queryItems.enumerated() {
-                print("   → Item \(index): name=\(item.name), value=\(item.value?.prefix(50) ?? "nil")...")
-            }
-
-            print("🔍 [DEEP_LINK] Extracting parameters...")
 
             guard let blockId = queryItems.first(where: { $0.name == "blockId" })?.value else {
                 print("❌❌❌ [DEEP_LINK] ERROR: Missing blockId parameter!")
                 return
             }
-            print("   ✅ blockId: \(blockId)")
 
             guard let appName = queryItems.first(where: { $0.name == "appName" })?.value else {
                 print("❌❌❌ [DEEP_LINK] ERROR: Missing appName parameter!")
                 return
             }
-            print("   ✅ appName: \(appName)")
 
-            guard let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value else {
-                print("❌❌❌ [DEEP_LINK] ERROR: Missing tokenData parameter!")
-                return
-            }
-            print("   ✅ tokenBase64 length: \(tokenBase64.count) chars")
-            print("   → tokenBase64 preview: \(tokenBase64.prefix(50))...")
-
-            print("🔍 [DEEP_LINK] Decoding base64 to Data...")
-            guard let tokenData = Data(base64Encoded: tokenBase64) else {
-                print("❌❌❌ [DEEP_LINK] ERROR: Failed to decode base64 to Data!")
-                print("   → Base64 string might be invalid")
+            guard let tokenBase64 = queryItems.first(where: { $0.name == "tokenData" })?.value,
+                  let tokenData = Data(base64Encoded: tokenBase64) else {
+                print("❌❌❌ [DEEP_LINK] ERROR: Missing or invalid tokenData parameter!")
                 return
             }
 
             print("✅✅✅ [DEEP_LINK] All parameters parsed successfully!")
-            print("   → blockId: \(blockId)")
-            print("   → appName: \(appName)")
-            print("   → tokenData: \(tokenData.count) bytes")
-
-            print("🔍 [DEEP_LINK] Calling handleUnblockRequest()...")
 
             // Traiter le déblocage depuis l'app principale
             Self.handleUnblockRequest(
@@ -497,9 +444,6 @@ struct zenloopApp: App {
             if let blockId = queryItems.first(where: { $0.name == "id" })?.value {
                 print("🔒 [DEEP_LINK] Applying block from Report Extension: \(blockId)")
 
-                // IMPORTANT: Traiter depuis App Group, pas depuis BlockManager
-                // Car le BlockManager pourrait ne pas encore avoir le block
-                // Il faut lire depuis les clés pending_block_*
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     Self.processReportExtensionBlockRequest()
                 }
@@ -692,88 +636,46 @@ struct zenloopApp: App {
         print("🔓 [MAIN_APP] App: \(appName)")
         print("🔓 [MAIN_APP] BlockID: \(blockId)")
         print("🔓 [MAIN_APP] Token Data: \(tokenData.count) bytes")
-        print("🔓 [MAIN_APP] Current thread: \(Thread.current)")
 
         #if os(iOS)
         // 1. Décoder le token pour validation
-        print("🔍 [MAIN_APP] Step 1: Decoding token from data...")
-        print("   → TokenData bytes: \(tokenData.count)")
-
         guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData) else {
             print("❌❌❌ [MAIN_APP] ERROR: Failed to decode FamilyActivitySelection!")
-            print("   → TokenData might be corrupted")
-            print("   → TokenData hex: \(tokenData.prefix(50).map { String(format: "%02x", $0) }.joined())")
             return
         }
-
-        print("✅ [MAIN_APP] FamilyActivitySelection decoded")
-        print("   → Application tokens count: \(selection.applicationTokens.count)")
 
         guard let token = selection.applicationTokens.first else {
             print("❌❌❌ [MAIN_APP] ERROR: No application token in selection!")
-            print("   → Selection has 0 tokens")
             return
         }
 
-        print("✅✅✅ [MAIN_APP] Token decoded successfully!")
-        print("   → Token obtained from selection")
+        print("✅ [MAIN_APP] Token decoded successfully!")
 
         // 2. Retirer le shield via GlobalShieldManager
-        print("🔍 [MAIN_APP] Step 2: Removing shield via GlobalShieldManager...")
-        print("   → Calling GlobalShieldManager.shared.removeBlock()")
-        print("   → This will update the global ManagedSettingsStore")
-
         Task { @MainActor in
-            print("🔍 [MAIN_APP] → Running on MainActor...")
             GlobalShieldManager.shared.removeBlock(
                 token: token,
                 blockId: blockId,
                 appName: appName
             )
-            print("✅✅✅ [MAIN_APP] GlobalShieldManager.removeBlock() COMPLETED!")
-            print("   → Shield should be removed now")
+            print("✅ [MAIN_APP] GlobalShieldManager.removeBlock() COMPLETED!")
         }
 
         // 3. Supprimer le block du BlockManager
-        print("🔍 [MAIN_APP] Step 3: Removing block from BlockManager...")
         let blockManager = BlockManager()
-
-        // Vérifier si le block existe avant de le supprimer
-        if let existingBlock = blockManager.getBlock(id: blockId) {
-            print("   → Block found in storage:")
-            print("   → Name: \(existingBlock.appName)")
-            print("   → Status: \(existingBlock.status.rawValue)")
-            print("   → StoreName: \(existingBlock.storeName)")
-        } else {
-            print("⚠️ [MAIN_APP] Block not found in BlockManager (might be already removed)")
-        }
-
         blockManager.removeBlock(id: blockId)
-        print("✅ [MAIN_APP] BlockManager.removeBlock() called")
-
-        // Vérifier que le block a bien été supprimé
-        let remainingBlocks = blockManager.getActiveBlocks()
-        print("   → Remaining active blocks: \(remainingBlocks.count)")
-        for block in remainingBlocks {
-            print("     - \(block.appName) (\(block.status.rawValue))")
-        }
-
         print("💾 [MAIN_APP] Block removed from persistence")
 
         // 4. Nettoyer aussi le store individuel (au cas où)
-        print("🔍 [MAIN_APP] Step 4: Cleaning individual store as fallback...")
         if let block = blockManager.getAllBlocks().first(where: { $0.id == blockId }) {
             let store = ManagedSettingsStore(named: .init(block.storeName))
             store.shield.applications = nil
             store.shield.applicationCategories = nil
             store.clearAllSettings()
             print("✅ [MAIN_APP] Individual store cleared: \(block.storeName)")
-        } else {
-            print("⚠️ [MAIN_APP] Block not found, cannot clear individual store")
         }
 
         // 5. Notification de confirmation
-        print("🔍 [MAIN_APP] Step 5: Sending notification...")
         let content = UNMutableNotificationContent()
         content.title = NSLocalizedString("app_unblocked_title", comment: "App unblocked notification title")
         content.body = String(format: NSLocalizedString("app_unblocked_body", comment: "App unblocked notification body"), appName)
@@ -788,8 +690,6 @@ struct zenloopApp: App {
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("⚠️ [MAIN_APP] Notification error: \(error)")
-            } else {
-                print("✅ [MAIN_APP] Notification scheduled")
             }
         }
 
@@ -809,16 +709,8 @@ struct zenloopApp: App {
         logger.critical("🔐 [SAVE_BLOCK] Activity: \(activityName)")
         logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔐 [SAVE_BLOCK] ========== MAIN APP SAVE REQUEST ==========")
-        print("🔐 [SAVE_BLOCK] App: \(appName)")
-        print("🔐 [SAVE_BLOCK] Duration: \(Int(duration/60))min")
-        print("🔐 [SAVE_BLOCK] ActivityName: \(activityName)")
-        print("🔐 [SAVE_BLOCK] Token Data: \(tokenData.count) bytes")
-
         #if os(iOS)
         // 1. Décoder le token pour validation
-        print("🔍 [SAVE_BLOCK] Step 1: Decoding token...")
         guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
               let token = selection.applicationTokens.first else {
             print("❌ [SAVE_BLOCK] Failed to decode token")
@@ -826,25 +718,14 @@ struct zenloopApp: App {
         }
 
         print("✅ [SAVE_BLOCK] Token decoded successfully")
-        print("   → Token obtained from selection")
 
         // 1.5. VÉRIFIER L'ÉTAT ACTUEL DU STORE AVANT DE SAUVEGARDER
-        print("🔍 [SAVE_BLOCK] Step 1.5: Checking current DEFAULT store state...")
         let checkStore = ManagedSettingsStore()
         let currentBlockedInStore = checkStore.shield.applications?.count ?? 0
         print("🔐 [SAVE_BLOCK] Current blocked apps in DEFAULT store: \(currentBlockedInStore)")
 
-        // 2. Sauvegarder le block dans BlockManager (l'app a les permissions!)
-        print("🔍 [SAVE_BLOCK] Step 2: Saving block to BlockManager...")
+        // 2. Sauvegarder le block dans BlockManager
         let blockManager = BlockManager()
-
-        // Vérifier si ce block existe déjà
-        let existingBlocks = blockManager.getAllBlocks()
-        print("🔐 [SAVE_BLOCK] Current blocks in BlockManager: \(existingBlocks.count)")
-        for existingBlock in existingBlocks {
-            print("   → \(existingBlock.appName) | Status: \(existingBlock.status.rawValue) | ID: \(existingBlock.id)")
-        }
-
         let block = blockManager.addBlock(
             appName: appName,
             duration: duration,
@@ -855,10 +736,6 @@ struct zenloopApp: App {
         print("💾 [SAVE_BLOCK] Block saved with ID: \(block.id)")
 
         // ✅ CRUCIAL: Stocker le mapping activityName → blockId pour le Monitor
-        logger.critical("🔗 [SAVE_BLOCK] Storing activityName → blockId mapping")
-        logger.critical("   → Activity: \(activityName)")
-        logger.critical("   → BlockID: \(block.id)")
-
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
             logger.critical("❌ [SAVE_BLOCK] Cannot store mapping - no App Group access")
             return
@@ -867,43 +744,21 @@ struct zenloopApp: App {
         suite.set(block.id, forKey: "blockId_for_activity_\(activityName)")
         suite.synchronize()
 
-        logger.critical("✅ [SAVE_BLOCK] Mapping stored: blockId_for_activity_\(activityName) = \(block.id)")
-
-        // Vérifier combien de blocks on a maintenant
-        let updatedBlocks = blockManager.getAllBlocks()
-        print("🔐 [SAVE_BLOCK] After save, blocks in BlockManager: \(updatedBlocks.count)")
-
-        // 3. ✅ PAS BESOIN D'APPLIQUER LE SHIELD ICI!
-        // L'extension l'a déjà appliqué dans le store par défaut
-        // On sauvegarde juste les métadonnées pour la persistence
-        print("🔍 [SAVE_BLOCK] Step 3: Checking if shield needs to be applied...")
+        // 3. Shield déjà appliqué par l'extension
         print("✅ [SAVE_BLOCK] Shield already applied by extension")
-        print("   → Extension applied shield to DEFAULT store BEFORE sending URL")
-        print("   → Main app is ONLY saving metadata (no re-blocking)")
 
         // 3.5. VÉRIFIER L'ÉTAT DU STORE APRÈS SAUVEGARDE
-        print("🔍 [SAVE_BLOCK] Step 3.5: Verifying DEFAULT store state after save...")
         let verifyStore = ManagedSettingsStore()
         let afterBlockedInStore = verifyStore.shield.applications?.count ?? 0
-        print("🔐 [SAVE_BLOCK] After save, blocked apps in DEFAULT store: \(afterBlockedInStore)")
 
         if afterBlockedInStore != currentBlockedInStore {
-            print("⚠️⚠️⚠️ [SAVE_BLOCK] STORE COUNT CHANGED!")
-            print("   → Before: \(currentBlockedInStore)")
-            print("   → After: \(afterBlockedInStore)")
-            print("   → Something modified the store during save!")
-        } else {
-            print("✅ [SAVE_BLOCK] Store count unchanged (good - no duplicate blocking)")
+            print("⚠️ [SAVE_BLOCK] STORE COUNT CHANGED! Before: \(currentBlockedInStore), After: \(afterBlockedInStore)")
         }
 
         // 4. Programmer le déblocage automatique
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("⏰ [SAVE_BLOCK] ========== SCHEDULING AUTO-UNBLOCK ==========")
-
-        let minimumDuration: TimeInterval = 16 * 60 // 16 minutes minimum pour DeviceActivity (Apple requirement)
+        let minimumDuration: TimeInterval = 16 * 60
 
         if duration >= minimumDuration {
-            // ✅ Durée >= 16min : Utiliser DeviceActivity (fonctionne en background)
             logger.critical("⏰ [SAVE_BLOCK] Duration >= 16min, using DeviceActivity")
 
             let center = DeviceActivityCenter()
@@ -911,17 +766,11 @@ struct zenloopApp: App {
             let now = Date()
             let calendar = Calendar.current
 
-            // ✅ IMPORTANT: Démarrer dans 1 seconde (contourner le problème "now")
             let startTime = now.addingTimeInterval(1)
             let endTime = now.addingTimeInterval(duration)
 
             let startComponents = calendar.dateComponents([.hour, .minute, .second], from: startTime)
             let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endTime)
-
-            logger.critical("⏰ [SAVE_BLOCK] Now: \(now)")
-            logger.critical("⏰ [SAVE_BLOCK] Start: \(startComponents.hour ?? 0):\(String(format: "%02d", startComponents.minute ?? 0)):\(String(format: "%02d", startComponents.second ?? 0))")
-            logger.critical("⏰ [SAVE_BLOCK] End: \(endComponents.hour ?? 0):\(String(format: "%02d", endComponents.minute ?? 0)):\(String(format: "%02d", endComponents.second ?? 0))")
-            logger.critical("⏰ [SAVE_BLOCK] Total duration: \(Int(duration))s (\(Int(duration/60))min)")
 
             let schedule = DeviceActivitySchedule(
                 intervalStart: startComponents,
@@ -929,33 +778,17 @@ struct zenloopApp: App {
                 repeats: false
             )
 
-            logger.critical("📅 [SAVE_BLOCK] DeviceActivitySchedule created (repeats: false)")
-
             do {
-                logger.critical("🚀 [SAVE_BLOCK] Calling center.startMonitoring()...")
                 try center.startMonitoring(deviceActivityName, during: schedule)
-                logger.critical("✅✅✅ [SAVE_BLOCK] DeviceActivity.startMonitoring() SUCCESS!")
-                logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                logger.critical("🎯 [SAVE_BLOCK] Monitor will call intervalDidStart in ~1 second")
-                logger.critical("🎯 [SAVE_BLOCK] Monitor will call intervalDidEnd at: \(endTime)")
-                logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                print("✅ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock")
+                logger.critical("✅ [SAVE_BLOCK] DeviceActivity scheduled for auto-unblock")
             } catch {
-                logger.critical("❌❌❌ [SAVE_BLOCK] DeviceActivity failed: \(error.localizedDescription)")
-                logger.critical("⚠️ [SAVE_BLOCK] Falling back to Timer")
-                print("❌ [SAVE_BLOCK] DeviceActivity failed, using Timer fallback")
+                logger.critical("❌ [SAVE_BLOCK] DeviceActivity failed: \(error.localizedDescription)")
                 scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
             }
         } else {
-            // ⚠️ Durée < 16min : DeviceActivity ne supporte pas, utiliser Timer
-            logger.critical("⚠️ [SAVE_BLOCK] Duration < 16min (\(Int(duration/60))min)")
-            logger.critical("⚠️ [SAVE_BLOCK] DeviceActivity minimum is 16min, using Timer fallback")
-            logger.critical("⚠️ [SAVE_BLOCK] NOTE: Timer won't work if app is closed!")
-            print("⚠️ [SAVE_BLOCK] Duration too short for DeviceActivity (< 16min)")
-            print("⚠️ [SAVE_BLOCK] Using Timer (requires app to stay open)")
+            logger.critical("⚠️ [SAVE_BLOCK] Duration < 16min, using Timer fallback")
             scheduleTimerUnblock(blockId: block.id, duration: duration, appName: appName, tokenData: tokenData)
         }
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // 5. Notification de succès
         let content = UNMutableNotificationContent()
@@ -975,9 +808,7 @@ struct zenloopApp: App {
             }
         }
 
-        print("🔐 [SAVE_BLOCK] ========================================")
         print("✅ [SAVE_BLOCK] BLOCK REQUEST COMPLETED SUCCESSFULLY")
-        print("🔐 [SAVE_BLOCK] ========================================")
         #endif
     }
 
@@ -986,11 +817,9 @@ struct zenloopApp: App {
         let logger = Logger(subsystem: "com.app.zenloop", category: "TimerUnblock")
 
         logger.critical("⏰ [TIMER_UNBLOCK] Scheduling Timer for \(Int(duration))s")
-        logger.critical("⏰ [TIMER_UNBLOCK] Block: \(appName) (ID: \(blockId))")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
             logger.critical("🔓 [TIMER_UNBLOCK] ===== TIMER FIRED =====")
-            logger.critical("🔓 [TIMER_UNBLOCK] Unblocking: \(appName)")
 
             // Décoder le token
             guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
@@ -1002,17 +831,8 @@ struct zenloopApp: App {
             // Retirer du DEFAULT store
             let defaultStore = ManagedSettingsStore()
             var blockedApps = defaultStore.shield.applications ?? Set()
-            let beforeCount = blockedApps.count
-
             blockedApps.remove(token)
-            let afterCount = blockedApps.count
-
             defaultStore.shield.applications = blockedApps.isEmpty ? nil : blockedApps
-
-            logger.critical("✅ [TIMER_UNBLOCK] Removed from DEFAULT store:")
-            logger.critical("   → Before: \(beforeCount) apps")
-            logger.critical("   → After: \(afterCount) apps")
-            logger.critical("   → Removed: \(beforeCount - afterCount) app(s)")
 
             // Supprimer du BlockManager
             let blockManager = BlockManager()
@@ -1067,8 +887,6 @@ struct zenloopApp: App {
             return
         }
 
-        print("✅ [REPORT_BLOCK] Token decoded successfully")
-
         // Créer le block dans BlockManager
         let blockManager = BlockManager()
         let block = blockManager.addBlock(
@@ -1078,8 +896,6 @@ struct zenloopApp: App {
             context: "FullStatsPageView"
         )
 
-        print("💾 [REPORT_BLOCK] Block saved: \(block.id)")
-
         // Appliquer le shield via GlobalShieldManager
         Task { @MainActor in
             GlobalShieldManager.shared.addBlock(
@@ -1087,7 +903,6 @@ struct zenloopApp: App {
                 blockId: block.id,
                 appName: appName
             )
-            print("🛡️ [REPORT_BLOCK] Shield applied for: \(appName)")
         }
 
         // Programmer le déblocage automatique
@@ -1175,7 +990,7 @@ struct zenloopApp: App {
                     id: "widget-quick-\(UUID().uuidString)",
                     title: "Widget Quick Session",
                     description: "Session démarrée depuis le widget",
-                    duration: 25 * 60, // 25 minutes in seconds
+                    duration: 25 * 60,
                     difficulty: .medium,
                     startTime: Date(),
                     isActive: true

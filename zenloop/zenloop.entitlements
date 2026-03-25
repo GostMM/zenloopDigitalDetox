@@ -10,7 +10,13 @@
     <!-- Family Controls entitlement - Suffisant pour toutes les APIs Screen Time -->
     <key>com.apple.developer.family-controls</key>
     <true/>
-    
+
+    <!-- Sign in with Apple for social features -->
+    <key>com.apple.developer.applesignin</key>
+    <array>
+        <string>Default</string>
+    </array>
+
     <!-- App Groups for sharing data between extensions -->
     <key>com.apple.security.application-groups</key>
     <array>

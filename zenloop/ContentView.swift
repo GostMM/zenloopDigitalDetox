@@ -210,6 +210,12 @@ struct TabContentView: View {
                         .environmentObject(zenloopManager)
                         .navigationBarHidden(true)
                 }
+            case 2:
+                NavigationStack {
+                    SocialTab()
+                        .environmentObject(zenloopManager)
+                        .navigationBarHidden(true)
+                }
             default:
                 NavigationStack {
                     HomeView()
