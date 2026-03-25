@@ -5,6 +5,8 @@
 //  Modèles pour les sessions sociales avec Firebase
 //  ⚠️ IMPORTANT: Les apps sélectionnées restent PRIVÉES (Apple FamilyControls)
 //
+//  ✅ NEW: SessionStatus.paused, PauseRequest model, new event types
+//
 
 import Foundation
 import FirebaseFirestore
@@ -42,6 +44,7 @@ struct SessionUser: Codable, Identifiable {
 enum SessionStatus: String, Codable {
     case lobby = "lobby"           // En attente de démarrage
     case active = "active"         // Session en cours
+    case paused = "paused"         // ✅ NEW: Session en pause
     case completed = "completed"   // Terminée avec succès
     case dissolved = "dissolved"   // Dissoute par le leader
 }
@@ -64,6 +67,8 @@ struct Session: Codable, Identifiable {
     var createdAt: Timestamp
     var startedAt: Timestamp?
     var endedAt: Timestamp?
+    var pausedAt: Timestamp?          // ✅ NEW: Quand la session a été mise en pause
+    var pausedBy: String?             // ✅ NEW: UID de celui qui a déclenché la pause
     var memberIds: [String]  // Pour queries Firestore
 
     // ⚠️ IMPORTANT: PAS de liste d'apps car Apple ne permet pas de partager ça
@@ -83,6 +88,8 @@ struct Session: Codable, Identifiable {
         case createdAt
         case startedAt
         case endedAt
+        case pausedAt
+        case pausedBy
         case memberIds
         case suggestedAppsCount
     }
@@ -94,7 +101,7 @@ enum MemberStatus: String, Codable {
     case joined = "joined"   // Vient de rejoindre
     case ready = "ready"     // Prêt à démarrer
     case active = "active"   // Session active
-    case paused = "paused"   // Session en pause
+    case paused = "paused"   // ✅ NEW: En pause avec la session
     case left = "left"       // A quitté la session
 }
 
@@ -165,19 +172,18 @@ struct SessionMessage: Codable, Identifiable {
 enum SessionEventType: String, Codable {
     case sessionCreated = "session_created"
     case sessionStarted = "session_started"
+    case sessionPaused = "session_paused"           // ✅ NEW
+    case sessionResumed = "session_resumed"         // ✅ NEW
+    case sessionStopped = "session_stopped"         // ✅ NEW
     case sessionCompleted = "session_completed"
     case sessionDissolved = "session_dissolved"
-    case sessionStopped = "session_stopped"  // Leader stopped session early
-    case sessionExtended = "session_extended"
     case memberJoined = "member_joined"
     case memberReady = "member_ready"
     case memberLeft = "member_left"
-    case memberPaused = "member_paused"
-    case memberResumed = "member_resumed"
     case memberBypassAttempt = "member_bypass_attempt"
-    case pauseRequested = "pause_requested"
-    case pauseApproved = "pause_approved"
-    case pauseDenied = "pause_denied"
+    case pauseRequested = "pause_requested"         // ✅ NEW
+    case pauseRequestAccepted = "pause_request_accepted" // ✅ NEW
+    case pauseRequestDeclined = "pause_request_declined" // ✅ NEW
 }
 
 struct SessionEvent: Codable, Identifiable {
@@ -195,6 +201,39 @@ struct SessionEvent: Codable, Identifiable {
         case eventType
         case timestamp
         case metadata
+    }
+}
+
+// MARK: - Pause Request ✅ NEW
+
+enum PauseRequestStatus: String, Codable {
+    case pending = "pending"
+    case accepted = "accepted"
+    case declined = "declined"
+    case expired = "expired"
+}
+
+struct PauseRequest: Codable, Identifiable {
+    @DocumentID var id: String?
+    var sessionId: String
+    var requesterId: String
+    var requesterUsername: String
+    var reason: String?
+    var status: PauseRequestStatus
+    var requestedAt: Timestamp
+    var respondedAt: Timestamp?
+    var respondedBy: String?  // UID du leader qui a répondu
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case sessionId
+        case requesterId
+        case requesterUsername
+        case reason
+        case status
+        case requestedAt
+        case respondedAt
+        case respondedBy
     }
 }
 
@@ -232,41 +271,6 @@ struct SessionInvitation: Codable, Identifiable {
         case respondedAt
         case sessionTitle
         case sessionDescription
-    }
-}
-
-// MARK: - Pause Request
-
-enum PauseRequestStatus: String, Codable {
-    case pending = "pending"
-    case approved = "approved"
-    case denied = "denied"
-    case expired = "expired"
-}
-
-struct PauseRequest: Codable, Identifiable {
-    @DocumentID var id: String?
-    var sessionId: String
-    var requesterId: String
-    var requesterUsername: String
-    var reason: String?
-    var durationMinutes: Int  // Durée demandée en minutes
-    var status: PauseRequestStatus
-    var requestedAt: Timestamp
-    var respondedAt: Timestamp?
-    var respondedBy: String?  // Leader ID
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case sessionId
-        case requesterId
-        case requesterUsername
-        case reason
-        case durationMinutes
-        case status
-        case requestedAt
-        case respondedAt
-        case respondedBy
     }
 }
 

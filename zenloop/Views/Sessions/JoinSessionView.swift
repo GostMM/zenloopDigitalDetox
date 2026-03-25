@@ -290,6 +290,7 @@ struct SessionFoundCard: View {
         switch session.status {
         case .lobby: return "En attente"
         case .active: return "En cours (late join)"
+        case .paused: return "En pause"
         case .completed: return "Terminée"
         case .dissolved: return "Dissoute"
         }
@@ -299,6 +300,7 @@ struct SessionFoundCard: View {
         switch session.status {
         case .lobby: return .orange
         case .active: return .green
+        case .paused: return .orange.opacity(0.7)
         case .completed: return .blue
         case .dissolved: return .gray
         }
