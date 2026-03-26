@@ -95,6 +95,18 @@ struct SessionDetailView: View {
                 isReady = localApps.selectedAppsCount > 0
             }
         }
+        .onChange(of: activeSession.status) { oldStatus, newStatus in
+            // Quand la session démarre, appliquer automatiquement les blocages pour TOUS les membres
+            if oldStatus != .active && newStatus == .active {
+                print("🚀 Session started! Applying blocks for all members...")
+                applySessionBlocks()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } else if oldStatus == .active && newStatus != .active {
+                // Quand la session se termine, retirer les blocages
+                print("🛑 Session ended! Removing blocks...")
+                removeSessionBlocks()
+            }
+        }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
         .alert("Quitter la Session", isPresented: $showLeaveAlert) {
             Button("Annuler", role: .cancel) {}
@@ -277,8 +289,14 @@ struct SessionDetailView: View {
         Task {
             do {
                 try await sessionManager.startSession(sessionId: session.id!)
-                await MainActor.run { applySessionBlocks(); UINotificationFeedbackGenerator().notificationOccurred(.success) }
-            } catch { print("Error starting session: \(error)") }
+                await MainActor.run {
+                    // Le leader applique ses blocages
+                    applySessionBlocks()
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            } catch {
+                print("Error starting session: \(error)")
+            }
         }
     }
 
@@ -366,16 +384,77 @@ struct SessionDetailView: View {
     }
 
     private func applySessionBlocks() {
-        guard let localApps = sessionManager.getLocalApps(sessionId: session.id!),
-              let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) else { return }
-        #if os(iOS)
-        for token in selection.applicationTokens {
-            GlobalShieldManager.shared.addBlock(token: token, blockId: "session_\(session.id!)_\(UUID().uuidString)", appName: "Session App")
+        guard let sessionId = session.id,
+              let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+              localApps.selectedAppsCount > 0,
+              let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) else {
+            print("⚠️ No apps to block for session \(session.id ?? "")")
+            return
         }
+
+        #if os(iOS)
+        print("🛡️ Applying blocks for \(selection.applicationTokens.count) apps in session \(sessionId)")
+
+        // Appliquer les blocages pour toutes les apps sélectionnées
+        for (index, token) in selection.applicationTokens.enumerated() {
+            let blockId = "session_\(sessionId)_app_\(index)"
+            let appName = "Session App \(index + 1)"
+
+            GlobalShieldManager.shared.addBlock(
+                token: token,
+                blockId: blockId,
+                appName: appName
+            )
+
+            print("  → Blocked: \(appName) with ID: \(blockId)")
+        }
+
+        // Stocker les IDs de blocage pour pouvoir les retirer plus tard
+        UserDefaults.standard.set(
+            selection.applicationTokens.count,
+            forKey: "session_\(sessionId)_blocks_count"
+        )
+
+        print("✅ All session blocks applied successfully!")
         #endif
     }
 
-    private func removeSessionBlocks() {}
+    private func removeSessionBlocks() {
+        guard let sessionId = session.id else { return }
+
+        #if os(iOS)
+        // Pour l'instant, on ne peut pas retirer les blocages sans les tokens
+        // Les blocages seront automatiquement retirés quand l'utilisateur quittera la session
+        // ou que la session se terminera via le BlockManager
+
+        print("🔓 Session blocks will be removed when session ends")
+
+        // Alternative: on pourrait récupérer les apps depuis selectedApps si toujours disponible
+        if let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) {
+
+            print("🔓 Removing \(selection.applicationTokens.count) blocks for session \(sessionId)")
+
+            for (index, token) in selection.applicationTokens.enumerated() {
+                let blockId = "session_\(sessionId)_app_\(index)"
+                let appName = "Session App \(index + 1)"
+
+                GlobalShieldManager.shared.removeBlock(
+                    token: token,
+                    blockId: blockId,
+                    appName: appName
+                )
+
+                print("  → Removed block: \(blockId)")
+            }
+
+            print("✅ All session blocks removed successfully!")
+        }
+
+        // Nettoyer les préférences
+        UserDefaults.standard.removeObject(forKey: "session_\(sessionId)_blocks_count")
+        #endif
+    }
 }
 
 

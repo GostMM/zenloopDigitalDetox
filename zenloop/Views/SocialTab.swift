@@ -4,6 +4,7 @@
 //
 //  Onglet social repensé — plus vivant, plus social, plus animé
 //  Design: avatars, présence en temps réel, animations fluides, vibe communautaire
+//  V2: UI ouverte et aérée — moins de cartes, plus de respiration
 //
 
 import SwiftUI
@@ -59,20 +60,20 @@ struct SocialTab: View {
                 .padding(.top, 20)
 
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 20) {
+                    LazyVStack(spacing: 28) {
                         
                         // — Présence en ligne —
                         OnlineFriendsStrip(showContent: showContent)
                             .padding(.top, 16)
                         
-                        // — Actions rapides —
-                        QuickActionsCard(
+                        // — Actions rapides (open layout) —
+                        OpenQuickActions(
                             showContent: showContent,
                             onCreateSession: { showCreateSession = true },
                             onJoinSession: { showJoinSession = true }
                         )
 
-                        // — Session active (carte hero) —
+                        // — Session active (carte hero — INTACT) —
                         if let currentSession = sessionManager.currentSession {
                             ActiveSessionCard(session: currentSession, showContent: showContent)
                         }
@@ -82,7 +83,7 @@ struct SocialTab: View {
                            let currentUserId = sessionManager.currentUser?.id,
                            currentSession.leaderId == currentUserId,
                            !sessionManager.pendingPauseRequests.isEmpty {
-                            LeaderPauseRequestsCard(
+                            OpenPauseRequestsSection(
                                 requests: sessionManager.pendingPauseRequests,
                                 session: currentSession,
                                 showContent: showContent
@@ -91,7 +92,7 @@ struct SocialTab: View {
 
                         // — Invitations en attente —
                         if !sessionManager.pendingInvitations.isEmpty {
-                            InvitationsSection(
+                            OpenInvitationsSection(
                                 invitations: sessionManager.pendingInvitations,
                                 showContent: showContent
                             )
@@ -99,14 +100,14 @@ struct SocialTab: View {
 
                         // — Mes sessions —
                         if !sessionManager.mySessions.isEmpty {
-                            MySessionsSection(
+                            OpenMySessionsSection(
                                 sessions: sessionManager.mySessions,
                                 showContent: showContent
                             )
                         }
 
                         // — Sessions publiques —
-                        PublicSessionsSection(
+                        OpenPublicSessionsSection(
                             sessions: sessionManager.publicSessions,
                             showContent: showContent
                         )
@@ -295,7 +296,6 @@ struct OnlineFriendsStrip: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: -8) {
-                    // Avatars des membres en ligne (stack chevauchant)
                     let onlineMembers = getOnlineMembers()
                     
                     ForEach(Array(onlineMembers.enumerated()), id: \.offset) { index, member in
@@ -308,7 +308,6 @@ struct OnlineFriendsStrip: View {
                     }
                     
                     if onlineMembers.isEmpty {
-                        // État vide — invitation à rejoindre
                         HStack(spacing: 12) {
                             ForEach(0..<3, id: \.self) { i in
                                 GhostAvatar(index: i, showContent: showContent)
@@ -332,7 +331,6 @@ struct OnlineFriendsStrip: View {
     }
     
     private func getOnlineMembers() -> [String] {
-        // Récupère les noms des membres en session active
         guard let session = sessionManager.currentSession else { return [] }
         return session.memberIds.prefix(8).enumerated().map { index, _ in
             "Membre \(index + 1)"
@@ -370,7 +368,6 @@ struct OnlineAvatarBubble: View {
                         .stroke(Color(red: 0.08, green: 0.08, blue: 0.1), lineWidth: 3)
                 )
             
-            // Indicateur en ligne
             if isActive {
                 Circle()
                     .fill(Color.green)
@@ -431,7 +428,7 @@ struct GhostAvatar: View {
 }
 
 
-// MARK: - Social Minimal Header (redesigné)
+// MARK: - Social Minimal Header
 
 struct SocialMinimalHeader: View {
     let showContent: Bool
@@ -456,7 +453,6 @@ struct SocialMinimalHeader: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
-                // Status pill animé
                 HStack(spacing: 6) {
                     Image(systemName: sessionStatus.icon)
                         .font(.system(size: 10, weight: .bold))
@@ -484,12 +480,10 @@ struct SocialMinimalHeader: View {
             Spacer(minLength: 4)
 
             HStack(spacing: 10) {
-                // Badge PRO
                 if isPremium {
                     ProBadge()
                 }
 
-                // Cloche de notification avec animation shake
                 NotificationBell(
                     unreadCount: unreadCount,
                     onTap: onNotificationTap
@@ -561,7 +555,6 @@ struct NotificationBell: View {
         }
         .onChange(of: unreadCount) { oldValue, newValue in
             if newValue > oldValue {
-                // Shake animation quand nouvelle notif
                 withAnimation(.interpolatingSpring(stiffness: 300, damping: 5)) {
                     shake = true
                 }
@@ -574,9 +567,9 @@ struct NotificationBell: View {
 }
 
 
-// MARK: - Quick Actions Card (redesigné avec plus de pep)
+// MARK: - Open Quick Actions (sans card — layout ouvert)
 
-struct QuickActionsCard: View {
+struct OpenQuickActions: View {
     let showContent: Bool
     let onCreateSession: () -> Void
     let onJoinSession: () -> Void
@@ -584,10 +577,10 @@ struct QuickActionsCard: View {
     @State private var hoverJoin = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            // Bouton Créer
+        HStack(spacing: 14) {
+            // Bouton Créer — pill large
             Button(action: onCreateSession) {
-                HStack(spacing: 14) {
+                VStack(spacing: 14) {
                     ZStack {
                         Circle()
                             .fill(
@@ -600,48 +593,41 @@ struct QuickActionsCard: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 52, height: 52)
-                            .shadow(color: Color(red: 0.3, green: 0.5, blue: 1.0).opacity(0.4), radius: 12, x: 0, y: 4)
+                            .frame(width: 56, height: 56)
+                            .shadow(color: Color(red: 0.3, green: 0.5, blue: 1.0).opacity(0.35), radius: 16, x: 0, y: 6)
                         
                         Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
                             .rotationEffect(.degrees(hoverCreate ? 90 : 0))
                     }
                     
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Créer une Session")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                    VStack(spacing: 3) {
+                        Text("Créer")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         
-                        Text("Invite tes amis à focus ensemble")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                        Text("Nouvelle session")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
                     }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.3))
-                        .offset(x: hoverCreate ? 4 : 0)
                 }
-                .padding(16)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.white.opacity(0.04))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 24)
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.35, green: 0.55, blue: 1.0).opacity(0.3),
-                                    Color.white.opacity(0.05)
+                                    Color(red: 0.35, green: 0.55, blue: 1.0).opacity(0.25),
+                                    Color.white.opacity(0.04)
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                startPoint: .top,
+                                endPoint: .bottom
                             ),
                             lineWidth: 1
                         )
@@ -652,9 +638,9 @@ struct QuickActionsCard: View {
                 withAnimation(.spring(response: 0.3)) { hoverCreate = pressing }
             }, perform: {})
 
-            // Bouton Rejoindre
+            // Bouton Rejoindre — pill large
             Button(action: onJoinSession) {
-                HStack(spacing: 14) {
+                VStack(spacing: 14) {
                     ZStack {
                         Circle()
                             .fill(
@@ -667,47 +653,40 @@ struct QuickActionsCard: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 52, height: 52)
-                            .shadow(color: Color(red: 0.5, green: 0.3, blue: 1.0).opacity(0.4), radius: 12, x: 0, y: 4)
+                            .frame(width: 56, height: 56)
+                            .shadow(color: Color(red: 0.5, green: 0.3, blue: 1.0).opacity(0.35), radius: 16, x: 0, y: 6)
                         
                         Image(systemName: "person.2.fill")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(.white)
                     }
                     
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Rejoindre avec un Code")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                    VStack(spacing: 3) {
+                        Text("Rejoindre")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         
-                        Text("Entre le code d'invitation")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                        Text("Avec un code")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
                     }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.3))
-                        .offset(x: hoverJoin ? 4 : 0)
                 }
-                .padding(16)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.white.opacity(0.04))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 24)
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.6, green: 0.35, blue: 1.0).opacity(0.3),
-                                    Color.white.opacity(0.05)
+                                    Color(red: 0.6, green: 0.35, blue: 1.0).opacity(0.25),
+                                    Color.white.opacity(0.04)
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                startPoint: .top,
+                                endPoint: .bottom
                             ),
                             lineWidth: 1
                         )
@@ -725,7 +704,7 @@ struct QuickActionsCard: View {
 }
 
 
-// MARK: - Active Session Card (hero card animée)
+// MARK: - Active Session Card (hero card animée — INTACT)
 
 struct ActiveSessionCard: View {
     let session: Session
@@ -760,7 +739,6 @@ struct ActiveSessionCard: View {
     var body: some View {
         NavigationLink(destination: SessionDetailView(session: session)) {
             VStack(alignment: .leading, spacing: 16) {
-                // Top bar — status + chevron
                 HStack(spacing: 8) {
                     HStack(spacing: 6) {
                         Image(systemName: statusIcon)
@@ -783,13 +761,11 @@ struct ActiveSessionCard: View {
                         .foregroundColor(.white.opacity(0.3))
                 }
 
-                // Titre
                 Text(session.title)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(2)
 
-                // Description
                 if !session.description.isEmpty {
                     Text(session.description)
                         .font(.system(size: 14, weight: .medium))
@@ -797,14 +773,11 @@ struct ActiveSessionCard: View {
                         .lineLimit(2)
                 }
 
-                // Apps sélectionnées (si la session a des apps suggérées)
                 if session.suggestedAppsCount > 0 {
                     ActiveSessionAppsRow(session: session)
                 }
 
-                // Barre de membres (avatars empilés + code)
                 HStack(spacing: 0) {
-                    // Avatars empilés
                     HStack(spacing: -10) {
                         ForEach(0..<min(session.memberIds.count, 5), id: \.self) { index in
                             MiniAvatar(index: index)
@@ -831,7 +804,6 @@ struct ActiveSessionCard: View {
                     
                     Spacer()
                     
-                    // Code d'invitation (copiable)
                     HStack(spacing: 6) {
                         Image(systemName: "key.fill")
                             .font(.system(size: 11, weight: .semibold))
@@ -861,7 +833,6 @@ struct ActiveSessionCard: View {
                             )
                         )
                     
-                    // Glow border animé
                     RoundedRectangle(cornerRadius: 24)
                         .stroke(
                             AngularGradient(
@@ -930,18 +901,18 @@ struct MiniAvatar: View {
 }
 
 
-// MARK: - My Sessions Section
+// MARK: - Open My Sessions Section (sans card wrapper)
 
-struct MySessionsSection: View {
+struct OpenMySessionsSection: View {
     let sessions: [Session]
     let showContent: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Mes Sessions", icon: "rectangle.stack.fill", count: sessions.count)
             
             ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
-                SessionRow(session: session, index: index)
+                OpenSessionRow(session: session, index: index)
             }
         }
         .opacity(showContent ? 1 : 0)
@@ -951,25 +922,25 @@ struct MySessionsSection: View {
 }
 
 
-// MARK: - Public Sessions Section
+// MARK: - Open Public Sessions Section (sans card wrapper)
 
-struct PublicSessionsSection: View {
+struct OpenPublicSessionsSection: View {
     let sessions: [Session]
     let showContent: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Sessions Publiques", icon: "globe", count: nil)
             
             if sessions.isEmpty {
-                EmptyStateView(
+                OpenEmptyState(
                     icon: "sparkles",
                     title: "Aucune session publique",
                     subtitle: "Sois le premier à en créer une !"
                 )
             } else {
                 ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
-                    SessionRow(session: session, index: index)
+                    OpenSessionRow(session: session, index: index)
                 }
             }
         }
@@ -1013,18 +984,18 @@ struct SectionHeader: View {
 }
 
 
-// MARK: - Invitations Section
+// MARK: - Open Invitations Section
 
-struct InvitationsSection: View {
+struct OpenInvitationsSection: View {
     let invitations: [SessionInvitation]
     let showContent: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Invitations", icon: "envelope.open.fill", count: invitations.count)
             
             ForEach(Array(invitations.enumerated()), id: \.element.id) { index, invitation in
-                InvitationRow(invitation: invitation, index: index)
+                OpenInvitationRow(invitation: invitation, index: index)
             }
         }
         .opacity(showContent ? 1 : 0)
@@ -1034,9 +1005,9 @@ struct InvitationsSection: View {
 }
 
 
-// MARK: - Session Row (redesigné)
+// MARK: - Open Session Row (pas de fond card — séparateur subtil + layout aéré)
 
-struct SessionRow: View {
+struct OpenSessionRow: View {
     let session: Session
     var index: Int = 0
     @State private var appeared = false
@@ -1073,70 +1044,72 @@ struct SessionRow: View {
 
     var body: some View {
         NavigationLink(destination: SessionDetailView(session: session)) {
-            HStack(spacing: 14) {
-                // Icône de status avec halo
-                ZStack {
-                    Circle()
-                        .fill(statusColor.opacity(0.15))
-                        .frame(width: 42, height: 42)
+            VStack(spacing: 0) {
+                HStack(spacing: 14) {
+                    // Barre de couleur verticale au lieu d'icône dans cercle
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(statusColor)
+                        .frame(width: 4, height: 44)
                     
-                    Image(systemName: statusIcon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(statusColor)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(session.title)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    HStack(spacing: 8) {
-                        Text(statusText)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(statusColor)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(session.title)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
                         
-                        HStack(spacing: 3) {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 10))
-                            Text("\(session.memberIds.count)")
-                                .font(.system(size: 12, weight: .semibold))
+                        HStack(spacing: 10) {
+                            HStack(spacing: 4) {
+                                Image(systemName: statusIcon)
+                                    .font(.system(size: 10, weight: .bold))
+                                Text(statusText)
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(statusColor)
+                            
+                            HStack(spacing: 3) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.system(size: 10))
+                                Text("\(session.memberIds.count)")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(.white.opacity(0.35))
                         }
-                        .foregroundColor(.white.opacity(0.4))
                     }
-                }
-                
-                Spacer()
-                
-                // Mini-avatars
-                HStack(spacing: -6) {
-                    ForEach(0..<min(session.memberIds.count, 3), id: \.self) { i in
-                        Circle()
-                            .fill(
-                                [Color.blue, Color.purple, Color.mint, Color.pink][i % 4].opacity(0.7)
-                            )
-                            .frame(width: 22, height: 22)
-                            .overlay(Circle().stroke(Color(red: 0.15, green: 0.15, blue: 0.17), lineWidth: 1.5))
+                    
+                    Spacer()
+                    
+                    // Mini-avatars
+                    HStack(spacing: -6) {
+                        ForEach(0..<min(session.memberIds.count, 3), id: \.self) { i in
+                            Circle()
+                                .fill(
+                                    [Color.blue, Color.purple, Color.mint, Color.pink][i % 4].opacity(0.7)
+                                )
+                                .frame(width: 24, height: 24)
+                                .overlay(Circle().stroke(Color(red: 0.08, green: 0.08, blue: 0.1), lineWidth: 1.5))
+                        }
                     }
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white.opacity(0.2))
                 }
+                .padding(.vertical, 14)
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.25))
+                // Séparateur fin au lieu de border de card
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.0), Color.white.opacity(0.06), Color.white.opacity(0.0)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(.ultraThinMaterial)
-                    .environment(\.colorScheme, .dark)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
-            )
         }
         .buttonStyle(BounceButtonStyle())
-        .scaleEffect(appeared ? 1 : 0.95)
+        .scaleEffect(appeared ? 1 : 0.97)
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.05)) {
@@ -1147,104 +1120,99 @@ struct SessionRow: View {
 }
 
 
-// MARK: - Invitation Row (redesigné)
+// MARK: - Open Invitation Row (layout aéré, pas de card)
 
-struct InvitationRow: View {
+struct OpenInvitationRow: View {
     let invitation: SessionInvitation
     var index: Int = 0
     @State private var appeared = false
-    @State private var slideOut: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: 14) {
-            // Avatar de l'envoyeur
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.purple, Color.blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                // Avatar de l'envoyeur
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.purple, Color.blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 44, height: 44)
-                
-                Text(String(invitation.fromUsername.prefix(1)).uppercased())
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(invitation.sessionTitle)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                
-                HStack(spacing: 4) {
-                    Text("de")
-                        .foregroundColor(.white.opacity(0.4))
-                    Text(invitation.fromUsername)
-                        .foregroundColor(.cyan.opacity(0.8))
-                }
-                .font(.system(size: 13, weight: .medium))
-            }
-            
-            Spacer()
-            
-            // Action buttons
-            HStack(spacing: 10) {
-                Button(action: { /* accept */ }) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 44, height: 44)
+                    
+                    Text(String(invitation.fromUsername.prefix(1)).uppercased())
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .frame(width: 38, height: 38)
-                        .background(
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.green, Color.green.opacity(0.7)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .shadow(color: .green.opacity(0.4), radius: 8, x: 0, y: 3)
-                        )
                 }
-                .buttonStyle(BounceButtonStyle())
                 
-                Button(action: { /* decline */ }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: 38, height: 38)
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 1))
-                        )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(invitation.sessionTitle)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 4) {
+                        Text("de")
+                            .foregroundColor(.white.opacity(0.35))
+                        Text(invitation.fromUsername)
+                            .foregroundColor(.cyan.opacity(0.8))
+                    }
+                    .font(.system(size: 13, weight: .medium))
                 }
-                .buttonStyle(BounceButtonStyle())
+                
+                Spacer()
+                
+                // Action buttons — plus compacts
+                HStack(spacing: 8) {
+                    Button(action: { /* accept */ }) {
+                        Text("Accepter")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.green, Color.green.opacity(0.7)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 3)
+                            )
+                    }
+                    .buttonStyle(BounceButtonStyle())
+                    
+                    Button(action: { /* decline */ }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .frame(width: 34, height: 34)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                    }
+                    .buttonStyle(BounceButtonStyle())
+                }
             }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(
+            .padding(.vertical, 14)
+            
+            // Séparateur
+            Rectangle()
+                .fill(
                     LinearGradient(
-                        colors: [Color.purple.opacity(0.2), Color.blue.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
+                        colors: [Color.white.opacity(0.0), Color.purple.opacity(0.12), Color.white.opacity(0.0)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
                 )
-        )
-        .offset(x: slideOut)
-        .scaleEffect(appeared ? 1 : 0.95)
+                .frame(height: 1)
+        }
+        .scaleEffect(appeared ? 1 : 0.97)
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.06)) {
@@ -1255,43 +1223,37 @@ struct InvitationRow: View {
 }
 
 
-// MARK: - Empty State View (redesigné)
+// MARK: - Open Empty State (léger, sans fond)
 
-struct EmptyStateView: View {
+struct OpenEmptyState: View {
     let icon: String
     let title: String
     let subtitle: String
     @State private var float = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.04))
-                    .frame(width: 90, height: 90)
-                
-                Image(systemName: icon)
-                    .font(.system(size: 36, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white.opacity(0.4), .white.opacity(0.15)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+        VStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 32, weight: .light))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.white.opacity(0.3), .white.opacity(0.1)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .offset(y: float ? -4 : 4)
-            }
+                )
+                .offset(y: float ? -3 : 3)
             
             Text(title)
-                .font(.system(size: 17, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.5))
             
             Text(subtitle)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.35))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white.opacity(0.3))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 32)
         .onAppear {
             withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
                 float = true
@@ -1301,56 +1263,42 @@ struct EmptyStateView: View {
 }
 
 
-// MARK: - Leader Pause Requests Card
+// MARK: - Open Pause Requests Section (sans card — inline)
 
-struct LeaderPauseRequestsCard: View {
+struct OpenPauseRequestsSection: View {
     let requests: [PauseRequest]
     let session: Session
     let showContent: Bool
     @State private var pulseAlert = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header avec indicateur pulsant
             HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                        .scaleEffect(pulseAlert ? 1.15 : 1.0)
-                    
-                    Image(systemName: "hand.raised.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.orange)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Demandes de Pause")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Text("\(requests.count) en attente")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.orange.opacity(0.8))
-                }
-
+                Circle()
+                    .fill(Color.orange)
+                    .frame(width: 10, height: 10)
+                    .scaleEffect(pulseAlert ? 1.4 : 0.9)
+                
+                Text("Demandes de Pause")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Text("\(requests.count)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.orange.opacity(0.12)))
+                
                 Spacer()
             }
+            .padding(.horizontal, 4)
 
             ForEach(requests) { request in
-                PauseRequestPreviewRow(request: request, sessionId: session.id ?? "")
+                OpenPauseRequestRow(request: request, sessionId: session.id ?? "")
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1.5)
-        )
-        .shadow(color: .orange.opacity(0.1), radius: 16, x: 0, y: 8)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
         .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.25), value: showContent)
@@ -1362,83 +1310,92 @@ struct LeaderPauseRequestsCard: View {
     }
 }
 
-struct PauseRequestPreviewRow: View {
+struct OpenPauseRequestRow: View {
     let request: PauseRequest
     let sessionId: String
     @ObservedObject private var sessionManager = SessionManager.shared
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Avatar
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.orange, .yellow],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Avatar
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.orange, .yellow],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 36, height: 36)
-                
-                Text(String(request.requesterUsername.prefix(1)).uppercased())
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
-            
-            VStack(alignment: .leading, spacing: 3) {
-                Text(request.requesterUsername)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-
-                if let reason = request.reason, !reason.isEmpty {
-                    Text("« \(reason) »")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
-                        .italic()
-                        .lineLimit(2)
-                }
-
-                Text(timeAgo(from: request.requestedAt.dateValue()))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.35))
-            }
-
-            Spacer()
-
-            HStack(spacing: 8) {
-                Button(action: { acceptRequest() }) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
+                        .frame(width: 40, height: 40)
+                    
+                    Text(String(request.requesterUsername.prefix(1)).uppercased())
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            Circle()
-                                .fill(LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .top, endPoint: .bottom))
-                                .shadow(color: .green.opacity(0.4), radius: 6, x: 0, y: 2)
-                        )
                 }
-                .buttonStyle(BounceButtonStyle())
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(request.requesterUsername)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
 
-                Button(action: { declineRequest() }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 34, height: 34)
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
-                        )
+                    if let reason = request.reason, !reason.isEmpty {
+                        Text("« \(reason) »")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.45))
+                            .italic()
+                            .lineLimit(2)
+                    }
+
+                    Text(timeAgo(from: request.requestedAt.dateValue()))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.3))
                 }
-                .buttonStyle(BounceButtonStyle())
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Button(action: { acceptRequest() }) {
+                        Text("OK")
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .top, endPoint: .bottom))
+                                    .shadow(color: .green.opacity(0.3), radius: 6, x: 0, y: 2)
+                            )
+                    }
+                    .buttonStyle(BounceButtonStyle())
+
+                    Button(action: { declineRequest() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                    }
+                    .buttonStyle(BounceButtonStyle())
+                }
             }
+            .padding(.vertical, 12)
+            
+            // Séparateur orange subtil
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.0), Color.orange.opacity(0.1), Color.white.opacity(0.0)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.04))
-        )
     }
 
     private func acceptRequest() {
@@ -1470,7 +1427,7 @@ struct PauseRequestPreviewRow: View {
 }
 
 
-// MARK: - Bounce Button Style (micro-interaction tactile)
+// MARK: - Bounce Button Style
 
 struct BounceButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -1490,12 +1447,9 @@ struct ActiveSessionAppsRow: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Afficher directement les icônes des apps sans label
             if !sessionApps.applicationTokens.isEmpty || !sessionApps.categoryTokens.isEmpty {
-                // Utiliser StackedAppIcons de CompactTimerView
                 StackedAppIcons(selectedApps: sessionApps, maxToShow: 6)
             } else if session.suggestedAppsCount > 0 {
-                // Fallback : afficher des icônes génériques si pas de données locales
                 HStack(spacing: -10) {
                     ForEach(0..<min(session.suggestedAppsCount, 4), id: \.self) { index in
                         ZStack {
