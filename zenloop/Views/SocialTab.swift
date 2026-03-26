@@ -46,7 +46,7 @@ struct SocialTab: View {
                     onNotificationTap: { showNotifications = true }
                 )
                 .padding(.horizontal, 20)
-                .padding(.top, 60)
+                .padding(.top, 20)
 
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 16) {
