@@ -41,6 +41,8 @@ struct SocialTab: View {
                 SocialMinimalHeader(
                     showContent: showContent,
                     unreadCount: notificationManager.unreadCount,
+                    sessionStatus: getSessionStatus(),
+                    isPremium: PurchaseManager.shared.isPremium,
                     onNotificationTap: { showNotifications = true }
                 )
                 .padding(.horizontal, 20)
@@ -132,6 +134,45 @@ struct SocialTab: View {
             ?? sessionManager.publicSessions.first(where: { $0.id == id })
             ?? sessionManager.currentSession
     }
+
+    private func getSessionStatus() -> SocialSessionStatus {
+        if let current = sessionManager.currentSession {
+            switch current.status {
+            case .active: return .active
+            case .paused: return .paused
+            case .lobby: return .lobby
+            default: return .idle
+            }
+        }
+        return .idle
+    }
+}
+
+// MARK: - Social Session Status
+
+enum SocialSessionStatus {
+    case idle
+    case lobby
+    case active
+    case paused
+
+    var color: Color {
+        switch self {
+        case .idle: return .cyan
+        case .lobby: return .orange
+        case .active: return .green
+        case .paused: return .yellow
+        }
+    }
+
+    var text: String {
+        switch self {
+        case .idle: return "Prêt à focus ensemble"
+        case .lobby: return "Session en attente"
+        case .active: return "Session active"
+        case .paused: return "Session en pause"
+        }
+    }
 }
 
 // MARK: - Social Minimal Header
@@ -139,53 +180,100 @@ struct SocialTab: View {
 struct SocialMinimalHeader: View {
     let showContent: Bool
     let unreadCount: Int
+    let sessionStatus: SocialSessionStatus
+    let isPremium: Bool
     let onNotificationTap: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Sessions")
-                    .font(.system(size: 32, weight: .bold))
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(currentGreeting)
+                    .font(.system(size: 22, weight: .light, design: .rounded))
                     .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
+                    .offset(y: showContent ? 0 : -20)
 
-                Text("Focus ensemble")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
+                Text(sessionStatus.text)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
+                    .offset(y: showContent ? 0 : -10)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             // Cloche de notification
             Button(action: onNotificationTap) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell.fill")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(Color.white.opacity(0.1)))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.1))
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                )
+                        )
 
                     if unreadCount > 0 {
                         ZStack {
                             Circle()
                                 .fill(Color.red)
-                                .frame(width: 20, height: 20)
+                                .frame(width: 18, height: 18)
                             Text("\(unreadCount)")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        .offset(x: 6, y: -6)
+                        .offset(x: 8, y: -8)
                     }
                 }
             }
             .opacity(showContent ? 1 : 0)
-            .offset(y: showContent ? 0 : 20)
+            .offset(y: showContent ? 0 : -10)
+
+            // Badge PRO si premium
+            if isPremium {
+                ProBadge()
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : -10)
+            }
+
+            // Indicateur d'état de session
+            Circle()
+                .fill(sessionStatus.color)
+                .frame(width: 12, height: 12)
+                .overlay(
+                    Circle()
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                )
+                .scaleEffect(sessionStatus == .active ? 1.3 : 1.0)
+                .animation(
+                    sessionStatus == .active ?
+                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
+                    .easeOut(duration: 0.3),
+                    value: sessionStatus
+                )
+                .opacity(showContent ? 1 : 0)
         }
-        .padding(.bottom, 10)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .frame(height: 44)
+        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
+    }
+
+    private var currentGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return String(localized: "greeting_morning")
+        case 12..<17: return String(localized: "greeting_afternoon")
+        case 17..<21: return String(localized: "greeting_evening")
+        default: return String(localized: "greeting_night")
+        }
     }
 }
 
