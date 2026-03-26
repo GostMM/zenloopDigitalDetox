@@ -2,9 +2,9 @@
 //  SessionDetailView.swift
 //  zenloop
 //
-//  Vue détaillée d'une session — redesign social & animé
-//  Lobby + Active + Paused + Completed + Dissolved
-//  Animations fluides, avatars, micro-interactions, ambiance vivante
+//  Vue détaillée — design ouvert, sans cards, éléments disposés librement
+//  Les apps bloquées sont des tokens flottants, les membres des avatars directs
+//  Ambiance sociale organique, espace négatif généreux
 //
 
 import SwiftUI
@@ -27,8 +27,6 @@ struct SessionDetailView: View {
     @State private var showStopAlert = false
     @State private var showPauseRequestSheet = false
     @State private var pauseRequestReason = ""
-    @State private var showMemberPicker = false
-    @State private var focusedField: Field? = nil
 
     enum Field { case messageInput }
 
@@ -49,26 +47,22 @@ struct SessionDetailView: View {
             OptimizedBackground(currentState: currentZenloopState)
                 .ignoresSafeArea(.all, edges: .all)
 
-            // Particules d'ambiance (même style que SocialTab)
             SessionParticlesOverlay(status: activeSession.status)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                SessionDetailMinimalHeader(
+                // — Header minimal ouvert —
+                SessionDetailOpenHeader(
                     session: activeSession,
                     isLeader: isLeader,
                     showContent: showContent,
-                    isPremium: PurchaseManager.shared.isPremium,
-                    unreadCount: SocialNotificationManager.shared.unreadCount,
-                    onBack: { dismiss() },
-                    onNotificationTap: { /* TODO: open notifications */ }
+                    onBack: { dismiss() }
                 )
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(.horizontal, 24)
 
                 ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 20) {
+                    VStack(spacing: 0) {
                         switch activeSession.status {
                         case .lobby:
                             lobbySection
@@ -82,10 +76,9 @@ struct SessionDetailView: View {
                             DissolvedContent(session: activeSession, showContent: showContent)
                         }
 
-                        Spacer(minLength: 100)
+                        Spacer(minLength: 120)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.horizontal, 24)
                 }
             }
         }
@@ -123,21 +116,24 @@ struct SessionDetailView: View {
         }
     }
 
-    // MARK: - Lobby Section
+    // MARK: - Lobby
 
     private var lobbySection: some View {
-        VStack(spacing: 20) {
-            // Invite code card prominent
-            InviteCodeCard(code: activeSession.inviteCode, showContent: showContent)
+        VStack(alignment: .leading, spacing: 32) {
+
+            InviteCodeOpen(code: activeSession.inviteCode, showContent: showContent)
 
             if !isLeader && !isReady {
-                MemberAppSelectionCard(
-                    selectedCount: selectedAppsCount, showContent: showContent,
-                    onSelect: { showAppPicker = true }, onReady: markAsReady
+                AppSelectionOpen(
+                    selectedApps: selectedApps,
+                    selectedCount: selectedAppsCount,
+                    showContent: showContent,
+                    onSelect: { showAppPicker = true },
+                    onReady: markAsReady
                 )
             }
 
-            MembersListSection(
+            MembersAvatarStrip(
                 members: sessionManager.currentSessionMembers,
                 showContent: showContent
             )
@@ -152,36 +148,35 @@ struct SessionDetailView: View {
                 )
             }
         }
+        .padding(.top, 20)
     }
 
-    // MARK: - Active Session Section
+    // MARK: - Active
 
     private var activeSection: some View {
-        VStack(spacing: 20) {
-            // Live pulse banner
-            LiveSessionBanner(
+        VStack(alignment: .leading, spacing: 28) {
+
+            LiveIndicatorOpen(
                 memberCount: sessionManager.currentSessionMembers.filter { $0.status == .active }.count,
                 showContent: showContent
             )
 
-            // Selected apps display
             if selectedAppsCount > 0 {
-                SelectedAppsCard(
+                BlockedAppsOpen(
                     selectedApps: selectedApps,
                     showContent: showContent
                 )
             }
 
-            // Pause requests (leader only)
             if isLeader && !sessionManager.pendingPauseRequests.isEmpty {
-                PauseRequestsBanner(
+                PauseRequestsOpen(
                     requests: sessionManager.pendingPauseRequests,
                     onAccept: { req in acceptPauseRequest(req) },
                     onDecline: { req in declinePauseRequest(req) }
                 )
             }
 
-            MembersListSection(
+            MembersAvatarStrip(
                 members: sessionManager.currentSessionMembers.filter { $0.status == .active },
                 showContent: showContent
             )
@@ -207,19 +202,21 @@ struct SessionDetailView: View {
                 )
             }
         }
+        .padding(.top, 20)
     }
 
-    // MARK: - Paused Session Section
+    // MARK: - Paused
 
     private var pausedSection: some View {
-        VStack(spacing: 20) {
-            PausedBanner(
+        VStack(alignment: .leading, spacing: 28) {
+
+            PausedIndicatorOpen(
                 pausedBy: activeSession.pausedBy,
                 members: sessionManager.currentSessionMembers,
                 showContent: showContent
             )
 
-            MembersListSection(
+            MembersAvatarStrip(
                 members: sessionManager.currentSessionMembers.filter { $0.status != .left },
                 showContent: showContent
             )
@@ -248,26 +245,19 @@ struct SessionDetailView: View {
                     .foregroundColor(.orange)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.ultraThinMaterial)
-                            .environment(\.colorScheme, .dark)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
-                    )
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
                 }
                 .buttonStyle(BounceButtonStyle())
             }
         }
+        .padding(.top, 20)
     }
 
     // MARK: - Actions
 
     private var currentZenloopState: ZenloopState {
-        if activeSession.status == .active { return .active }
-        return .idle
+        activeSession.status == .active ? .active : .idle
     }
 
     private func markAsReady() {
@@ -330,19 +320,11 @@ struct SessionDetailView: View {
     }
 
     private func acceptPauseRequest(_ request: PauseRequest) {
-        Task {
-            do {
-                try await sessionManager.respondToPauseRequest(requestId: request.id!, sessionId: session.id!, accept: true)
-            } catch { print("Error accepting pause: \(error)") }
-        }
+        Task { try? await sessionManager.respondToPauseRequest(requestId: request.id!, sessionId: session.id!, accept: true) }
     }
 
     private func declinePauseRequest(_ request: PauseRequest) {
-        Task {
-            do {
-                try await sessionManager.respondToPauseRequest(requestId: request.id!, sessionId: session.id!, accept: false)
-            } catch { print("Error declining pause: \(error)") }
-        }
+        Task { try? await sessionManager.respondToPauseRequest(requestId: request.id!, sessionId: session.id!, accept: false) }
     }
 
     private func sendMessage() {
@@ -353,11 +335,8 @@ struct SessionDetailView: View {
             do {
                 try await sessionManager.sendMessage(sessionId: session.id!, content: content)
                 if content.contains("@") {
-                    let notifManager = SocialNotificationManager.shared
-                    try await notifManager.createMentionNotifications(
-                        messageContent: content,
-                        sessionId: session.id!,
-                        sessionTitle: session.title,
+                    try await SocialNotificationManager.shared.createMentionNotifications(
+                        messageContent: content, sessionId: session.id!, sessionTitle: session.title,
                         messageId: UUID().uuidString,
                         fromUserId: sessionManager.currentUser?.id ?? "",
                         fromUsername: sessionManager.currentUser?.username ?? "",
@@ -396,13 +375,11 @@ struct SessionDetailView: View {
         #endif
     }
 
-    private func removeSessionBlocks() {
-        // TODO: Track block IDs to remove properly
-    }
+    private func removeSessionBlocks() {}
 }
 
 
-// MARK: - Session Particles Overlay (contextual ambiance)
+// MARK: - Session Particles Overlay
 
 struct SessionParticlesOverlay: View {
     let status: SessionStatus
@@ -410,11 +387,8 @@ struct SessionParticlesOverlay: View {
 
     private var particleColor: Color {
         switch status {
-        case .active: return .green
-        case .paused: return .orange
-        case .lobby: return .cyan
-        case .completed: return .blue
-        case .dissolved: return .gray
+        case .active: return .green; case .paused: return .orange
+        case .lobby: return .cyan; case .completed: return .blue; case .dissolved: return .gray
         }
     }
 
@@ -428,717 +402,187 @@ struct SessionParticlesOverlay: View {
                     let y = animate ? baseY - size.height * 0.15 : baseY + size.height * 0.15
                     let wrappedY = ((y.truncatingRemainder(dividingBy: size.height)) + size.height)
                         .truncatingRemainder(dividingBy: size.height)
-                    let dotSize = CGFloat.random(in: 3...6)
+                    let dotSize: CGFloat = [3, 4, 5, 6, 4, 5, 3, 6][i]
                     let rect = CGRect(x: x, y: wrappedY, width: dotSize, height: dotSize)
-                    context.opacity = 0.2
+                    context.opacity = 0.18
                     context.fill(Circle().path(in: rect), with: .color(particleColor))
                 }
             }
         }
         .onAppear {
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                animate = true
-            }
+            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) { animate = true }
         }
     }
 }
 
 
-// MARK: - Session Detail Header (redesigné)
+// MARK: - Open Header (cardless)
 
-struct SessionDetailHeader: View {
+struct SessionDetailOpenHeader: View {
     let session: Session
     let isLeader: Bool
     let showContent: Bool
     let onBack: () -> Void
-    @State private var glowPulse = false
+    @State private var statusPulse = false
 
     private var statusColor: Color {
         switch session.status {
-        case .lobby: return .orange
-        case .active: return .green
-        case .paused: return .yellow
-        case .completed: return .cyan
-        case .dissolved: return .gray
+        case .lobby: return .orange; case .active: return .green; case .paused: return .yellow
+        case .completed: return .cyan; case .dissolved: return .gray
         }
     }
 
-    private var statusText: String {
+    private var statusLabel: String {
         switch session.status {
-        case .lobby: return "EN ATTENTE"
-        case .active: return "EN COURS"
-        case .paused: return "EN PAUSE"
-        case .completed: return "TERMINÉE"
-        case .dissolved: return "DISSOUTE"
-        }
-    }
-
-    private var statusIcon: String {
-        switch session.status {
-        case .lobby: return "hourglass"
-        case .active: return "bolt.fill"
-        case .paused: return "pause.fill"
-        case .completed: return "checkmark.circle.fill"
-        case .dissolved: return "xmark.circle.fill"
+        case .lobby: return "En attente"; case .active: return "En cours"; case .paused: return "En pause"
+        case .completed: return "Terminée"; case .dissolved: return "Dissoute"
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Top bar
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Top row — back + pills
+            HStack(spacing: 10) {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .environment(\.colorScheme, .dark)
-                        )
-                        .overlay(
-                            Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                 }
                 .buttonStyle(BounceButtonStyle())
 
                 Spacer()
 
-                // Status pill animé
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(glowPulse ? 1.4 : 1.0)
-                        .shadow(color: statusColor.opacity(glowPulse ? 0.6 : 0), radius: 6)
-
-                    Image(systemName: statusIcon)
-                        .font(.system(size: 10, weight: .bold))
-
-                    Text(statusText)
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .tracking(1.2)
+                HStack(spacing: 5) {
+                    Circle().fill(statusColor).frame(width: 7, height: 7)
+                        .scaleEffect(statusPulse ? 1.5 : 1.0)
+                        .shadow(color: statusColor.opacity(statusPulse ? 0.5 : 0), radius: 4)
+                    Text(statusLabel)
+                        .font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(0.8)
                 }
                 .foregroundColor(statusColor)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(
-                    Capsule()
-                        .fill(statusColor.opacity(0.12))
-                        .overlay(
-                            Capsule().stroke(statusColor.opacity(0.25), lineWidth: 1)
-                        )
-                )
+                .padding(.horizontal, 11).padding(.vertical, 5)
+                .background(Capsule().fill(statusColor.opacity(0.1)))
 
-                // Role badge
                 if isLeader {
-                    HStack(spacing: 4) {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 10, weight: .bold))
-                        Text("LEADER")
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
-                            .tracking(0.8)
+                    HStack(spacing: 3) {
+                        Image(systemName: "crown.fill").font(.system(size: 9))
+                        Text("LEADER").font(.system(size: 9, weight: .heavy, design: .rounded)).tracking(0.6)
                     }
                     .foregroundColor(.yellow)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.yellow.opacity(0.12))
-                            .overlay(Capsule().stroke(Color.yellow.opacity(0.2), lineWidth: 1))
-                    )
+                    .padding(.horizontal, 9).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.yellow.opacity(0.1)))
                 }
             }
 
-            // Session title
+            // Title
             Text(session.title)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.white, .white.opacity(0.85)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .lineLimit(2)
+                .font(.system(size: 32, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(2).minimumScaleFactor(0.7)
 
-            // Description
             if !session.description.isEmpty {
                 Text(session.description)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(.white.opacity(0.45))
                     .lineLimit(2)
             }
 
-            // Meta row: members count + code
-            HStack(spacing: 14) {
+            // Meta inline
+            HStack(spacing: 16) {
                 HStack(spacing: 5) {
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text("\(session.memberIds.count) membres")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.white.opacity(0.45))
+                    Image(systemName: "person.2.fill").font(.system(size: 11))
+                    Text("\(session.memberIds.count)").font(.system(size: 13, weight: .bold, design: .rounded))
+                }.foregroundColor(.white.opacity(0.35))
 
                 HStack(spacing: 5) {
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text(session.inviteCode)
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                }
-                .foregroundColor(.white.opacity(0.45))
-
-                Spacer()
+                    Image(systemName: "key.fill").font(.system(size: 10))
+                    Text(session.inviteCode).font(.system(size: 13, weight: .bold, design: .monospaced))
+                }.foregroundColor(.white.opacity(0.35))
             }
+
+            // Thin gradient separator
+            Rectangle()
+                .fill(LinearGradient(colors: [statusColor.opacity(0.3), .clear], startPoint: .leading, endPoint: .trailing))
+                .frame(height: 1)
         }
-        .padding(.top, 60)
-        .padding(.bottom, 12)
+        .padding(.top, 20).padding(.bottom, 8)
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : -20)
+        .offset(y: showContent ? 0 : -15)
         .animation(.spring(response: 0.9, dampingFraction: 0.8), value: showContent)
         .onAppear {
             if session.status == .active || session.status == .lobby {
-                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                    glowPulse = true
-                }
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { statusPulse = true }
             }
         }
     }
 }
 
-// MARK: - Session Detail Minimal Header
 
-struct SessionDetailMinimalHeader: View {
-    let session: Session
-    let isLeader: Bool
-    let showContent: Bool
-    let isPremium: Bool
-    let unreadCount: Int
-    let onBack: () -> Void
-    let onNotificationTap: () -> Void
+// MARK: - Invite Code Open (no card — individual letter tiles)
 
-    private var statusColor: Color {
-        switch session.status {
-        case .lobby: return .orange
-        case .active: return .green
-        case .paused: return .yellow
-        case .completed: return .cyan
-        case .dissolved: return .gray
-        }
-    }
-
-    private var statusText: String {
-        switch session.status {
-        case .lobby: return "En attente"
-        case .active: return "En cours"
-        case .paused: return "En pause"
-        case .completed: return "Terminée"
-        case .dissolved: return "Dissoute"
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            // Top row: back button, notification, pro badge, status indicator
-            HStack(alignment: .center, spacing: 8) {
-                // Back button
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Color.white.opacity(0.1)))
-                }
-
-                Spacer()
-
-                // Cloche de notification
-                Button(action: onNotificationTap) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(Circle().fill(Color.white.opacity(0.1)))
-
-                        if unreadCount > 0 {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 18, height: 18)
-                                Text("\(unreadCount)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-                            .offset(x: 8, y: -8)
-                        }
-                    }
-                }
-
-                // Badge PRO si premium
-                if isPremium {
-                    ProBadge()
-                }
-
-                // Leader badge
-                if isLeader {
-                    HStack(spacing: 4) {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 10, weight: .bold))
-                        Text("LEADER")
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
-                            .tracking(0.8)
-                    }
-                    .foregroundColor(.yellow)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.yellow.opacity(0.12))
-                            .overlay(Capsule().stroke(Color.yellow.opacity(0.2), lineWidth: 1))
-                    )
-                }
-
-                // Indicateur d'état de session
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 12, height: 12)
-                    .overlay(
-                        Circle()
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                    )
-                    .scaleEffect(session.status == .active ? 1.3 : 1.0)
-                    .animation(
-                        session.status == .active ?
-                        .easeInOut(duration: 1.5).repeatForever(autoreverses: true) :
-                        .easeOut(duration: 0.3),
-                        value: session.status
-                    )
-            }
-            .opacity(showContent ? 1 : 0)
-            .offset(y: showContent ? 0 : -10)
-
-            // Session title and subtitle
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(session.title)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : 20)
-
-                    Text(statusText)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : 20)
-                }
-
-                Spacer()
-            }
-        }
-        .padding(.bottom, 10)
-        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
-    }
-}
-
-
-// MARK: - Invite Code Card (prominent in lobby)
-
-struct InviteCodeCard: View {
+struct InviteCodeOpen: View {
     let code: String
     let showContent: Bool
     @State private var copied = false
-    @State private var shimmer = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: "link.circle.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.cyan)
-
-                Text("Code d'invitation")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.6))
-                    .textCase(.uppercase)
-                    .tracking(1.0)
-
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            Text("CODE D'INVITATION")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(1.5)
+                .foregroundColor(.cyan.opacity(0.6))
 
             Button(action: {
                 UIPasteboard.general.string = code
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { copied = true }
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation { copied = false }
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { withAnimation { copied = false } }
             }) {
-                HStack(spacing: 12) {
-                    Text(code)
-                        .font(.system(size: 32, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .tracking(4)
-
-                    Spacer()
-
-                    ZStack {
-                        Image(systemName: "doc.on.doc.fill")
-                            .opacity(copied ? 0 : 1)
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .opacity(copied ? 1 : 0)
-                            .scaleEffect(copied ? 1 : 0.5)
+                HStack(alignment: .firstTextBaseline, spacing: 14) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(code.enumerated()), id: \.offset) { index, char in
+                            Text(String(char))
+                                .font(.system(size: 36, weight: .black, design: .monospaced))
+                                .foregroundColor(.white)
+                                .frame(width: 38, height: 48)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.white.opacity(0.06))
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                                )
+                                .scaleEffect(showContent ? 1 : 0)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.6).delay(Double(index) * 0.05 + 0.2), value: showContent)
+                        }
                     }
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.5))
+                    Spacer()
+                    ZStack {
+                        Image(systemName: "doc.on.doc").opacity(copied ? 0 : 1)
+                        Image(systemName: "checkmark").foregroundColor(.green).opacity(copied ? 1 : 0).scaleEffect(copied ? 1 : 0.3)
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.3))
                 }
             }
 
             if copied {
-                Text("Copié !")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(.green)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                Text("Copié dans le presse-papier")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundColor(.green.opacity(0.7))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.cyan.opacity(shimmer ? 0.4 : 0.15),
-                            Color.cyan.opacity(shimmer ? 0.1 : 0.05)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
-        )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 25)
-        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                shimmer = true
-            }
-        }
-    }
-}
-
-
-// MARK: - Live Session Banner (during active)
-
-struct LiveSessionBanner: View {
-    let memberCount: Int
-    let showContent: Bool
-    @State private var livePulse = false
-
-    var body: some View {
-        HStack(spacing: 14) {
-            // Live dot
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.2))
-                    .frame(width: 36, height: 36)
-                    .scaleEffect(livePulse ? 1.4 : 1.0)
-                    .opacity(livePulse ? 0 : 0.6)
-
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 12, height: 12)
-                    .shadow(color: .green.opacity(0.6), radius: 6)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Session en cours")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-
-                Text("\(memberCount) membre\(memberCount > 1 ? "s" : "") en focus")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.green.opacity(0.8))
-            }
-
-            Spacer()
-
-            // Timer placeholder
-            Image(systemName: "timer")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.white.opacity(0.3))
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.green.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.green.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                livePulse = true
-            }
-        }
-    }
-}
-
-
-// MARK: - Paused Banner
-
-struct PausedBanner: View {
-    let pausedBy: String?
-    let members: [SessionMember]
-    let showContent: Bool
-    @State private var breathe = false
-
-    var body: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.1))
-                    .frame(width: 90, height: 90)
-                    .scaleEffect(breathe ? 1.15 : 1.0)
-
-                Image(systemName: "pause.circle.fill")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.orange, .yellow],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-
-            Text("Session en Pause")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-
-            if let pausedBy = pausedBy {
-                let pauserName = members.first(where: { $0.id == pausedBy })?.username ?? "Leader"
-                HStack(spacing: 6) {
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 12))
-                    Text("Mise en pause par \(pauserName)")
-                        .font(.system(size: 14, weight: .medium))
-                }
-                .foregroundColor(.white.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(Color.orange.opacity(0.25), lineWidth: 1.5)
-        )
         .opacity(showContent ? 1 : 0)
         .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                breathe = true
-            }
-        }
     }
 }
 
 
-// MARK: - Members List Section (redesigné)
+// MARK: - App Selection Open (no card — tokens laid out freely)
 
-struct MembersListSection: View {
-    let members: [SessionMember]
-    let showContent: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Section header
-            HStack(spacing: 8) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.cyan.opacity(0.8))
-
-                Text("Membres")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-
-                Text("\(members.count)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(.cyan)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.cyan.opacity(0.12)))
-
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-
-            ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
-                MemberRow(member: member, index: index)
-            }
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
-    }
-}
-
-
-// MARK: - Member Row (redesigné avec avatar)
-
-struct MemberRow: View {
-    let member: SessionMember
-    var index: Int = 0
-    @State private var appeared = false
-
-    private let avatarGradients: [LinearGradient] = [
-        LinearGradient(colors: [Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.3, green: 0.4, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.6, green: 0.4, blue: 1.0), Color(red: 0.5, green: 0.3, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 0.3, green: 0.8, blue: 0.7), Color(red: 0.2, green: 0.6, blue: 0.6)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 1.0, green: 0.5, blue: 0.4), Color(red: 0.9, green: 0.3, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing),
-        LinearGradient(colors: [Color(red: 1.0, green: 0.7, blue: 0.3), Color(red: 0.9, green: 0.5, blue: 0.2)], startPoint: .topLeading, endPoint: .bottomTrailing),
-    ]
-
-    private var statusColor: Color {
-        switch member.status {
-        case .joined: return .gray
-        case .ready: return .green
-        case .active: return .green
-        case .paused: return .orange
-        case .left: return .red
-        }
-    }
-
-    private var statusText: String {
-        switch member.status {
-        case .joined: return "Rejoint"
-        case .ready: return "Prêt"
-        case .active: return "En focus"
-        case .paused: return "En pause"
-        case .left: return "Parti"
-        }
-    }
-
-    private var statusIcon: String {
-        switch member.status {
-        case .joined: return "circle"
-        case .ready: return "checkmark.circle.fill"
-        case .active: return "bolt.circle.fill"
-        case .paused: return "pause.circle.fill"
-        case .left: return "xmark.circle.fill"
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            // Avatar avec indicator
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(avatarGradients[index % avatarGradients.count])
-                    .frame(width: 42, height: 42)
-                    .overlay(
-                        Text(String(member.username.prefix(1)).uppercased())
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    )
-
-                // Status dot
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 14, height: 14)
-                    .overlay(
-                        Circle().stroke(Color(red: 0.1, green: 0.1, blue: 0.12), lineWidth: 2.5)
-                    )
-                    .offset(x: 2, y: 2)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(member.username)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    if member.role == .leader {
-                        HStack(spacing: 3) {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 9))
-                            Text("LEADER")
-                                .font(.system(size: 9, weight: .heavy, design: .rounded))
-                                .tracking(0.5)
-                        }
-                        .foregroundColor(.yellow)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.yellow.opacity(0.15)))
-                    }
-                }
-
-                HStack(spacing: 6) {
-                    Image(systemName: statusIcon)
-                        .font(.system(size: 11, weight: .semibold))
-                    Text(statusText)
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .foregroundColor(statusColor.opacity(0.8))
-            }
-
-            Spacer()
-
-            if member.hasSelectedApps {
-                HStack(spacing: 4) {
-                    Image(systemName: "app.fill")
-                        .font(.system(size: 10))
-                    Text("\(member.selectedAppsCount)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.white.opacity(0.5))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(Color.white.opacity(0.06)))
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.04), lineWidth: 1)
-        )
-        .scaleEffect(appeared ? 1 : 0.95)
-        .opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.75).delay(Double(index) * 0.05)) {
-                appeared = true
-            }
-        }
-    }
-}
-
-
-// MARK: - Member App Selection Card (redesigné)
-
-struct MemberAppSelectionCard: View {
+struct AppSelectionOpen: View {
+    let selectedApps: FamilyActivitySelection
     let selectedCount: Int
     let showContent: Bool
     let onSelect: () -> Void
@@ -1146,95 +590,350 @@ struct MemberAppSelectionCard: View {
     @State private var readyPulse = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Button(action: onSelect) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                selectedCount > 0
-                                ? LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                : LinearGradient(colors: [Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.3, green: 0.5, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .frame(width: 48, height: 48)
-                            .shadow(
-                                color: (selectedCount > 0 ? Color.green : Color.blue).opacity(0.3),
-                                radius: 10, x: 0, y: 4
-                            )
+        VStack(alignment: .leading, spacing: 16) {
+            Text("APPS À BLOQUER")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .tracking(1.5)
+                .foregroundColor(.purple.opacity(0.6))
 
-                        Image(systemName: selectedCount > 0 ? "checkmark.circle.fill" : "app.badge.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
+            if selectedCount == 0 {
+                Button(action: onSelect) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                                .foregroundColor(.white.opacity(0.12))
+                                .frame(width: 52, height: 52)
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.3))
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Choisir les apps")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.7))
+                            Text("Sélectionne les apps à bloquer pendant la session")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.35))
+                        }
+                        Spacer()
                     }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Apps à Bloquer")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Text(selectedCount > 0 ? "\(selectedCount) app\(selectedCount > 1 ? "s" : "") sélectionnée\(selectedCount > 1 ? "s" : "")" : "Choisir les apps à bloquer")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white.opacity(0.3))
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(
-                            selectedCount > 0 ? Color.green.opacity(0.4) : Color.white.opacity(0.06),
-                            lineWidth: selectedCount > 0 ? 1.5 : 1
-                        )
-                )
-            }
-            .buttonStyle(BounceButtonStyle())
-
-            if selectedCount > 0 {
-                Button(action: onReady) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20, weight: .bold))
-                            .scaleEffect(readyPulse ? 1.15 : 1.0)
-
-                        Text("Je suis Prêt")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 17)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .shadow(color: .green.opacity(0.35), radius: 14, x: 0, y: 6)
-                    )
                 }
                 .buttonStyle(BounceButtonStyle())
-                .onAppear {
-                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                        readyPulse = true
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
+                    Button(action: onSelect) {
+                        HStack(spacing: 0) {
+                            AppTokensFlow(selectedApps: selectedApps, maxToShow: 12)
+                            Spacer()
+                            VStack(spacing: 4) {
+                                Image(systemName: "pencil.circle.fill").font(.system(size: 20)).foregroundColor(.white.opacity(0.25))
+                                Text("Modifier").font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25))
+                            }
+                        }
                     }
+                    .buttonStyle(BounceButtonStyle())
+
+                    Button(action: onReady) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20, weight: .bold))
+                                .scaleEffect(readyPulse ? 1.12 : 1.0)
+                            Text("Je suis Prêt")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .shadow(color: .green.opacity(0.3), radius: 16, x: 0, y: 6)
+                        )
+                    }
+                    .buttonStyle(BounceButtonStyle())
+                    .onAppear { withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { readyPulse = true } }
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.15), value: showContent)
+    }
+}
+
+
+// MARK: - App Tokens Flow (wrapping row of app icons — no container)
+
+struct AppTokensFlow: View {
+    let selectedApps: FamilyActivitySelection
+    let maxToShow: Int
+
+    var body: some View {
+        let appCount = selectedApps.applicationTokens.count
+        let catCount = selectedApps.categoryTokens.count
+        let total = appCount + catCount
+        let showCount = min(total, maxToShow)
+        let overflow = total - showCount
+
+        HStack(spacing: -6) {
+            ForEach(0..<min(appCount, showCount), id: \.self) { index in
+                let token = Array(selectedApps.applicationTokens)[index]
+                Label(token).labelStyle(.iconOnly).font(.system(size: 22))
+                    .frame(width: 40, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+            }
+
+            let remainingSlots = max(0, showCount - appCount)
+            ForEach(0..<min(catCount, remainingSlots), id: \.self) { index in
+                let token = Array(selectedApps.categoryTokens)[index]
+                Label(token).labelStyle(.iconOnly).font(.system(size: 22))
+                    .frame(width: 40, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.2), lineWidth: 1))
+            }
+
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+                    .frame(width: 40, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+            }
+        }
+    }
+}
+
+
+// MARK: - Blocked Apps Open (active session — floating tokens, no card)
+
+struct BlockedAppsOpen: View {
+    let selectedApps: FamilyActivitySelection
+    let showContent: Bool
+    @State private var shieldPulse = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.purple.opacity(0.7))
+                    .scaleEffect(shieldPulse ? 1.1 : 1.0)
+
+                Text("BLOQUÉES")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1.5).foregroundColor(.purple.opacity(0.5))
+
+                let total = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+                Text("\(total)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(Color.purple.opacity(0.12)))
+            }
+
+            AppTokensFlow(selectedApps: selectedApps, maxToShow: 10)
+        }
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 15)
+        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.15), value: showContent)
+        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { shieldPulse = true } }
+    }
+}
+
+
+// MARK: - Members Avatar Strip (horizontal scroll — no cards)
+
+struct MembersAvatarStrip: View {
+    let members: [SessionMember]
+    let showContent: Bool
+
+    private let avatarColors: [Color] = [
+        Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.6, green: 0.4, blue: 1.0),
+        Color(red: 0.3, green: 0.8, blue: 0.7), Color(red: 1.0, green: 0.5, blue: 0.4),
+        Color(red: 1.0, green: 0.7, blue: 0.3), Color(red: 0.8, green: 0.4, blue: 0.6),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 6) {
+                Text("MEMBRES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                Text("\(members.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
+                        MemberAvatarOpen(member: member, color: avatarColors[index % avatarColors.count], index: index)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
+    }
+}
+
+struct MemberAvatarOpen: View {
+    let member: SessionMember
+    let color: Color
+    let index: Int
+    @State private var appeared = false
+
+    private var statusColor: Color {
+        switch member.status {
+        case .joined: return .gray; case .ready: return .green
+        case .active: return .green; case .paused: return .orange; case .left: return .red
+        }
+    }
+
+    private var statusIcon: String {
+        switch member.status {
+        case .joined: return "circle"; case .ready: return "checkmark"
+        case .active: return "bolt.fill"; case .paused: return "pause.fill"; case .left: return "xmark"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(LinearGradient(colors: [color, color.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Text(String(member.username.prefix(1)).uppercased())
+                            .font(.system(size: 21, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    )
+                    .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
+
+                ZStack {
+                    Circle().fill(statusColor).frame(width: 16, height: 16)
+                    Image(systemName: statusIcon).font(.system(size: 7, weight: .black)).foregroundColor(.white)
+                }
+                .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5))
+                .offset(x: 2, y: 2)
+            }
+
+            Text(member.username)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.white.opacity(0.7))
+                .lineLimit(1).frame(maxWidth: 60)
+
+            if member.role == .leader {
+                Image(systemName: "crown.fill").font(.system(size: 10)).foregroundColor(.yellow)
+            } else if member.hasSelectedApps {
+                Text("\(member.selectedAppsCount) apps")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.3))
+            }
+        }
+        .scaleEffect(appeared ? 1 : 0).opacity(appeared ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.65).delay(Double(index) * 0.06)) { appeared = true }
+        }
+    }
+}
+
+
+// MARK: - Live Indicator Open (just text + dot, no card)
+
+struct LiveIndicatorOpen: View {
+    let memberCount: Int
+    let showContent: Bool
+    @State private var livePulse = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.green.opacity(0.15)).frame(width: 28, height: 28)
+                    .scaleEffect(livePulse ? 1.6 : 1.0).opacity(livePulse ? 0 : 0.5)
+                Circle().fill(Color.green).frame(width: 10, height: 10).shadow(color: .green.opacity(0.5), radius: 4)
+            }
+            Text("Session en cours").font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.8))
+            Text("·").foregroundColor(.white.opacity(0.2))
+            Text("\(memberCount) en focus").font(.system(size: 14, weight: .medium, design: .rounded)).foregroundColor(.green.opacity(0.7))
+        }
         .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { livePulse = true } }
+    }
+}
+
+
+// MARK: - Paused Indicator Open
+
+struct PausedIndicatorOpen: View {
+    let pausedBy: String?
+    let members: [SessionMember]
+    let showContent: Bool
+    @State private var breathe = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.orange.opacity(0.08)).frame(width: 72, height: 72).scaleEffect(breathe ? 1.15 : 1.0)
+                Image(systemName: "pause.circle.fill").font(.system(size: 40, weight: .light))
+                    .foregroundStyle(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            Text("Session en pause").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+            if let pausedBy = pausedBy {
+                let name = members.first(where: { $0.id == pausedBy })?.username ?? "Leader"
+                Text("par \(name)").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.4))
+            }
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 20)
+        .opacity(showContent ? 1 : 0)
+        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { breathe = true } }
+    }
+}
+
+
+// MARK: - Pause Requests Open (minimal list, no card wrapper)
+
+struct PauseRequestsOpen: View {
+    let requests: [PauseRequest]
+    let onAccept: (PauseRequest) -> Void
+    let onDecline: (PauseRequest) -> Void
+    @State private var alertPulse = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "hand.raised.fill").font(.system(size: 14, weight: .bold)).foregroundColor(.orange).scaleEffect(alertPulse ? 1.15 : 1.0)
+                Text("DEMANDES DE PAUSE").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.2).foregroundColor(.orange.opacity(0.6))
+                Text("\(requests.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.orange)
+                    .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Color.orange.opacity(0.12)))
+            }
+
+            ForEach(requests) { request in
+                HStack(spacing: 12) {
+                    Circle().fill(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 36, height: 36)
+                        .overlay(Text(String(request.requesterUsername.prefix(1)).uppercased()).font(.system(size: 14, weight: .bold, design: .rounded)).foregroundColor(.white))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(request.requesterUsername).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundColor(.white)
+                        if let reason = request.reason, !reason.isEmpty {
+                            Text("« \(reason) »").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.4)).italic().lineLimit(1)
+                        }
+                    }
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Button(action: { onAccept(request) }) {
+                            Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                                .frame(width: 34, height: 34).background(Circle().fill(LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .top, endPoint: .bottom)))
+                        }.buttonStyle(BounceButtonStyle())
+                        Button(action: { onDecline(request) }) {
+                            Image(systemName: "xmark").font(.system(size: 13, weight: .bold)).foregroundColor(.white.opacity(0.5))
+                                .frame(width: 34, height: 34).background(Circle().fill(Color.white.opacity(0.06)))
+                        }.buttonStyle(BounceButtonStyle())
+                    }
+                }
+                .padding(.vertical, 6)
+            }
+
+            Rectangle().fill(Color.orange.opacity(0.15)).frame(height: 1)
+        }
+        .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { alertPulse = true } }
     }
 }
 
@@ -1242,221 +941,104 @@ struct MemberAppSelectionCard: View {
 // MARK: - Leader Lobby Controls
 
 struct LeaderLobbyControls: View {
-    let readyCount: Int
-    let totalCount: Int
-    let showContent: Bool
-    let onStart: () -> Void
-    let onDissolve: () -> Void
+    let readyCount: Int; let totalCount: Int; let showContent: Bool
+    let onStart: () -> Void; let onDissolve: () -> Void
     @State private var startGlow = false
 
     var body: some View {
         VStack(spacing: 14) {
-            Button(action: onStart) {
-                VStack(spacing: 10) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                        Text("Démarrer la Session")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.white)
-
-                    // Progress bar
-                    VStack(spacing: 6) {
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(height: 6)
-
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [.white, .white.opacity(0.8)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(
-                                        width: totalCount > 0 ? geo.size.width * CGFloat(readyCount) / CGFloat(totalCount) : 0,
-                                        height: 6
-                                    )
-                                    .animation(.spring(response: 0.6), value: readyCount)
-                            }
-                        }
-                        .frame(height: 6)
-
-                        Text("\(readyCount)/\(totalCount) membres prêts")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("\(readyCount)/\(totalCount) prêts").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.5))
+                    Spacer()
+                    Text("\(Int(totalCount > 0 ? Double(readyCount) / Double(totalCount) * 100 : 0))%").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.green.opacity(0.7))
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .padding(.horizontal, 20)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: .green.opacity(startGlow ? 0.5 : 0.2), radius: startGlow ? 20 : 10, x: 0, y: 6)
-                )
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 5)
+                        RoundedRectangle(cornerRadius: 3).fill(LinearGradient(colors: [.green, .mint], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: totalCount > 0 ? geo.size.width * CGFloat(readyCount) / CGFloat(totalCount) : 0, height: 5)
+                            .animation(.spring(response: 0.6), value: readyCount)
+                    }
+                }.frame(height: 5)
             }
-            .buttonStyle(BounceButtonStyle())
+
+            Button(action: onStart) {
+                HStack(spacing: 10) {
+                    Image(systemName: "play.fill").font(.system(size: 18, weight: .bold))
+                    Text("Démarrer").font(.system(size: 18, weight: .bold, design: .rounded))
+                }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 18)
+                .background(
+                    RoundedRectangle(cornerRadius: 18).fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: .green.opacity(startGlow ? 0.5 : 0.15), radius: startGlow ? 20 : 8, x: 0, y: 6)
+                )
+            }.buttonStyle(BounceButtonStyle())
 
             Button(action: onDissolve) {
-                HStack(spacing: 6) {
-                    Image(systemName: "xmark.circle")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Dissoudre la Session")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.red.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.red.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.red.opacity(0.15), lineWidth: 1)
-                        )
-                )
+                Text("Dissoudre la session").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.red.opacity(0.5))
             }
-            .buttonStyle(BounceButtonStyle())
         }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
         .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.3), value: showContent)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                startGlow = true
-            }
-        }
+        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { startGlow = true } }
     }
 }
 
 
-// MARK: - Leader Active Controls (redesigné)
+// MARK: - Leader Active Controls
 
 struct LeaderActiveControls: View {
-    let onPause: () -> Void
-    let onStop: () -> Void
-    let onDissolve: () -> Void
-
+    let onPause: () -> Void; let onStop: () -> Void; let onDissolve: () -> Void
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
                 Button(action: onPause) {
                     HStack(spacing: 8) {
-                        Image(systemName: "pause.fill")
-                            .font(.system(size: 15, weight: .bold))
-                        Text("Pause")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.orange)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.ultraThinMaterial)
-                            .environment(\.colorScheme, .dark)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(BounceButtonStyle())
+                        Image(systemName: "pause.fill").font(.system(size: 15, weight: .bold))
+                        Text("Pause").font(.system(size: 15, weight: .bold, design: .rounded))
+                    }.foregroundColor(.orange).frame(maxWidth: .infinity).padding(.vertical, 15)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                }.buttonStyle(BounceButtonStyle())
 
                 Button(action: onStop) {
                     HStack(spacing: 8) {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 15, weight: .bold))
-                        Text("Arrêter")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.ultraThinMaterial)
-                            .environment(\.colorScheme, .dark)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.red.opacity(0.25), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(BounceButtonStyle())
+                        Image(systemName: "stop.fill").font(.system(size: 15, weight: .bold))
+                        Text("Arrêter").font(.system(size: 15, weight: .bold, design: .rounded))
+                    }.foregroundColor(.red).frame(maxWidth: .infinity).padding(.vertical, 15)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                }.buttonStyle(BounceButtonStyle())
             }
-
-            Button(action: onDissolve) {
-                Text("Dissoudre")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.3))
-            }
+            Button(action: onDissolve) { Text("Dissoudre").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25)) }
         }
     }
 }
 
 
-// MARK: - Member Active Controls (redesigné)
+// MARK: - Member Active Controls
 
 struct MemberActiveControls: View {
-    let onRequestPause: () -> Void
-    let onLeave: () -> Void
-
+    let onRequestPause: () -> Void; let onLeave: () -> Void
     var body: some View {
         HStack(spacing: 12) {
             Button(action: onRequestPause) {
                 HStack(spacing: 8) {
-                    Image(systemName: "hand.raised.fill")
-                        .font(.system(size: 15, weight: .bold))
-                    Text("Demander Pause")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.orange)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.orange.opacity(0.25), lineWidth: 1)
-                )
-            }
-            .buttonStyle(BounceButtonStyle())
+                    Image(systemName: "hand.raised.fill").font(.system(size: 15, weight: .bold))
+                    Text("Pause").font(.system(size: 14, weight: .bold, design: .rounded))
+                }.foregroundColor(.orange).frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+            }.buttonStyle(BounceButtonStyle())
 
             Button(action: onLeave) {
                 HStack(spacing: 8) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 15, weight: .bold))
-                    Text("Quitter")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.red.opacity(0.8))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.ultraThinMaterial)
-                        .environment(\.colorScheme, .dark)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.red.opacity(0.2), lineWidth: 1)
-                )
-            }
-            .buttonStyle(BounceButtonStyle())
+                    Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 15, weight: .bold))
+                    Text("Quitter").font(.system(size: 14, weight: .bold, design: .rounded))
+                }.foregroundColor(.red.opacity(0.7)).frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.15), lineWidth: 1))
+            }.buttonStyle(BounceButtonStyle())
         }
     }
 }
@@ -1465,502 +1047,121 @@ struct MemberActiveControls: View {
 // MARK: - Leader Paused Controls
 
 struct LeaderPausedControls: View {
-    let onResume: () -> Void
-    let onStop: () -> Void
+    let onResume: () -> Void; let onStop: () -> Void
     @State private var resumeGlow = false
 
     var body: some View {
         VStack(spacing: 12) {
             Button(action: onResume) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 18, weight: .bold))
-                    Text("Reprendre la Session")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 17)
+                    Image(systemName: "play.fill").font(.system(size: 18, weight: .bold))
+                    Text("Reprendre").font(.system(size: 17, weight: .bold, design: .rounded))
+                }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: .green.opacity(resumeGlow ? 0.5 : 0.2), radius: resumeGlow ? 18 : 8, x: 0, y: 5)
+                    RoundedRectangle(cornerRadius: 18).fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: .green.opacity(resumeGlow ? 0.5 : 0.15), radius: resumeGlow ? 18 : 6, x: 0, y: 5)
                 )
-            }
-            .buttonStyle(BounceButtonStyle())
+            }.buttonStyle(BounceButtonStyle())
 
             Button(action: onStop) {
-                HStack(spacing: 8) {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("Arrêter la Session")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.red.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.red.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.red.opacity(0.15), lineWidth: 1)
-                        )
-                )
-            }
-            .buttonStyle(BounceButtonStyle())
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                resumeGlow = true
+                Text("Arrêter la session").font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundColor(.red.opacity(0.5))
             }
         }
+        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { resumeGlow = true } }
     }
 }
 
 
-// MARK: - Pause Requests Banner (redesigné)
-
-struct PauseRequestsBanner: View {
-    let requests: [PauseRequest]
-    let onAccept: (PauseRequest) -> Void
-    let onDecline: (PauseRequest) -> Void
-    @State private var alertPulse = false
-
-    var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.12))
-                        .frame(width: 38, height: 38)
-                        .scaleEffect(alertPulse ? 1.15 : 1.0)
-
-                    Image(systemName: "hand.raised.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.orange)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Demandes de Pause")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Text("\(requests.count) en attente")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.orange.opacity(0.8))
-                }
-
-                Spacer()
-            }
-
-            ForEach(requests) { request in
-                HStack(spacing: 12) {
-                    // Requester avatar
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing)
-                            )
-                            .frame(width: 34, height: 34)
-
-                        Text(String(request.requesterUsername.prefix(1)).uppercased())
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(request.requesterUsername)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-
-                        if let reason = request.reason, !reason.isEmpty {
-                            Text("« \(reason) »")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
-                                .italic()
-                                .lineLimit(2)
-                        }
-                    }
-
-                    Spacer()
-
-                    HStack(spacing: 8) {
-                        Button(action: { onAccept(request) }) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 34, height: 34)
-                                .background(
-                                    Circle()
-                                        .fill(LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .top, endPoint: .bottom))
-                                        .shadow(color: .green.opacity(0.35), radius: 6, x: 0, y: 2)
-                                )
-                        }
-                        .buttonStyle(BounceButtonStyle())
-
-                        Button(action: { onDecline(request) }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white.opacity(0.6))
-                                .frame(width: 34, height: 34)
-                                .background(
-                                    Circle()
-                                        .fill(Color.white.opacity(0.08))
-                                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
-                                )
-                        }
-                        .buttonStyle(BounceButtonStyle())
-                    }
-                }
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(Color.orange.opacity(0.25), lineWidth: 1.5)
-        )
-        .shadow(color: .orange.opacity(0.08), radius: 14, x: 0, y: 6)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                alertPulse = true
-            }
-        }
-    }
-}
-
-
-// MARK: - Pause Request Sheet (redesigné)
-
-struct PauseRequestSheet: View {
-    @Binding var reason: String
-    let onSubmit: () -> Void
-    @Environment(\.dismiss) var dismiss
-    @State private var iconBreathe = false
-
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.08)
-                    .ignoresSafeArea()
-
-                VStack(spacing: 28) {
-                    // Hero icon
-                    ZStack {
-                        Circle()
-                            .fill(Color.orange.opacity(0.1))
-                            .frame(width: 100, height: 100)
-                            .scaleEffect(iconBreathe ? 1.1 : 1.0)
-
-                        Image(systemName: "hand.raised.fill")
-                            .font(.system(size: 44, weight: .light))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.orange, .yellow],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("Demander une Pause")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-
-                        Text("Le leader de la session devra accepter")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Raison (optionnel)")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.5))
-                            .textCase(.uppercase)
-                            .tracking(0.8)
-
-                        TextField("Ex: Besoin d'une pause", text: $reason)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(.ultraThinMaterial)
-                                    .environment(\.colorScheme, .dark)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            )
-                    }
-
-                    Button(action: onSubmit) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 16, weight: .bold))
-                            Text("Envoyer la Demande")
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.orange, Color(red: 1.0, green: 0.6, blue: 0.2)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .shadow(color: .orange.opacity(0.35), radius: 14, x: 0, y: 6)
-                        )
-                    }
-                    .buttonStyle(BounceButtonStyle())
-
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 40)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 26))
-                            .foregroundStyle(.ultraThinMaterial)
-                            .environment(\.colorScheme, .dark)
-                    }
-                }
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                iconBreathe = true
-            }
-        }
-    }
-}
-
-
-// MARK: - Chat Section (redesigné)
+// MARK: - Chat Section
 
 struct ChatSection: View {
-    let messages: [SessionMessage]
-    @Binding var messageText: String
-    let showContent: Bool
-    let onSend: () -> Void
-    let members: [SessionMember]
-
-    @State private var showMentionPicker = false
-    @State private var mentionSearchText = ""
+    let messages: [SessionMessage]; @Binding var messageText: String
+    let showContent: Bool; let onSend: () -> Void; let members: [SessionMember]
+    @State private var showMentionPicker = false; @State private var mentionSearchText = ""
     @FocusState private var isInputFocused: Bool
 
     var filteredMentionMembers: [SessionMember] {
-        if mentionSearchText.isEmpty { return members }
-        return members.filter { $0.username.lowercased().contains(mentionSearchText.lowercased()) }
+        mentionSearchText.isEmpty ? members : members.filter { $0.username.lowercased().contains(mentionSearchText.lowercased()) }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Section header
-            HStack(spacing: 8) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.cyan.opacity(0.8))
-
-                Text("Chat du Groupe")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right.fill").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.25))
+                Text("CHAT").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.3))
                 if !messages.isEmpty {
-                    Text("\(messages.count)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.cyan.opacity(0.12)))
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-
-            // Messages
-            VStack(spacing: 6) {
-                if messages.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 28, weight: .light))
-                            .foregroundColor(.white.opacity(0.15))
-                        Text("Pas encore de messages")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.25))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                } else {
-                    ForEach(messages.suffix(15)) { message in
-                        MessageRow(message: message)
-                    }
+                    Text("\(messages.count)").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.6))
                 }
             }
 
-            // Input area
-            VStack(spacing: 8) {
-                // Mention picker
-                if showMentionPicker && !filteredMentionMembers.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(filteredMentionMembers) { member in
-                                MentionChip(member: member) { insertMention(member.username) }
-                            }
-                        }
-                        .padding(.horizontal, 4)
+            if messages.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 16, weight: .light)).foregroundColor(.white.opacity(0.12))
+                    Text("Aucun message").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.2))
+                }.padding(.vertical, 12)
+            } else {
+                VStack(spacing: 4) { ForEach(messages.suffix(12)) { message in MessageRowOpen(message: message) } }
+            }
+
+            if showMentionPicker && !filteredMentionMembers.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) { ForEach(filteredMentionMembers) { m in MentionChip(member: m) { insertMention(m.username) } } }
+                }.frame(height: 36).transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Button(action: { withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() } }) {
+                        Image(systemName: "at").font(.system(size: 15, weight: .bold))
+                            .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.3)).frame(width: 30, height: 30)
                     }
-                    .frame(height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.04))
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    TextField("Message...", text: $messageText).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
+                        .focused($isInputFocused)
+                        .onChange(of: messageText) { _, v in checkForMentionTrigger(v) }
                 }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(isInputFocused ? Color.cyan.opacity(0.25) : Color.white.opacity(0.04), lineWidth: 1))
 
-                HStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Button(action: { withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() } }) {
-                            Image(systemName: "at")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.4))
-                                .frame(width: 32, height: 32)
-                        }
-
-                        TextField("Message...", text: $messageText)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white)
-                            .focused($isInputFocused)
-                            .onChange(of: messageText) { _, newValue in
-                                checkForMentionTrigger(newValue)
-                            }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(.ultraThinMaterial)
-                            .environment(\.colorScheme, .dark)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                isInputFocused ? Color.cyan.opacity(0.3) : Color.white.opacity(0.06),
-                                lineWidth: 1
-                            )
-                    )
-
-                    Button(action: onSend) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 34))
-                            .foregroundStyle(
-                                messageText.isEmpty
-                                ? LinearGradient(colors: [.gray.opacity(0.4), .gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
-                                : LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom)
-                            )
-                    }
-                    .disabled(messageText.isEmpty)
-                    .buttonStyle(BounceButtonStyle())
-                }
+                Button(action: onSend) {
+                    Image(systemName: "arrow.up.circle.fill").font(.system(size: 32))
+                        .foregroundStyle(messageText.isEmpty ? LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.2)], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom))
+                }.disabled(messageText.isEmpty).buttonStyle(BounceButtonStyle())
             }
         }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.25), value: showContent)
     }
 
     private func checkForMentionTrigger(_ text: String) {
-        if text.hasSuffix("@") {
-            withAnimation(.spring(response: 0.3)) { showMentionPicker = true }
-            mentionSearchText = ""
-        } else if let lastAtIndex = text.lastIndex(of: "@") {
-            let afterAt = String(text[text.index(after: lastAtIndex)...])
-            if !afterAt.contains(" ") {
-                withAnimation(.spring(response: 0.3)) { showMentionPicker = true }
-                mentionSearchText = afterAt
-            }
-        } else {
-            withAnimation(.spring(response: 0.3)) { showMentionPicker = false }
-        }
+        if text.hasSuffix("@") { withAnimation(.spring(response: 0.3)) { showMentionPicker = true }; mentionSearchText = "" }
+        else if let idx = text.lastIndex(of: "@") {
+            let after = String(text[text.index(after: idx)...])
+            if !after.contains(" ") { withAnimation(.spring(response: 0.3)) { showMentionPicker = true }; mentionSearchText = after }
+        } else { withAnimation(.spring(response: 0.3)) { showMentionPicker = false } }
     }
 
     private func insertMention(_ username: String) {
-        if let lastAtIndex = messageText.lastIndex(of: "@") {
-            messageText = String(messageText[..<lastAtIndex]) + "@\(username) "
-        } else {
-            messageText += "@\(username) "
-        }
-        withAnimation(.spring(response: 0.3)) { showMentionPicker = false }
-        mentionSearchText = ""
-        isInputFocused = true
+        if let idx = messageText.lastIndex(of: "@") { messageText = String(messageText[..<idx]) + "@\(username) " }
+        else { messageText += "@\(username) " }
+        withAnimation(.spring(response: 0.3)) { showMentionPicker = false }; mentionSearchText = ""; isInputFocused = true
     }
 }
-
-
-// MARK: - Mention Chip (redesigné)
 
 struct MentionChip: View {
-    let member: SessionMember
-    let onTap: () -> Void
-
+    let member: SessionMember; let onTap: () -> Void
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        Text(String(member.username.prefix(1)).uppercased())
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-
-                Text("@\(member.username)")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.cyan.opacity(0.12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(BounceButtonStyle())
+            HStack(spacing: 5) {
+                Circle().fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 18, height: 18)
+                    .overlay(Text(String(member.username.prefix(1)).uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(.white))
+                Text("@\(member.username)").font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.8))
+            }.padding(.horizontal, 9).padding(.vertical, 6).background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.1)))
+        }.buttonStyle(BounceButtonStyle())
     }
 }
 
-
-// MARK: - Message Row (redesigné)
-
-struct MessageRow: View {
+struct MessageRowOpen: View {
     let message: SessionMessage
     private var isSystem: Bool { message.messageType == .systemAlert }
     @State private var appeared = false
@@ -1968,255 +1169,122 @@ struct MessageRow: View {
     var body: some View {
         Group {
             if isSystem {
-                HStack(spacing: 6) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text(message.content)
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .foregroundColor(.white.opacity(0.4))
-                .italic()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                Text(message.content).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).italic().frame(maxWidth: .infinity).padding(.vertical, 6)
             } else {
-                HStack(alignment: .top, spacing: 10) {
-                    // Mini avatar
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.cyan.opacity(0.7), .blue.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Text(String(message.username.prefix(1)).uppercased())
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                        )
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(message.username)
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(.cyan.opacity(0.9))
-
-                        Text(message.content)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.85))
+                HStack(alignment: .top, spacing: 8) {
+                    Circle().fill(LinearGradient(colors: [.cyan.opacity(0.6), .blue.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 24, height: 24)
+                        .overlay(Text(String(message.username.prefix(1)).uppercased()).font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.white))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(message.username).font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
+                        Text(message.content).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.8))
                     }
-
                     Spacer()
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.04))
-                )
+                }.padding(.vertical, 6)
             }
         }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 8)
-        .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                appeared = true
-            }
-        }
+        .opacity(appeared ? 1 : 0).offset(y: appeared ? 0 : 6)
+        .onAppear { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { appeared = true } }
     }
 }
 
 
-// MARK: - Completed Content (redesigné)
+// MARK: - Completed Content
 
 struct CompletedContent: View {
-    let session: Session
-    let showContent: Bool
+    let session: Session; let showContent: Bool
     @State private var confetti = false
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 28) {
             ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.08))
-                    .frame(width: 120, height: 120)
-                    .scaleEffect(confetti ? 1.1 : 1.0)
-
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 64, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.green, .mint],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .scaleEffect(confetti ? 1.0 : 0.8)
+                Circle().fill(Color.green.opacity(0.06)).frame(width: 110, height: 110).scaleEffect(confetti ? 1.1 : 1.0)
+                Image(systemName: "checkmark.circle.fill").font(.system(size: 56, weight: .light))
+                    .foregroundStyle(LinearGradient(colors: [.green, .mint], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .scaleEffect(confetti ? 1.0 : 0.7)
             }
+            Text("Session Terminée").font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundColor(.white)
+            Text("Félicitations à tous").font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.4))
 
-            VStack(spacing: 8) {
-                Text("Session Terminée !")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-
-                Text("Félicitations à tous les participants")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-            }
-
-            // Stats
-            HStack(spacing: 20) {
-                StatBubble(icon: "person.2.fill", value: "\(session.memberIds.count)", label: "Membres")
-                StatBubble(icon: "clock.fill", value: "—", label: "Durée")
+            HStack(spacing: 24) {
+                VStack(spacing: 4) {
+                    Text("\(session.memberIds.count)").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text("membres").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
+                }
+                Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1, height: 36)
+                VStack(spacing: 4) {
+                    Text("—").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text("durée").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-        .opacity(showContent ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.5).delay(0.3)) {
-                confetti = true
-            }
-        }
-    }
-}
-
-struct StatBubble: View {
-    let icon: String
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.cyan.opacity(0.8))
-
-            Text(value)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.4))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity).padding(.vertical, 48).opacity(showContent ? 1 : 0)
+        .onAppear { withAnimation(.spring(response: 0.8, dampingFraction: 0.5).delay(0.3)) { confetti = true } }
     }
 }
 
 
-// MARK: - Dissolved Content (redesigné)
+// MARK: - Dissolved Content
 
 struct DissolvedContent: View {
-    let session: Session
-    let showContent: Bool
+    let session: Session; let showContent: Bool
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "xmark.circle.fill").font(.system(size: 52, weight: .light))
+                .foregroundStyle(LinearGradient(colors: [.gray.opacity(0.5), .gray.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            Text("Session Dissoute").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.6))
+            Text("Fermée par le leader").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.3))
+        }.frame(maxWidth: .infinity).padding(.vertical, 48).opacity(showContent ? 1 : 0)
+    }
+}
+
+
+// MARK: - Pause Request Sheet
+
+struct PauseRequestSheet: View {
+    @Binding var reason: String; let onSubmit: () -> Void
+    @Environment(\.dismiss) var dismiss
+    @State private var iconBreathe = false
 
     var body: some View {
-        VStack(spacing: 24) {
+        NavigationView {
             ZStack {
-                Circle()
-                    .fill(Color.gray.opacity(0.06))
-                    .frame(width: 110, height: 110)
-
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.gray.opacity(0.6), .gray.opacity(0.3)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                Color(red: 0.06, green: 0.06, blue: 0.08).ignoresSafeArea()
+                VStack(spacing: 28) {
+                    ZStack {
+                        Circle().fill(Color.orange.opacity(0.08)).frame(width: 90, height: 90).scaleEffect(iconBreathe ? 1.1 : 1.0)
+                        Image(systemName: "hand.raised.fill").font(.system(size: 40, weight: .light))
+                            .foregroundStyle(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                    VStack(spacing: 8) {
+                        Text("Demander une Pause").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white)
+                        Text("Le leader devra accepter").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.45))
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("RAISON (OPTIONNEL)").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.0).foregroundColor(.white.opacity(0.35))
+                        TextField("Ex: Besoin d'une pause", text: $reason).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
+                            .padding(16).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                    }
+                    Button(action: onSubmit) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "paperplane.fill").font(.system(size: 16, weight: .bold))
+                            Text("Envoyer").font(.system(size: 17, weight: .bold, design: .rounded))
+                        }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(LinearGradient(colors: [.orange, Color(red: 1.0, green: 0.6, blue: 0.2)], startPoint: .topLeading, endPoint: .bottomTrailing)).shadow(color: .orange.opacity(0.3), radius: 14, x: 0, y: 6))
+                    }.buttonStyle(BounceButtonStyle())
+                    Spacer()
+                }.padding(.horizontal, 24).padding(.top, 40)
             }
-
-            VStack(spacing: 8) {
-                Text("Session Dissoute")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
-
-                Text("Cette session a été fermée par le leader")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.white.opacity(0.35))
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-        .opacity(showContent ? 1 : 0)
-    }
-}
-
-// MARK: - Selected Apps Card
-
-struct SelectedAppsCard: View {
-    let selectedApps: FamilyActivitySelection
-    let showContent: Bool
-
-    private var selectedCount: Int {
-        selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "shield.checkered")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.purple)
-
-                Text("Apps bloquées")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
-
-                Spacer()
-
-                Text("\(selectedCount)")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.purple.opacity(0.2)))
-            }
-
-            // Icônes des apps empilées
-            HStack(spacing: 0) {
-                StackedAppIcons(selectedApps: selectedApps, maxToShow: 8)
-                Spacer()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) { Image(systemName: "xmark.circle.fill").font(.system(size: 24)).foregroundColor(.white.opacity(0.3)) }
+                }
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.purple.opacity(0.15),
-                            Color.purple.opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.purple.opacity(0.3), lineWidth: 1)
-        )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.15), value: showContent)
+        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { iconBreathe = true } }
     }
 }
-
-// Note: StackedAppIcons is already defined in CompactTimerView.swift
 
 
 // MARK: - Preview
@@ -2226,11 +1294,11 @@ struct SelectedAppsCard: View {
         id: "preview", title: "Focus Marathon",
         description: "Session de concentration intense",
         leaderId: "user1", leaderUsername: "Alice",
-        visibility: .publicSession, inviteCode: "ABC123",
+        visibility: .publicSession, inviteCode: "ZEN42X",
         maxParticipants: 10, status: .lobby,
         createdAt: .init(), startedAt: nil, endedAt: nil,
         pausedAt: nil, pausedBy: nil,
-        memberIds: ["user1"], suggestedAppsCount: 3
+        memberIds: ["user1", "user2", "user3"], suggestedAppsCount: 3
     ))
     .environmentObject(ZenloopManager.shared)
 }
