@@ -164,6 +164,14 @@ struct SessionDetailView: View {
                 showContent: showContent
             )
 
+            // Selected apps display
+            if selectedAppsCount > 0 {
+                SelectedAppsCard(
+                    selectedApps: selectedApps,
+                    showContent: showContent
+                )
+            }
+
             // Pause requests (leader only)
             if isLeader && !sessionManager.pendingPauseRequests.isEmpty {
                 PauseRequestsBanner(
@@ -2146,6 +2154,69 @@ struct DissolvedContent: View {
         .opacity(showContent ? 1 : 0)
     }
 }
+
+// MARK: - Selected Apps Card
+
+struct SelectedAppsCard: View {
+    let selectedApps: FamilyActivitySelection
+    let showContent: Bool
+
+    private var selectedCount: Int {
+        selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.checkered")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.purple)
+
+                Text("Apps bloquées")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+
+                Spacer()
+
+                Text("\(selectedCount)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.purple.opacity(0.2)))
+            }
+
+            // Icônes des apps empilées
+            HStack(spacing: 0) {
+                StackedAppIcons(selectedApps: selectedApps, maxToShow: 8)
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.purple.opacity(0.15),
+                            Color.purple.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+        )
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.15), value: showContent)
+    }
+}
+
+// Note: StackedAppIcons is already defined in CompactTimerView.swift
 
 
 // MARK: - Preview
