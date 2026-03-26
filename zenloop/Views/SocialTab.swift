@@ -1489,76 +1489,58 @@ struct ActiveSessionAppsRow: View {
     @State private var sessionApps = FamilyActivitySelection()
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Icône et label
-            HStack(spacing: 6) {
-                Image(systemName: "shield.checkered")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.purple)
+        HStack(spacing: 0) {
+            // Afficher directement les icônes des apps sans label
+            if !sessionApps.applicationTokens.isEmpty || !sessionApps.categoryTokens.isEmpty {
+                // Utiliser StackedAppIcons de CompactTimerView
+                StackedAppIcons(selectedApps: sessionApps, maxToShow: 6)
+            } else if session.suggestedAppsCount > 0 {
+                // Fallback : afficher des icônes génériques si pas de données locales
+                HStack(spacing: -10) {
+                    ForEach(0..<min(session.suggestedAppsCount, 4), id: \.self) { index in
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.purple.opacity(0.2))
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.purple.opacity(0.4), lineWidth: 1.5)
+                                )
 
-                Text("Apps bloquées")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-
-            Spacer()
-
-            // Apps icons ou nombre
-            if session.suggestedAppsCount > 0 {
-                HStack(spacing: -8) {
-                    // Si on a les vraies apps de la session locale
-                    if let sessionId = session.id,
-                       let localApps = sessionManager.getLocalApps(sessionId: sessionId),
-                       localApps.selectedAppsCount > 0 {
-
-                        // Afficher jusqu'à 4 icônes
-                        let maxIcons = 4
-                        ForEach(0..<min(localApps.selectedAppsCount, maxIcons), id: \.self) { index in
-                            ZStack {
-                                Circle()
-                                    .fill(Color.purple.opacity(0.2))
-                                    .frame(width: 24, height: 24)
-                                Circle()
-                                    .stroke(Color.purple.opacity(0.4), lineWidth: 1)
-                                    .frame(width: 24, height: 24)
-
-                                Image(systemName: getAppIcon(index: index))
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.purple)
-                            }
-                            .zIndex(Double(maxIcons - index))
+                            Image(systemName: getGenericAppIcon(index: index))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.purple)
                         }
+                        .zIndex(Double(4 - index))
+                    }
 
-                        if localApps.selectedAppsCount > maxIcons {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.purple.opacity(0.3))
-                                    .frame(width: 24, height: 24)
-                                Circle()
-                                    .stroke(Color.purple.opacity(0.5), lineWidth: 1)
-                                    .frame(width: 24, height: 24)
+                    if session.suggestedAppsCount > 4 {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.purple.opacity(0.3), .purple.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.purple.opacity(0.5), lineWidth: 1.5)
+                                )
 
-                                Text("+\(localApps.selectedAppsCount - maxIcons)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.purple)
-                            }
-                            .zIndex(0)
+                            Text("+\(session.suggestedAppsCount - 4)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.purple)
                         }
-                    } else {
-                        // Afficher juste le nombre suggéré
-                        Text("\(session.suggestedAppsCount)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.purple)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule().fill(Color.purple.opacity(0.2))
-                            )
+                        .zIndex(0)
                     }
                 }
             }
+
+            Spacer()
         }
-        .padding(.vertical, 4)
         .onAppear {
             loadSessionApps()
         }
@@ -1572,7 +1554,7 @@ struct ActiveSessionAppsRow: View {
         }
     }
 
-    private func getAppIcon(index: Int) -> String {
+    private func getGenericAppIcon(index: Int) -> String {
         let icons = ["app.fill", "square.stack.3d.up.fill", "app.badge.fill", "square.grid.2x2.fill"]
         return icons[index % icons.count]
     }
