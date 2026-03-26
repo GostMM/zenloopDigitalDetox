@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import FamilyControls
 
 // MARK: - Main Social Tab
 
@@ -796,6 +797,11 @@ struct ActiveSessionCard: View {
                         .lineLimit(2)
                 }
 
+                // Apps sélectionnées (si la session a des apps suggérées)
+                if session.suggestedAppsCount > 0 {
+                    ActiveSessionAppsRow(session: session)
+                }
+
                 // Barre de membres (avatars empilés + code)
                 HStack(spacing: 0) {
                     // Avatars empilés
@@ -1472,6 +1478,103 @@ struct BounceButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Active Session Apps Row
+
+struct ActiveSessionAppsRow: View {
+    let session: Session
+    @ObservedObject private var sessionManager = SessionManager.shared
+    @State private var sessionApps = FamilyActivitySelection()
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Icône et label
+            HStack(spacing: 6) {
+                Image(systemName: "shield.checkered")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.purple)
+
+                Text("Apps bloquées")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+
+            Spacer()
+
+            // Apps icons ou nombre
+            if session.suggestedAppsCount > 0 {
+                HStack(spacing: -8) {
+                    // Si on a les vraies apps de la session locale
+                    if let sessionId = session.id,
+                       let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+                       localApps.selectedAppsCount > 0 {
+
+                        // Afficher jusqu'à 4 icônes
+                        let maxIcons = 4
+                        ForEach(0..<min(localApps.selectedAppsCount, maxIcons), id: \.self) { index in
+                            ZStack {
+                                Circle()
+                                    .fill(Color.purple.opacity(0.2))
+                                    .frame(width: 24, height: 24)
+                                Circle()
+                                    .stroke(Color.purple.opacity(0.4), lineWidth: 1)
+                                    .frame(width: 24, height: 24)
+
+                                Image(systemName: getAppIcon(index: index))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.purple)
+                            }
+                            .zIndex(Double(maxIcons - index))
+                        }
+
+                        if localApps.selectedAppsCount > maxIcons {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.purple.opacity(0.3))
+                                    .frame(width: 24, height: 24)
+                                Circle()
+                                    .stroke(Color.purple.opacity(0.5), lineWidth: 1)
+                                    .frame(width: 24, height: 24)
+
+                                Text("+\(localApps.selectedAppsCount - maxIcons)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.purple)
+                            }
+                            .zIndex(0)
+                        }
+                    } else {
+                        // Afficher juste le nombre suggéré
+                        Text("\(session.suggestedAppsCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule().fill(Color.purple.opacity(0.2))
+                            )
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            loadSessionApps()
+        }
+    }
+
+    private func loadSessionApps() {
+        if let sessionId = session.id,
+           let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) {
+            sessionApps = selection
+        }
+    }
+
+    private func getAppIcon(index: Int) -> String {
+        let icons = ["app.fill", "square.stack.3d.up.fill", "app.badge.fill", "square.grid.2x2.fill"]
+        return icons[index % icons.count]
     }
 }
 
