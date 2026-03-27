@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct JoinSessionView: View {
     @Environment(\.dismiss) var dismiss
@@ -136,7 +137,8 @@ struct JoinSessionView: View {
 
         Task {
             do {
-                let session = try await sessionManager.joinSession(inviteCode: fullCode)
+                // 🔥 FIX: Utiliser findSession au lieu de joinSession pour juste prévisualiser
+                let session = try await sessionManager.findSession(inviteCode: fullCode)
 
                 await MainActor.run {
                     isSearching = false
@@ -156,12 +158,23 @@ struct JoinSessionView: View {
     }
 
     private func joinSession(_ session: Session) {
-        // Start listening to session
-        sessionManager.startSessionListener(sessionId: session.id!)
-
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-
-        dismiss()
+        // 🔥 FIX: Vraiment joindre la session maintenant
+        Task {
+            do {
+                let joinedSession = try await sessionManager.joinSession(inviteCode: session.inviteCode)
+                await MainActor.run {
+                    // Start listening to session
+                    sessionManager.startSessionListener(sessionId: joinedSession.id!)
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Erreur lors de la jonction: \(error.localizedDescription)"
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                }
+            }
+        }
     }
 }
 

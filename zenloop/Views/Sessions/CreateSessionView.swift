@@ -24,6 +24,14 @@ struct CreateSessionView: View {
     @State private var selectedApps = FamilyActivitySelection()
     @State private var isCreating = false
     @State private var errorMessage: String?
+    @State private var sessionDurationMode = DurationMode.manual
+    @State private var selectedHours = 0
+    @State private var selectedMinutes = 30
+
+    enum DurationMode {
+        case manual
+        case timed
+    }
 
     private var selectedAppsCount: Int {
         selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
@@ -82,6 +90,15 @@ struct CreateSessionView: View {
                             delay: 0.4
                         )
 
+                        // Duration Section
+                        DurationSelectionSection(
+                            mode: $sessionDurationMode,
+                            hours: $selectedHours,
+                            minutes: $selectedMinutes,
+                            showContent: showContent,
+                            delay: 0.45
+                        )
+
                         // App Selection Card
                         SessionAppSelectionCard(
                             selectedCount: selectedAppsCount,
@@ -129,13 +146,15 @@ struct CreateSessionView: View {
         Task {
             do {
                 let maxPart = Int(maxParticipants) ?? nil
+                let durationMins = sessionDurationMode == .timed ? (selectedHours * 60 + selectedMinutes) : nil
 
                 let session = try await sessionManager.createSession(
                     title: sessionTitle,
                     description: sessionDescription,
                     visibility: isPublic ? .publicSession : .privateSession,
                     maxParticipants: maxPart,
-                    suggestedAppsCount: selectedAppsCount
+                    suggestedAppsCount: selectedAppsCount,
+                    durationMinutes: durationMins
                 )
 
                 // Save selected apps locally (never sent to Firebase)
@@ -520,6 +539,195 @@ struct ErrorBanner: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.red.opacity(0.5), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Duration Selection Section
+
+struct DurationSelectionSection: View {
+    @Binding var mode: CreateSessionView.DurationMode
+    @Binding var hours: Int
+    @Binding var minutes: Int
+    let showContent: Bool
+    let delay: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Durée de la Session")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.8))
+
+            // Mode Selection
+            HStack(spacing: 12) {
+                DurationModeButton(
+                    icon: "infinity",
+                    title: "Manuel",
+                    subtitle: "Gérer manuellement",
+                    isSelected: mode == .manual,
+                    action: { mode = .manual }
+                )
+
+                DurationModeButton(
+                    icon: "timer",
+                    title: "Durée définie",
+                    subtitle: "Fin automatique",
+                    isSelected: mode == .timed,
+                    action: { mode = .timed }
+                )
+            }
+
+            // Time Selection (only when timed mode)
+            if mode == .timed {
+                HStack(spacing: 16) {
+                    // Hours Picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Heures")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+
+                        HStack {
+                            Button(action: { if hours > 0 { hours -= 1 } }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+
+                            Text("\(hours)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(minWidth: 40)
+
+                            Button(action: { if hours < 12 { hours += 1 } }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    )
+
+                    // Minutes Picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Minutes")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+
+                        HStack {
+                            Button(action: {
+                                if minutes >= 15 {
+                                    minutes -= 15
+                                } else if minutes > 0 {
+                                    minutes = 0
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+
+                            Text("\(minutes)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(minWidth: 40)
+
+                            Button(action: {
+                                if minutes < 45 {
+                                    minutes += 15
+                                } else {
+                                    minutes = 0
+                                    if hours < 12 { hours += 1 }
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                    )
+                }
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+
+                // Display total duration
+                if hours > 0 || minutes > 0 {
+                    HStack {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.blue.opacity(0.8))
+
+                        Text("Durée totale: \(formatDuration(hours: hours, minutes: minutes))")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.blue.opacity(0.8))
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: mode)
+    }
+
+    private func formatDuration(hours: Int, minutes: Int) -> String {
+        var parts: [String] = []
+        if hours > 0 {
+            parts.append("\(hours)h")
+        }
+        if minutes > 0 {
+            parts.append("\(minutes)min")
+        }
+        return parts.joined(separator: " ")
+    }
+}
+
+struct DurationModeButton: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(isSelected ? .blue : .white.opacity(0.5))
+
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        isSelected ? Color.blue : Color.white.opacity(0.1),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+        }
     }
 }
 

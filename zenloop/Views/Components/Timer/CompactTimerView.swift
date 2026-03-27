@@ -720,64 +720,69 @@ struct StackedAppIcons: View {
         let allItems = apps.map { AppOrCategory.app($0) } + categories.map { AppOrCategory.category($0) }
         let totalCount = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
 
-        HStack(spacing: -10) {
-            ForEach(Array(allItems.enumerated()), id: \.offset) { index, item in
-                Group {
-                    switch item {
-                    case .app(let token):
-                        Label(token)
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 16))
-                            .frame(width: 40, height: 40)
-                            .background(.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(Color.black.opacity(0.3), lineWidth: 2)
-                            )
-                            .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+        // ✅ FIX: ScrollView horizontal pour éviter le débordement avec beaucoup d'apps
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: -10) {
+                ForEach(Array(allItems.enumerated()), id: \.offset) { index, item in
+                    Group {
+                        switch item {
+                        case .app(let token):
+                            Label(token)
+                                .labelStyle(.iconOnly)
+                                .font(.system(size: 16))
+                                .frame(width: 40, height: 40)
+                                .background(.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Color.black.opacity(0.3), lineWidth: 2)
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
 
-                    case .category(let token):
-                        Label(token)
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 16))
-                            .frame(width: 40, height: 40)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(.purple.opacity(0.25))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(.purple.opacity(0.4), lineWidth: 2)
-                            )
-                            .shadow(color: .purple.opacity(0.2), radius: 3, x: 0, y: 2)
+                        case .category(let token):
+                            Label(token)
+                                .labelStyle(.iconOnly)
+                                .font(.system(size: 16))
+                                .frame(width: 40, height: 40)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(.purple.opacity(0.25))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(.purple.opacity(0.4), lineWidth: 2)
+                                )
+                                .shadow(color: .purple.opacity(0.2), radius: 3, x: 0, y: 2)
+                        }
                     }
+                    .zIndex(Double(maxToShow - index))
                 }
-                .zIndex(Double(maxToShow - index))
-            }
 
-            // Badge "+X" si plus d'apps
-            if totalCount > allItems.count {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.08)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                // Badge "+X" si plus d'apps
+                if totalCount > allItems.count {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.15),
+                                        Color.white.opacity(0.08)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 40, height: 40)
+                            .frame(width: 40, height: 40)
 
-                    Text("+\(totalCount - allItems.count)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.8))
+                        Text("+\(totalCount - allItems.count)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .zIndex(-1)
                 }
-                .zIndex(-1)
             }
+            .padding(.horizontal, 2)
         }
+        .frame(height: 44)
     }
 }

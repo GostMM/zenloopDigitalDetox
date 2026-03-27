@@ -100,7 +100,7 @@ struct NotificationsView: View {
         if let sessionId = notification.sessionId {
             selectedSessionId = sessionId
             showSessionDetail = true
-            dismiss()
+            // Ne pas dismiss ici - la sheet doit s'ouvrir d'abord
         }
     }
 

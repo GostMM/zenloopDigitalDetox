@@ -91,6 +91,36 @@ class SessionManager: ObservableObject {
         startMySessionsListener(uid: uid)
         startPublicSessionsListener()
         startInvitationsListener(uid: uid)
+
+        // ✅ FIX: Load active session automatically
+        await loadActiveSession()
+    }
+
+    // ✅ NEW: Find and load the user's current session (lobby, active, or paused) automatically
+    func loadActiveSession() async {
+        guard let uid = currentUser?.id else { return }
+
+        do {
+            // Query for user's active, paused, or lobby session
+            let snapshot = try await db.collection("sessions")
+                .whereField("memberIds", arrayContains: uid)
+                .whereField("status", in: [SessionStatus.lobby.rawValue, SessionStatus.active.rawValue, SessionStatus.paused.rawValue])
+                .order(by: "createdAt", descending: true)
+                .limit(to: 1)
+                .getDocuments()
+
+            if let sessionDoc = snapshot.documents.first,
+               let session = try? sessionDoc.data(as: Session.self),
+               let sessionId = session.id {
+                // Start listening to this session
+                startSessionListener(sessionId: sessionId)
+                sessionLogger.info("✅ Auto-loaded current session (\(session.status.rawValue)): \(sessionId)")
+            } else {
+                sessionLogger.info("ℹ️ No current session found for user")
+            }
+        } catch {
+            sessionLogger.error("❌ Failed to load current session: \(error.localizedDescription)")
+        }
     }
 
     func clearLocalState() {
@@ -117,7 +147,8 @@ class SessionManager: ObservableObject {
         description: String,
         visibility: SessionVisibility,
         maxParticipants: Int?,
-        suggestedAppsCount: Int
+        suggestedAppsCount: Int,
+        durationMinutes: Int? = nil
     ) async throws -> Session {
         guard let currentUser = currentUser else { throw SessionError.notAuthenticated }
 
@@ -130,7 +161,10 @@ class SessionManager: ObservableObject {
             maxParticipants: maxParticipants, status: .lobby,
             createdAt: Timestamp(date: Date()),
             startedAt: nil, endedAt: nil, pausedAt: nil, pausedBy: nil,
-            memberIds: [currentUser.id!], suggestedAppsCount: suggestedAppsCount
+            memberIds: [currentUser.id!],
+            durationMinutes: durationMinutes,
+            scheduledEndTime: nil,
+            suggestedAppsCount: suggestedAppsCount
         )
 
         let sessionRef = try db.collection("sessions").addDocument(from: newSession)
@@ -164,6 +198,24 @@ class SessionManager: ObservableObject {
     }
 
     // MARK: - Session Joining (Late join support)
+
+    /// Find a session by invite code without joining it (preview only)
+    func findSession(inviteCode: String) async throws -> Session {
+        let query = db.collection("sessions")
+            .whereField("inviteCode", isEqualTo: inviteCode)
+            .whereField("status", in: [
+                SessionStatus.lobby.rawValue,
+                SessionStatus.active.rawValue,
+                SessionStatus.paused.rawValue
+            ])
+            .limit(to: 1)
+
+        let snapshot = try await query.getDocuments()
+        guard let sessionDoc = snapshot.documents.first else { throw SessionError.sessionNotFound }
+        var session = try sessionDoc.data(as: Session.self)
+        session.id = sessionDoc.documentID
+        return session
+    }
 
     func joinSession(inviteCode: String) async throws -> Session {
         guard let currentUser = currentUser else { throw SessionError.notAuthenticated }
@@ -298,10 +350,18 @@ class SessionManager: ObservableObject {
 
         let batch = db.batch()
 
-        batch.updateData([
+        // Calculate scheduled end time if duration is set
+        var updateData: [String: Any] = [
             "status": SessionStatus.active.rawValue,
             "startedAt": FieldValue.serverTimestamp()
-        ], forDocument: sessionRef)
+        ]
+
+        if let durationMinutes = session.durationMinutes {
+            let scheduledEnd = Date().addingTimeInterval(TimeInterval(durationMinutes * 60))
+            updateData["scheduledEndTime"] = Timestamp(date: scheduledEnd)
+        }
+
+        batch.updateData(updateData, forDocument: sessionRef)
 
         let membersSnapshot = try await sessionRef.collection("members")
             .whereField("status", in: [MemberStatus.ready.rawValue, MemberStatus.joined.rawValue])

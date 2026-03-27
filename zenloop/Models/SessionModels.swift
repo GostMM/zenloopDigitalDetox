@@ -71,6 +71,10 @@ struct Session: Codable, Identifiable {
     var pausedBy: String?             // ✅ NEW: UID de celui qui a déclenché la pause
     var memberIds: [String]  // Pour queries Firestore
 
+    // ✅ NEW: Durée de session
+    var durationMinutes: Int?        // Durée en minutes (nil = manuel)
+    var scheduledEndTime: Timestamp? // Heure de fin prévue (calculée au démarrage)
+
     // ⚠️ IMPORTANT: PAS de liste d'apps car Apple ne permet pas de partager ça
     // Chaque membre choisit ses apps en privé
     var suggestedAppsCount: Int  // Nombre d'apps suggérées par le leader (sans détails)
@@ -91,6 +95,8 @@ struct Session: Codable, Identifiable {
         case pausedAt
         case pausedBy
         case memberIds
+        case durationMinutes
+        case scheduledEndTime
         case suggestedAppsCount
     }
 }

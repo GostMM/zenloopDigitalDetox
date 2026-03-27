@@ -121,6 +121,17 @@ class GlobalShieldManager: ObservableObject {
         store.shield.applications = blockedApps
         logger.critical("   → ✅ store.shield.applications = blockedApps DONE!")
 
+        // 🔥 CRUCIAL: Forcer une réinitialisation pour s'assurer que le système prend en compte
+        // C'est un workaround pour les cas où le shield ne s'applique pas immédiatement
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            let currentBlocked = self.store.shield.applications ?? Set()
+            if currentBlocked.count != blockedApps.count {
+                logger.warning("   → Re-applying shield due to mismatch")
+                self.store.shield.applications = blockedApps
+            }
+        }
+
         // Vérifier immédiatement
         let verify = store.shield.applications?.count ?? 0
         logger.critical("   → Verification: store now has \(verify) apps blocked")
@@ -156,6 +167,79 @@ class GlobalShieldManager: ObservableObject {
         }
 
         logger.critical("✅ [GLOBAL_SHIELD] Block removed successfully")
+        #endif
+    }
+
+    /// Ajoute un blocage de catégorie au shield global
+    func addCategoryBlock(token: ActivityCategoryToken, blockId: String, categoryName: String) {
+        logger.critical("➕ [GLOBAL_SHIELD] ========================================")
+        logger.critical("➕ [GLOBAL_SHIELD] ADDING CATEGORY BLOCK FOR: \(categoryName)")
+        logger.critical("   → BlockID: \(blockId)")
+
+        #if os(iOS)
+        // Récupérer les catégories déjà bloquées
+        var currentTokens: Set<ActivityCategoryToken> = []
+
+        if let existing = store.shield.applicationCategories,
+           case .specific(let tokens, except: _) = existing {
+            currentTokens = tokens
+        }
+
+        logger.critical("   → Current blocked categories: \(currentTokens.count)")
+
+        // Ajouter le nouveau token
+        let oldCount = currentTokens.count
+        currentTokens.insert(token)
+        logger.critical("   → After insert: \(currentTokens.count) categories")
+        logger.critical("   → Actually added: \(currentTokens.count > oldCount)")
+
+        // Réappliquer
+        logger.critical("   → Applying category shield NOW...")
+        store.shield.applicationCategories = .specific(currentTokens)
+        logger.critical("   → ✅ store.shield.applicationCategories = .specific DONE!")
+
+        // 🔥 CRUCIAL: Forcer une réinitialisation pour les catégories aussi
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            if let existing = self.store.shield.applicationCategories,
+               case .specific(let tokens, except: _) = existing,
+               tokens.count != currentTokens.count {
+                logger.warning("   → Re-applying category shield due to mismatch")
+                self.store.shield.applicationCategories = .specific(currentTokens)
+            }
+        }
+
+        logger.critical("✅ [GLOBAL_SHIELD] Category block operation complete")
+        logger.critical("➕ [GLOBAL_SHIELD] ========================================")
+        #endif
+    }
+
+    /// Retire un blocage de catégorie du shield global
+    func removeCategoryBlock(token: ActivityCategoryToken, blockId: String, categoryName: String) {
+        logger.critical("➖ [GLOBAL_SHIELD] Removing category block for: \(categoryName)")
+
+        #if os(iOS)
+        // Récupérer les catégories bloquées
+        var currentTokens: Set<ActivityCategoryToken> = []
+
+        if let existing = store.shield.applicationCategories,
+           case .specific(let tokens, except: _) = existing {
+            currentTokens = tokens
+        }
+
+        // Retirer le token
+        currentTokens.remove(token)
+
+        // Réappliquer
+        if currentTokens.isEmpty {
+            store.shield.applicationCategories = nil
+            logger.info("   → No more category blocks, shield cleared")
+        } else {
+            store.shield.applicationCategories = .specific(currentTokens)
+            logger.info("   → \(currentTokens.count) categories still blocked")
+        }
+
+        logger.critical("✅ [GLOBAL_SHIELD] Category block removed successfully")
         #endif
     }
 

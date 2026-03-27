@@ -3,12 +3,12 @@
 //  zenloop
 //
 //  Vue détaillée — design ouvert, sans cards, éléments disposés librement
-//  Les apps bloquées sont des tokens flottants, les membres des avatars directs
-//  Ambiance sociale organique, espace négatif généreux
+//  V2: Avatars empilés dans le header, chat amélioré, boutons d'action fixes en bas
 //
 
 import SwiftUI
 import FamilyControls
+import ManagedSettings
 
 struct SessionDetailView: View {
     let session: Session
@@ -27,6 +27,8 @@ struct SessionDetailView: View {
     @State private var showStopAlert = false
     @State private var showPauseRequestSheet = false
     @State private var pauseRequestReason = ""
+    @State private var sessionExpirationTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+    @State private var hasAppliedBlocks = false // Track if blocks are already applied
 
     enum Field { case messageInput }
 
@@ -52,15 +54,17 @@ struct SessionDetailView: View {
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                // — Header minimal ouvert —
-                SessionDetailOpenHeader(
+                // — Header avec avatars empilés —
+                SessionDetailHeaderWithAvatars(
                     session: activeSession,
+                    members: currentDisplayMembers,
                     isLeader: isLeader,
                     showContent: showContent,
                     onBack: { dismiss() }
                 )
                 .padding(.horizontal, 24)
 
+                // — Contenu principal scrollable —
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         switch activeSession.status {
@@ -76,9 +80,41 @@ struct SessionDetailView: View {
                             DissolvedContent(session: activeSession, showContent: showContent)
                         }
 
-                        Spacer(minLength: 120)
+                        Spacer(minLength: 20)
                     }
                     .padding(.horizontal, 24)
+                }
+
+                // — Boutons d'action FIXES en bas —
+                if activeSession.status == .active || activeSession.status == .paused || activeSession.status == .lobby {
+                    FixedBottomControls(
+                        session: activeSession,
+                        isLeader: isLeader,
+                        readyCount: sessionManager.currentSessionMembers.filter { $0.isReady }.count,
+                        totalCount: sessionManager.currentSessionMembers.count,
+                        onStart: startSession,
+                        onPause: pauseSession,
+                        onResume: resumeSession,
+                        onStop: { showStopAlert = true },
+                        onDissolve: { showDissolveAlert = true },
+                        onRequestPause: { showPauseRequestSheet = true },
+                        onLeave: { showLeaveAlert = true }
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                    .padding(.top, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0),
+                                Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0.85),
+                                Color(red: 0.06, green: 0.06, blue: 0.08)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea(.container, edges: .bottom)
+                    )
                 }
             }
         }
@@ -94,17 +130,71 @@ struct SessionDetailView: View {
                 selectedApps = selection
                 isReady = localApps.selectedAppsCount > 0
             }
+
+            // 🔥 CRUCIAL: Late join detection - Si la session est déjà active ET que l'utilisateur a sélectionné des apps
+            if activeSession.status == .active && !hasAppliedBlocks {
+                if let sessionId = session.id,
+                   let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+                   localApps.selectedAppsCount > 0 {
+                    print("🔄 [LATE_JOIN] Session already active and apps selected! Applying blocks for late joiner...")
+                    applySessionBlocks()
+                    hasAppliedBlocks = true
+                } else {
+                    print("⏳ [LATE_JOIN] Session active but no apps selected yet. Waiting for user selection...")
+                    // L'utilisateur doit d'abord sélectionner ses apps avant que les blocages soient appliqués
+                }
+            }
+        }
+        .onChange(of: selectedApps) { oldSelection, newSelection in
+            let hasApps = !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty
+
+            // 🔥 CRUCIAL: Sauvegarder la sélection localement dès qu'elle change
+            if hasApps, let sessionId = session.id {
+                if let tokenData = try? JSONEncoder().encode(newSelection) {
+                    let count = newSelection.applicationTokens.count + newSelection.categoryTokens.count
+                    sessionManager.saveLocalApps(sessionId: sessionId, appTokens: tokenData, count: count)
+                    print("💾 [SAVE] Apps saved locally: \(count) items")
+                }
+            }
+
+            // 🔥 LATE JOIN: Si la session est active et que l'utilisateur vient de sélectionner des apps, appliquer les blocages
+            if activeSession.status == .active && !hasAppliedBlocks && hasApps {
+                print("📱 [LATE_JOIN] User selected apps while session active! Applying blocks now...")
+                // Petit délai pour laisser le temps à la sélection de se sauvegarder
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.applySessionBlocks()
+                    self.hasAppliedBlocks = true
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            }
         }
         .onChange(of: activeSession.status) { oldStatus, newStatus in
-            // Quand la session démarre, appliquer automatiquement les blocages pour TOUS les membres
-            if oldStatus != .active && newStatus == .active {
-                print("🚀 Session started! Applying blocks for all members...")
+            // Session démarre ou reprend après pause
+            if oldStatus != .active && newStatus == .active && !hasAppliedBlocks {
+                print("🚀 Session started/resumed! Applying blocks for all members...")
                 applySessionBlocks()
+                hasAppliedBlocks = true
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-            } else if oldStatus == .active && newStatus != .active {
-                // Quand la session se termine, retirer les blocages
+            }
+            // Session se termine ou se dissout
+            else if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
                 print("🛑 Session ended! Removing blocks...")
                 removeSessionBlocks()
+                hasAppliedBlocks = false // Reset for next time
+            }
+            // Session mise en pause - on peut choisir de garder les blocages ou non
+            // Pour l'instant on les garde actifs pendant la pause
+        }
+        .onReceive(sessionExpirationTimer) { _ in
+            if activeSession.status == .active,
+               let endTime = activeSession.scheduledEndTime?.dateValue(),
+               Date() >= endTime {
+                print("⏰ Session timer expired! Auto-completing session...")
+                Task {
+                    if isLeader {
+                        try? await sessionManager.stopSession(sessionId: activeSession.id!)
+                    }
+                }
             }
         }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
@@ -128,6 +218,19 @@ struct SessionDetailView: View {
         }
     }
 
+    // MARK: - Current display members based on status
+    
+    private var currentDisplayMembers: [SessionMember] {
+        switch activeSession.status {
+        case .active:
+            return sessionManager.currentSessionMembers.filter { $0.status == .active }
+        case .paused:
+            return sessionManager.currentSessionMembers.filter { $0.status != .left }
+        default:
+            return sessionManager.currentSessionMembers
+        }
+    }
+
     // MARK: - Lobby
 
     private var lobbySection: some View {
@@ -145,20 +248,11 @@ struct SessionDetailView: View {
                 )
             }
 
-            MembersAvatarStrip(
+            // Détail des membres (liste détaillée sous le header)
+            MembersDetailList(
                 members: sessionManager.currentSessionMembers,
                 showContent: showContent
             )
-
-            if isLeader {
-                LeaderLobbyControls(
-                    readyCount: sessionManager.currentSessionMembers.filter { $0.isReady }.count,
-                    totalCount: sessionManager.currentSessionMembers.count,
-                    showContent: showContent,
-                    onStart: startSession,
-                    onDissolve: { showDissolveAlert = true }
-                )
-            }
         }
         .padding(.top, 20)
     }
@@ -166,14 +260,15 @@ struct SessionDetailView: View {
     // MARK: - Active
 
     private var activeSection: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 24) {
 
-            LiveIndicatorOpen(
-                memberCount: sessionManager.currentSessionMembers.filter { $0.status == .active }.count,
-                showContent: showContent
-            )
-
-            if selectedAppsCount > 0 {
+            // 🔥 LATE JOIN: Si l'utilisateur n'a pas encore sélectionné d'apps, montrer la sélection
+            if selectedAppsCount == 0 {
+                LateJoinAppSelectionCard(
+                    showContent: showContent,
+                    onSelect: { showAppPicker = true }
+                )
+            } else {
                 BlockedAppsOpen(
                     selectedApps: selectedApps,
                     showContent: showContent
@@ -188,39 +283,22 @@ struct SessionDetailView: View {
                 )
             }
 
-            MembersAvatarStrip(
-                members: sessionManager.currentSessionMembers.filter { $0.status == .active },
-                showContent: showContent
-            )
-
-            ChatSection(
+            // Chat prend tout l'espace restant
+            ExpandedChatSection(
                 messages: sessionManager.currentSessionMessages,
                 messageText: $messageText,
                 showContent: showContent,
                 onSend: sendMessage,
                 members: sessionManager.currentSessionMembers
             )
-
-            if isLeader {
-                LeaderActiveControls(
-                    onPause: { pauseSession() },
-                    onStop: { showStopAlert = true },
-                    onDissolve: { showDissolveAlert = true }
-                )
-            } else {
-                MemberActiveControls(
-                    onRequestPause: { showPauseRequestSheet = true },
-                    onLeave: { showLeaveAlert = true }
-                )
-            }
         }
-        .padding(.top, 20)
+        .padding(.top, 16)
     }
 
     // MARK: - Paused
 
     private var pausedSection: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 24) {
 
             PausedIndicatorOpen(
                 pausedBy: activeSession.pausedBy,
@@ -228,42 +306,15 @@ struct SessionDetailView: View {
                 showContent: showContent
             )
 
-            MembersAvatarStrip(
-                members: sessionManager.currentSessionMembers.filter { $0.status != .left },
-                showContent: showContent
-            )
-
-            ChatSection(
+            ExpandedChatSection(
                 messages: sessionManager.currentSessionMessages,
                 messageText: $messageText,
                 showContent: showContent,
                 onSend: sendMessage,
                 members: sessionManager.currentSessionMembers
             )
-
-            if isLeader {
-                LeaderPausedControls(
-                    onResume: { resumeSession() },
-                    onStop: { showStopAlert = true }
-                )
-            } else {
-                Button(action: { showLeaveAlert = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 15, weight: .bold))
-                        Text("Quitter la Session")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(.orange)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                }
-                .buttonStyle(BounceButtonStyle())
-            }
         }
-        .padding(.top, 20)
+        .padding(.top, 16)
     }
 
     // MARK: - Actions
@@ -290,7 +341,6 @@ struct SessionDetailView: View {
             do {
                 try await sessionManager.startSession(sessionId: session.id!)
                 await MainActor.run {
-                    // Le leader applique ses blocages
                     applySessionBlocks()
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
@@ -393,9 +443,45 @@ struct SessionDetailView: View {
         }
 
         #if os(iOS)
-        print("🛡️ Applying blocks for \(selection.applicationTokens.count) apps in session \(sessionId)")
+        let appCount = selection.applicationTokens.count
+        let categoryCount = selection.categoryTokens.count
+        print("🛡️ [SESSION_BLOCKS] Starting block application for \(appCount) apps + \(categoryCount) categories in session \(sessionId)")
 
-        // Appliquer les blocages pour toutes les apps sélectionnées
+        // ✅ CRUCIAL: Vérifier les permissions Screen Time avant de bloquer
+        Task { @MainActor in
+            let authCenter = AuthorizationCenter.shared
+            let status = authCenter.authorizationStatus
+
+            print("🔐 [SESSION_BLOCKS] Screen Time authorization status: \(status.rawValue)")
+
+            guard status == .approved else {
+                print("❌ [SESSION_BLOCKS] Screen Time not authorized! Status: \(status)")
+                // Demander l'autorisation
+                do {
+                    try await authCenter.requestAuthorization(for: .individual)
+                    print("✅ [SESSION_BLOCKS] Authorization granted, retrying blocks...")
+                    // Réessayer après obtention de l'autorisation
+                    await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
+                } catch {
+                    print("❌ [SESSION_BLOCKS] Failed to get authorization: \(error)")
+                }
+                return
+            }
+
+            // Autorisation OK, appliquer les blocages avec un petit délai pour s'assurer que le système est prêt
+            await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
+        }
+        #endif
+    }
+
+    @MainActor
+    private func applyBlocksWithDelay(sessionId: String, selection: FamilyActivitySelection, appCount: Int, categoryCount: Int) async {
+        // Petit délai pour laisser le système se préparer
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
+
+        print("🛡️ [SESSION_BLOCKS] Applying blocks NOW...")
+
+        // Bloquer les apps individuelles
         for (index, token) in selection.applicationTokens.enumerated() {
             let blockId = "session_\(sessionId)_app_\(index)"
             let appName = "Session App \(index + 1)"
@@ -406,35 +492,66 @@ struct SessionDetailView: View {
                 appName: appName
             )
 
-            print("  → Blocked: \(appName) with ID: \(blockId)")
+            print("  → Blocked app: \(appName) with ID: \(blockId)")
         }
 
-        // Stocker les IDs de blocage pour pouvoir les retirer plus tard
+        // Bloquer les catégories
+        for (index, token) in selection.categoryTokens.enumerated() {
+            let blockId = "session_\(sessionId)_category_\(index)"
+            let categoryName = "Session Category \(index + 1)"
+
+            GlobalShieldManager.shared.addCategoryBlock(
+                token: token,
+                blockId: blockId,
+                categoryName: categoryName
+            )
+
+            print("  → Blocked category: \(categoryName) with ID: \(blockId)")
+        }
+
         UserDefaults.standard.set(
-            selection.applicationTokens.count,
+            appCount + categoryCount,
             forKey: "session_\(sessionId)_blocks_count"
         )
 
-        print("✅ All session blocks applied successfully!")
-        #endif
+        print("✅ [SESSION_BLOCKS] All blocks applied successfully! (\(appCount) apps + \(categoryCount) categories)")
+
+        // 🔥 CRUCIAL: Forcer une vérification immédiate
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            let store = ManagedSettingsStore()
+            let verifyApps = store.shield.applications?.count ?? 0
+            let verifyCategories: Int
+            if let cats = store.shield.applicationCategories,
+               case .specific(let tokens, except: _) = cats {
+                verifyCategories = tokens.count
+            } else {
+                verifyCategories = 0
+            }
+            print("🔍 [SESSION_BLOCKS] Verification: \(verifyApps) apps + \(verifyCategories) categories blocked in store")
+
+            if verifyApps + verifyCategories == 0 && appCount + categoryCount > 0 {
+                print("⚠️ [SESSION_BLOCKS] BLOCKS NOT APPLIED! Retrying...")
+                Task { @MainActor in
+                    await self.applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
+                }
+            }
+        }
     }
 
     private func removeSessionBlocks() {
         guard let sessionId = session.id else { return }
 
         #if os(iOS)
-        // Pour l'instant, on ne peut pas retirer les blocages sans les tokens
-        // Les blocages seront automatiquement retirés quand l'utilisateur quittera la session
-        // ou que la session se terminera via le BlockManager
-
         print("🔓 Session blocks will be removed when session ends")
 
-        // Alternative: on pourrait récupérer les apps depuis selectedApps si toujours disponible
         if let localApps = sessionManager.getLocalApps(sessionId: sessionId),
            let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) {
 
-            print("🔓 Removing \(selection.applicationTokens.count) blocks for session \(sessionId)")
+            let appCount = selection.applicationTokens.count
+            let categoryCount = selection.categoryTokens.count
+            print("🔓 Removing \(appCount) app blocks + \(categoryCount) category blocks for session \(sessionId)")
 
+            // Retirer les blocages d'apps
             for (index, token) in selection.applicationTokens.enumerated() {
                 let blockId = "session_\(sessionId)_app_\(index)"
                 let appName = "Session App \(index + 1)"
@@ -445,13 +562,26 @@ struct SessionDetailView: View {
                     appName: appName
                 )
 
-                print("  → Removed block: \(blockId)")
+                print("  → Removed app block: \(blockId)")
             }
 
-            print("✅ All session blocks removed successfully!")
+            // Retirer les blocages de catégories
+            for (index, token) in selection.categoryTokens.enumerated() {
+                let blockId = "session_\(sessionId)_category_\(index)"
+                let categoryName = "Session Category \(index + 1)"
+
+                GlobalShieldManager.shared.removeCategoryBlock(
+                    token: token,
+                    blockId: blockId,
+                    categoryName: categoryName
+                )
+
+                print("  → Removed category block: \(blockId)")
+            }
+
+            print("✅ All session blocks removed successfully! (\(appCount) apps + \(categoryCount) categories)")
         }
 
-        // Nettoyer les préférences
         UserDefaults.standard.removeObject(forKey: "session_\(sessionId)_blocks_count")
         #endif
     }
@@ -495,14 +625,24 @@ struct SessionParticlesOverlay: View {
 }
 
 
-// MARK: - Open Header (cardless)
+// MARK: - Header with Stacked Avatars
 
-struct SessionDetailOpenHeader: View {
+struct SessionDetailHeaderWithAvatars: View {
     let session: Session
+    let members: [SessionMember]
     let isLeader: Bool
     let showContent: Bool
     let onBack: () -> Void
     @State private var statusPulse = false
+
+    private let avatarColors: [Color] = [
+        Color(red: 0.4, green: 0.6, blue: 1.0),
+        Color(red: 0.6, green: 0.4, blue: 1.0),
+        Color(red: 0.3, green: 0.8, blue: 0.7),
+        Color(red: 1.0, green: 0.5, blue: 0.4),
+        Color(red: 1.0, green: 0.7, blue: 0.3),
+        Color(red: 0.8, green: 0.4, blue: 0.6),
+    ]
 
     private var statusColor: Color {
         switch session.status {
@@ -519,8 +659,8 @@ struct SessionDetailOpenHeader: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Top row — back + pills
+        VStack(alignment: .leading, spacing: 14) {
+            // Top row — back + status + leader
             HStack(spacing: 10) {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
@@ -555,33 +695,53 @@ struct SessionDetailOpenHeader: View {
                 }
             }
 
-            // Title
-            Text(session.title)
-                .font(.system(size: 32, weight: .heavy, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(2).minimumScaleFactor(0.7)
+            // Title row avec avatar pile à droite
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(session.title)
+                        .font(.system(size: 28, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(2).minimumScaleFactor(0.7)
 
-            if !session.description.isEmpty {
-                Text(session.description)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.white.opacity(0.45))
-                    .lineLimit(2)
+                    if !session.description.isEmpty {
+                        Text(session.description)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                // — Pile d'avatars empilés —
+                StackedAvatarPile(
+                    members: members,
+                    colors: avatarColors,
+                    showContent: showContent
+                )
             }
 
-            // Meta inline
-            HStack(spacing: 16) {
+            // Meta row — membres count + timer + code
+            HStack(spacing: 14) {
                 HStack(spacing: 5) {
                     Image(systemName: "person.2.fill").font(.system(size: 11))
-                    Text("\(session.memberIds.count)").font(.system(size: 13, weight: .bold, design: .rounded))
+                    Text("\(members.count) en focus")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
                 }.foregroundColor(.white.opacity(0.35))
+
+                if session.status == .active, let endTime = session.scheduledEndTime {
+                    TimeRemainingPill(endTime: endTime.dateValue())
+                }
+
+                Spacer()
 
                 HStack(spacing: 5) {
                     Image(systemName: "key.fill").font(.system(size: 10))
                     Text(session.inviteCode).font(.system(size: 13, weight: .bold, design: .monospaced))
-                }.foregroundColor(.white.opacity(0.35))
+                }.foregroundColor(.white.opacity(0.3))
             }
 
-            // Thin gradient separator
+            // Séparateur
             Rectangle()
                 .fill(LinearGradient(colors: [statusColor.opacity(0.3), .clear], startPoint: .leading, endPoint: .trailing))
                 .frame(height: 1)
@@ -599,7 +759,232 @@ struct SessionDetailOpenHeader: View {
 }
 
 
-// MARK: - Invite Code Open (no card — individual letter tiles)
+// MARK: - Stacked Avatar Pile (compact, overlapping)
+
+struct StackedAvatarPile: View {
+    let members: [SessionMember]
+    let colors: [Color]
+    let showContent: Bool
+    @State private var appeared = false
+
+    var body: some View {
+        let visibleMembers = Array(members.prefix(4))
+        let overflow = max(0, members.count - 4)
+
+        ZStack {
+            // Avatars empilés en diagonale
+            ForEach(Array(visibleMembers.enumerated().reversed()), id: \.element.id) { index, member in
+                AvatarPileItem(
+                    member: member,
+                    color: colors[index % colors.count],
+                    stackIndex: index,
+                    appeared: appeared
+                )
+                .offset(
+                    x: CGFloat(index) * 14,
+                    y: 0
+                )
+            }
+
+            // Compteur overflow
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.12))
+                            .overlay(
+                                Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5)
+                            )
+                    )
+                    .offset(x: CGFloat(visibleMembers.count) * 14, y: 0)
+                    .scaleEffect(appeared ? 1 : 0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.35), value: appeared)
+            }
+        }
+        // Cadrer la ZStack pour que le layout soit correct
+        .frame(
+            width: CGFloat(min(members.count, 4)) * 14 + 36 + (overflow > 0 ? 14 : 0),
+            height: 40
+        )
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2)) {
+                appeared = true
+            }
+        }
+    }
+}
+
+struct AvatarPileItem: View {
+    let member: SessionMember
+    let color: Color
+    let stackIndex: Int
+    let appeared: Bool
+
+    private var statusColor: Color {
+        switch member.status {
+        case .joined: return .gray; case .ready: return .green
+        case .active: return .green; case .paused: return .orange; case .left: return .red
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.65)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(String(member.username.prefix(1)).uppercased())
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5)
+                )
+                .shadow(color: color.opacity(0.25), radius: 4, x: 0, y: 2)
+
+            // Petit indicateur de status
+            Circle()
+                .fill(statusColor)
+                .frame(width: 10, height: 10)
+                .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2))
+                .offset(x: 1, y: 1)
+        }
+        .scaleEffect(appeared ? 1 : 0)
+        .animation(
+            .spring(response: 0.45, dampingFraction: 0.6)
+            .delay(Double(stackIndex) * 0.06 + 0.15),
+            value: appeared
+        )
+    }
+}
+
+
+// MARK: - Members Detail List (for lobby — shows ready status etc.)
+
+struct MembersDetailList: View {
+    let members: [SessionMember]
+    let showContent: Bool
+
+    private let avatarColors: [Color] = [
+        Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.6, green: 0.4, blue: 1.0),
+        Color(red: 0.3, green: 0.8, blue: 0.7), Color(red: 1.0, green: 0.5, blue: 0.4),
+        Color(red: 1.0, green: 0.7, blue: 0.3), Color(red: 0.8, green: 0.4, blue: 0.6),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 6) {
+                Text("MEMBRES")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.35))
+                Text("\(members.count)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.cyan.opacity(0.7))
+            }
+
+            ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
+                MemberDetailRow(
+                    member: member,
+                    color: avatarColors[index % avatarColors.count],
+                    index: index
+                )
+            }
+        }
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.25), value: showContent)
+    }
+}
+
+struct MemberDetailRow: View {
+    let member: SessionMember
+    let color: Color
+    let index: Int
+    @State private var appeared = false
+
+    private var statusColor: Color {
+        switch member.status {
+        case .joined: return .gray; case .ready: return .green
+        case .active: return .green; case .paused: return .orange; case .left: return .red
+        }
+    }
+
+    private var statusText: String {
+        switch member.status {
+        case .joined: return "Rejoint"; case .ready: return "Prêt"
+        case .active: return "Actif"; case .paused: return "En pause"; case .left: return "Parti"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(LinearGradient(colors: [color, color.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(String(member.username.prefix(1)).uppercased())
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    )
+                    .shadow(color: color.opacity(0.2), radius: 4, x: 0, y: 2)
+
+                Circle().fill(statusColor).frame(width: 12, height: 12)
+                    .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2))
+                    .offset(x: 2, y: 2)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(member.username)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    if member.role == .leader {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.yellow)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Text(statusText)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(statusColor)
+
+                    if member.hasSelectedApps {
+                        Text("· \(member.selectedAppsCount) apps")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.3))
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 6)
+        .scaleEffect(appeared ? 1 : 0.97)
+        .opacity(appeared ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.7).delay(Double(index) * 0.05)) {
+                appeared = true
+            }
+        }
+    }
+}
+
+
+// MARK: - Invite Code Open
 
 struct InviteCodeOpen: View {
     let code: String
@@ -658,7 +1043,7 @@ struct InviteCodeOpen: View {
 }
 
 
-// MARK: - App Selection Open (no card — tokens laid out freely)
+// MARK: - App Selection Open
 
 struct AppSelectionOpen: View {
     let selectedApps: FamilyActivitySelection
@@ -740,7 +1125,7 @@ struct AppSelectionOpen: View {
 }
 
 
-// MARK: - App Tokens Flow (wrapping row of app icons — no container)
+// MARK: - App Tokens Flow
 
 struct AppTokensFlow: View {
     let selectedApps: FamilyActivitySelection
@@ -753,37 +1138,127 @@ struct AppTokensFlow: View {
         let showCount = min(total, maxToShow)
         let overflow = total - showCount
 
-        HStack(spacing: -6) {
-            ForEach(0..<min(appCount, showCount), id: \.self) { index in
-                let token = Array(selectedApps.applicationTokens)[index]
-                Label(token).labelStyle(.iconOnly).font(.system(size: 22))
-                    .frame(width: 40, height: 40)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+        // ✅ FIX: ScrollView horizontal pour éviter le débordement
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: -6) {
+                ForEach(0..<min(appCount, showCount), id: \.self) { index in
+                    let token = Array(selectedApps.applicationTokens)[index]
+                    Label(token).labelStyle(.iconOnly).font(.system(size: 22))
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                }
+
+                let remainingSlots = max(0, showCount - appCount)
+                ForEach(0..<min(catCount, remainingSlots), id: \.self) { index in
+                    let token = Array(selectedApps.categoryTokens)[index]
+                    Label(token).labelStyle(.iconOnly).font(.system(size: 22))
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.2), lineWidth: 1))
+                }
+
+                if overflow > 0 {
+                    Text("+\(overflow)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .frame(height: 44)
+    }
+}
+
+
+// MARK: - Late Join App Selection Card
+
+struct LateJoinAppSelectionCard: View {
+    let showContent: Bool
+    let onSelect: () -> Void
+    @State private var pulse = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Icon + Title
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                        .scaleEffect(pulse ? 1.1 : 1.0)
+
+                    Image(systemName: "clock.badge.exclamationmark.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Session en cours")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text("Sélectionnez vos apps pour activer le blocage")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                }
             }
 
-            let remainingSlots = max(0, showCount - appCount)
-            ForEach(0..<min(catCount, remainingSlots), id: \.self) { index in
-                let token = Array(selectedApps.categoryTokens)[index]
-                Label(token).labelStyle(.iconOnly).font(.system(size: 22))
-                    .frame(width: 40, height: 40)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.2), lineWidth: 1))
-            }
+            // Action Button
+            Button(action: onSelect) {
+                HStack(spacing: 12) {
+                    Image(systemName: "apps.iphone")
+                        .font(.system(size: 18, weight: .semibold))
 
-            if overflow > 0 {
-                Text("+\(overflow)")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.5))
-                    .frame(width: 40, height: 40)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+                    Text("Sélectionner les apps à bloquer")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.orange, Color.orange.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .orange.opacity(0.3), radius: 12, x: 0, y: 6)
+                )
+            }
+            .buttonStyle(BounceButtonStyle())
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1.5)
+                )
+        )
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                pulse = true
             }
         }
     }
 }
 
 
-// MARK: - Blocked Apps Open (active session — floating tokens, no card)
+// MARK: - Blocked Apps Open
 
 struct BlockedAppsOpen: View {
     let selectedApps: FamilyActivitySelection
@@ -819,126 +1294,6 @@ struct BlockedAppsOpen: View {
 }
 
 
-// MARK: - Members Avatar Strip (horizontal scroll — no cards)
-
-struct MembersAvatarStrip: View {
-    let members: [SessionMember]
-    let showContent: Bool
-
-    private let avatarColors: [Color] = [
-        Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.6, green: 0.4, blue: 1.0),
-        Color(red: 0.3, green: 0.8, blue: 0.7), Color(red: 1.0, green: 0.5, blue: 0.4),
-        Color(red: 1.0, green: 0.7, blue: 0.3), Color(red: 0.8, green: 0.4, blue: 0.6),
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 6) {
-                Text("MEMBRES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.35))
-                Text("\(members.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
-                        MemberAvatarOpen(member: member, color: avatarColors[index % avatarColors.count], index: index)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-        }
-        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
-    }
-}
-
-struct MemberAvatarOpen: View {
-    let member: SessionMember
-    let color: Color
-    let index: Int
-    @State private var appeared = false
-
-    private var statusColor: Color {
-        switch member.status {
-        case .joined: return .gray; case .ready: return .green
-        case .active: return .green; case .paused: return .orange; case .left: return .red
-        }
-    }
-
-    private var statusIcon: String {
-        switch member.status {
-        case .joined: return "circle"; case .ready: return "checkmark"
-        case .active: return "bolt.fill"; case .paused: return "pause.fill"; case .left: return "xmark"
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 8) {
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(LinearGradient(colors: [color, color.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 52, height: 52)
-                    .overlay(
-                        Text(String(member.username.prefix(1)).uppercased())
-                            .font(.system(size: 21, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    )
-                    .shadow(color: color.opacity(0.3), radius: 8, x: 0, y: 4)
-
-                ZStack {
-                    Circle().fill(statusColor).frame(width: 16, height: 16)
-                    Image(systemName: statusIcon).font(.system(size: 7, weight: .black)).foregroundColor(.white)
-                }
-                .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5))
-                .offset(x: 2, y: 2)
-            }
-
-            Text(member.username)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
-                .lineLimit(1).frame(maxWidth: 60)
-
-            if member.role == .leader {
-                Image(systemName: "crown.fill").font(.system(size: 10)).foregroundColor(.yellow)
-            } else if member.hasSelectedApps {
-                Text("\(member.selectedAppsCount) apps")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.3))
-            }
-        }
-        .scaleEffect(appeared ? 1 : 0).opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.65).delay(Double(index) * 0.06)) { appeared = true }
-        }
-    }
-}
-
-
-// MARK: - Live Indicator Open (just text + dot, no card)
-
-struct LiveIndicatorOpen: View {
-    let memberCount: Int
-    let showContent: Bool
-    @State private var livePulse = false
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Color.green.opacity(0.15)).frame(width: 28, height: 28)
-                    .scaleEffect(livePulse ? 1.6 : 1.0).opacity(livePulse ? 0 : 0.5)
-                Circle().fill(Color.green).frame(width: 10, height: 10).shadow(color: .green.opacity(0.5), radius: 4)
-            }
-            Text("Session en cours").font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.8))
-            Text("·").foregroundColor(.white.opacity(0.2))
-            Text("\(memberCount) en focus").font(.system(size: 14, weight: .medium, design: .rounded)).foregroundColor(.green.opacity(0.7))
-        }
-        .opacity(showContent ? 1 : 0)
-        .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
-        .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { livePulse = true } }
-    }
-}
-
-
 // MARK: - Paused Indicator Open
 
 struct PausedIndicatorOpen: View {
@@ -968,7 +1323,7 @@ struct PausedIndicatorOpen: View {
 }
 
 
-// MARK: - Pause Requests Open (minimal list, no card wrapper)
+// MARK: - Pause Requests Open
 
 struct PauseRequestsOpen: View {
     let requests: [PauseRequest]
@@ -1017,146 +1372,205 @@ struct PauseRequestsOpen: View {
 }
 
 
-// MARK: - Leader Lobby Controls
+// MARK: - Fixed Bottom Controls (toujours visible)
 
-struct LeaderLobbyControls: View {
-    let readyCount: Int; let totalCount: Int; let showContent: Bool
-    let onStart: () -> Void; let onDissolve: () -> Void
-    @State private var startGlow = false
+struct FixedBottomControls: View {
+    let session: Session
+    let isLeader: Bool
+    let readyCount: Int
+    let totalCount: Int
+    let onStart: () -> Void
+    let onPause: () -> Void
+    let onResume: () -> Void
+    let onStop: () -> Void
+    let onDissolve: () -> Void
+    let onRequestPause: () -> Void
+    let onLeave: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("\(readyCount)/\(totalCount) prêts").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.5))
-                    Spacer()
-                    Text("\(Int(totalCount > 0 ? Double(readyCount) / Double(totalCount) * 100 : 0))%").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.green.opacity(0.7))
-                }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 5)
-                        RoundedRectangle(cornerRadius: 3).fill(LinearGradient(colors: [.green, .mint], startPoint: .leading, endPoint: .trailing))
-                            .frame(width: totalCount > 0 ? geo.size.width * CGFloat(readyCount) / CGFloat(totalCount) : 0, height: 5)
-                            .animation(.spring(response: 0.6), value: readyCount)
+        VStack(spacing: 10) {
+            switch session.status {
+            case .lobby:
+                if isLeader {
+                    // Barre de progression ready
+                    HStack(spacing: 8) {
+                        Text("\(readyCount)/\(totalCount) prêts")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 4)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(LinearGradient(colors: [.green, .mint], startPoint: .leading, endPoint: .trailing))
+                                    .frame(width: totalCount > 0 ? geo.size.width * CGFloat(readyCount) / CGFloat(totalCount) : 0, height: 4)
+                                    .animation(.spring(response: 0.6), value: readyCount)
+                            }
+                        }.frame(height: 4)
+
+                        Text("\(Int(totalCount > 0 ? Double(readyCount) / Double(totalCount) * 100 : 0))%")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(.green.opacity(0.7))
                     }
-                }.frame(height: 5)
-            }
 
-            Button(action: onStart) {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill").font(.system(size: 18, weight: .bold))
-                    Text("Démarrer").font(.system(size: 18, weight: .bold, design: .rounded))
-                }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 18)
-                .background(
-                    RoundedRectangle(cornerRadius: 18).fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .shadow(color: .green.opacity(startGlow ? 0.5 : 0.15), radius: startGlow ? 20 : 8, x: 0, y: 6)
-                )
-            }.buttonStyle(BounceButtonStyle())
+                    HStack(spacing: 12) {
+                        Button(action: onStart) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
+                                Text("Démarrer").font(.system(size: 16, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .shadow(color: .green.opacity(0.25), radius: 12, x: 0, y: 4)
+                            )
+                        }.buttonStyle(BounceButtonStyle())
 
-            Button(action: onDissolve) {
-                Text("Dissoudre la session").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.red.opacity(0.5))
+                        Button(action: onDissolve) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.red.opacity(0.6))
+                                .frame(width: 50, height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(.ultraThinMaterial)
+                                        .environment(\.colorScheme, .dark)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.red.opacity(0.15), lineWidth: 1)
+                                )
+                        }.buttonStyle(BounceButtonStyle())
+                    }
+                }
+
+            case .active:
+                if isLeader {
+                    HStack(spacing: 12) {
+                        Button(action: onPause) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "pause.fill").font(.system(size: 14, weight: .bold))
+                                Text("Pause").font(.system(size: 15, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.orange)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
+                            )
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                        }.buttonStyle(BounceButtonStyle())
+
+                        Button(action: onStop) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "stop.fill").font(.system(size: 14, weight: .bold))
+                                Text("Arrêter").font(.system(size: 15, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
+                            )
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                        }.buttonStyle(BounceButtonStyle())
+                    }
+                } else {
+                    HStack(spacing: 12) {
+                        Button(action: onRequestPause) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "hand.raised.fill").font(.system(size: 14, weight: .bold))
+                                Text("Pause").font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.orange)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
+                            )
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                        }.buttonStyle(BounceButtonStyle())
+
+                        Button(action: onLeave) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 14, weight: .bold))
+                                Text("Quitter").font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.red.opacity(0.7))
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
+                            )
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.15), lineWidth: 1))
+                        }.buttonStyle(BounceButtonStyle())
+                    }
+                }
+
+            case .paused:
+                if isLeader {
+                    HStack(spacing: 12) {
+                        Button(action: onResume) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
+                                Text("Reprendre").font(.system(size: 16, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .shadow(color: .green.opacity(0.25), radius: 12, x: 0, y: 4)
+                            )
+                        }.buttonStyle(BounceButtonStyle())
+
+                        Button(action: onStop) {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.red.opacity(0.6))
+                                .frame(width: 50, height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(.ultraThinMaterial)
+                                        .environment(\.colorScheme, .dark)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.red.opacity(0.15), lineWidth: 1)
+                                )
+                        }.buttonStyle(BounceButtonStyle())
+                    }
+                } else {
+                    Button(action: onLeave) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 15, weight: .bold))
+                            Text("Quitter la Session").font(.system(size: 15, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.orange)
+                        .frame(maxWidth: .infinity).padding(.vertical, 15)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
+                        )
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                    }.buttonStyle(BounceButtonStyle())
+                }
+
+            default:
+                EmptyView()
             }
         }
-        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.3), value: showContent)
-        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { startGlow = true } }
     }
 }
 
 
-// MARK: - Leader Active Controls
+// MARK: - Expanded Chat Section (prend plus de place, mieux structuré)
 
-struct LeaderActiveControls: View {
-    let onPause: () -> Void; let onStop: () -> Void; let onDissolve: () -> Void
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Button(action: onPause) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "pause.fill").font(.system(size: 15, weight: .bold))
-                        Text("Pause").font(.system(size: 15, weight: .bold, design: .rounded))
-                    }.foregroundColor(.orange).frame(maxWidth: .infinity).padding(.vertical, 15)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                }.buttonStyle(BounceButtonStyle())
-
-                Button(action: onStop) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "stop.fill").font(.system(size: 15, weight: .bold))
-                        Text("Arrêter").font(.system(size: 15, weight: .bold, design: .rounded))
-                    }.foregroundColor(.red).frame(maxWidth: .infinity).padding(.vertical, 15)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.2), lineWidth: 1))
-                }.buttonStyle(BounceButtonStyle())
-            }
-            Button(action: onDissolve) { Text("Dissoudre").font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25)) }
-        }
-    }
-}
-
-
-// MARK: - Member Active Controls
-
-struct MemberActiveControls: View {
-    let onRequestPause: () -> Void; let onLeave: () -> Void
-    var body: some View {
-        HStack(spacing: 12) {
-            Button(action: onRequestPause) {
-                HStack(spacing: 8) {
-                    Image(systemName: "hand.raised.fill").font(.system(size: 15, weight: .bold))
-                    Text("Pause").font(.system(size: 14, weight: .bold, design: .rounded))
-                }.foregroundColor(.orange).frame(maxWidth: .infinity).padding(.vertical, 15)
-                .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
-            }.buttonStyle(BounceButtonStyle())
-
-            Button(action: onLeave) {
-                HStack(spacing: 8) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 15, weight: .bold))
-                    Text("Quitter").font(.system(size: 14, weight: .bold, design: .rounded))
-                }.foregroundColor(.red.opacity(0.7)).frame(maxWidth: .infinity).padding(.vertical, 15)
-                .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.15), lineWidth: 1))
-            }.buttonStyle(BounceButtonStyle())
-        }
-    }
-}
-
-
-// MARK: - Leader Paused Controls
-
-struct LeaderPausedControls: View {
-    let onResume: () -> Void; let onStop: () -> Void
-    @State private var resumeGlow = false
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Button(action: onResume) {
-                HStack(spacing: 10) {
-                    Image(systemName: "play.fill").font(.system(size: 18, weight: .bold))
-                    Text("Reprendre").font(.system(size: 17, weight: .bold, design: .rounded))
-                }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
-                .background(
-                    RoundedRectangle(cornerRadius: 18).fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .shadow(color: .green.opacity(resumeGlow ? 0.5 : 0.15), radius: resumeGlow ? 18 : 6, x: 0, y: 5)
-                )
-            }.buttonStyle(BounceButtonStyle())
-
-            Button(action: onStop) {
-                Text("Arrêter la session").font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundColor(.red.opacity(0.5))
-            }
-        }
-        .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { resumeGlow = true } }
-    }
-}
-
-
-// MARK: - Chat Section
-
-struct ChatSection: View {
-    let messages: [SessionMessage]; @Binding var messageText: String
-    let showContent: Bool; let onSend: () -> Void; let members: [SessionMember]
-    @State private var showMentionPicker = false; @State private var mentionSearchText = ""
+struct ExpandedChatSection: View {
+    let messages: [SessionMessage]
+    @Binding var messageText: String
+    let showContent: Bool
+    let onSend: () -> Void
+    let members: [SessionMember]
+    @State private var showMentionPicker = false
+    @State private var mentionSearchText = ""
     @FocusState private var isInputFocused: Bool
 
     var filteredMentionMembers: [SessionMember] {
@@ -1164,105 +1578,251 @@ struct ChatSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
             HStack(spacing: 6) {
-                Image(systemName: "bubble.left.and.bubble.right.fill").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.25))
-                Text("CHAT").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.3))
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.25))
+                Text("CHAT")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.3))
                 if !messages.isEmpty {
-                    Text("\(messages.count)").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.6))
+                    Text("\(messages.count)")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.cyan.opacity(0.6))
                 }
             }
 
+            // Messages
             if messages.isEmpty {
                 HStack(spacing: 8) {
-                    Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 16, weight: .light)).foregroundColor(.white.opacity(0.12))
-                    Text("Aucun message").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.2))
-                }.padding(.vertical, 12)
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundColor(.white.opacity(0.12))
+                    Text("Aucun message — lance la conversation !")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.2))
+                }
+                .padding(.vertical, 16)
             } else {
-                VStack(spacing: 4) { ForEach(messages.suffix(12)) { message in MessageRowOpen(message: message) } }
+                // Scroll de messages avec hauteur adaptive
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        LazyVStack(spacing: 2) {
+                            ForEach(messages) { message in
+                                ChatBubbleRow(message: message)
+                                    .id(message.id)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .frame(maxHeight: 320)
+                    .mask(
+                        VStack(spacing: 0) {
+                            LinearGradient(colors: [.clear, .white], startPoint: .top, endPoint: .bottom)
+                                .frame(height: 12)
+                            Color.white
+                            LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom)
+                                .frame(height: 8)
+                        }
+                    )
+                    .onChange(of: messages.count) { _, _ in
+                        if let lastId = messages.last?.id {
+                            withAnimation(.spring(response: 0.3)) {
+                                proxy.scrollTo(lastId, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
             }
 
+            // Mention picker
             if showMentionPicker && !filteredMentionMembers.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) { ForEach(filteredMentionMembers) { m in MentionChip(member: m) { insertMention(m.username) } } }
-                }.frame(height: 36).transition(.move(edge: .bottom).combined(with: .opacity))
+                    HStack(spacing: 6) {
+                        ForEach(filteredMentionMembers) { m in
+                            MentionChip(member: m) { insertMention(m.username) }
+                        }
+                    }
+                }
+                .frame(height: 36)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
+            // Input bar
             HStack(spacing: 10) {
                 HStack(spacing: 6) {
-                    Button(action: { withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() } }) {
-                        Image(systemName: "at").font(.system(size: 15, weight: .bold))
-                            .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.3)).frame(width: 30, height: 30)
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() }
+                    }) {
+                        Image(systemName: "at")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.3))
+                            .frame(width: 30, height: 30)
                     }
-                    TextField("Message...", text: $messageText).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
+
+                    TextField("Message...", text: $messageText)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.white)
                         .focused($isInputFocused)
                         .onChange(of: messageText) { _, v in checkForMentionTrigger(v) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(isInputFocused ? Color.cyan.opacity(0.25) : Color.white.opacity(0.04), lineWidth: 1))
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.white.opacity(0.05))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(isInputFocused ? Color.cyan.opacity(0.25) : Color.white.opacity(0.04), lineWidth: 1)
+                )
 
                 Button(action: onSend) {
-                    Image(systemName: "arrow.up.circle.fill").font(.system(size: 32))
-                        .foregroundStyle(messageText.isEmpty ? LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.2)], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom))
-                }.disabled(messageText.isEmpty).buttonStyle(BounceButtonStyle())
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(
+                            messageText.isEmpty
+                            ? LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.2)], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom)
+                        )
+                }
+                .disabled(messageText.isEmpty)
+                .buttonStyle(BounceButtonStyle())
             }
         }
         .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.25), value: showContent)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
     }
 
     private func checkForMentionTrigger(_ text: String) {
-        if text.hasSuffix("@") { withAnimation(.spring(response: 0.3)) { showMentionPicker = true }; mentionSearchText = "" }
-        else if let idx = text.lastIndex(of: "@") {
+        if text.hasSuffix("@") {
+            withAnimation(.spring(response: 0.3)) { showMentionPicker = true }
+            mentionSearchText = ""
+        } else if let idx = text.lastIndex(of: "@") {
             let after = String(text[text.index(after: idx)...])
-            if !after.contains(" ") { withAnimation(.spring(response: 0.3)) { showMentionPicker = true }; mentionSearchText = after }
-        } else { withAnimation(.spring(response: 0.3)) { showMentionPicker = false } }
+            if !after.contains(" ") {
+                withAnimation(.spring(response: 0.3)) { showMentionPicker = true }
+                mentionSearchText = after
+            }
+        } else {
+            withAnimation(.spring(response: 0.3)) { showMentionPicker = false }
+        }
     }
 
     private func insertMention(_ username: String) {
-        if let idx = messageText.lastIndex(of: "@") { messageText = String(messageText[..<idx]) + "@\(username) " }
-        else { messageText += "@\(username) " }
-        withAnimation(.spring(response: 0.3)) { showMentionPicker = false }; mentionSearchText = ""; isInputFocused = true
+        if let idx = messageText.lastIndex(of: "@") {
+            messageText = String(messageText[..<idx]) + "@\(username) "
+        } else {
+            messageText += "@\(username) "
+        }
+        withAnimation(.spring(response: 0.3)) { showMentionPicker = false }
+        mentionSearchText = ""
+        isInputFocused = true
     }
 }
 
-struct MentionChip: View {
-    let member: SessionMember; let onTap: () -> Void
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 5) {
-                Circle().fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 18, height: 18)
-                    .overlay(Text(String(member.username.prefix(1)).uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(.white))
-                Text("@\(member.username)").font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.8))
-            }.padding(.horizontal, 9).padding(.vertical, 6).background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.1)))
-        }.buttonStyle(BounceButtonStyle())
-    }
-}
 
-struct MessageRowOpen: View {
+// MARK: - Chat Bubble Row (plus compact, bulles alignées)
+
+struct ChatBubbleRow: View {
     let message: SessionMessage
     private var isSystem: Bool { message.messageType == .systemAlert }
     @State private var appeared = false
 
+    private let bubbleColors: [Color] = [
+        Color(red: 0.4, green: 0.6, blue: 1.0),
+        Color(red: 0.6, green: 0.4, blue: 1.0),
+        Color(red: 0.3, green: 0.8, blue: 0.7),
+        Color(red: 1.0, green: 0.5, blue: 0.4),
+    ]
+
     var body: some View {
         Group {
             if isSystem {
-                Text(message.content).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).italic().frame(maxWidth: .infinity).padding(.vertical, 6)
+                Text(message.content)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.3))
+                    .italic()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             } else {
-                HStack(alignment: .top, spacing: 8) {
-                    Circle().fill(LinearGradient(colors: [.cyan.opacity(0.6), .blue.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 24, height: 24)
-                        .overlay(Text(String(message.username.prefix(1)).uppercased()).font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.white))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(message.username).font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
-                        Text(message.content).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.8))
+                HStack(alignment: .top, spacing: 10) {
+                    // Avatar petit
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    bubbleColors[abs(message.username.hashValue) % bubbleColors.count],
+                                    bubbleColors[abs(message.username.hashValue) % bubbleColors.count].opacity(0.6)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Text(String(message.username.prefix(1)).uppercased())
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        )
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(message.username)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(bubbleColors[abs(message.username.hashValue) % bubbleColors.count].opacity(0.8))
+
+                        Text(message.content)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
                     }
-                    Spacer()
-                }.padding(.vertical, 6)
+
+                    Spacer(minLength: 40)
+                }
+                .padding(.vertical, 3)
             }
         }
-        .opacity(appeared ? 1 : 0).offset(y: appeared ? 0 : 6)
-        .onAppear { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { appeared = true } }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 6)
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { appeared = true }
+        }
+    }
+}
+
+
+// MARK: - Mention Chip
+
+struct MentionChip: View {
+    let member: SessionMember
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 18, height: 18)
+                    .overlay(
+                        Text(String(member.username.prefix(1)).uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+                Text("@\(member.username)")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.horizontal, 9).padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.1)))
+        }
+        .buttonStyle(BounceButtonStyle())
     }
 }
 
@@ -1270,7 +1830,8 @@ struct MessageRowOpen: View {
 // MARK: - Completed Content
 
 struct CompletedContent: View {
-    let session: Session; let showContent: Bool
+    let session: Session
+    let showContent: Bool
     @State private var confetti = false
 
     var body: some View {
@@ -1305,14 +1866,17 @@ struct CompletedContent: View {
 // MARK: - Dissolved Content
 
 struct DissolvedContent: View {
-    let session: Session; let showContent: Bool
+    let session: Session
+    let showContent: Bool
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "xmark.circle.fill").font(.system(size: 52, weight: .light))
                 .foregroundStyle(LinearGradient(colors: [.gray.opacity(0.5), .gray.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
             Text("Session Dissoute").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.6))
             Text("Fermée par le leader").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.3))
-        }.frame(maxWidth: .infinity).padding(.vertical, 48).opacity(showContent ? 1 : 0)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 48).opacity(showContent ? 1 : 0)
     }
 }
 
@@ -1320,7 +1884,8 @@ struct DissolvedContent: View {
 // MARK: - Pause Request Sheet
 
 struct PauseRequestSheet: View {
-    @Binding var reason: String; let onSubmit: () -> Void
+    @Binding var reason: String
+    let onSubmit: () -> Void
     @Environment(\.dismiss) var dismiss
     @State private var iconBreathe = false
 
@@ -1339,17 +1904,28 @@ struct PauseRequestSheet: View {
                         Text("Le leader devra accepter").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.45))
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("RAISON (OPTIONNEL)").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.0).foregroundColor(.white.opacity(0.35))
-                        TextField("Ex: Besoin d'une pause", text: $reason).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
-                            .padding(16).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                        Text("RAISON (OPTIONNEL)")
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .tracking(1.0)
+                            .foregroundColor(.white.opacity(0.35))
+                        TextField("Ex: Besoin d'une pause", text: $reason)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(16)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                     Button(action: onSubmit) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill").font(.system(size: 16, weight: .bold))
                             Text("Envoyer").font(.system(size: 17, weight: .bold, design: .rounded))
-                        }.foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(LinearGradient(colors: [.orange, Color(red: 1.0, green: 0.6, blue: 0.2)], startPoint: .topLeading, endPoint: .bottomTrailing)).shadow(color: .orange.opacity(0.3), radius: 14, x: 0, y: 6))
+                        }
+                        .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(LinearGradient(colors: [.orange, Color(red: 1.0, green: 0.6, blue: 0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .shadow(color: .orange.opacity(0.3), radius: 14, x: 0, y: 6)
+                        )
                     }.buttonStyle(BounceButtonStyle())
                     Spacer()
                 }.padding(.horizontal, 24).padding(.top, 40)
@@ -1357,11 +1933,51 @@ struct PauseRequestSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss() }) { Image(systemName: "xmark.circle.fill").font(.system(size: 24)).foregroundColor(.white.opacity(0.3)) }
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 24)).foregroundColor(.white.opacity(0.3))
+                    }
                 }
             }
         }
         .onAppear { withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) { iconBreathe = true } }
+    }
+}
+
+
+// MARK: - Time Remaining Pill
+
+struct TimeRemainingPill: View {
+    let endTime: Date
+    @State private var timeRemaining = ""
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "timer").font(.system(size: 10))
+            Text(timeRemaining.isEmpty ? "..." : timeRemaining)
+                .font(.system(size: 13, weight: .bold, design: .monospaced))
+        }
+        .foregroundColor(.cyan.opacity(0.7))
+        .onAppear { updateTimeRemaining() }
+        .onReceive(timer) { _ in updateTimeRemaining() }
+    }
+
+    private func updateTimeRemaining() {
+        let remaining = endTime.timeIntervalSinceNow
+        if remaining <= 0 {
+            timeRemaining = "Terminé"
+            timer.upstream.connect().cancel()
+        } else {
+            let hours = Int(remaining) / 3600
+            let minutes = Int(remaining) % 3600 / 60
+            let seconds = Int(remaining) % 60
+
+            if hours > 0 {
+                timeRemaining = String(format: "%dh %02dm", hours, minutes)
+            } else {
+                timeRemaining = String(format: "%d:%02d", minutes, seconds)
+            }
+        }
     }
 }
 
@@ -1377,7 +1993,10 @@ struct PauseRequestSheet: View {
         maxParticipants: 10, status: .lobby,
         createdAt: .init(), startedAt: nil, endedAt: nil,
         pausedAt: nil, pausedBy: nil,
-        memberIds: ["user1", "user2", "user3"], suggestedAppsCount: 3
+        memberIds: ["user1", "user2", "user3"],
+        durationMinutes: nil,
+        scheduledEndTime: nil,
+        suggestedAppsCount: 3
     ))
     .environmentObject(ZenloopManager.shared)
 }
