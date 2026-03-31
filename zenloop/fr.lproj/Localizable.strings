@@ -1203,3 +1203,34 @@
 "per_month_short" = "/mois";
 "subscription_plan" = "Abonnement";
 "cancel_anytime" = "Annulable à tout moment";
+
+// Persistent Blocks Alert
+"restrictions_persistantes" = "Restrictions persistantes";
+"aucune_session_active" = "Vous n'êtes lié à aucune session active";
+"lever_toutes_restrictions" = "Lever toutes les restrictions";
+
+// Scheduled Sessions Notifications
+"scheduled_session_reminder" = "Rappel de session programmée";
+"session_starts_in_15_minutes" = "Votre session commence dans 15 minutes";
+"session_starts_in_5_minutes" = "Votre session commence dans 5 minutes";
+"session_started" = "Session démarrée";
+"your_scheduled_session_has_started" = "Votre session programmée a commencé !";
+"your_scheduled_session_has_ended" = "Votre session programmée est terminée. Excellent travail !";
+
+// Session Event Notifications
+"new_member_joined" = "Nouveau membre";
+"member_joined_session" = "%@ a rejoint la session \"%@\"";
+"member_left" = "Membre parti";
+"member_left_session" = "%@ a quitté la session \"%@\"";
+"session_has_started" = "Session démarrée";
+"session_started_by" = "\"%@\" démarrée par %@";
+"pause_requested" = "Pause demandée";
+"pause_requested_by" = "%@ a demandé une pause dans \"%@\"";
+"session_paused" = "Session en pause";
+"session_paused_by" = "\"%@\" mise en pause par %@";
+"session_resumed" = "Session reprise";
+"session_resumed_by" = "\"%@\" reprise par %@";
+"session_ended" = "Session terminée";
+"session_ended_by" = "\"%@\" terminée par %@";
+"member_needs_support" = "Membre en difficulté";
+"member_struggling" = "%@ a des difficultés (%d tentatives d'ouverture d'apps)";

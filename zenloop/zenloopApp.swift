@@ -9,6 +9,7 @@ import SwiftUI
 import DeviceActivity
 import UserNotifications
 import Firebase
+import FirebaseAuth
 import FirebaseFirestore
 import FamilyControls
 import ManagedSettings
@@ -172,6 +173,11 @@ struct zenloopApp: App {
                     Task {
                         // Firebase: Enregistrer le device au premier lancement
                         await FirebaseManager.shared.registerDeviceOnFirstLaunch()
+
+                        // ✅ NOUVEAU: Configurer les notifications push FCM
+                        if Auth.auth().currentUser != nil {
+                            await PushNotificationManager.shared.setup()
+                        }
 
                         // Clean up obsolete App Group keys
                         cleanupAppGroup()

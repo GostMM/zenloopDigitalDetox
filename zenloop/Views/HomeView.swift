@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import FamilyControls
 
 struct HomeView: View {
@@ -17,18 +18,30 @@ struct HomeView: View {
     @StateObject private var dailyReportManager = DailyReportManager.shared
     @StateObject private var onboardingManager = OnboardingManager.shared
     @StateObject private var topAppsDisplayManager = TopAppsDisplayManager.shared
+    @StateObject private var sessionManager = SessionManager.shared
+    @StateObject private var globalShieldManager = GlobalShieldManager.shared
     @State private var showContent = false
     @State private var syncTimer: Timer?
 
 
     // MARK: - Computed Properties
-    
+
     private var isIdle: Bool {
         zenloopManager.currentState == .idle
     }
-    
+
     private var isActive: Bool {
         zenloopManager.currentState != .idle
+    }
+
+    // Vérifie si l'utilisateur n'est lié à aucune session active
+    private var hasNoActiveSession: Bool {
+        return sessionManager.currentSession == nil
+    }
+
+    // Vérifie si des restrictions persistent
+    private var hasPersistentBlocks: Bool {
+        return globalShieldManager.hasActiveBlocks()
     }
     
     
@@ -57,6 +70,18 @@ struct HomeView: View {
                         if isIdle {
                             TimerCard(zenloopManager: zenloopManager, showContent: showContent)
                                 .padding(.top, 20)
+
+                            // Alerte pour les restrictions persistantes sans session active
+                            if hasNoActiveSession && hasPersistentBlocks {
+                                PersistentBlocksAlert(onClearBlocks: {
+                                    globalShieldManager.clearAllBlocks()
+                                })
+                                .padding(.horizontal, 20)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .top).combined(with: .opacity)
+                                ))
+                            }
 
                             // Upcoming Scheduled Sessions
                             UpcomingSessionsCard(
@@ -509,6 +534,92 @@ struct TopAppsBottomSheet: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+        )
+    }
+}
+
+// MARK: - Persistent Blocks Alert Card
+
+struct PersistentBlocksAlert: View {
+    let onClearBlocks: () -> Void
+    @State private var isClearing = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                // Icône d'avertissement
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.2))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "restrictions_persistantes"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+
+                    Text(String(localized: "aucune_session_active"))
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+
+                Spacer()
+            }
+
+            // Bouton pour lever toutes les restrictions
+            Button {
+                isClearing = true
+                onClearBlocks()
+
+                // Feedback haptique
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+
+                // Attendre un peu avant de réinitialiser
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isClearing = false
+                }
+            } label: {
+                HStack {
+                    if isClearing {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+
+                    Text(String(localized: "lever_toutes_restrictions"))
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Color.orange, Color.orange.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(10)
+            }
+            .disabled(isClearing)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(red: 0.12, green: 0.12, blue: 0.14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
+                )
         )
     }
 }

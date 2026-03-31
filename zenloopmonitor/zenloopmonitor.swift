@@ -4,6 +4,9 @@
 //
 //  Created by MROIVILI MOUSTOIFA on 01/08/2025.
 //
+//  ✅ FIX: intervalDidStart pour sessions programmées applique correctement le shield
+//  ✅ FIX: intervalDidEnd nettoie le payload des sessions programmées
+//
 
 import DeviceActivity
 import Foundation
@@ -34,6 +37,23 @@ struct SessionInfo: Codable {
     let startTime: Date
     let endTime: Date
     let createdAt: Date
+}
+
+// ✅ Shared with main app — MUST stay identical to ScheduledSessionCoordinator.swift
+struct ScheduledSessionInfo: Codable {
+    let sessionId: String
+    let startTime: Date
+    let endTime: Date
+    var status: ScheduledSessionStatus
+    var actualStartTime: Date?
+    var actualEndTime: Date?
+}
+
+enum ScheduledSessionStatus: String, Codable {
+    case scheduled  // Planifiée, en attente
+    case started    // Démarrée automatiquement
+    case completed  // Terminée automatiquement
+    case cancelled  // Annulée manuellement
 }
 
 // MARK: - Block Models
@@ -92,12 +112,18 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
+        let logger = Logger(subsystem: "com.app.zenloop.monitor", category: "IntervalStart")
+
+        logger.critical("🚀 [MONITOR] ===== INTERVAL STARTED =====")
+        logger.critical("🎯 [MONITOR] Activity: \(activity.rawValue)")
+        logger.critical("🕐 [MONITOR] Time: \(Date())")
+
         print("🚀 [MONITOR] ===== INTERVAL STARTED =====")
         print("🎯 [MONITOR] Activity: \(activity.rawValue)")
         print("🕐 [MONITOR] Time: \(Date())")
 
         // ✅ APPLE-COMPLIANT: Appliquer le shield depuis le Monitor
-        // C'est ici que le blocage doit se faire, pas depuis l'app principale
+        // applyShield cherche "payload_<activity.rawValue>" dans App Group
         applyShield(for: activity)
 
         // Déterminer le type d'activité
@@ -105,15 +131,21 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             // Blocage individuel depuis Report Extension
             print("📱 [MONITOR] This is a block activity")
             handleBlockActivity(activity)
+        } else if activity.rawValue.hasPrefix("scheduled_session_") {
+            // ✅ FIX: Session sociale programmée — démarrer la session Firebase
+            print("⏰ [MONITOR] This is a scheduled social session")
+            logger.critical("⏰ [MONITOR] Scheduled social session detected: \(activity.rawValue)")
+            activateSessionInMainApp(for: activity)
         } else if activity.rawValue.hasPrefix("scheduled_") {
-            // Session programmée (défi)
-            print("⏰ [MONITOR] This is a scheduled session")
+            // Ancien système de défis
+            print("⏰ [MONITOR] This is a scheduled challenge")
             activateSessionInMainApp(for: activity)
         }
 
         // Notifier l'app principale
         notifyMainApp(event: "intervalDidStart", activity: activity.rawValue)
 
+        logger.critical("✅ [MONITOR] Shield applied, interval active")
         print("✅ [MONITOR] Shield applied, interval active")
     }
     
@@ -162,8 +194,16 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             removeFromDefaultStore(for: activity)
             logger.critical("✅ [MONITOR] DEFAULT store removal completed")
             print("✅ [MONITOR] DEFAULT store removal completed")
+        } else if activity.rawValue.hasPrefix("scheduled_session_") {
+            // ✅ FIX: Arrêter automatiquement la session sociale programmée
+            logger.critical("⏰ [MONITOR] Detected scheduled_session_ activity END")
+            print("⏰ [MONITOR] Detected scheduled_session_ activity END")
+            handleScheduledSessionEnd(activity)
+
+            // ✅ FIX: Nettoyer le payload de la session programmée
+            cleanupScheduledSessionPayload(for: activity)
         } else if activity.rawValue.hasPrefix("scheduled_") {
-            // Sauvegarder les stats de session
+            // Sauvegarder les stats de session (ancien système de défis)
             logger.critical("⏰ [MONITOR] Detected scheduled_ activity")
             print("⏰ [MONITOR] Detected scheduled_ activity")
             stopMonitoringIfSingleSession(activity: activity)
@@ -195,27 +235,13 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         }
     }
     
-    // Note: Les méthodes d'avertissement ne sont pas disponibles dans DeviceActivityMonitor
-    // Elles sont gérées automatiquement par le système
-    
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
         
-        // Logique quand un seuil est atteint (par exemple, limite de temps d'app)
         print("⚠️ [DeviceActivity] Seuil atteint pour l'événement: \(event) dans l'activité: \(activity)")
         
-        // Notifier l'app principale
         notifyMainApp(event: "thresholdReached", activity: activity.rawValue, eventName: event.rawValue)
-        
-        // Threshold reached - notification removed
-        // scheduleNotification(
-        //     title: "Limite atteinte",
-        //     body: "Vous avez atteint votre limite d'utilisation. Temps de faire une pause !",
-        //     identifier: "threshold_reached_\(event.rawValue)"
-        // )
     }
-    
-    // Note: eventWillReachThresholdWarning n'est pas disponible non plus
     
     // MARK: - Shield Management (CRUCIAL for background blocking)
     
@@ -234,7 +260,8 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         // Debug: Lister toutes les clés disponibles
         let allKeys = suite.dictionaryRepresentation().keys.sorted()
-        print("📋 [MONITOR] Available keys in App Group: \(allKeys.prefix(10).joined(separator: ", "))")
+        let payloadKeys = allKeys.filter { $0.hasPrefix("payload_") }
+        print("📋 [MONITOR] Payload keys in App Group: \(payloadKeys.joined(separator: ", "))")
 
         // Vérifier si c'est un test payload
         if let testPayload = suite.string(forKey: expectedKey) {
@@ -245,7 +272,23 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         // Décoder le payload
         guard let data = suite.data(forKey: expectedKey) else {
             print("❌ [MONITOR] No payload data found for key: \(expectedKey)")
-            print("⚠️ [MONITOR] This might mean the BlockAppSheet didn't save the payload correctly")
+            print("⚠️ [MONITOR] This might mean the payload wasn't saved correctly")
+
+            // ✅ FIX: Fallback — essayer la clé des apps de session programmée
+            if activity.rawValue.hasPrefix("scheduled_session_") {
+                let sessionId = String(activity.rawValue.dropFirst("scheduled_session_".count))
+                let appsKey = "scheduled_session_apps_\(sessionId)"
+                print("🔄 [MONITOR] Trying fallback key: \(appsKey)")
+
+                if let selectionData = suite.data(forKey: appsKey),
+                   let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: selectionData) {
+                    print("✅ [MONITOR] Fallback: Found FamilyActivitySelection")
+                    applyShieldFromSelection(selection, activityName: activity.rawValue)
+                    return
+                } else {
+                    print("❌ [MONITOR] Fallback also failed — no apps to block")
+                }
+            }
             return
         }
 
@@ -269,12 +312,10 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         switch mode {
         case .shield:
-            // Mode Shield: Blocage avec overlay
             if !payload.apps.isEmpty {
                 print("🔒 [MONITOR] Applying shield to \(payload.apps.count) app(s)...")
                 store.shield.applications = Set(payload.apps)
 
-                // Vérification immédiate
                 let appliedApps = store.shield.applications?.count ?? 0
                 print("✅ [MONITOR] Shield applied to \(appliedApps) app(s)")
 
@@ -290,7 +331,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             }
 
         case .hide:
-            // Mode Hide: Masquage complet des apps individuelles
             if !payload.apps.isEmpty {
                 print("🚫 [MONITOR] Hiding \(payload.apps.count) app(s) completely...")
                 let blockedApps: Set<Application> = Set(payload.apps.map { Application(token: $0) })
@@ -298,7 +338,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
                 print("✅ [MONITOR] Apps hidden completely")
             }
 
-            // Pour les catégories en mode hide, on utilise quand même shield
             if !payload.categories.isEmpty {
                 store.shield.applicationCategories = .specific(Set(payload.categories))
                 print("✅ [MONITOR] Shield applied for categories (hide mode)")
@@ -312,6 +351,25 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             print("   → Mode: \(mode.rawValue)")
             print("   → Apps blocked: \(payload.apps.count)")
             print("   → Categories blocked: \(payload.categories.count)")
+        }
+    }
+
+    /// ✅ NEW: Fallback — applique le shield depuis une FamilyActivitySelection brute
+    private func applyShieldFromSelection(_ selection: FamilyActivitySelection, activityName: String) {
+        let store = ManagedSettingsStore(named: ManagedSettingsStore.Name(activityName))
+
+        if !selection.applicationTokens.isEmpty {
+            store.shield.applications = selection.applicationTokens
+            print("🛡️ [MONITOR] Fallback shield applied to \(selection.applicationTokens.count) app(s)")
+        }
+
+        if !selection.categoryTokens.isEmpty {
+            store.shield.applicationCategories = .specific(selection.categoryTokens)
+            print("🛡️ [MONITOR] Fallback shield applied to \(selection.categoryTokens.count) category(ies)")
+        }
+
+        if selection.applicationTokens.isEmpty && selection.categoryTokens.isEmpty {
+            print("⚠️ [MONITOR] Fallback: No apps or categories in selection")
         }
     }
 
@@ -428,40 +486,41 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         logger.critical("🧹 [MONITOR] Cleaned up mapping: \(mappingKey)")
         print("🧹 [MONITOR] Cleaned up mapping: \(mappingKey)")
     }
+
+    // MARK: - ✅ NEW: Cleanup Scheduled Session Payload
+
+    /// Nettoie les données de payload et apps d'une session programmée après son arrêt
+    private func cleanupScheduledSessionPayload(for activity: DeviceActivityName) {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
+
+        let activityName = activity.rawValue
+
+        // Nettoyer le payload
+        suite.removeObject(forKey: "payload_\(activityName)")
+
+        // Nettoyer les apps si c'est une session sociale
+        if activityName.hasPrefix("scheduled_session_") {
+            let sessionId = String(activityName.dropFirst("scheduled_session_".count))
+            suite.removeObject(forKey: "scheduled_session_apps_\(sessionId)")
+
+            // Retirer de la liste des sessions actives
+            var activeSchedules = suite.stringArray(forKey: "active_scheduled_sessions") ?? []
+            activeSchedules.removeAll { $0 == sessionId }
+            suite.set(activeSchedules, forKey: "active_scheduled_sessions")
+        }
+
+        suite.synchronize()
+        print("🧹 [MONITOR] Cleaned up scheduled session payload for: \(activityName)")
+    }
     
     // MARK: - Helper Methods
     
-    // Extension notifications disabled - function commented out
-    /*
-    private func scheduleNotification(title: String, body: String, identifier: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        
-        // Déclencher immédiatement
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Erreur notification: \(error)")
-            }
-        }
-    }
-    */
-    
     private func saveChallengeCompletion(activityName: DeviceActivityName) {
-        // Utiliser App Groups pour partager les données avec l'app principale
         let userDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
         
-        // Récupérer les défis complétés existants
         var completedChallenges = userDefaults?.array(forKey: "completedChallengeIds") as? [String] ?? []
-        
-        // Ajouter le nouveau défi complété
         completedChallenges.append(activityName.rawValue)
         
-        // Sauvegarder
         userDefaults?.set(completedChallenges, forKey: "completedChallengeIds")
         userDefaults?.set(Date(), forKey: "lastChallengeCompletedDate")
         
@@ -471,7 +530,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     // MARK: - Communication avec l'app principale
     
     private func notifyMainApp(event: String, activity: String, eventName: String? = nil) {
-        // Utiliser UserDefaults pour communiquer avec l'app principale
         let defaults = UserDefaults(suiteName: "group.com.app.zenloop") ?? UserDefaults.standard
         
         let notification: [String: Any] = [
@@ -481,11 +539,9 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             "eventName": eventName as Any
         ]
         
-        // Sauvegarder la notification
         var notifications = defaults.array(forKey: "device_activity_events") as? [[String: Any]] ?? []
         notifications.append(notification)
         
-        // Garder seulement les 50 dernières notifications
         if notifications.count > 50 {
             notifications = Array(notifications.suffix(50))
         }
@@ -497,14 +553,11 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     }
     
     private func recordAppAttempt(appName: String? = nil) {
-        // Enregistrer les tentatives d'ouverture d'apps bloquées
         let defaults = UserDefaults(suiteName: "group.com.app.zenloop") ?? UserDefaults.standard
         
-        // Incrementer le compteur total
         let currentCount = defaults.integer(forKey: "app_open_attempts")
         defaults.set(currentCount + 1, forKey: "app_open_attempts")
         
-        // Enregistrer la tentative avec timestamp
         var attempts = defaults.array(forKey: "app_attempt_log") as? [[String: Any]] ?? []
         let attempt: [String: Any] = [
             "timestamp": Date().timeIntervalSince1970,
@@ -512,7 +565,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         ]
         attempts.append(attempt)
         
-        // Garder seulement les 100 dernières tentatives
         if attempts.count > 100 {
             attempts = Array(attempts.suffix(100))
         }
@@ -525,20 +577,17 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     
     // MARK: - Block Activity Management
 
-    /// Gère les activités de blocage individuel (block-*)
     private func handleBlockActivity(_ activity: DeviceActivityName) {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
             print("❌ [MONITOR] Cannot access App Group")
             return
         }
 
-        // Extraire le blockId depuis le nom de l'activité
         let activityName = activity.rawValue
         let blockId = String(activityName.dropFirst("block-".count))
 
         print("📝 [MONITOR] Processing block activity - ID: \(blockId)")
 
-        // Récupérer les infos du block depuis App Group
         guard let blockInfoDict = suite.dictionary(forKey: "block_info_\(blockId)") else {
             print("⚠️ [MONITOR] No block info found for \(blockId)")
             return
@@ -557,7 +606,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         print("   → Duration: \(Int(duration/60)) minutes")
         print("   → Block ID: \(blockId)")
 
-        // Créer l'ActiveBlock pour affichage dans l'UI
         let activeBlock = ActiveBlock(
             id: blockId,
             appName: appName,
@@ -567,13 +615,11 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             status: .active
         )
 
-        // Sauvegarder dans la liste des blocks actifs
         saveBlockToAppGroup(activeBlock)
 
         print("💾 [MONITOR] Block saved to active blocks list")
     }
 
-    /// Gère la fin d'une activité de blocage
     private func handleBlockActivityEnd(_ activity: DeviceActivityName) {
         let activityName = activity.rawValue
         let blockId = String(activityName.dropFirst("block-".count))
@@ -585,25 +631,19 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             return
         }
 
-        // 1. Récupérer le block info pour trouver le blockManagerId
         if let blockInfoDict = suite.dictionary(forKey: "block_info_\(blockId)"),
            let blockManagerId = blockInfoDict["blockId"] as? String {
 
             print("🗑️ [MONITOR] Removing block: \(blockManagerId)")
-
-            // Retirer du storage (utilise les fonctions locales)
             removeBlockFromAppGroup(blockId: blockManagerId)
-
             print("✅ [MONITOR] Block removed from storage")
         }
 
-        // 2. Nettoyer le storeName mapping
         if let storedStoreName = suite.string(forKey: "storeName_\(blockId)") {
             print("🧹 [MONITOR] Cleaning storeName mapping: \(storedStoreName)")
             suite.removeObject(forKey: "storeName_\(blockId)")
         }
 
-        // 3. Nettoyer les infos temporaires
         suite.removeObject(forKey: "block_info_\(blockId)")
         suite.removeObject(forKey: "payload_\(activityName)")
         suite.synchronize()
@@ -613,63 +653,114 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
     // MARK: - Session Activation
 
+    /// ✅ Démarre automatiquement une session sociale programmée
     private func activateSessionInMainApp(for activity: DeviceActivityName) {
-        let suite = UserDefaults(suiteName: "group.com.app.zenloop")
-        
-        // Récupérer les infos de session depuis l'App Group
-        let sessionKey = "session_info_\(activity.rawValue)"
-        
-        guard let sessionData = suite?.data(forKey: sessionKey),
-              let sessionInfo = try? JSONDecoder().decode(SessionInfo.self, from: sessionData) else {
-            print("⚠️ [DeviceActivity] No session info found for \(activity.rawValue)")
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [MONITOR] Cannot access App Group")
             return
         }
-        
-        // NOUVEAU: Gestion des sessions multiples - utiliser un système de queue
-        let activationId = "\(activity.rawValue)_\(Date().timeIntervalSince1970)"
-        
-        // Créer un challenge actif avec ID unique et timing correct
-        let activeChallenge: [String: Any] = [
-            "id": sessionInfo.sessionId,
-            "title": sessionInfo.title,
-            "duration": sessionInfo.duration,
-            "startTime": sessionInfo.startTime.timeIntervalSince1970, // CORRIGÉ: Utiliser l'heure programmée réelle
-            "isActive": true,
-            "isScheduled": true, // Marquer comme session programmée
-            "originalStartTime": sessionInfo.startTime.timeIntervalSince1970,
-            "activationId": activationId, // ID unique pour éviter les collisions
-            "extensionTriggeredAt": Date().timeIntervalSince1970, // Quand l'extension s'est déclenchée
-            "sessionPayloadKey": "payload_\(activity.rawValue)" // Référence aux apps à bloquer
-        ]
-        
-        // NOUVEAU: Ajouter à une queue au lieu d'écraser
-        addSessionToActivationQueue(session: activeChallenge, activationId: activationId, suite: suite!)
-        
-        print("🔥 [DeviceActivity] Session queued for activation: \(sessionInfo.title) (ID: \(activationId))")
+
+        let activityName = activity.rawValue
+        guard activityName.hasPrefix("scheduled_session_") else {
+            print("⚠️ [MONITOR] Invalid scheduled session activity name: \(activityName)")
+            return
+        }
+
+        let sessionId = String(activityName.dropFirst("scheduled_session_".count))
+        print("🚀 [MONITOR] === AUTO-STARTING SCHEDULED SESSION ===")
+        print("📝 [MONITOR] Session ID: \(sessionId)")
+
+        // Récupérer les infos de la session programmée
+        guard let infoData = suite.data(forKey: "scheduled_session_\(sessionId)"),
+              let info = try? JSONDecoder().decode(ScheduledSessionInfo.self, from: infoData) else {
+            print("❌ [MONITOR] No scheduled session info found for \(sessionId)")
+            return
+        }
+
+        // Vérifier que c'est bien l'heure de démarrer
+        let now = Date()
+        if now < info.startTime {
+            print("⚠️ [MONITOR] Too early to start session (scheduled for \(info.startTime))")
+            return
+        }
+
+        print("✅ [MONITOR] Scheduled session info loaded")
+        print("   → Start: \(info.startTime.formatted())")
+        print("   → End: \(info.endTime.formatted())")
+
+        // Marquer la session comme démarrée
+        var updatedInfo = info
+        updatedInfo.status = .started
+        updatedInfo.actualStartTime = now
+
+        if let data = try? JSONEncoder().encode(updatedInfo) {
+            suite.set(data, forKey: "scheduled_session_\(sessionId)")
+            suite.synchronize()
+        }
+
+        // ✅ CRUCIAL: Signaler à l'app principale de démarrer la session Firebase
+        suite.set(sessionId, forKey: "auto_start_session_id")
+        suite.set(Date().timeIntervalSince1970, forKey: "auto_start_session_timestamp")
+        suite.synchronize()
+
+        print("🔥 [MONITOR] Scheduled session auto-start triggered: \(sessionId)")
+        print("🎯 [MONITOR] Main app will start Firebase session on next activation")
     }
-    
+
+    /// ✅ Arrête automatiquement une session sociale programmée
+    private func handleScheduledSessionEnd(_ activity: DeviceActivityName) {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [MONITOR] Cannot access App Group")
+            return
+        }
+
+        let activityName = activity.rawValue
+        let sessionId = String(activityName.dropFirst("scheduled_session_".count))
+
+        print("🛑 [MONITOR] === AUTO-STOPPING SCHEDULED SESSION ===")
+        print("📝 [MONITOR] Session ID: \(sessionId)")
+
+        // Récupérer les infos de la session programmée
+        if let infoData = suite.data(forKey: "scheduled_session_\(sessionId)"),
+           var info = try? JSONDecoder().decode(ScheduledSessionInfo.self, from: infoData) {
+
+            // Marquer la session comme terminée
+            info.status = .completed
+            info.actualEndTime = Date()
+
+            if let data = try? JSONEncoder().encode(info) {
+                suite.set(data, forKey: "scheduled_session_\(sessionId)")
+                suite.synchronize()
+            }
+        } else {
+            print("⚠️ [MONITOR] No scheduled session info found for \(sessionId) — proceeding with stop signal anyway")
+        }
+
+        // ✅ CRUCIAL: Signaler à l'app principale d'arrêter la session Firebase
+        suite.set(sessionId, forKey: "auto_stop_session_id")
+        suite.set(Date().timeIntervalSince1970, forKey: "auto_stop_session_timestamp")
+        suite.synchronize()
+
+        print("🔥 [MONITOR] Scheduled session auto-stop triggered: \(sessionId)")
+        print("🎯 [MONITOR] Main app will stop Firebase session on next activation")
+    }
+
     private func addSessionToActivationQueue(session: [String: Any], activationId: String, suite: UserDefaults) {
-        // Récupérer la queue existante
         var activationQueue = suite.array(forKey: "extension_activation_queue") as? [[String: Any]] ?? []
-        
-        // Ajouter la nouvelle session
         activationQueue.append(session)
         
-        // Nettoyer les anciennes activations (> 5 minutes)
         let now = Date().timeIntervalSince1970
         activationQueue = activationQueue.filter { sessionData in
             if let triggerTime = sessionData["extensionTriggeredAt"] as? Double {
-                return (now - triggerTime) < 300 // 5 minutes
+                return (now - triggerTime) < 300
             }
             return false
         }
         
-        // Garder seulement les 5 dernières activations pour éviter l'overflow
         if activationQueue.count > 5 {
             activationQueue = Array(activationQueue.suffix(5))
         }
         
-        // Sauvegarder la queue mise à jour
         suite.set(activationQueue, forKey: "extension_activation_queue")
         suite.set(Date().timeIntervalSince1970, forKey: "extension_queue_updated_at")
         suite.synchronize()
@@ -678,10 +769,7 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
     }
 
     // MARK: - DEPRECATED: Old Manual Block Management
-    // These methods are kept for backward compatibility but should not be used
-    // The new architecture uses DeviceActivityCenter → Monitor → ManagedSettings
 
-    /// ⚠️ DEPRECATED: Use DeviceActivityCenter.startMonitoring instead
     @available(*, deprecated, message: "Use DeviceActivityCenter.startMonitoring from the app instead")
     private func processBlockRequests() {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
@@ -689,19 +777,16 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             return
         }
 
-        // Lire la demande de blocage
         guard let tokenData = suite.data(forKey: "pending_block_tokenData"),
               let appName = suite.string(forKey: "pending_block_appName"),
               let duration = suite.object(forKey: "pending_block_duration") as? TimeInterval,
               let storeName = suite.string(forKey: "pending_block_storeName"),
               let blockId = suite.string(forKey: "pending_block_id") else {
-            // Pas de demande en attente, c'est normal
             return
         }
 
         print("📨 [MONITOR] Processing block request: \(appName)")
 
-        // Nettoyer immédiatement pour éviter le retraitement
         suite.removeObject(forKey: "pending_block_tokenData")
         suite.removeObject(forKey: "pending_block_appName")
         suite.removeObject(forKey: "pending_block_duration")
@@ -710,7 +795,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         suite.removeObject(forKey: "pending_block_timestamp")
         suite.synchronize()
 
-        // Décoder le token
         guard let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: tokenData),
               let token = selection.applicationTokens.first else {
             print("❌ [MONITOR] Failed to decode token")
@@ -719,7 +803,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         print("✅ [MONITOR] Token decoded successfully")
 
-        // 1. Appliquer le blocage immédiatement
         let store = ManagedSettingsStore(named: .init(storeName))
         var blockedApps = store.shield.applications ?? Set()
         blockedApps.insert(token)
@@ -727,7 +810,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         print("🛡️ [MONITOR] App blocked: \(appName)")
 
-        // 2. Sauvegarder dans App Group (l'écriture depuis Monitor est FIABLE)
         let block = ActiveBlock(
             id: blockId,
             appName: appName,
@@ -741,11 +823,9 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         print("✅ [MONITOR] Block persisted in App Group: \(blockId)")
 
-        // 3. Programmer le déblocage automatique
         scheduleAutoUnblock(blockId: blockId, storeName: storeName, duration: duration, appName: appName)
     }
 
-    /// Sauvegarder le block dans App Group
     private func saveBlockToAppGroup(_ block: ActiveBlock) {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
 
@@ -759,7 +839,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         }
     }
 
-    /// Charger les blocks depuis App Group
     private func loadBlocksFromAppGroup() -> [ActiveBlock] {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop"),
               let data = suite.data(forKey: "active_blocks_v2"),
@@ -769,13 +848,11 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         return blocks
     }
 
-    /// Programmer le déblocage automatique
     private func scheduleAutoUnblock(blockId: String, storeName: String, duration: TimeInterval, appName: String) {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
 
         let unblockTime = Date().timeIntervalSince1970 + duration
 
-        // Sauvegarder l'info de déblocage
         let unblockInfo: [String: Any] = [
             "blockId": blockId,
             "storeName": storeName,
@@ -791,7 +868,6 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         print("⏰ [MONITOR] Auto-unblock scheduled for \(appName) at \(Date(timeIntervalSince1970: unblockTime))")
     }
 
-    /// Vérifier et exécuter les déblocages programmés
     func checkScheduledUnblocks() {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
 
@@ -808,29 +884,24 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             }
 
             if now >= unblockTime {
-                // C'est l'heure de débloquer
                 print("🔓 [MONITOR] Auto-unblocking: \(appName)")
 
                 let store = ManagedSettingsStore(named: .init(storeName))
                 store.shield.applications = nil
                 store.clearAllSettings()
 
-                // Retirer le block de App Group
                 removeBlockFromAppGroup(blockId: blockId)
 
                 print("✅ [MONITOR] Auto-unblock complete: \(appName)")
             } else {
-                // Pas encore l'heure, garder
                 remainingUnblocks.append(unblockInfo)
             }
         }
 
-        // Mettre à jour la liste
         suite.set(remainingUnblocks, forKey: "scheduled_unblocks")
         suite.synchronize()
     }
 
-    /// Retirer un block de App Group
     private func removeBlockFromAppGroup(blockId: String) {
         guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
 
@@ -844,6 +915,3 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         }
     }
 }
-
-// Point d'entrée de l'extension - Device Activity Monitor n'a pas besoin de @main
-// L'extension est automatiquement activée par le système

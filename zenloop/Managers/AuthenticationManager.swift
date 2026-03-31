@@ -122,6 +122,11 @@ class AuthenticationManager: NSObject, ObservableObject {
         authLogger.info("🚪 Signing out")
 
         do {
+            // ✅ NOUVEAU: Supprimer le token push de Firestore avant déconnexion
+            Task {
+                await PushNotificationManager.shared.removeTokenFromFirestore()
+            }
+
             try Auth.auth().signOut()
 
             // Stop SessionManager listeners and clear state
@@ -157,7 +162,10 @@ class AuthenticationManager: NSObject, ObservableObject {
             // ✅ FIX: After user setup, load their sessions
             await SessionManager.shared.loadUserSessions()
 
-            authLogger.info("✅ SessionUser setup complete + sessions loaded")
+            // ✅ NOUVEAU: Configurer les notifications push FCM après authentification
+            await PushNotificationManager.shared.setup()
+
+            authLogger.info("✅ SessionUser setup complete + sessions loaded + push notifications configured")
         } catch {
             authLogger.error("❌ SessionUser setup failed: \(error.localizedDescription)")
             authenticationError = error

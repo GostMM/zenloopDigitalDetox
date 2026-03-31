@@ -3,15 +3,16 @@
 //  zenloop
 //
 //  Modal pour créer une nouvelle session de groupe
-//  Style: HomeView avec background optimisé
+//  Version optimisée et compacte
 //
 
 import SwiftUI
 import FamilyControls
 
+// MARK: - Main View
+
 struct CreateSessionView: View {
     @Environment(\.dismiss) var dismiss
-    // ✅ FIX: @ObservedObject pour les singletons (pas @StateObject)
     @ObservedObject private var sessionManager = SessionManager.shared
     @EnvironmentObject var zenloopManager: ZenloopManager
 
@@ -24,13 +25,40 @@ struct CreateSessionView: View {
     @State private var selectedApps = FamilyActivitySelection()
     @State private var isCreating = false
     @State private var errorMessage: String?
-    @State private var sessionDurationMode = DurationMode.manual
+    @State private var durationMode = DurationMode.manual
     @State private var selectedHours = 0
     @State private var selectedMinutes = 30
+    @State private var scheduledStartDate = Date().addingTimeInterval(3600)
+    @State private var scheduledEndDate = Date().addingTimeInterval(7200)
+    @State private var selectedBackground: SessionBackground? = nil
+    @State private var showBackgroundPicker = false
 
-    enum DurationMode {
-        case manual
-        case timed
+    enum DurationMode: CaseIterable {
+        case manual, timed, scheduled
+        
+        var icon: String {
+            switch self {
+            case .manual: "infinity"
+            case .timed: "timer"
+            case .scheduled: "calendar.badge.clock"
+            }
+        }
+        
+        var title: String {
+            switch self {
+            case .manual: "Manuel"
+            case .timed: "Durée définie"
+            case .scheduled: "Programmée"
+            }
+        }
+        
+        var subtitle: String {
+            switch self {
+            case .manual: "Gérer manuellement"
+            case .timed: "Fin automatique"
+            case .scheduled: "Début & fin auto"
+            }
+        }
     }
 
     private var selectedAppsCount: Int {
@@ -43,84 +71,52 @@ struct CreateSessionView: View {
 
     var body: some View {
         ZStack {
-            // Background optimisé
             OptimizedBackground(currentState: .idle)
-                .ignoresSafeArea(.all, edges: .all)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Header
-                CreateSessionHeader(onClose: { dismiss() }, showContent: showContent)
+                header
                     .padding(.horizontal, 20)
 
-                // Contenu scrollable
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-                        // Title Field
-                        InputSection(
+                        SessionTextField(
                             title: "Titre de la Session",
                             placeholder: "Ex: Focus Marathon",
-                            text: $sessionTitle,
-                            showContent: showContent,
-                            delay: 0.1
+                            text: $sessionTitle
                         )
+                        .staggerIn(showContent, delay: 0.1)
 
-                        // Description Field
-                        TextEditorSection(
-                            title: "Description",
-                            placeholder: "Décrivez votre session...",
-                            text: $sessionDescription,
-                            showContent: showContent,
-                            delay: 0.2
-                        )
+                        descriptionField
+                            .staggerIn(showContent, delay: 0.2)
 
-                        // Visibility Toggle
-                        VisibilitySection(
-                            isPublic: $isPublic,
-                            showContent: showContent,
-                            delay: 0.3
-                        )
+                        visibilityPicker
+                            .staggerIn(showContent, delay: 0.3)
 
-                        // Max Participants (optional)
-                        InputSection(
-                            title: "Nombre Maximum de Participants (optionnel)",
+                        SessionTextField(
+                            title: "Max. Participants (optionnel)",
                             placeholder: "Ex: 10",
                             text: $maxParticipants,
-                            keyboardType: .numberPad,
-                            showContent: showContent,
-                            delay: 0.4
+                            keyboard: .numberPad
                         )
+                        .staggerIn(showContent, delay: 0.4)
 
-                        // Duration Section
-                        DurationSelectionSection(
-                            mode: $sessionDurationMode,
-                            hours: $selectedHours,
-                            minutes: $selectedMinutes,
-                            showContent: showContent,
-                            delay: 0.45
-                        )
+                        durationSection
+                            .staggerIn(showContent, delay: 0.45)
 
-                        // App Selection Card
-                        SessionAppSelectionCard(
-                            selectedCount: selectedAppsCount,
-                            showContent: showContent,
-                            delay: 0.5,
-                            onTap: { showAppPicker = true }
-                        )
+                        appSelectionCard
+                            .staggerIn(showContent, delay: 0.5)
 
-                        // Error Message
+                        backgroundSelectionCard
+                            .staggerIn(showContent, delay: 0.55)
+
                         if let error = errorMessage {
                             ErrorBanner(message: error)
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
 
-                        // Create Button
-                        CreateButton(
-                            isValid: isValid,
-                            isCreating: isCreating,
-                            showContent: showContent,
-                            delay: 0.6,
-                            action: createSession
-                        )
+                        createButton
+                            .staggerIn(showContent, delay: 0.6)
 
                         Spacer(minLength: 100)
                     }
@@ -136,17 +132,287 @@ struct CreateSessionView: View {
         }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
     }
+}
 
-    private func createSession() {
+// MARK: - Subviews
+
+private extension CreateSessionView {
+
+    var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Nouvelle Session")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Invitez vos amis à focus")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+        }
+        .padding(.top, 20)
+        .padding(.bottom, 10)
+        .staggerIn(showContent, delay: 0)
+    }
+
+    var descriptionField: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel("Description")
+            ZStack(alignment: .topLeading) {
+                if sessionDescription.isEmpty {
+                    Text("Décrivez votre session...")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                }
+                TextEditor(text: $sessionDescription)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white)
+                    .scrollContentBackground(.hidden)
+                    .frame(height: 100)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+            }
+            .cardBackground()
+        }
+    }
+
+    var visibilityPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel("Visibilité")
+            HStack(spacing: 12) {
+                SelectableCard(
+                    icon: "globe", title: "Publique",
+                    subtitle: "Visible par tous",
+                    isSelected: isPublic
+                ) { isPublic = true }
+
+                SelectableCard(
+                    icon: "lock.fill", title: "Privée",
+                    subtitle: "Code requis",
+                    isSelected: !isPublic
+                ) { isPublic = false }
+            }
+        }
+    }
+
+    // MARK: Duration
+
+    var durationSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionLabel("Durée de la Session")
+
+            // Mode buttons — 2-column top row + full-width scheduled
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    ForEach([DurationMode.manual, .timed], id: \.self) { m in
+                        SelectableCard(icon: m.icon, title: m.title, subtitle: m.subtitle,
+                                       isSelected: durationMode == m, accent: .blue) { durationMode = m }
+                    }
+                }
+                SelectableCard(icon: DurationMode.scheduled.icon, title: DurationMode.scheduled.title,
+                               subtitle: DurationMode.scheduled.subtitle,
+                               isSelected: durationMode == .scheduled, accent: .blue) { durationMode = .scheduled }
+            }
+
+            if durationMode == .timed { timedPicker }
+            if durationMode == .scheduled { scheduledPickers }
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: durationMode)
+    }
+
+    var timedPicker: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 16) {
+                StepperCard(label: "Heures", value: $selectedHours, range: 0...12)
+                StepperCard(label: "Minutes", value: $selectedMinutes, range: 0...45, step: 15)
+            }
+            if selectedHours > 0 || selectedMinutes > 0 {
+                durationLabel(hours: selectedHours, minutes: selectedMinutes)
+            }
+        }
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    var scheduledPickers: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ScheduleDateRow(icon: "play.circle.fill", color: .green, label: "Heure de Début",
+                            date: $scheduledStartDate, minDate: Date()) { newVal in
+                if scheduledEndDate <= newVal {
+                    scheduledEndDate = newVal.addingTimeInterval(3600)
+                }
+            }
+
+            ScheduleDateRow(icon: "stop.circle.fill", color: .red, label: "Heure de Fin",
+                            date: $scheduledEndDate,
+                            minDate: scheduledStartDate.addingTimeInterval(900))
+
+            let dur = scheduledEndDate.timeIntervalSince(scheduledStartDate)
+            durationLabel(hours: Int(dur) / 3600, minutes: (Int(dur) % 3600) / 60)
+        }
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    // MARK: App Selection
+
+    var appSelectionCard: some View {
+        Button { showAppPicker = true } label: {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(.linearGradient(colors: [.init(red: 0.5, green: 0.4, blue: 1),
+                                                    .init(red: 0.4, green: 0.3, blue: 0.9)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: selectedAppsCount > 0 ? "checkmark.circle.fill" : "app.badge.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(.white)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Apps à Bloquer")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(selectedAppsCount > 0 ? "\(selectedAppsCount) app(s) sélectionnée(s)" : "Suggérer des apps (optionnel)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.cardFill))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(selectedAppsCount > 0 ? Color.purple.opacity(0.5) : .white.opacity(0.1),
+                            lineWidth: selectedAppsCount > 0 ? 2 : 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+
+    // MARK: Background Selection
+
+    var backgroundSelectionCard: some View {
+        Button { showBackgroundPicker = true } label: {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(.linearGradient(colors: [.init(red: 1, green: 0.4, blue: 0.6),
+                                                    .init(red: 0.9, green: 0.3, blue: 0.5)],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: selectedBackground != nil ? "photo.fill" : "photo.badge.plus")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(.white)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Image de fond")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(selectedBackground?.name ?? "Aucune image (optionnel)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.cardFill))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(selectedBackground != nil ? Color.pink.opacity(0.5) : .white.opacity(0.1),
+                            lineWidth: selectedBackground != nil ? 2 : 1)
+            )
+        }
+        .buttonStyle(ScaleButtonStyle())
+        .sheet(isPresented: $showBackgroundPicker) {
+            BackgroundPickerView(selectedBackground: $selectedBackground)
+        }
+    }
+
+    // MARK: Create & Error
+
+    var createButton: some View {
+        Button(action: createSession) {
+            HStack(spacing: 12) {
+                if isCreating {
+                    ProgressView().tint(.white)
+                    Text("Création...")
+                } else {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                    Text("Créer la Session")
+                }
+            }
+            .font(.system(size: 17, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.linearGradient(
+                        colors: isValid
+                            ? [Color(red: 0.3, green: 0.6, blue: 1), Color(red: 0.2, green: 0.5, blue: 0.9)]
+                            : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+            )
+        }
+        .disabled(!isValid || isCreating)
+    }
+
+    func durationLabel(hours: Int, minutes: Int) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock.fill").font(.system(size: 14))
+            Text("Durée: \(Self.formatDuration(h: hours, m: minutes))")
+                .font(.system(size: 14, weight: .medium))
+        }
+        .foregroundStyle(.blue.opacity(0.8))
+    }
+
+    static func formatDuration(h: Int, m: Int) -> String {
+        [h > 0 ? "\(h)h" : nil, m > 0 ? "\(m)min" : nil]
+            .compactMap { $0 }.joined(separator: " ")
+    }
+}
+
+// MARK: - Create Session Logic
+
+private extension CreateSessionView {
+
+    func createSession() {
         guard !isCreating else { return }
-
         isCreating = true
         errorMessage = nil
 
         Task {
             do {
-                let maxPart = Int(maxParticipants) ?? nil
-                let durationMins = sessionDurationMode == .timed ? (selectedHours * 60 + selectedMinutes) : nil
+                let maxPart = Int(maxParticipants)
+
+                let (durationMins, schedStart, schedEnd): (Int?, Date?, Date?) = {
+                    switch durationMode {
+                    case .manual:
+                        return (nil, nil, nil)
+                    case .timed:
+                        return (selectedHours * 60 + selectedMinutes, nil, nil)
+                    case .scheduled:
+                        let mins = Int(scheduledEndDate.timeIntervalSince(scheduledStartDate) / 60)
+                        return (mins, scheduledStartDate, scheduledEndDate)
+                    }
+                }()
 
                 let session = try await sessionManager.createSession(
                     title: sessionTitle,
@@ -154,35 +420,41 @@ struct CreateSessionView: View {
                     visibility: isPublic ? .publicSession : .privateSession,
                     maxParticipants: maxPart,
                     suggestedAppsCount: selectedAppsCount,
-                    durationMinutes: durationMins
+                    durationMinutes: durationMins,
+                    scheduledStartTime: schedStart,
+                    scheduledEndTime: schedEnd,
+                    backgroundImageUrl: selectedBackground?.storagePath
                 )
 
-                // Save selected apps locally (never sent to Firebase)
+                guard let sessionId = session.id else { return }
+
+                // Sauvegarder les tokens d'apps localement
                 if selectedAppsCount > 0,
                    let tokenData = try? JSONEncoder().encode(selectedApps) {
-                    sessionManager.saveLocalApps(
-                        sessionId: session.id!,
-                        appTokens: tokenData,
-                        count: selectedAppsCount
+                    sessionManager.saveLocalApps(sessionId: sessionId, appTokens: tokenData, count: selectedAppsCount)
+                }
+
+                // Programmer le DeviceActivity si nécessaire
+                if durationMode == .scheduled {
+                    try await ScheduledSessionCoordinator.shared.scheduleSession(
+                        sessionId: sessionId,
+                        startTime: scheduledStartDate,
+                        endTime: scheduledEndDate,
+                        apps: selectedApps
                     )
                 }
 
-                // Start listening to session
-                sessionManager.startSessionListener(sessionId: session.id!)
+                sessionManager.startSessionListener(sessionId: sessionId)
 
                 await MainActor.run {
                     isCreating = false
-
-                    // Haptic feedback
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-
                     dismiss()
                 }
             } catch {
                 await MainActor.run {
                     isCreating = false
                     errorMessage = error.localizedDescription
-
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
@@ -190,165 +462,46 @@ struct CreateSessionView: View {
     }
 }
 
-// MARK: - Create Session Header
+// MARK: - Reusable Components
 
-struct CreateSessionHeader: View {
-    let onClose: () -> Void
-    let showContent: Bool
-
+/// Section label standardisé
+private struct SectionLabel: View {
+    let text: String
+    init(_ text: String) { self.text = text }
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Nouvelle Session")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("Invitez vos amis à focus")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-
-            Spacer()
-
-            Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(.white.opacity(0.5))
-            }
-        }
-        .padding(.top, 20)
-        .padding(.bottom, 10)
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : -20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8), value: showContent)
+        Text(text)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.8))
     }
 }
 
-// MARK: - Input Section
-
-struct InputSection: View {
+/// Champ texte réutilisable avec style card
+struct SessionTextField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
-    var keyboardType: UIKeyboardType = .default
-    let showContent: Bool
-    let delay: Double
+    var keyboard: UIKeyboardType = .default
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
-
+            SectionLabel(title)
             TextField(placeholder, text: $text)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
-                .keyboardType(keyboardType)
+                .foregroundStyle(.white)
+                .keyboardType(keyboard)
                 .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                )
+                .cardBackground()
         }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
     }
 }
 
-// MARK: - Text Editor Section
-
-struct TextEditorSection: View {
-    let title: String
-    let placeholder: String
-    @Binding var text: String
-    let showContent: Bool
-    let delay: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
-
-            ZStack(alignment: .topLeading) {
-                if text.isEmpty {
-                    Text(placeholder)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                }
-
-                TextEditor(text: $text)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-                    .scrollContentBackground(.hidden)
-                    .frame(height: 100)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-            )
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
-    }
-}
-
-// MARK: - Visibility Section
-
-struct VisibilitySection: View {
-    @Binding var isPublic: Bool
-    let showContent: Bool
-    let delay: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Visibilité")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
-
-            HStack(spacing: 12) {
-                VisibilityButton(
-                    icon: "globe",
-                    title: "Publique",
-                    subtitle: "Visible par tous",
-                    isSelected: isPublic,
-                    action: { isPublic = true }
-                )
-
-                VisibilityButton(
-                    icon: "lock.fill",
-                    title: "Privée",
-                    subtitle: "Code requis",
-                    isSelected: !isPublic,
-                    action: { isPublic = false }
-                )
-            }
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
-    }
-}
-
-struct VisibilityButton: View {
+/// Carte sélectionnable (visibilité, mode durée)
+struct SelectableCard: View {
     let icon: String
     let title: String
     let subtitle: String
     let isSelected: Bool
+    var accent: Color = .blue
     let action: () -> Void
 
     var body: some View {
@@ -356,164 +509,139 @@ struct VisibilityButton: View {
             VStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(isSelected ? .blue : .white.opacity(0.5))
-
+                    .foregroundStyle(isSelected ? accent : .white.opacity(0.5))
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-
+                    .foregroundStyle(.white)
                 Text(subtitle)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-            )
+            .background(RoundedRectangle(cornerRadius: 16).fill(.cardFill))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        isSelected ? Color.blue : Color.white.opacity(0.1),
-                        lineWidth: isSelected ? 2 : 1
-                    )
+                    .stroke(isSelected ? accent : .white.opacity(0.1),
+                            lineWidth: isSelected ? 2 : 1)
             )
         }
     }
 }
 
-// MARK: - Session App Selection Card
-
-struct SessionAppSelectionCard: View {
-    let selectedCount: Int
-    let showContent: Bool
-    let delay: Double
-    let onTap: () -> Void
+/// Stepper +/- compact
+struct StepperCard: View {
+    let label: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var step: Int = 1
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.5, green: 0.4, blue: 1.0),
-                                    Color(red: 0.4, green: 0.3, blue: 0.9)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: selectedCount > 0 ? "checkmark.circle.fill" : "app.badge.fill")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.6))
+            HStack {
+                Button { value = max(range.lowerBound, value - step) } label: {
+                    Image(systemName: "minus.circle.fill").font(.system(size: 24))
                 }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Apps à Bloquer")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
-
-                    Text(selectedCount > 0 ? "\(selectedCount) app(s) sélectionnée(s)" : "Suggérer des apps (optionnel)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                Text("\(value)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 40)
+                Button {
+                    let next = value + step
+                    if next > range.upperBound {
+                        value = range.lowerBound
+                    } else {
+                        value = next
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 24))
                 }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.15, green: 0.15, blue: 0.17),
-                                Color(red: 0.12, green: 0.12, blue: 0.14)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(
-                        selectedCount > 0 ? Color.purple.opacity(0.5) : Color.white.opacity(0.1),
-                        lineWidth: selectedCount > 0 ? 2 : 1
-                    )
-            )
+            .foregroundStyle(.white.opacity(0.5))
         }
-        .buttonStyle(ScaleButtonStyle())
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.cardFill))
     }
 }
 
-// MARK: - Create Button
-
-struct CreateButton: View {
-    let isValid: Bool
-    let isCreating: Bool
-    let showContent: Bool
-    let delay: Double
-    let action: () -> Void
+/// Ligne de DatePicker pour les sessions programmées
+struct ScheduleDateRow: View {
+    let icon: String
+    let color: Color
+    let label: String
+    @Binding var date: Date
+    var minDate: Date
+    var onChange: ((Date) -> Void)? = nil
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                if isCreating {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-
-                    Text("Création...")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                } else {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-
-                    Text("Créer la Session")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 14)).foregroundStyle(color)
+                Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white.opacity(0.8))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            colors: isValid ? [
-                                Color(red: 0.3, green: 0.6, blue: 1.0),
-                                Color(red: 0.2, green: 0.5, blue: 0.9)
-                            ] : [
-                                Color.gray.opacity(0.3),
-                                Color.gray.opacity(0.2)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
+            DatePicker("", selection: Binding(
+                get: { date },
+                set: { newVal in
+                    date = newVal
+                    onChange?(newVal)
+                }
+            ), in: minDate..., displayedComponents: [.date, .hourAndMinute])
+                .datePickerStyle(.compact)
+                .labelsHidden()
+                .colorScheme(.dark)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(.cardFill))
         }
-        .disabled(!isValid || isCreating)
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
     }
 }
 
-// MARK: - Error Banner
+// MARK: - View Modifiers & Extensions
+
+private struct CardBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.15, green: 0.15, blue: 0.17)))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
+    }
+}
+
+extension View {
+    func cardBackground() -> some View {
+        modifier(CardBackgroundModifier())
+    }
+}
+
+/// Animation d'entrée en escalier
+private struct StaggerModifier: ViewModifier {
+    let show: Bool
+    let delay: Double
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(show ? 1 : 0)
+            .offset(y: show ? 0 : 20)
+            .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: show)
+    }
+}
+
+extension View {
+    func staggerIn(_ show: Bool, delay: Double) -> some View {
+        modifier(StaggerModifier(show: show, delay: delay))
+    }
+}
+
+/// ShapeStyle helper pour le fill card
+extension ShapeStyle where Self == Color {
+    static var cardFill: Color {
+        Color(red: 0.15, green: 0.15, blue: 0.17)
+    }
+}
+
+// MARK: - Error Banner (shared with JoinSessionView)
 
 struct ErrorBanner: View {
     let message: String
@@ -522,214 +650,19 @@ struct ErrorBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 20))
-                .foregroundColor(.red)
-
+                .foregroundStyle(.red)
             Text(message)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white)
-
+                .foregroundStyle(.white)
             Spacer()
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.red.opacity(0.2))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.red.opacity(0.5), lineWidth: 1)
-        )
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.2)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.5), lineWidth: 1))
     }
 }
 
-// MARK: - Duration Selection Section
-
-struct DurationSelectionSection: View {
-    @Binding var mode: CreateSessionView.DurationMode
-    @Binding var hours: Int
-    @Binding var minutes: Int
-    let showContent: Bool
-    let delay: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Durée de la Session")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
-
-            // Mode Selection
-            HStack(spacing: 12) {
-                DurationModeButton(
-                    icon: "infinity",
-                    title: "Manuel",
-                    subtitle: "Gérer manuellement",
-                    isSelected: mode == .manual,
-                    action: { mode = .manual }
-                )
-
-                DurationModeButton(
-                    icon: "timer",
-                    title: "Durée définie",
-                    subtitle: "Fin automatique",
-                    isSelected: mode == .timed,
-                    action: { mode = .timed }
-                )
-            }
-
-            // Time Selection (only when timed mode)
-            if mode == .timed {
-                HStack(spacing: 16) {
-                    // Hours Picker
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Heures")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-
-                        HStack {
-                            Button(action: { if hours > 0 { hours -= 1 } }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-
-                            Text("\(hours)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(minWidth: 40)
-
-                            Button(action: { if hours < 12 { hours += 1 } }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                    )
-
-                    // Minutes Picker
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Minutes")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-
-                        HStack {
-                            Button(action: {
-                                if minutes >= 15 {
-                                    minutes -= 15
-                                } else if minutes > 0 {
-                                    minutes = 0
-                                }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-
-                            Text("\(minutes)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(minWidth: 40)
-
-                            Button(action: {
-                                if minutes < 45 {
-                                    minutes += 15
-                                } else {
-                                    minutes = 0
-                                    if hours < 12 { hours += 1 }
-                                }
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-                    )
-                }
-                .padding(.top, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
-
-                // Display total duration
-                if hours > 0 || minutes > 0 {
-                    HStack {
-                        Image(systemName: "clock.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.blue.opacity(0.8))
-
-                        Text("Durée totale: \(formatDuration(hours: hours, minutes: minutes))")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.blue.opacity(0.8))
-                    }
-                    .padding(.top, 8)
-                }
-            }
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: showContent)
-        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: mode)
-    }
-
-    private func formatDuration(hours: Int, minutes: Int) -> String {
-        var parts: [String] = []
-        if hours > 0 {
-            parts.append("\(hours)h")
-        }
-        if minutes > 0 {
-            parts.append("\(minutes)min")
-        }
-        return parts.joined(separator: " ")
-    }
-}
-
-struct DurationModeButton: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(isSelected ? .blue : .white.opacity(0.5))
-
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        isSelected ? Color.blue : Color.white.opacity(0.1),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-        }
-    }
-}
+// MARK: - Preview
 
 #Preview {
     CreateSessionView()

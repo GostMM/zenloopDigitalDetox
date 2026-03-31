@@ -1201,3 +1201,34 @@
 "per_month_short" = "/month";
 "subscription_plan" = "Subscription";
 "cancel_anytime" = "Cancel anytime";
+
+// Persistent Blocks Alert
+"restrictions_persistantes" = "Persistent Restrictions";
+"aucune_session_active" = "You're not linked to any active session";
+"lever_toutes_restrictions" = "Clear All Restrictions";
+
+// Scheduled Sessions Notifications
+"scheduled_session_reminder" = "Scheduled Session Reminder";
+"session_starts_in_15_minutes" = "Your session starts in 15 minutes";
+"session_starts_in_5_minutes" = "Your session starts in 5 minutes";
+"session_started" = "Session Started";
+"your_scheduled_session_has_started" = "Your scheduled session has started!";
+"your_scheduled_session_has_ended" = "Your scheduled session has ended. Great work!";
+
+// Session Event Notifications
+"new_member_joined" = "New Member Joined";
+"member_joined_session" = "%@ joined the session \"%@\"";
+"member_left" = "Member Left";
+"member_left_session" = "%@ left the session \"%@\"";
+"session_has_started" = "Session Started";
+"session_started_by" = "\"%@\" started by %@";
+"pause_requested" = "Pause Requested";
+"pause_requested_by" = "%@ requested a pause in \"%@\"";
+"session_paused" = "Session Paused";
+"session_paused_by" = "\"%@\" paused by %@";
+"session_resumed" = "Session Resumed";
+"session_resumed_by" = "\"%@\" resumed by %@";
+"session_ended" = "Session Ended";
+"session_ended_by" = "\"%@\" completed by %@";
+"member_needs_support" = "Member Needs Support";
+"member_struggling" = "%@ is struggling (%d app opening attempts)";

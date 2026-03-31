@@ -283,4 +283,55 @@ class GlobalShieldManager: ObservableObject {
         logger.critical("🔄 [GLOBAL_SHIELD] Force syncing all blocks...")
         restoreAllActiveBlocks()
     }
+
+    /// Lève TOUS les blocages (apps ET catégories) - utilisé quand l'utilisateur n'est lié à aucune session
+    func clearAllBlocks() {
+        logger.critical("🧹 [GLOBAL_SHIELD] ========================================")
+        logger.critical("🧹 [GLOBAL_SHIELD] CLEARING ALL BLOCKS (apps + categories)")
+
+        #if os(iOS)
+        // Vérifier l'état AVANT
+        let beforeApps = store.shield.applications?.count ?? 0
+        var beforeCategories = 0
+        if let existing = store.shield.applicationCategories,
+           case .specific(let tokens, except: _) = existing {
+            beforeCategories = tokens.count
+        }
+
+        logger.critical("   → Before: \(beforeApps) apps, \(beforeCategories) categories blocked")
+
+        // Supprimer tous les blocages d'apps
+        store.shield.applications = nil
+        logger.critical("   → ✅ Cleared all app blocks")
+
+        // Supprimer tous les blocages de catégories
+        store.shield.applicationCategories = nil
+        logger.critical("   → ✅ Cleared all category blocks")
+
+        // Supprimer tous les blocages du BlockManager
+        let allBlocks = blockManager.getAllBlocks()
+        logger.critical("   → Removing \(allBlocks.count) blocks from storage")
+        for block in allBlocks {
+            blockManager.removeBlock(id: block.id)
+        }
+
+        logger.critical("✅ [GLOBAL_SHIELD] All blocks cleared successfully")
+        logger.critical("🧹 [GLOBAL_SHIELD] ========================================")
+        #endif
+    }
+
+    /// Vérifie s'il y a des blocages actifs
+    func hasActiveBlocks() -> Bool {
+        #if os(iOS)
+        let hasApps = (store.shield.applications?.count ?? 0) > 0
+        var hasCategories = false
+        if let existing = store.shield.applicationCategories,
+           case .specific(let tokens, except: _) = existing {
+            hasCategories = !tokens.isEmpty
+        }
+        return hasApps || hasCategories
+        #else
+        return false
+        #endif
+    }
 }

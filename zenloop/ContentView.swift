@@ -17,13 +17,15 @@ extension Notification.Name {
 struct ContentView: View {
     @StateObject private var zenloopManager = ZenloopManager.shared
     @StateObject private var quickActionsManager = QuickActionsManager.shared
+    @StateObject private var deepLinkCoordinator = DeepLinkCoordinator.shared // ✅ Observe le deep link
     @EnvironmentObject private var quickActionsBridge: QuickActionsBridge
+    @Environment(\.scenePhase) var scenePhase
     @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var isOnboardingComplete = UserDefaults.standard.bool(forKey: "has_completed_onboarding")
     @State private var selectedTab = 0
     @State private var isManagerReady = false
     @State private var showRetentionModal = false
-    
+
     var body: some View {
         ZStack {
             if showOnboarding && !isOnboardingComplete {
@@ -57,6 +59,14 @@ struct ContentView: View {
                 setupQuickActionsListeners()
             }
         }
+        // Détecte le retour en foreground pour traiter les signaux du Monitor
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                Task {
+                    await SessionManager.shared.handleAppBecameActive()
+                }
+            }
+        }
         .onChange(of: isOnboardingComplete) { _, isComplete in
             if isComplete {
                 UserDefaults.standard.set(true, forKey: "has_completed_onboarding")
@@ -66,101 +76,92 @@ struct ContentView: View {
             }
         }
         .onChange(of: zenloopManager.currentState) { _, _ in
-            // Update Quick Actions when state changes
             quickActionsManager.updateOnStateChange()
         }
         .onChange(of: quickActionsBridge.pendingShortcutItem) { _, shortcutItem in
-            // Process quick actions when they arrive
             if shortcutItem != nil {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     quickActionsBridge.clearPendingShortcut()
                 }
             }
         }
+        // ✅ DEEP LINK: Réagit aux demandes de changement de tab du DeepLinkCoordinator
+        .onChange(of: deepLinkCoordinator.targetTab) { _, newTab in
+            guard let tab = newTab else { return }
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = tab
+            }
+        }
     }
-    
+
     // MARK: - Async Initialization
-    
+
     @MainActor
     private func initializeManagerAsync() async {
-        // Initialiser pendant que le splash screen s'affiche
         await Task.detached(priority: .userInitiated) {
-            // Simulation d'initialisation asynchrone
             await MainActor.run {
                 zenloopManager.initialize()
-                
-                // Configure Quick Actions Manager with ZenloopManager
                 quickActionsManager.configure(with: zenloopManager)
-                
-                // Log current Quick Actions for debugging
                 quickActionsManager.logCurrentQuickActions()
             }
-            
-            // Petit délai pour s'assurer que l'initialisation est complète
-            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 secondes
+            try? await Task.sleep(nanoseconds: 200_000_000)
         }.value
-        
-        // Marquer comme prêt
+
         isManagerReady = true
     }
-    
+
     private func setupQuickActionsListeners() {
-        // Listen for Quick Action navigation requests
         NotificationCenter.default.addObserver(
             forName: .quickActionNavigateToStats,
             object: nil,
             queue: .main
         ) { _ in
-            // Navigate to stats tab (tab 2)
             selectedTab = 2
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: .quickActionEmergencyBreak,
             object: nil,
             queue: .main
         ) { _ in
-            // Could show emergency break screen or breathing exercise
-            // For now, just navigate to home to show the paused state
             selectedTab = 0
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: .quickActionShowRetention,
             object: nil,
             queue: .main
         ) { _ in
-            // Show retention modal instead of just navigating
             showRetentionModal = true
-            print("💚 [RETENTION] Showing retention modal...")
         }
     }
-    
+
     // MARK: - Loading Interface
-    
+
     private var loadingInterface: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
+
             VStack(spacing: 20) {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     .scaleEffect(1.2)
-                
-               Text(String(localized: "loading"))
+
+                Text(String(localized: "loading"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
             }
         }
     }
-    
+
+    // MARK: - Main Interface
+
     private var mainInterface: some View {
         ZStack {
-            // Content area
             TabContentView(selectedTab: $selectedTab)
                 .environmentObject(zenloopManager)
+                .environmentObject(deepLinkCoordinator) // ✅ Passer aux tabs
 
-            // Custom Opal-style tab bar
             VStack {
                 Spacer()
                 OpalTabBar(selectedTab: $selectedTab)
@@ -169,19 +170,14 @@ struct ContentView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToHome)) { _ in
-            // Navigation automatique vers l'onglet Home
             withAnimation(.easeInOut(duration: 0.3)) {
                 selectedTab = 0
             }
         }
-        .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation, onDismiss: {
-            // Si l'utilisateur ferme la vue, on ne fait rien
-            // La logique de stop est gérée par onStopRequested
-        }) {
+        .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation, onDismiss: {}) {
             BreathingMeditationView(
                 zenloopManager: zenloopManager,
                 onStopRequested: {
-                    // Stop la session quand l'utilisateur choisit "Stop"
                     zenloopManager.stopCurrentChallenge()
                 }
             )
@@ -194,6 +190,7 @@ struct ContentView: View {
 struct TabContentView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject var zenloopManager: ZenloopManager
+    @EnvironmentObject var deepLinkCoordinator: DeepLinkCoordinator // ✅
 
     var body: some View {
         Group {
@@ -214,7 +211,12 @@ struct TabContentView: View {
                 NavigationStack {
                     SocialTab()
                         .environmentObject(zenloopManager)
+                        .environmentObject(deepLinkCoordinator) // ✅ Passer au SocialTab
                         .navigationBarHidden(true)
+                        .onAppear {
+                            // ✅ Signaler au coordinator que le tab est monté
+                            deepLinkCoordinator.onTargetTabAppeared()
+                        }
                 }
             default:
                 NavigationStack {
@@ -234,9 +236,9 @@ struct LazyTabView<Content: View>: View {
     let selectedTab: Int
     let targetTab: Int
     let content: () -> Content
-    
+
     @State private var hasLoaded = false
-    
+
     var body: some View {
         Group {
             if hasLoaded || selectedTab == targetTab {
@@ -245,7 +247,6 @@ struct LazyTabView<Content: View>: View {
                         hasLoaded = true
                     }
             } else {
-                // Vue de chargement léger pendant que l'onglet se prépare
                 Rectangle()
                     .fill(Color.clear)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -253,14 +254,6 @@ struct LazyTabView<Content: View>: View {
         }
     }
 }
-
-// MARK: - Vue Accueil
-// HomeView est maintenant dans Views/HomeView.swift
-
-// MARK: - Vue Stats
-// StatsView est maintenant dans Views/StatsView.swift
-
-// MARK: - SplashScreen is now in Views/Components/SplashScreen.swift
 
 #Preview {
     ContentView()

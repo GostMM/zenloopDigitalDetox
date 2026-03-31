@@ -376,6 +376,8 @@ struct InfoRow: View {
         memberIds: ["user1", "user2", "user3"],
         durationMinutes: 120,
         scheduledEndTime: nil,
+        scheduledStartTime: nil,
+        isScheduled: false,
         suggestedAppsCount: 5
     ))
 }

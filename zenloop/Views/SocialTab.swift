@@ -25,6 +25,7 @@ struct SocialTab: View {
     @State private var showSessionDetail = false
     @State private var inviteCode = ""
     @State private var selectedSessionId: String? = nil
+    @State private var highlightedSession: Session? = nil // ✅ Session actuellement affichée dans ActiveSessionCard
 
     var body: some View {
         Group {
@@ -68,9 +69,9 @@ struct SocialTab: View {
                         )
                         .padding(.top, 20)
 
-                        // — Session active (carte hero — INTACT) —
-                        if let currentSession = sessionManager.currentSession {
-                            ActiveSessionCard(session: currentSession, showContent: showContent)
+                        // — Session active (carte hero avec sélection dynamique) —
+                        if let displayedSession = highlightedSession ?? sessionManager.currentSession {
+                            ActiveSessionCard(session: displayedSession, showContent: showContent)
                                 .padding(.horizontal, 20)
                                 .padding(.top, 24)
                         }
@@ -105,7 +106,12 @@ struct SocialTab: View {
                                 icon: "rectangle.stack.fill",
                                 sessions: sessionManager.mySessions,
                                 accentColor: .cyan,
-                                showContent: showContent
+                                showContent: showContent,
+                                onSessionTap: { session in
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                        highlightedSession = session
+                                    }
+                                }
                             )
                             .padding(.top, 28)
                         }
@@ -117,7 +123,12 @@ struct SocialTab: View {
                             sessions: sessionManager.publicSessions,
                             accentColor: Color(red: 0.6, green: 0.4, blue: 1.0),
                             showContent: showContent,
-                            emptyMessage: "Crée la première session publique !"
+                            emptyMessage: "Crée la première session publique !",
+                            onSessionTap: { session in
+                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                    highlightedSession = session
+                                }
+                            }
                         )
                         .padding(.top, 28)
 
@@ -401,6 +412,7 @@ struct SessionCarousel: View {
     let accentColor: Color
     let showContent: Bool
     var emptyMessage: String? = nil
+    var onSessionTap: ((Session) -> Void)? = nil // ✅ Callback pour sélection
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -442,7 +454,8 @@ struct SessionCarousel: View {
                                 session: session,
                                 accentColor: accentColor,
                                 index: index,
-                                showContent: showContent
+                                showContent: showContent,
+                                onTap: onSessionTap
                             )
                         }
                     }
@@ -462,6 +475,7 @@ struct SessionCarouselCard: View {
     let accentColor: Color
     let index: Int
     let showContent: Bool
+    var onTap: ((Session) -> Void)? = nil // ✅ Callback pour sélection
     @State private var appeared = false
     @ObservedObject private var sessionManager = SessionManager.shared
 
@@ -517,6 +531,12 @@ struct SessionCarouselCard: View {
             }
         }
         .buttonStyle(BounceButtonStyle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                // ✅ Appeler le callback si disponible pour mettre à jour la ActiveSessionCard
+                onTap?(session)
+            }
+        )
         .scaleEffect(appeared ? 1 : 0.92)
         .opacity(appeared ? 1 : 0)
         .onAppear {
@@ -603,7 +623,22 @@ struct SessionCarouselCard: View {
         }
         .padding(16)
         .frame(width: 220, height: 200)
-        .background(cardGradient)
+        .background(
+            ZStack {
+                // ✅ Image de fond depuis Firebase Storage avec cache et shimmer
+                if let storagePath = session.backgroundImageUrl, !storagePath.isEmpty {
+                    CachedFirebaseImage(storagePath: storagePath, cornerRadius: 20)
+                        .frame(width: 220, height: 200)
+                        .withReadabilityOverlay(cornerRadius: 20)
+                } else {
+                    // Pas d'image - motif par défaut
+                    ZStack {
+                        CardPatternBackground(color: accentColor, cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 20).fill(cardGradient.opacity(0.7))
+                    }
+                }
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
@@ -950,6 +985,55 @@ struct NotificationBell: View {
 }
 
 
+// MARK: - Card Pattern Background (motifs subtils)
+
+struct CardPatternBackground: View {
+    let color: Color
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        ZStack {
+            // Base gradient
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(
+                    LinearGradient(
+                        colors: [color.opacity(0.12), Color(red: 0.08, green: 0.08, blue: 0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            // Motif géométrique subtil
+            GeometryReader { geometry in
+                Canvas { context, size in
+                    // Grille de cercles subtils
+                    let spacing: CGFloat = 40
+                    let dotSize: CGFloat = 2
+
+                    for x in stride(from: 0, to: size.width, by: spacing) {
+                        for y in stride(from: 0, to: size.height, by: spacing) {
+                            let rect = CGRect(x: x - dotSize/2, y: y - dotSize/2, width: dotSize, height: dotSize)
+                            context.opacity = 0.08
+                            context.fill(Circle().path(in: rect), with: .color(color))
+                        }
+                    }
+
+                    // Lignes diagonales subtiles
+                    context.opacity = 0.04
+                    for offset in stride(from: -size.height, to: size.width, by: 60) {
+                        var path = Path()
+                        path.move(to: CGPoint(x: offset, y: 0))
+                        path.addLine(to: CGPoint(x: offset + size.height, y: size.height))
+                        context.stroke(path, with: .color(color), lineWidth: 1)
+                    }
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        }
+    }
+}
+
+
 // MARK: - Active Session Card (hero — INTACT)
 
 struct ActiveSessionCard: View {
@@ -1023,19 +1107,32 @@ struct ActiveSessionCard: View {
                 }
             }
             .padding(22)
+            .frame(maxHeight: 280)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24).fill(
-                        LinearGradient(colors: [statusColor.opacity(0.12), Color(red: 0.08, green: 0.08, blue: 0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    RoundedRectangle(cornerRadius: 24).stroke(
-                        AngularGradient(
-                            gradient: Gradient(colors: [statusColor.opacity(0.5), statusColor.opacity(0.1), statusColor.opacity(0.3), statusColor.opacity(0.0), statusColor.opacity(0.5)]),
-                            center: .center, startAngle: .degrees(glowPhase), endAngle: .degrees(glowPhase + 360)
-                        ), lineWidth: 2
-                    )
+                GeometryReader { geometry in
+                    ZStack {
+                        // ✅ Image de fond depuis Firebase Storage avec cache et shimmer
+                        if let storagePath = session.backgroundImageUrl, !storagePath.isEmpty {
+                            CachedFirebaseImage(storagePath: storagePath, cornerRadius: 24)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .clipped()
+                                .withReadabilityOverlay(cornerRadius: 24)
+                        } else {
+                            // Pas d'image: motif de fond par défaut
+                            CardPatternBackground(color: statusColor, cornerRadius: 24)
+                        }
+
+                        // Bordure animée
+                        RoundedRectangle(cornerRadius: 24).stroke(
+                            AngularGradient(
+                                gradient: Gradient(colors: [statusColor.opacity(0.5), statusColor.opacity(0.1), statusColor.opacity(0.3), statusColor.opacity(0.0), statusColor.opacity(0.5)]),
+                                center: .center, startAngle: .degrees(glowPhase), endAngle: .degrees(glowPhase + 360)
+                            ), lineWidth: 2
+                        )
+                    }
                 }
             )
+            .clipShape(RoundedRectangle(cornerRadius: 24))
             .shadow(color: statusColor.opacity(0.15), radius: 20, x: 0, y: 10)
         }
         .buttonStyle(BounceButtonStyle())

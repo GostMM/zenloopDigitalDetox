@@ -9,6 +9,8 @@
 //  NEW: Pause requests (member -> leader)
 //  NEW: Leader auto-ready at creation
 //  NEW: Late join (members join active session directly)
+//  ✅ FIX: checkPendingScheduledActions() appelé dans loadUserSessions
+//  ✅ FIX: scenePhaseHandler pour détecter le retour en foreground
 //
 
 import Foundation
@@ -94,9 +96,29 @@ class SessionManager: ObservableObject {
 
         // ✅ FIX: Load active session automatically
         await loadActiveSession()
+
+        // ✅ FIX: Vérifier les actions en attente des sessions programmées
+        await checkPendingScheduledActions()
     }
 
-    // ✅ NEW: Find and load the user's current session (lobby, active, or paused) automatically
+    // ✅ NEW: Appelé quand l'app revient en foreground (ScenePhase .active)
+    /// Doit être appelé depuis votre vue racine via .onChange(of: scenePhase)
+    func handleAppBecameActive() async {
+        sessionLogger.info("📱 App became active — checking pending actions")
+        await checkPendingScheduledActions()
+
+        // Recharger la session active si besoin
+        if currentSession == nil {
+            await loadActiveSession()
+        }
+    }
+
+    // ✅ NEW: Vérifie les signaux laissés par le DeviceActivityMonitor
+    private func checkPendingScheduledActions() async {
+        await ScheduledSessionCoordinator.shared.checkPendingActions()
+    }
+
+    // ✅ Find and load the user's current session (lobby, active, or paused) automatically
     func loadActiveSession() async {
         guard let uid = currentUser?.id else { return }
 
@@ -148,11 +170,15 @@ class SessionManager: ObservableObject {
         visibility: SessionVisibility,
         maxParticipants: Int?,
         suggestedAppsCount: Int,
-        durationMinutes: Int? = nil
+        durationMinutes: Int? = nil,
+        scheduledStartTime: Date? = nil,
+        scheduledEndTime: Date? = nil,
+        backgroundImageUrl: String? = nil
     ) async throws -> Session {
         guard let currentUser = currentUser else { throw SessionError.notAuthenticated }
 
         let inviteCode = generateInviteCode()
+        let isScheduled = scheduledStartTime != nil
 
         var newSession = Session(
             id: nil, title: title, description: description,
@@ -163,8 +189,11 @@ class SessionManager: ObservableObject {
             startedAt: nil, endedAt: nil, pausedAt: nil, pausedBy: nil,
             memberIds: [currentUser.id!],
             durationMinutes: durationMinutes,
-            scheduledEndTime: nil,
-            suggestedAppsCount: suggestedAppsCount
+            scheduledEndTime: scheduledEndTime != nil ? Timestamp(date: scheduledEndTime!) : nil,
+            scheduledStartTime: scheduledStartTime != nil ? Timestamp(date: scheduledStartTime!) : nil,
+            isScheduled: isScheduled,
+            suggestedAppsCount: suggestedAppsCount,
+            backgroundImageUrl: backgroundImageUrl
         )
 
         let sessionRef = try db.collection("sessions").addDocument(from: newSession)
@@ -287,6 +316,14 @@ class SessionManager: ObservableObject {
 
         try await batch.commit()
         session.memberIds.append(currentUser.id!)
+
+        // ✅ NEW: Notifier tous les membres qu'un nouveau membre a rejoint
+        await SessionEventNotificationManager.shared.notifyMemberJoined(
+            session: session,
+            newMemberUsername: currentUser.username,
+            currentUserId: currentUser.id!
+        )
+
         return session
     }
 
@@ -333,8 +370,22 @@ class SessionManager: ObservableObject {
         try batch.setData(from: sysMsg, forDocument: msgRef)
 
         try await batch.commit()
+
+        // ✅ NEW: Récupérer la session pour notifier
+        let sessionDoc = try await sessionRef.getDocument()
+        if let session = try? sessionDoc.data(as: Session.self) {
+            await SessionEventNotificationManager.shared.notifyMemberLeft(
+                session: session,
+                leftMemberUsername: currentUser?.username ?? "Membre",
+                currentUserId: uid
+            )
+        }
+
         stopCurrentSessionListeners()
         removeLocalApps(sessionId: sessionId)
+
+        // ✅ FIX: Annuler la session programmée si c'est le leader qui part
+        ScheduledSessionCoordinator.shared.cancelScheduledSession(sessionId: sessionId)
     }
 
     // MARK: - Leader: Start (can start alone)
@@ -347,6 +398,12 @@ class SessionManager: ObservableObject {
         let session = try sessionDoc.data(as: Session.self)
 
         guard session.leaderId == uid else { throw SessionError.notAuthorized }
+
+        // ✅ FIX: Empêcher de démarrer une session déjà active
+        guard session.status == .lobby else {
+            sessionLogger.warning("⚠️ Session \(sessionId) already in state: \(session.status.rawValue)")
+            return
+        }
 
         let batch = db.batch()
 
@@ -396,6 +453,15 @@ class SessionManager: ObservableObject {
                 actionUrl: "zenloop://session/\(sessionId)"
             )
         }
+
+        // ✅ NEW: Push notifications locales
+        var updatedSession = session
+        updatedSession.status = .active
+        await SessionEventNotificationManager.shared.notifySessionStarted(
+            session: updatedSession,
+            startedByUsername: currentUser?.username ?? "Leader",
+            currentUserId: uid
+        )
     }
 
     // MARK: - Leader: Pause
@@ -437,6 +503,15 @@ class SessionManager: ObservableObject {
         try batch.setData(from: sysMsg, forDocument: msgRef)
 
         try await batch.commit()
+
+        // ✅ NEW: Notifier tous les membres de la pause
+        var updatedSession = session
+        updatedSession.status = .paused
+        await SessionEventNotificationManager.shared.notifySessionPaused(
+            session: updatedSession,
+            pausedByUsername: currentUser?.username ?? "Leader",
+            currentUserId: uid
+        )
     }
 
     // MARK: - Leader: Resume
@@ -477,6 +552,15 @@ class SessionManager: ObservableObject {
         try batch.setData(from: sysMsg, forDocument: msgRef)
 
         try await batch.commit()
+
+        // ✅ NEW: Notifier tous les membres de la reprise
+        var updatedSession = session
+        updatedSession.status = .active
+        await SessionEventNotificationManager.shared.notifySessionResumed(
+            session: updatedSession,
+            resumedByUsername: currentUser?.username ?? "Leader",
+            currentUserId: uid
+        )
     }
 
     // MARK: - Leader: Stop
@@ -489,7 +573,12 @@ class SessionManager: ObservableObject {
         let session = try sessionDoc.data(as: Session.self)
 
         guard session.leaderId == uid else { throw SessionError.notAuthorized }
-        guard session.status == .active || session.status == .paused else { throw SessionError.invalidSessionState }
+
+        // ✅ FIX: Empêcher de stopper une session déjà terminée
+        guard session.status == .active || session.status == .paused else {
+            sessionLogger.warning("⚠️ Session \(sessionId) already in state: \(session.status.rawValue)")
+            return
+        }
 
         let batch = db.batch()
 
@@ -507,6 +596,18 @@ class SessionManager: ObservableObject {
         try batch.setData(from: sysMsg, forDocument: msgRef)
 
         try await batch.commit()
+
+        // ✅ NEW: Notifier tous les membres de la fin
+        var updatedSession = session
+        updatedSession.status = .completed
+        await SessionEventNotificationManager.shared.notifySessionEnded(
+            session: updatedSession,
+            endedByUsername: currentUser?.username ?? "Leader",
+            currentUserId: uid
+        )
+
+        // ✅ FIX: Annuler le monitoring DeviceActivity si session programmée
+        ScheduledSessionCoordinator.shared.cancelScheduledSession(sessionId: sessionId)
     }
 
     // MARK: - Pause Requests (Member -> Leader)
@@ -608,6 +709,9 @@ class SessionManager: ObservableObject {
 
         stopCurrentSessionListeners()
         removeLocalApps(sessionId: sessionId)
+
+        // ✅ FIX: Annuler la session programmée
+        ScheduledSessionCoordinator.shared.cancelScheduledSession(sessionId: sessionId)
     }
 
     // MARK: - Messaging
@@ -617,6 +721,16 @@ class SessionManager: ObservableObject {
 
         let message = SessionMessage(id: nil, userId: currentUser.id!, username: currentUser.username, content: content, messageType: type, timestamp: Timestamp(date: Date()))
         try db.collection("sessions").document(sessionId).collection("messages").addDocument(from: message)
+
+        // ✅ NEW: Notifier tous les autres membres du nouveau message
+        if let session = currentSession {
+            await SessionEventNotificationManager.shared.notifyNewMessage(
+                session: session,
+                senderUsername: currentUser.username,
+                messagePreview: content,
+                currentUserId: currentUser.id!
+            )
+        }
     }
 
     // MARK: - Real-time Listeners

@@ -75,9 +75,16 @@ struct Session: Codable, Identifiable {
     var durationMinutes: Int?        // Durée en minutes (nil = manuel)
     var scheduledEndTime: Timestamp? // Heure de fin prévue (calculée au démarrage)
 
+    // ✅ NEW: Sessions programmées (démarrage/arrêt automatique via DeviceActivity)
+    var scheduledStartTime: Timestamp? // Heure de début programmée (nil = démarrage manuel)
+    var isScheduled: Bool              // Indique si c'est une session programmée
+
     // ⚠️ IMPORTANT: PAS de liste d'apps car Apple ne permet pas de partager ça
     // Chaque membre choisit ses apps en privé
     var suggestedAppsCount: Int  // Nombre d'apps suggérées par le leader (sans détails)
+
+    // ✅ NEW: Background image pour personnaliser la session
+    var backgroundImageUrl: String? // URL Firebase Storage de l'image de fond
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -97,7 +104,10 @@ struct Session: Codable, Identifiable {
         case memberIds
         case durationMinutes
         case scheduledEndTime
+        case scheduledStartTime
+        case isScheduled
         case suggestedAppsCount
+        case backgroundImageUrl
     }
 }
 

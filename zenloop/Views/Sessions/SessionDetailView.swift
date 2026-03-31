@@ -4,6 +4,10 @@
 //
 //  Vue détaillée — design ouvert, sans cards, éléments disposés librement
 //  V2: Avatars empilés dans le header, chat amélioré, boutons d'action fixes en bas
+//  ✅ FIX: Gestion des sessions programmées (scheduled)
+//       - Lobby: affiche countdown au lieu du bouton Démarrer
+//       - Le leader peut annuler la session programmée
+//       - Les blocs sont appliqués automatiquement quand le Monitor déclenche le start
 //
 
 import SwiftUI
@@ -16,6 +20,7 @@ struct SessionDetailView: View {
     @ObservedObject private var sessionManager = SessionManager.shared
     @EnvironmentObject var zenloopManager: ZenloopManager
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) var scenePhase // ✅ NEW
 
     @State private var showContent = false
     @State private var showAppPicker = false
@@ -25,10 +30,11 @@ struct SessionDetailView: View {
     @State private var showLeaveAlert = false
     @State private var showDissolveAlert = false
     @State private var showStopAlert = false
+    @State private var showCancelScheduleAlert = false // ✅ NEW
     @State private var showPauseRequestSheet = false
     @State private var pauseRequestReason = ""
     @State private var sessionExpirationTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
-    @State private var hasAppliedBlocks = false // Track if blocks are already applied
+    @State private var hasAppliedBlocks = false
 
     enum Field { case messageInput }
 
@@ -42,6 +48,11 @@ struct SessionDetailView: View {
 
     private var activeSession: Session {
         sessionManager.currentSession ?? session
+    }
+
+    // ✅ NEW: Détermine si c'est une session programmée
+    private var isScheduledSession: Bool {
+        activeSession.isScheduled
     }
 
     var body: some View {
@@ -90,6 +101,7 @@ struct SessionDetailView: View {
                     FixedBottomControls(
                         session: activeSession,
                         isLeader: isLeader,
+                        isScheduled: isScheduledSession, // ✅ NEW
                         readyCount: sessionManager.currentSessionMembers.filter { $0.isReady }.count,
                         totalCount: sessionManager.currentSessionMembers.count,
                         onStart: startSession,
@@ -97,6 +109,7 @@ struct SessionDetailView: View {
                         onResume: resumeSession,
                         onStop: { showStopAlert = true },
                         onDissolve: { showDissolveAlert = true },
+                        onCancelSchedule: { showCancelScheduleAlert = true }, // ✅ NEW
                         onRequestPause: { showPauseRequestSheet = true },
                         onLeave: { showLeaveAlert = true }
                     )
@@ -131,7 +144,7 @@ struct SessionDetailView: View {
                 isReady = localApps.selectedAppsCount > 0
             }
 
-            // 🔥 CRUCIAL: Late join detection - Si la session est déjà active ET que l'utilisateur a sélectionné des apps
+            // Late join detection
             if activeSession.status == .active && !hasAppliedBlocks {
                 if let sessionId = session.id,
                    let localApps = sessionManager.getLocalApps(sessionId: sessionId),
@@ -141,14 +154,12 @@ struct SessionDetailView: View {
                     hasAppliedBlocks = true
                 } else {
                     print("⏳ [LATE_JOIN] Session active but no apps selected yet. Waiting for user selection...")
-                    // L'utilisateur doit d'abord sélectionner ses apps avant que les blocages soient appliqués
                 }
             }
         }
         .onChange(of: selectedApps) { oldSelection, newSelection in
             let hasApps = !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty
 
-            // 🔥 CRUCIAL: Sauvegarder la sélection localement dès qu'elle change
             if hasApps, let sessionId = session.id {
                 if let tokenData = try? JSONEncoder().encode(newSelection) {
                     let count = newSelection.applicationTokens.count + newSelection.categoryTokens.count
@@ -157,10 +168,8 @@ struct SessionDetailView: View {
                 }
             }
 
-            // 🔥 LATE JOIN: Si la session est active et que l'utilisateur vient de sélectionner des apps, appliquer les blocages
             if activeSession.status == .active && !hasAppliedBlocks && hasApps {
                 print("📱 [LATE_JOIN] User selected apps while session active! Applying blocks now...")
-                // Petit délai pour laisser le temps à la sélection de se sauvegarder
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.applySessionBlocks()
                     self.hasAppliedBlocks = true
@@ -169,21 +178,18 @@ struct SessionDetailView: View {
             }
         }
         .onChange(of: activeSession.status) { oldStatus, newStatus in
-            // Session démarre ou reprend après pause
+            // Session démarre (manuellement OU automatiquement par le Monitor)
             if oldStatus != .active && newStatus == .active && !hasAppliedBlocks {
                 print("🚀 Session started/resumed! Applying blocks for all members...")
                 applySessionBlocks()
                 hasAppliedBlocks = true
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
-            // Session se termine ou se dissout
             else if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
                 print("🛑 Session ended! Removing blocks...")
                 removeSessionBlocks()
-                hasAppliedBlocks = false // Reset for next time
+                hasAppliedBlocks = false
             }
-            // Session mise en pause - on peut choisir de garder les blocages ou non
-            // Pour l'instant on les garde actifs pendant la pause
         }
         .onReceive(sessionExpirationTimer) { _ in
             if activeSession.status == .active,
@@ -198,6 +204,26 @@ struct SessionDetailView: View {
             }
         }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
+        // ✅ NEW: Quand l'app revient en foreground, vérifier si la session a changé de status
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                print("📱 [SESSION_DETAIL] App returned to foreground — refreshing session")
+                // Redémarrer le listener pour capter les changements pendant le background
+                if let sessionId = session.id {
+                    sessionManager.startSessionListener(sessionId: sessionId)
+                }
+                // Vérifier si des blocks doivent être appliqués (session passée en active pendant le background)
+                if activeSession.status == .active && !hasAppliedBlocks {
+                    if let sessionId = session.id,
+                       let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+                       localApps.selectedAppsCount > 0 {
+                        print("🔄 [SESSION_DETAIL] Session became active while in background — applying blocks")
+                        applySessionBlocks()
+                        hasAppliedBlocks = true
+                    }
+                }
+            }
+        }
         .alert("Quitter la Session", isPresented: $showLeaveAlert) {
             Button("Annuler", role: .cancel) {}
             Button("Quitter", role: .destructive) { leaveSession() }
@@ -210,6 +236,13 @@ struct SessionDetailView: View {
             Button("Annuler", role: .cancel) {}
             Button("Arrêter", role: .destructive) { stopSession() }
         } message: { Text("La session sera marquée comme terminée pour tout le monde.") }
+        // ✅ NEW: Alert pour annuler une session programmée
+        .alert("Annuler la Session Programmée", isPresented: $showCancelScheduleAlert) {
+            Button("Non, garder", role: .cancel) {}
+            Button("Oui, annuler", role: .destructive) { cancelScheduledSession() }
+        } message: {
+            Text("Le démarrage automatique sera annulé. Vous pourrez dissoudre la session ensuite.")
+        }
         .sheet(isPresented: $showPauseRequestSheet) {
             PauseRequestSheet(
                 reason: $pauseRequestReason,
@@ -238,6 +271,15 @@ struct SessionDetailView: View {
 
             InviteCodeOpen(code: activeSession.inviteCode, showContent: showContent)
 
+            // ✅ NEW: Si session programmée, afficher le countdown
+            if isScheduledSession, let startTime = activeSession.scheduledStartTime?.dateValue() {
+                ScheduledSessionCountdown(
+                    startTime: startTime,
+                    endTime: activeSession.scheduledEndTime?.dateValue(),
+                    showContent: showContent
+                )
+            }
+
             if !isLeader && !isReady {
                 AppSelectionOpen(
                     selectedApps: selectedApps,
@@ -248,7 +290,6 @@ struct SessionDetailView: View {
                 )
             }
 
-            // Détail des membres (liste détaillée sous le header)
             MembersDetailList(
                 members: sessionManager.currentSessionMembers,
                 showContent: showContent
@@ -262,7 +303,6 @@ struct SessionDetailView: View {
     private var activeSection: some View {
         VStack(alignment: .leading, spacing: 24) {
 
-            // 🔥 LATE JOIN: Si l'utilisateur n'a pas encore sélectionné d'apps, montrer la sélection
             if selectedAppsCount == 0 {
                 LateJoinAppSelectionCard(
                     showContent: showContent,
@@ -283,7 +323,6 @@ struct SessionDetailView: View {
                 )
             }
 
-            // Chat prend tout l'espace restant
             ExpandedChatSection(
                 messages: sessionManager.currentSessionMessages,
                 messageText: $messageText,
@@ -337,6 +376,12 @@ struct SessionDetailView: View {
     }
 
     private func startSession() {
+        // ✅ FIX: Empêcher le lancement manuel d'une session programmée
+        guard !isScheduledSession else {
+            print("⚠️ Cannot manually start a scheduled session — it will auto-start at the scheduled time")
+            return
+        }
+
         Task {
             do {
                 try await sessionManager.startSession(sessionId: session.id!)
@@ -346,6 +391,23 @@ struct SessionDetailView: View {
                 }
             } catch {
                 print("Error starting session: \(error)")
+            }
+        }
+    }
+
+    // ✅ NEW: Annuler une session programmée
+    private func cancelScheduledSession() {
+        guard let sessionId = session.id else { return }
+        Task {
+            // Annuler le monitoring DeviceActivity
+            ScheduledSessionCoordinator.shared.cancelScheduledSession(sessionId: sessionId)
+
+            // Optionnel: dissoudre la session aussi
+            try? await sessionManager.dissolveSession(sessionId: sessionId)
+
+            await MainActor.run {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                dismiss()
             }
         }
     }
@@ -447,7 +509,6 @@ struct SessionDetailView: View {
         let categoryCount = selection.categoryTokens.count
         print("🛡️ [SESSION_BLOCKS] Starting block application for \(appCount) apps + \(categoryCount) categories in session \(sessionId)")
 
-        // ✅ CRUCIAL: Vérifier les permissions Screen Time avant de bloquer
         Task { @MainActor in
             let authCenter = AuthorizationCenter.shared
             let status = authCenter.authorizationStatus
@@ -456,11 +517,9 @@ struct SessionDetailView: View {
 
             guard status == .approved else {
                 print("❌ [SESSION_BLOCKS] Screen Time not authorized! Status: \(status)")
-                // Demander l'autorisation
                 do {
                     try await authCenter.requestAuthorization(for: .individual)
                     print("✅ [SESSION_BLOCKS] Authorization granted, retrying blocks...")
-                    // Réessayer après obtention de l'autorisation
                     await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
                 } catch {
                     print("❌ [SESSION_BLOCKS] Failed to get authorization: \(error)")
@@ -468,7 +527,6 @@ struct SessionDetailView: View {
                 return
             }
 
-            // Autorisation OK, appliquer les blocages avec un petit délai pour s'assurer que le système est prêt
             await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
         }
         #endif
@@ -476,47 +534,27 @@ struct SessionDetailView: View {
 
     @MainActor
     private func applyBlocksWithDelay(sessionId: String, selection: FamilyActivitySelection, appCount: Int, categoryCount: Int) async {
-        // Petit délai pour laisser le système se préparer
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
+        try? await Task.sleep(nanoseconds: 500_000_000)
 
         print("🛡️ [SESSION_BLOCKS] Applying blocks NOW...")
 
-        // Bloquer les apps individuelles
         for (index, token) in selection.applicationTokens.enumerated() {
             let blockId = "session_\(sessionId)_app_\(index)"
             let appName = "Session App \(index + 1)"
-
-            GlobalShieldManager.shared.addBlock(
-                token: token,
-                blockId: blockId,
-                appName: appName
-            )
-
+            GlobalShieldManager.shared.addBlock(token: token, blockId: blockId, appName: appName)
             print("  → Blocked app: \(appName) with ID: \(blockId)")
         }
 
-        // Bloquer les catégories
         for (index, token) in selection.categoryTokens.enumerated() {
             let blockId = "session_\(sessionId)_category_\(index)"
             let categoryName = "Session Category \(index + 1)"
-
-            GlobalShieldManager.shared.addCategoryBlock(
-                token: token,
-                blockId: blockId,
-                categoryName: categoryName
-            )
-
+            GlobalShieldManager.shared.addCategoryBlock(token: token, blockId: blockId, categoryName: categoryName)
             print("  → Blocked category: \(categoryName) with ID: \(blockId)")
         }
 
-        UserDefaults.standard.set(
-            appCount + categoryCount,
-            forKey: "session_\(sessionId)_blocks_count"
-        )
-
+        UserDefaults.standard.set(appCount + categoryCount, forKey: "session_\(sessionId)_blocks_count")
         print("✅ [SESSION_BLOCKS] All blocks applied successfully! (\(appCount) apps + \(categoryCount) categories)")
 
-        // 🔥 CRUCIAL: Forcer une vérification immédiate
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             let store = ManagedSettingsStore()
             let verifyApps = store.shield.applications?.count ?? 0
@@ -551,31 +589,17 @@ struct SessionDetailView: View {
             let categoryCount = selection.categoryTokens.count
             print("🔓 Removing \(appCount) app blocks + \(categoryCount) category blocks for session \(sessionId)")
 
-            // Retirer les blocages d'apps
             for (index, token) in selection.applicationTokens.enumerated() {
                 let blockId = "session_\(sessionId)_app_\(index)"
                 let appName = "Session App \(index + 1)"
-
-                GlobalShieldManager.shared.removeBlock(
-                    token: token,
-                    blockId: blockId,
-                    appName: appName
-                )
-
+                GlobalShieldManager.shared.removeBlock(token: token, blockId: blockId, appName: appName)
                 print("  → Removed app block: \(blockId)")
             }
 
-            // Retirer les blocages de catégories
             for (index, token) in selection.categoryTokens.enumerated() {
                 let blockId = "session_\(sessionId)_category_\(index)"
                 let categoryName = "Session Category \(index + 1)"
-
-                GlobalShieldManager.shared.removeCategoryBlock(
-                    token: token,
-                    blockId: blockId,
-                    categoryName: categoryName
-                )
-
+                GlobalShieldManager.shared.removeCategoryBlock(token: token, blockId: blockId, categoryName: categoryName)
                 print("  → Removed category block: \(blockId)")
             }
 
@@ -584,6 +608,146 @@ struct SessionDetailView: View {
 
         UserDefaults.standard.removeObject(forKey: "session_\(sessionId)_blocks_count")
         #endif
+    }
+}
+
+
+// MARK: - ✅ NEW: Scheduled Session Countdown
+
+struct ScheduledSessionCountdown: View {
+    let startTime: Date
+    let endTime: Date?
+    let showContent: Bool
+
+    @State private var timeRemaining = ""
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var pulse = false
+
+    private var hasStarted: Bool {
+        Date() >= startTime
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.cyan.opacity(0.7))
+                Text("SESSION PROGRAMMÉE")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1.5)
+                    .foregroundColor(.cyan.opacity(0.5))
+            }
+
+            // Countdown card
+            VStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(Color.cyan.opacity(0.08))
+                        .frame(width: 72, height: 72)
+                        .scaleEffect(pulse ? 1.1 : 1.0)
+
+                    Image(systemName: hasStarted ? "bolt.circle.fill" : "clock.fill")
+                        .font(.system(size: 36, weight: .light))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: hasStarted ? [.green, .mint] : [.cyan, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+
+                if hasStarted {
+                    Text("Démarrage en cours...")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.green)
+
+                    Text("La session va démarrer automatiquement")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                } else {
+                    Text("Démarre dans")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+
+                    Text(timeRemaining)
+                        .font(.system(size: 32, weight: .heavy, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+
+                // Schedule details
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.green)
+                        Text("Début: \(startTime.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                        Spacer()
+                    }
+
+                    if let endTime = endTime {
+                        HStack(spacing: 8) {
+                            Image(systemName: "stop.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.red)
+                            Text("Fin: \(endTime.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.cyan.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.cyan.opacity(0.15), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.15), value: showContent)
+        .onAppear {
+            updateTimeRemaining()
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
+        }
+        .onReceive(timer) { _ in
+            updateTimeRemaining()
+        }
+    }
+
+    private func updateTimeRemaining() {
+        let remaining = startTime.timeIntervalSinceNow
+
+        if remaining <= 0 {
+            timeRemaining = "00:00"
+            return
+        }
+
+        let hours = Int(remaining) / 3600
+        let minutes = (Int(remaining) % 3600) / 60
+        let seconds = Int(remaining) % 60
+
+        if hours > 0 {
+            timeRemaining = String(format: "%dh %02dm %02ds", hours, minutes, seconds)
+        } else if minutes > 0 {
+            timeRemaining = String(format: "%02d:%02d", minutes, seconds)
+        } else {
+            timeRemaining = String(format: "0:%02d", seconds)
+        }
     }
 }
 
@@ -653,14 +817,17 @@ struct SessionDetailHeaderWithAvatars: View {
 
     private var statusLabel: String {
         switch session.status {
-        case .lobby: return "En attente"; case .active: return "En cours"; case .paused: return "En pause"
+        case .lobby:
+            // ✅ NEW: Indiquer "Programmée" dans le badge si applicable
+            if session.isScheduled { return "Programmée" }
+            return "En attente"
+        case .active: return "En cours"; case .paused: return "En pause"
         case .completed: return "Terminée"; case .dissolved: return "Dissoute"
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Top row — back + status + leader
             HStack(spacing: 10) {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
@@ -695,7 +862,6 @@ struct SessionDetailHeaderWithAvatars: View {
                 }
             }
 
-            // Title row avec avatar pile à droite
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(session.title)
@@ -713,15 +879,9 @@ struct SessionDetailHeaderWithAvatars: View {
 
                 Spacer(minLength: 8)
 
-                // — Pile d'avatars empilés —
-                StackedAvatarPile(
-                    members: members,
-                    colors: avatarColors,
-                    showContent: showContent
-                )
+                StackedAvatarPile(members: members, colors: avatarColors, showContent: showContent)
             }
 
-            // Meta row — membres count + timer + code
             HStack(spacing: 14) {
                 HStack(spacing: 5) {
                     Image(systemName: "person.2.fill").font(.system(size: 11))
@@ -741,7 +901,6 @@ struct SessionDetailHeaderWithAvatars: View {
                 }.foregroundColor(.white.opacity(0.3))
             }
 
-            // Séparateur
             Rectangle()
                 .fill(LinearGradient(colors: [statusColor.opacity(0.3), .clear], startPoint: .leading, endPoint: .trailing))
                 .frame(height: 1)
@@ -759,7 +918,7 @@ struct SessionDetailHeaderWithAvatars: View {
 }
 
 
-// MARK: - Stacked Avatar Pile (compact, overlapping)
+// MARK: - Stacked Avatar Pile
 
 struct StackedAvatarPile: View {
     let members: [SessionMember]
@@ -772,47 +931,31 @@ struct StackedAvatarPile: View {
         let overflow = max(0, members.count - 4)
 
         ZStack {
-            // Avatars empilés en diagonale
             ForEach(Array(visibleMembers.enumerated().reversed()), id: \.element.id) { index, member in
-                AvatarPileItem(
-                    member: member,
-                    color: colors[index % colors.count],
-                    stackIndex: index,
-                    appeared: appeared
-                )
-                .offset(
-                    x: CGFloat(index) * 14,
-                    y: 0
-                )
+                AvatarPileItem(member: member, color: colors[index % colors.count], stackIndex: index, appeared: appeared)
+                    .offset(x: CGFloat(index) * 14, y: 0)
             }
 
-            // Compteur overflow
             if overflow > 0 {
                 Text("+\(overflow)")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 36, height: 36)
                     .background(
-                        Circle()
-                            .fill(Color.white.opacity(0.12))
-                            .overlay(
-                                Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5)
-                            )
+                        Circle().fill(Color.white.opacity(0.12))
+                            .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5))
                     )
                     .offset(x: CGFloat(visibleMembers.count) * 14, y: 0)
                     .scaleEffect(appeared ? 1 : 0)
                     .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.35), value: appeared)
             }
         }
-        // Cadrer la ZStack pour que le layout soit correct
         .frame(
             width: CGFloat(min(members.count, 4)) * 14 + 36 + (overflow > 0 ? 14 : 0),
             height: 40
         )
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2)) {
-                appeared = true
-            }
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2)) { appeared = true }
         }
     }
 }
@@ -833,43 +976,27 @@ struct AvatarPileItem: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [color, color.opacity(0.65)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(LinearGradient(colors: [color, color.opacity(0.65)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 36, height: 36)
                 .overlay(
                     Text(String(member.username.prefix(1)).uppercased())
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 )
-                .overlay(
-                    Circle()
-                        .stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5)
-                )
+                .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2.5))
                 .shadow(color: color.opacity(0.25), radius: 4, x: 0, y: 2)
 
-            // Petit indicateur de status
-            Circle()
-                .fill(statusColor)
-                .frame(width: 10, height: 10)
+            Circle().fill(statusColor).frame(width: 10, height: 10)
                 .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2))
                 .offset(x: 1, y: 1)
         }
         .scaleEffect(appeared ? 1 : 0)
-        .animation(
-            .spring(response: 0.45, dampingFraction: 0.6)
-            .delay(Double(stackIndex) * 0.06 + 0.15),
-            value: appeared
-        )
+        .animation(.spring(response: 0.45, dampingFraction: 0.6).delay(Double(stackIndex) * 0.06 + 0.15), value: appeared)
     }
 }
 
 
-// MARK: - Members Detail List (for lobby — shows ready status etc.)
+// MARK: - Members Detail List
 
 struct MembersDetailList: View {
     let members: [SessionMember]
@@ -884,21 +1011,11 @@ struct MembersDetailList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 6) {
-                Text("MEMBRES")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
-                Text("\(members.count)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.cyan.opacity(0.7))
+                Text("MEMBRES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                Text("\(members.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
             }
-
             ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
-                MemberDetailRow(
-                    member: member,
-                    color: avatarColors[index % avatarColors.count],
-                    index: index
-                )
+                MemberDetailRow(member: member, color: avatarColors[index % avatarColors.count], index: index)
             }
         }
         .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
@@ -932,54 +1049,31 @@ struct MemberDetailRow: View {
                 Circle()
                     .fill(LinearGradient(colors: [color, color.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(String(member.username.prefix(1)).uppercased())
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    )
+                    .overlay(Text(String(member.username.prefix(1)).uppercased()).font(.system(size: 17, weight: .bold, design: .rounded)).foregroundColor(.white))
                     .shadow(color: color.opacity(0.2), radius: 4, x: 0, y: 2)
-
                 Circle().fill(statusColor).frame(width: 12, height: 12)
                     .overlay(Circle().stroke(Color(red: 0.06, green: 0.06, blue: 0.08), lineWidth: 2))
                     .offset(x: 2, y: 2)
             }
-
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(member.username)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
+                    Text(member.username).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundColor(.white)
                     if member.role == .leader {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.yellow)
+                        Image(systemName: "crown.fill").font(.system(size: 10)).foregroundColor(.yellow)
                     }
                 }
-
                 HStack(spacing: 8) {
-                    Text(statusText)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(statusColor)
-
+                    Text(statusText).font(.system(size: 12, weight: .semibold)).foregroundColor(statusColor)
                     if member.hasSelectedApps {
-                        Text("· \(member.selectedAppsCount) apps")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.3))
+                        Text("· \(member.selectedAppsCount) apps").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3))
                     }
                 }
             }
-
             Spacer()
         }
         .padding(.vertical, 6)
-        .scaleEffect(appeared ? 1 : 0.97)
-        .opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.7).delay(Double(index) * 0.05)) {
-                appeared = true
-            }
-        }
+        .scaleEffect(appeared ? 1 : 0.97).opacity(appeared ? 1 : 0)
+        .onAppear { withAnimation(.spring(response: 0.45, dampingFraction: 0.7).delay(Double(index) * 0.05)) { appeared = true } }
     }
 }
 
@@ -993,11 +1087,7 @@ struct InviteCodeOpen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("CODE D'INVITATION")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .tracking(1.5)
-                .foregroundColor(.cyan.opacity(0.6))
-
+            Text("CODE D'INVITATION").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.cyan.opacity(0.6))
             Button(action: {
                 UIPasteboard.general.string = code
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { copied = true }
@@ -1008,14 +1098,9 @@ struct InviteCodeOpen: View {
                     HStack(spacing: 6) {
                         ForEach(Array(code.enumerated()), id: \.offset) { index, char in
                             Text(String(char))
-                                .font(.system(size: 36, weight: .black, design: .monospaced))
-                                .foregroundColor(.white)
+                                .font(.system(size: 36, weight: .black, design: .monospaced)).foregroundColor(.white)
                                 .frame(width: 38, height: 48)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.white.opacity(0.06))
-                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
-                                )
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1)))
                                 .scaleEffect(showContent ? 1 : 0)
                                 .animation(.spring(response: 0.4, dampingFraction: 0.6).delay(Double(index) * 0.05 + 0.2), value: showContent)
                         }
@@ -1024,16 +1109,11 @@ struct InviteCodeOpen: View {
                     ZStack {
                         Image(systemName: "doc.on.doc").opacity(copied ? 0 : 1)
                         Image(systemName: "checkmark").foregroundColor(.green).opacity(copied ? 1 : 0).scaleEffect(copied ? 1 : 0.3)
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.3))
+                    }.font(.system(size: 16, weight: .semibold)).foregroundColor(.white.opacity(0.3))
                 }
             }
-
             if copied {
-                Text("Copié dans le presse-papier")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundColor(.green.opacity(0.7))
+                Text("Copié dans le presse-papier").font(.system(size: 12, weight: .medium, design: .rounded)).foregroundColor(.green.opacity(0.7))
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -1055,35 +1135,21 @@ struct AppSelectionOpen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("APPS À BLOQUER")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .tracking(1.5)
-                .foregroundColor(.purple.opacity(0.6))
-
+            Text("APPS À BLOQUER").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.6))
             if selectedCount == 0 {
                 Button(action: onSelect) {
                     HStack(spacing: 12) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                                .foregroundColor(.white.opacity(0.12))
-                                .frame(width: 52, height: 52)
-                            Image(systemName: "plus")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.3))
+                            RoundedRectangle(cornerRadius: 12).strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 6])).foregroundColor(.white.opacity(0.12)).frame(width: 52, height: 52)
+                            Image(systemName: "plus").font(.system(size: 22, weight: .semibold)).foregroundColor(.white.opacity(0.3))
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Choisir les apps")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(.white.opacity(0.7))
-                            Text("Sélectionne les apps à bloquer pendant la session")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.35))
+                            Text("Choisir les apps").font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.7))
+                            Text("Sélectionne les apps à bloquer pendant la session").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.35))
                         }
                         Spacer()
                     }
-                }
-                .buttonStyle(BounceButtonStyle())
+                }.buttonStyle(BounceButtonStyle())
             } else {
                 VStack(alignment: .leading, spacing: 14) {
                     Button(action: onSelect) {
@@ -1095,26 +1161,20 @@ struct AppSelectionOpen: View {
                                 Text("Modifier").font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25))
                             }
                         }
-                    }
-                    .buttonStyle(BounceButtonStyle())
+                    }.buttonStyle(BounceButtonStyle())
 
                     Button(action: onReady) {
                         HStack(spacing: 10) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20, weight: .bold))
-                                .scaleEffect(readyPulse ? 1.12 : 1.0)
-                            Text("Je suis Prêt")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                            Image(systemName: "checkmark.circle.fill").font(.system(size: 20, weight: .bold)).scaleEffect(readyPulse ? 1.12 : 1.0)
+                            Text("Je suis Prêt").font(.system(size: 18, weight: .bold, design: .rounded))
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.8, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
                                 .shadow(color: .green.opacity(0.3), radius: 16, x: 0, y: 6)
                         )
-                    }
-                    .buttonStyle(BounceButtonStyle())
+                    }.buttonStyle(BounceButtonStyle())
                     .onAppear { withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { readyPulse = true } }
                 }
             }
@@ -1138,7 +1198,6 @@ struct AppTokensFlow: View {
         let showCount = min(total, maxToShow)
         let overflow = total - showCount
 
-        // ✅ FIX: ScrollView horizontal pour éviter le débordement
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: -6) {
                 ForEach(0..<min(appCount, showCount), id: \.self) { index in
@@ -1148,7 +1207,6 @@ struct AppTokensFlow: View {
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
                 }
-
                 let remainingSlots = max(0, showCount - appCount)
                 ForEach(0..<min(catCount, remainingSlots), id: \.self) { index in
                     let token = Array(selectedApps.categoryTokens)[index]
@@ -1157,18 +1215,12 @@ struct AppTokensFlow: View {
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.2), lineWidth: 1))
                 }
-
                 if overflow > 0 {
-                    Text("+\(overflow)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .frame(width: 40, height: 40)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+                    Text("+\(overflow)").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.5))
+                        .frame(width: 40, height: 40).background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
                 }
-            }
-            .padding(.horizontal, 2)
-        }
-        .frame(height: 44)
+            }.padding(.horizontal, 2)
+        }.frame(height: 44)
     }
 }
 
@@ -1182,78 +1234,39 @@ struct LateJoinAppSelectionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Icon + Title
             HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                        .scaleEffect(pulse ? 1.1 : 1.0)
-
-                    Image(systemName: "clock.badge.exclamationmark.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.orange)
+                    Circle().fill(Color.orange.opacity(0.15)).frame(width: 48, height: 48).scaleEffect(pulse ? 1.1 : 1.0)
+                    Image(systemName: "clock.badge.exclamationmark.fill").font(.system(size: 24)).foregroundColor(.orange)
                 }
-
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Session en cours")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Text("Sélectionnez vos apps pour activer le blocage")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                    Text("Session en cours").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text("Sélectionnez vos apps pour activer le blocage").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6))
                 }
             }
-
-            // Action Button
             Button(action: onSelect) {
                 HStack(spacing: 12) {
-                    Image(systemName: "apps.iphone")
-                        .font(.system(size: 18, weight: .semibold))
-
-                    Text("Sélectionner les apps à bloquer")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-
+                    Image(systemName: "apps.iphone").font(.system(size: 18, weight: .semibold))
+                    Text("Sélectionner les apps à bloquer").font(.system(size: 16, weight: .semibold, design: .rounded))
                     Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
+                    Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold))
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .foregroundColor(.white).padding(.horizontal, 20).padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.orange, Color.orange.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(LinearGradient(colors: [Color.orange, Color.orange.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .shadow(color: .orange.opacity(0.3), radius: 12, x: 0, y: 6)
                 )
-            }
-            .buttonStyle(BounceButtonStyle())
+            }.buttonStyle(BounceButtonStyle())
         }
         .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.orange.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.orange.opacity(0.3), lineWidth: 1.5)
-                )
+            RoundedRectangle(cornerRadius: 20).fill(Color.orange.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange.opacity(0.3), lineWidth: 1.5))
         )
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 20)
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
         .animation(.spring(response: 0.9, dampingFraction: 0.8).delay(0.1), value: showContent)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
+        .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { pulse = true } }
     }
 }
 
@@ -1268,23 +1281,12 @@ struct BlockedAppsOpen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.purple.opacity(0.7))
-                    .scaleEffect(shieldPulse ? 1.1 : 1.0)
-
-                Text("BLOQUÉES")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(1.5).foregroundColor(.purple.opacity(0.5))
-
+                Image(systemName: "shield.lefthalf.filled").font(.system(size: 13, weight: .bold)).foregroundColor(.purple.opacity(0.7)).scaleEffect(shieldPulse ? 1.1 : 1.0)
+                Text("BLOQUÉES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.5))
                 let total = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
-                Text("\(total)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(Capsule().fill(Color.purple.opacity(0.12)))
+                Text("\(total)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.purple)
+                    .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Color.purple.opacity(0.12)))
             }
-
             AppTokensFlow(selectedApps: selectedApps, maxToShow: 10)
         }
         .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 15)
@@ -1339,7 +1341,6 @@ struct PauseRequestsOpen: View {
                 Text("\(requests.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.orange)
                     .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Color.orange.opacity(0.12)))
             }
-
             ForEach(requests) { request in
                 HStack(spacing: 12) {
                     Circle().fill(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 36, height: 36)
@@ -1361,10 +1362,8 @@ struct PauseRequestsOpen: View {
                                 .frame(width: 34, height: 34).background(Circle().fill(Color.white.opacity(0.06)))
                         }.buttonStyle(BounceButtonStyle())
                     }
-                }
-                .padding(.vertical, 6)
+                }.padding(.vertical, 6)
             }
-
             Rectangle().fill(Color.orange.opacity(0.15)).frame(height: 1)
         }
         .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { alertPulse = true } }
@@ -1372,11 +1371,12 @@ struct PauseRequestsOpen: View {
 }
 
 
-// MARK: - Fixed Bottom Controls (toujours visible)
+// MARK: - Fixed Bottom Controls (✅ UPDATED for scheduled sessions)
 
 struct FixedBottomControls: View {
     let session: Session
     let isLeader: Bool
+    let isScheduled: Bool // ✅ NEW
     let readyCount: Int
     let totalCount: Int
     let onStart: () -> Void
@@ -1384,6 +1384,7 @@ struct FixedBottomControls: View {
     let onResume: () -> Void
     let onStop: () -> Void
     let onDissolve: () -> Void
+    let onCancelSchedule: () -> Void // ✅ NEW
     let onRequestPause: () -> Void
     let onLeave: () -> Void
 
@@ -1413,36 +1414,78 @@ struct FixedBottomControls: View {
                             .foregroundColor(.green.opacity(0.7))
                     }
 
-                    HStack(spacing: 12) {
-                        Button(action: onStart) {
+                    // ✅ NEW: Boutons différents selon session programmée ou non
+                    if isScheduled {
+                        // Session programmée: pas de bouton Démarrer, mais Annuler
+                        HStack(spacing: 12) {
+                            // Info: démarrage auto
                             HStack(spacing: 8) {
-                                Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
-                                Text("Démarrer").font(.system(size: 16, weight: .bold, design: .rounded))
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Démarrage auto")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(.cyan.opacity(0.7))
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .shadow(color: .green.opacity(0.25), radius: 12, x: 0, y: 4)
+                                    .fill(Color.cyan.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                                    )
                             )
-                        }.buttonStyle(BounceButtonStyle())
 
-                        Button(action: onDissolve) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.red.opacity(0.6))
-                                .frame(width: 50, height: 50)
+                            // Bouton annuler la session programmée
+                            Button(action: onCancelSchedule) {
+                                Image(systemName: "calendar.badge.minus")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.red.opacity(0.6))
+                                    .frame(width: 50, height: 50)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(.ultraThinMaterial)
+                                            .environment(\.colorScheme, .dark)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(Color.red.opacity(0.15), lineWidth: 1)
+                                    )
+                            }.buttonStyle(BounceButtonStyle())
+                        }
+                    } else {
+                        // Session manuelle: bouton Démarrer classique
+                        HStack(spacing: 12) {
+                            Button(action: onStart) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
+                                    Text("Démarrer").font(.system(size: 16, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 16)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(.ultraThinMaterial)
-                                        .environment(\.colorScheme, .dark)
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(LinearGradient(colors: [.green, Color(red: 0.2, green: 0.75, blue: 0.4)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .shadow(color: .green.opacity(0.25), radius: 12, x: 0, y: 4)
                                 )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.red.opacity(0.15), lineWidth: 1)
-                                )
-                        }.buttonStyle(BounceButtonStyle())
+                            }.buttonStyle(BounceButtonStyle())
+
+                            Button(action: onDissolve) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.red.opacity(0.6))
+                                    .frame(width: 50, height: 50)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(.ultraThinMaterial)
+                                            .environment(\.colorScheme, .dark)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(Color.red.opacity(0.15), lineWidth: 1)
+                                    )
+                            }.buttonStyle(BounceButtonStyle())
+                        }
                     }
                 }
 
@@ -1456,9 +1499,7 @@ struct FixedBottomControls: View {
                             }
                             .foregroundColor(.orange)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
                         }.buttonStyle(BounceButtonStyle())
 
@@ -1469,9 +1510,7 @@ struct FixedBottomControls: View {
                             }
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.2), lineWidth: 1))
                         }.buttonStyle(BounceButtonStyle())
                     }
@@ -1484,9 +1523,7 @@ struct FixedBottomControls: View {
                             }
                             .foregroundColor(.orange)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
                         }.buttonStyle(BounceButtonStyle())
 
@@ -1497,9 +1534,7 @@ struct FixedBottomControls: View {
                             }
                             .foregroundColor(.red.opacity(0.7))
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.15), lineWidth: 1))
                         }.buttonStyle(BounceButtonStyle())
                     }
@@ -1528,14 +1563,9 @@ struct FixedBottomControls: View {
                                 .foregroundColor(.red.opacity(0.6))
                                 .frame(width: 50, height: 50)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(.ultraThinMaterial)
-                                        .environment(\.colorScheme, .dark)
+                                    RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
                                 )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color.red.opacity(0.15), lineWidth: 1)
-                                )
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.15), lineWidth: 1))
                         }.buttonStyle(BounceButtonStyle())
                     }
                 } else {
@@ -1546,9 +1576,7 @@ struct FixedBottomControls: View {
                         }
                         .foregroundColor(.orange)
                         .frame(maxWidth: .infinity).padding(.vertical, 15)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark)
-                        )
+                        .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
                     }.buttonStyle(BounceButtonStyle())
                 }
@@ -1561,7 +1589,7 @@ struct FixedBottomControls: View {
 }
 
 
-// MARK: - Expanded Chat Section (prend plus de place, mieux structuré)
+// MARK: - Expanded Chat Section
 
 struct ExpandedChatSection: View {
     let messages: [SessionMessage]
@@ -1579,66 +1607,44 @@ struct ExpandedChatSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
             HStack(spacing: 6) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.25))
-                Text("CHAT")
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundColor(.white.opacity(0.3))
+                Image(systemName: "bubble.left.and.bubble.right.fill").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.25))
+                Text("CHAT").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.3))
                 if !messages.isEmpty {
-                    Text("\(messages.count)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.cyan.opacity(0.6))
+                    Text("\(messages.count)").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.6))
                 }
             }
 
-            // Messages
             if messages.isEmpty {
                 HStack(spacing: 8) {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.system(size: 16, weight: .light))
-                        .foregroundColor(.white.opacity(0.12))
-                    Text("Aucun message — lance la conversation !")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.2))
-                }
-                .padding(.vertical, 16)
+                    Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 16, weight: .light)).foregroundColor(.white.opacity(0.12))
+                    Text("Aucun message — lance la conversation !").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.2))
+                }.padding(.vertical, 16)
             } else {
-                // Scroll de messages avec hauteur adaptive
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         LazyVStack(spacing: 2) {
                             ForEach(messages) { message in
-                                ChatBubbleRow(message: message)
-                                    .id(message.id)
+                                ChatBubbleRow(message: message).id(message.id)
                             }
-                        }
-                        .padding(.vertical, 4)
+                        }.padding(.vertical, 4)
                     }
                     .frame(maxHeight: 320)
                     .mask(
                         VStack(spacing: 0) {
-                            LinearGradient(colors: [.clear, .white], startPoint: .top, endPoint: .bottom)
-                                .frame(height: 12)
+                            LinearGradient(colors: [.clear, .white], startPoint: .top, endPoint: .bottom).frame(height: 12)
                             Color.white
-                            LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom)
-                                .frame(height: 8)
+                            LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom).frame(height: 8)
                         }
                     )
                     .onChange(of: messages.count) { _, _ in
                         if let lastId = messages.last?.id {
-                            withAnimation(.spring(response: 0.3)) {
-                                proxy.scrollTo(lastId, anchor: .bottom)
-                            }
+                            withAnimation(.spring(response: 0.3)) { proxy.scrollTo(lastId, anchor: .bottom) }
                         }
                     }
                 }
             }
 
-            // Mention picker
             if showMentionPicker && !filteredMentionMembers.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
@@ -1646,50 +1652,30 @@ struct ExpandedChatSection: View {
                             MentionChip(member: m) { insertMention(m.username) }
                         }
                     }
-                }
-                .frame(height: 36)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                }.frame(height: 36).transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Input bar
             HStack(spacing: 10) {
                 HStack(spacing: 6) {
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() }
-                    }) {
-                        Image(systemName: "at")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.3))
-                            .frame(width: 30, height: 30)
+                    Button(action: { withAnimation(.spring(response: 0.3)) { showMentionPicker.toggle() } }) {
+                        Image(systemName: "at").font(.system(size: 15, weight: .bold))
+                            .foregroundColor(showMentionPicker ? .cyan : .white.opacity(0.3)).frame(width: 30, height: 30)
                     }
-
-                    TextField("Message...", text: $messageText)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.white)
-                        .focused($isInputFocused)
-                        .onChange(of: messageText) { _, v in checkForMentionTrigger(v) }
+                    TextField("Message...", text: $messageText).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
+                        .focused($isInputFocused).onChange(of: messageText) { _, v in checkForMentionTrigger(v) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.05))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(isInputFocused ? Color.cyan.opacity(0.25) : Color.white.opacity(0.04), lineWidth: 1)
-                )
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(isInputFocused ? Color.cyan.opacity(0.25) : Color.white.opacity(0.04), lineWidth: 1))
 
                 Button(action: onSend) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 32))
+                    Image(systemName: "arrow.up.circle.fill").font(.system(size: 32))
                         .foregroundStyle(
                             messageText.isEmpty
                             ? LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.2)], startPoint: .top, endPoint: .bottom)
                             : LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom)
                         )
-                }
-                .disabled(messageText.isEmpty)
-                .buttonStyle(BounceButtonStyle())
+                }.disabled(messageText.isEmpty).buttonStyle(BounceButtonStyle())
             }
         }
         .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 20)
@@ -1724,7 +1710,7 @@ struct ExpandedChatSection: View {
 }
 
 
-// MARK: - Chat Bubble Row (plus compact, bulles alignées)
+// MARK: - Chat Bubble Row
 
 struct ChatBubbleRow: View {
     let message: SessionMessage
@@ -1732,68 +1718,34 @@ struct ChatBubbleRow: View {
     @State private var appeared = false
 
     private let bubbleColors: [Color] = [
-        Color(red: 0.4, green: 0.6, blue: 1.0),
-        Color(red: 0.6, green: 0.4, blue: 1.0),
-        Color(red: 0.3, green: 0.8, blue: 0.7),
-        Color(red: 1.0, green: 0.5, blue: 0.4),
+        Color(red: 0.4, green: 0.6, blue: 1.0), Color(red: 0.6, green: 0.4, blue: 1.0),
+        Color(red: 0.3, green: 0.8, blue: 0.7), Color(red: 1.0, green: 0.5, blue: 0.4),
     ]
 
     var body: some View {
         Group {
             if isSystem {
-                Text(message.content)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.3))
-                    .italic()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
+                Text(message.content).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).italic()
+                    .frame(maxWidth: .infinity).padding(.vertical, 4)
             } else {
                 HStack(alignment: .top, spacing: 10) {
-                    // Avatar petit
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    bubbleColors[abs(message.username.hashValue) % bubbleColors.count],
-                                    bubbleColors[abs(message.username.hashValue) % bubbleColors.count].opacity(0.6)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(LinearGradient(colors: [bubbleColors[abs(message.username.hashValue) % bubbleColors.count], bubbleColors[abs(message.username.hashValue) % bubbleColors.count].opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 28, height: 28)
-                        .overlay(
-                            Text(String(message.username.prefix(1)).uppercased())
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                        )
-
+                        .overlay(Text(String(message.username.prefix(1)).uppercased()).font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.white))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(message.username)
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                        Text(message.username).font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(bubbleColors[abs(message.username.hashValue) % bubbleColors.count].opacity(0.8))
-
-                        Text(message.content)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.85))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color.white.opacity(0.06))
-                            )
+                        Text(message.content).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.85))
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
                     }
-
                     Spacer(minLength: 40)
-                }
-                .padding(.vertical, 3)
+                }.padding(.vertical, 3)
             }
         }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 6)
-        .onAppear {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { appeared = true }
-        }
+        .opacity(appeared ? 1 : 0).offset(y: appeared ? 0 : 6)
+        .onAppear { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { appeared = true } }
     }
 }
 
@@ -1807,22 +1759,11 @@ struct MentionChip: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 5) {
-                Circle()
-                    .fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 18, height: 18)
-                    .overlay(
-                        Text(String(member.username.prefix(1)).uppercased())
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white)
-                    )
-                Text("@\(member.username)")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding(.horizontal, 9).padding(.vertical, 6)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.1)))
-        }
-        .buttonStyle(BounceButtonStyle())
+                Circle().fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 18, height: 18)
+                    .overlay(Text(String(member.username.prefix(1)).uppercased()).font(.system(size: 9, weight: .bold)).foregroundColor(.white))
+                Text("@\(member.username)").font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.8))
+            }.padding(.horizontal, 9).padding(.vertical, 6).background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.1)))
+        }.buttonStyle(BounceButtonStyle())
     }
 }
 
@@ -1844,7 +1785,6 @@ struct CompletedContent: View {
             }
             Text("Session Terminée").font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundColor(.white)
             Text("Félicitations à tous").font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.4))
-
             HStack(spacing: 24) {
                 VStack(spacing: 4) {
                     Text("\(session.memberIds.count)").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
@@ -1904,15 +1844,9 @@ struct PauseRequestSheet: View {
                         Text("Le leader devra accepter").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.45))
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("RAISON (OPTIONNEL)")
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
-                            .tracking(1.0)
-                            .foregroundColor(.white.opacity(0.35))
-                        TextField("Ex: Besoin d'une pause", text: $reason)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(16)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
+                        Text("RAISON (OPTIONNEL)").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.0).foregroundColor(.white.opacity(0.35))
+                        TextField("Ex: Besoin d'une pause", text: $reason).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
+                            .padding(16).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                     Button(action: onSubmit) {
@@ -1954,8 +1888,7 @@ struct TimeRemainingPill: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: "timer").font(.system(size: 10))
-            Text(timeRemaining.isEmpty ? "..." : timeRemaining)
-                .font(.system(size: 13, weight: .bold, design: .monospaced))
+            Text(timeRemaining.isEmpty ? "..." : timeRemaining).font(.system(size: 13, weight: .bold, design: .monospaced))
         }
         .foregroundColor(.cyan.opacity(0.7))
         .onAppear { updateTimeRemaining() }
@@ -1971,12 +1904,8 @@ struct TimeRemainingPill: View {
             let hours = Int(remaining) / 3600
             let minutes = Int(remaining) % 3600 / 60
             let seconds = Int(remaining) % 60
-
-            if hours > 0 {
-                timeRemaining = String(format: "%dh %02dm", hours, minutes)
-            } else {
-                timeRemaining = String(format: "%d:%02d", minutes, seconds)
-            }
+            if hours > 0 { timeRemaining = String(format: "%dh %02dm", hours, minutes) }
+            else { timeRemaining = String(format: "%d:%02d", minutes, seconds) }
         }
     }
 }
@@ -1996,6 +1925,8 @@ struct TimeRemainingPill: View {
         memberIds: ["user1", "user2", "user3"],
         durationMinutes: nil,
         scheduledEndTime: nil,
+        scheduledStartTime: nil,
+        isScheduled: false,
         suggestedAppsCount: 3
     ))
     .environmentObject(ZenloopManager.shared)
