@@ -90,6 +90,17 @@ struct SocialTab: View {
                             .padding(.top, 24)
                         }
 
+                        // — Demandes de rejoindre (leader only) —
+                        if let currentUserId = sessionManager.currentUser?.id,
+                           !sessionManager.pendingJoinRequests.isEmpty {
+                            JoinRequestsSection(
+                                requests: sessionManager.pendingJoinRequests,
+                                showContent: showContent
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.top, 24)
+                        }
+
                         // — Invitations (compact inline) —
                         if !sessionManager.pendingInvitations.isEmpty {
                             InvitationsCarousel(
@@ -356,7 +367,7 @@ struct TopSocialBand: View {
 
     private func getOnlineMembers() -> [String] {
         guard let session = sessionManager.currentSession else { return [] }
-        return session.memberIds.prefix(8).enumerated().map { index, _ in
+        return (session.memberIds ?? []).prefix(8).enumerated().map { index, _ in
             "Membre \(index + 1)"
         }
     }
@@ -481,7 +492,7 @@ struct SessionCarouselCard: View {
 
     private var isMember: Bool {
         guard let userId = sessionManager.currentUser?.id else { return false }
-        return session.memberIds.contains(userId)
+        return (session.memberIds ?? []).contains(userId)
     }
 
     private var statusColor: Color {
@@ -562,7 +573,7 @@ struct SessionCarouselCard: View {
 
                 HStack(spacing: 3) {
                     Image(systemName: "person.2.fill").font(.system(size: 9))
-                    Text("\(session.memberIds.count)").font(.system(size: 11, weight: .bold, design: .rounded))
+                    Text("\((session.memberIds ?? []).count)").font(.system(size: 11, weight: .bold, design: .rounded))
                 }
                 .foregroundColor(.white.opacity(0.35))
             }
@@ -577,8 +588,8 @@ struct SessionCarouselCard: View {
                 .padding(.bottom, 6)
 
             // Description
-            if !session.description.isEmpty {
-                Text(session.description)
+            if !(session.description ?? "").isEmpty {
+                Text(session.description ?? "")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.4))
                     .lineLimit(2)
@@ -590,12 +601,12 @@ struct SessionCarouselCard: View {
             // Bottom : avatars + code
             HStack(spacing: 0) {
                 HStack(spacing: -8) {
-                    ForEach(0..<min(session.memberIds.count, 4), id: \.self) { i in
+                    ForEach(0..<min((session.memberIds ?? []).count, 4), id: \.self) { i in
                         CarouselMiniAvatar(index: i)
                     }
 
-                    if session.memberIds.count > 4 {
-                        Text("+\(session.memberIds.count - 4)")
+                    if (session.memberIds ?? []).count > 4 {
+                        Text("+\((session.memberIds ?? []).count - 4)")
                             .font(.system(size: 10, weight: .heavy, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
                             .frame(width: 26, height: 26)
@@ -1076,21 +1087,21 @@ struct ActiveSessionCard: View {
 
                 Text(session.title).font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white).lineLimit(2)
 
-                if !session.description.isEmpty {
-                    Text(session.description).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6)).lineLimit(2)
+                if !(session.description ?? "").isEmpty {
+                    Text(session.description ?? "").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6)).lineLimit(2)
                 }
 
-                if session.suggestedAppsCount > 0 { ActiveSessionAppsRow(session: session) }
+                if (session.suggestedAppsCount ?? 0) > 0 { ActiveSessionAppsRow(session: session) }
 
                 HStack(spacing: 0) {
                     HStack(spacing: -10) {
-                        ForEach(0..<min(session.memberIds.count, 5), id: \.self) { index in
+                        ForEach(0..<min((session.memberIds ?? []).count, 5), id: \.self) { index in
                             MiniAvatar(index: index)
                                 .scaleEffect(memberAvatarsVisible ? 1 : 0)
                                 .animation(.spring(response: 0.4, dampingFraction: 0.6).delay(Double(index) * 0.06), value: memberAvatarsVisible)
                         }
-                        if session.memberIds.count > 5 {
-                            Text("+\(session.memberIds.count - 5)")
+                        if (session.memberIds ?? []).count > 5 {
+                            Text("+\((session.memberIds ?? []).count - 5)")
                                 .font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.7))
                                 .frame(width: 32, height: 32)
                                 .background(Circle().fill(Color.white.opacity(0.1)).overlay(Circle().stroke(Color(red: 0.12, green: 0.22, blue: 0.12), lineWidth: 2)))
@@ -1241,6 +1252,105 @@ struct OpenPauseRequestRow: View {
     }
 }
 
+// MARK: - Join Requests Section
+
+struct JoinRequestsSection: View {
+    let requests: [JoinRequest]
+    let showContent: Bool
+    @State private var pulseAlert = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                Circle().fill(Color.blue).frame(width: 10, height: 10).scaleEffect(pulseAlert ? 1.4 : 0.9)
+                Text("Demandes de rejoindre").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
+                Text("\(requests.count)").font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.blue)
+                    .padding(.horizontal, 8).padding(.vertical, 3).background(Capsule().fill(Color.blue.opacity(0.12)))
+                Spacer()
+            }.padding(.horizontal, 4)
+
+            ForEach(requests) { request in
+                JoinRequestRow(request: request)
+            }
+        }
+        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 30)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.25), value: showContent)
+        .onAppear { withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { pulseAlert = true } }
+    }
+}
+
+struct JoinRequestRow: View {
+    let request: JoinRequest
+    @ObservedObject private var sessionManager = SessionManager.shared
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 40, height: 40)
+                    Text(String(request.username.prefix(1)).uppercased()).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(request.username).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text("Veut rejoindre « \(request.targetSessionTitle) »").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.45)).lineLimit(1)
+                    if let currentSessionTitle = request.currentSessionTitle {
+                        Text("Actuellement dans « \(currentSessionTitle) »").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).lineLimit(1)
+                    }
+                    Text(timeAgo(from: request.createdAt.dateValue())).font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.3))
+                }
+                Spacer()
+                HStack(spacing: 8) {
+                    Button(action: { approveRequest() }) {
+                        Text("OK").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundColor(.white)
+                            .padding(.horizontal, 16).padding(.vertical, 8)
+                            .background(Capsule().fill(LinearGradient(colors: [.green, .green.opacity(0.7)], startPoint: .top, endPoint: .bottom)).shadow(color: .green.opacity(0.3), radius: 6, x: 0, y: 2))
+                    }.buttonStyle(BounceButtonStyle())
+                    Button(action: { rejectRequest() }) {
+                        Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundColor(.white.opacity(0.5))
+                            .frame(width: 32, height: 32).background(Circle().fill(Color.white.opacity(0.06)))
+                    }.buttonStyle(BounceButtonStyle())
+                }
+            }.padding(.vertical, 12)
+            Rectangle().fill(LinearGradient(colors: [Color.white.opacity(0.0), Color.blue.opacity(0.1), Color.white.opacity(0.0)], startPoint: .leading, endPoint: .trailing)).frame(height: 1)
+        }
+    }
+
+    private func approveRequest() {
+        Task {
+            guard let requestId = request.id, !requestId.isEmpty else {
+                print("❌ Request ID is nil or empty")
+                return
+            }
+            do {
+                try await sessionManager.approveJoinRequest(requestId: requestId)
+            } catch {
+                print("❌ Error approving join request: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func rejectRequest() {
+        Task {
+            guard let requestId = request.id, !requestId.isEmpty else {
+                print("❌ Request ID is nil or empty")
+                return
+            }
+            do {
+                try await sessionManager.rejectJoinRequest(requestId: requestId)
+            } catch {
+                print("❌ Error rejecting join request: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func timeAgo(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 60 { return "À l'instant" }
+        if interval < 3600 { return "Il y a \(Int(interval / 60))min" }
+        return "Il y a \(Int(interval / 3600))h"
+    }
+}
+
 
 // MARK: - Bounce Button Style
 
@@ -1265,22 +1375,22 @@ struct ActiveSessionAppsRow: View {
         HStack(spacing: 0) {
             if !sessionApps.applicationTokens.isEmpty || !sessionApps.categoryTokens.isEmpty {
                 StackedAppIcons(selectedApps: sessionApps, maxToShow: 6)
-            } else if session.suggestedAppsCount > 0 {
+            } else if (session.suggestedAppsCount ?? 0) > 0 {
                 HStack(spacing: -10) {
-                    ForEach(0..<min(session.suggestedAppsCount, 4), id: \.self) { index in
+                    ForEach(0..<min(session.suggestedAppsCount ?? 0, 4), id: \.self) { index in
                         ZStack {
                             RoundedRectangle(cornerRadius: 10).fill(Color.purple.opacity(0.2)).frame(width: 32, height: 32)
                                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.4), lineWidth: 1.5))
                             Image(systemName: getGenericAppIcon(index: index)).font(.system(size: 14, weight: .semibold)).foregroundColor(.purple)
                         }.zIndex(Double(4 - index))
                     }
-                    if session.suggestedAppsCount > 4 {
+                    if (session.suggestedAppsCount ?? 0) > 4 {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(LinearGradient(colors: [.purple.opacity(0.3), .purple.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
                                 .frame(width: 32, height: 32)
                                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.5), lineWidth: 1.5))
-                            Text("+\(session.suggestedAppsCount - 4)").font(.system(size: 11, weight: .bold)).foregroundColor(.purple)
+                            Text("+\((session.suggestedAppsCount ?? 0) - 4)").font(.system(size: 11, weight: .bold)).foregroundColor(.purple)
                         }.zIndex(0)
                     }
                 }

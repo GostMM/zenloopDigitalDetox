@@ -128,14 +128,14 @@ struct SessionPreviewView: View {
                             }
 
                             // Description
-                            if !session.description.isEmpty {
+                            if !(session.description ?? "").isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("DESCRIPTION")
                                         .font(.system(size: 11, weight: .heavy, design: .rounded))
                                         .foregroundColor(.white.opacity(0.4))
                                         .tracking(1.2)
 
-                                    Text(session.description)
+                                    Text(session.description ?? "")
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.white.opacity(0.7))
                                         .lineSpacing(4)
@@ -147,7 +147,7 @@ struct SessionPreviewView: View {
                                 InfoRow(
                                     icon: "person.2.fill",
                                     label: "Participants",
-                                    value: "\(session.memberIds.count)\(session.maxParticipants.map { " / \($0)" } ?? "")"
+                                    value: "\((session.memberIds ?? []).count)\(session.maxParticipants.map { " / \($0)" } ?? "")"
                                 )
 
                                 InfoRow(
@@ -172,7 +172,7 @@ struct SessionPreviewView: View {
                             }
 
                             // Warning if session is full
-                            if let max = session.maxParticipants, session.memberIds.count >= max {
+                            if let max = session.maxParticipants, (session.memberIds ?? []).count >= max {
                                 HStack(spacing: 12) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.system(size: 20))
@@ -257,7 +257,7 @@ struct SessionPreviewView: View {
                                 .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
                         )
                     }
-                    .disabled(isJoining || (session.maxParticipants.map { session.memberIds.count >= $0 } ?? false))
+                    .disabled(isJoining || (session.maxParticipants.map { (session.memberIds ?? []).count >= $0 } ?? false))
                     .buttonStyle(BounceButtonStyle())
                 }
                 .padding(.horizontal, 24)

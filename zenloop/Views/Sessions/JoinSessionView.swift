@@ -5,21 +5,26 @@
 //  Modal pour rejoindre une session avec un code d'invitation
 //  Style: HomeView avec background optimisé
 //
+//  ✅ FIX: Utilisation des safe accessors pour les champs optionnels
+//  ✅ FIX: Protection contre les double-appels
+//  ✅ FIX: Meilleure gestion du cas "déjà membre"
+//
 
 import SwiftUI
 import UIKit
 
 struct JoinSessionView: View {
     @Environment(\.dismiss) var dismiss
-    // ✅ FIX: @ObservedObject pour les singletons (pas @StateObject)
     @ObservedObject private var sessionManager = SessionManager.shared
     @Binding var inviteCode: String
 
     @State private var showContent = false
     @State private var codeDigits: [String] = ["", "", "", "", "", ""]
     @State private var isSearching = false
+    @State private var isJoining = false          // ✅ NEW: Empêcher double-tap
     @State private var foundSession: Session?
     @State private var errorMessage: String?
+    @State private var successMessage: String?    // ✅ NEW: Message de succès
     @FocusState private var focusedField: Int?
 
     var body: some View {
@@ -65,6 +70,31 @@ struct JoinSessionView: View {
                         .offset(y: showContent ? 0 : 20)
                         .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
 
+                        // Success Message
+                        if let success = successMessage {
+                            HStack(spacing: 12) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.green)
+
+                                Text(success)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.green.opacity(0.15))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                            )
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+
                         // Error Message
                         if let error = errorMessage {
                             ErrorBanner(message: error)
@@ -75,6 +105,7 @@ struct JoinSessionView: View {
                         if let session = foundSession {
                             SessionFoundCard(
                                 session: session,
+                                isJoining: isJoining,
                                 showContent: showContent,
                                 onJoin: {
                                     joinSession(session)
@@ -114,7 +145,7 @@ struct JoinSessionView: View {
         }
         .onChange(of: codeDigits) { _ in
             // Auto-search when code is complete
-            if isCodeComplete && foundSession == nil {
+            if isCodeComplete && foundSession == nil && !isSearching {
                 searchSession()
             }
         }
@@ -133,24 +164,22 @@ struct JoinSessionView: View {
 
         isSearching = true
         errorMessage = nil
+        successMessage = nil
         foundSession = nil
 
         Task {
             do {
-                // 🔥 FIX: Utiliser findSession au lieu de joinSession pour juste prévisualiser
                 let session = try await sessionManager.findSession(inviteCode: fullCode)
 
                 await MainActor.run {
                     isSearching = false
                     foundSession = session
-
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
             } catch {
                 await MainActor.run {
                     isSearching = false
-                    errorMessage = error.localizedDescription
-
+                    errorMessage = "Erreur: \(error.localizedDescription)"
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
@@ -158,19 +187,44 @@ struct JoinSessionView: View {
     }
 
     private func joinSession(_ session: Session) {
-        // 🔥 FIX: Vraiment joindre la session maintenant
+        // ✅ FIX: Protection contre les double-appels
+        guard !isJoining else { return }
+        isJoining = true
+        errorMessage = nil
+        successMessage = nil
+
         Task {
             do {
                 let joinedSession = try await sessionManager.joinSession(inviteCode: session.inviteCode)
                 await MainActor.run {
-                    // Start listening to session
-                    sessionManager.startSessionListener(sessionId: joinedSession.id!)
+                    if let sessionId = joinedSession.id {
+                        sessionManager.startSessionListener(sessionId: sessionId)
+                    }
                     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    isJoining = false
                     dismiss()
+                }
+            } catch SessionError.requiresLeaderApproval {
+                // ✅ Cas spécial: demande envoyée au leader
+                await MainActor.run {
+                    isJoining = false
+                    withAnimation {
+                        successMessage = "Demande envoyée au leader !\n\nTu es déjà dans une session active. Le leader de \"\(session.title)\" recevra ta demande et pourra t'accepter."
+                        errorMessage = nil
+                        foundSession = nil  // Masquer la card
+                    }
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    // Fermer après 3 secondes
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        dismiss()
+                    }
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Erreur lors de la jonction: \(error.localizedDescription)"
+                    isJoining = false
+                    withAnimation {
+                        errorMessage = "Erreur: \(error.localizedDescription)"
+                    }
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
@@ -272,17 +326,14 @@ struct CodeDigitField: View {
                     )
             )
             .onChange(of: text) { newValue in
-                // Only allow one character
                 if newValue.count > 1 {
                     text = String(newValue.prefix(1))
                 }
 
-                // Auto-advance to next field
                 if !newValue.isEmpty {
                     onSubmit()
                 }
 
-                // Convert to uppercase
                 text = text.uppercased()
             }
             .onKeyPress(.delete) {
@@ -296,13 +347,14 @@ struct CodeDigitField: View {
 
 struct SessionFoundCard: View {
     let session: Session
+    let isJoining: Bool              // ✅ NEW
     let showContent: Bool
     let onJoin: () -> Void
 
     private var statusText: String {
         switch session.status {
         case .lobby: return "En attente"
-        case .active: return "En cours (late join)"
+        case .active: return "En cours"
         case .paused: return "En pause"
         case .completed: return "Terminée"
         case .dissolved: return "Dissoute"
@@ -317,6 +369,11 @@ struct SessionFoundCard: View {
         case .completed: return .blue
         case .dissolved: return .gray
         }
+    }
+
+    // ✅ FIX: Vérifier si on peut rejoindre
+    private var canJoin: Bool {
+        session.status == .lobby || session.status == .active || session.status == .paused
     }
 
     var body: some View {
@@ -348,7 +405,7 @@ struct SessionFoundCard: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
-                Text(session.description)
+                Text(session.safeDescription)  // ✅ FIX: safe accessor
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -360,7 +417,8 @@ struct SessionFoundCard: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(statusColor)
 
-                    Label("\(session.memberIds.count) membres", systemImage: "person.2.fill")
+                    // ✅ FIX: safe accessor
+                    Label("\(session.safeMemberIds.count) membres", systemImage: "person.2.fill")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -378,33 +436,47 @@ struct SessionFoundCard: View {
             }
 
             // Join Button
-            Button(action: onJoin) {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.badge.plus.fill")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
+            if canJoin {
+                Button(action: onJoin) {
+                    HStack(spacing: 12) {
+                        if isJoining {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "person.badge.plus.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
 
-                    Text("Rejoindre la Session")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.green,
-                                    Color.green.opacity(0.8)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                        Text(isJoining ? "Connexion..." : "Rejoindre la Session")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.green,
+                                        Color.green.opacity(0.8)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                )
+                    )
+                }
+                .disabled(isJoining)
+                .buttonStyle(ScaleButtonStyle())
+            } else {
+                // Session non-joignable
+                Text("Cette session n'accepte plus de nouveaux membres")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
             }
-            .buttonStyle(ScaleButtonStyle())
         }
         .padding(24)
         .background(

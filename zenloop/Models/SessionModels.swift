@@ -6,6 +6,8 @@
 //  ⚠️ IMPORTANT: Les apps sélectionnées restent PRIVÉES (Apple FamilyControls)
 //
 //  ✅ NEW: SessionStatus.paused, PauseRequest model, new event types
+//  ✅ FIX: Tous les champs potentiellement absents rendus optionnels
+//         pour éviter les erreurs de décodage Firestore
 //
 
 import Foundation
@@ -18,12 +20,18 @@ struct SessionUser: Codable, Identifiable {
     var username: String
     var appleUserId: String
     var createdAt: Timestamp
-    var sessionHistory: [String] // Session IDs
+    var sessionHistory: [String]?       // ✅ FIX: Optionnel (peut être absent)
     var pushToken: String?
-    var totalSessionsJoined: Int
-    var totalSessionsCreated: Int
-    var currentStreak: Int
+    var totalSessionsJoined: Int?       // ✅ FIX: Optionnel
+    var totalSessionsCreated: Int?      // ✅ FIX: Optionnel
+    var currentStreak: Int?             // ✅ FIX: Optionnel
     var lastSeen: Timestamp?
+
+    // ✅ Helpers pour accès sûr
+    var safeSessionHistory: [String] { sessionHistory ?? [] }
+    var safeTotalSessionsJoined: Int { totalSessionsJoined ?? 0 }
+    var safeTotalSessionsCreated: Int { totalSessionsCreated ?? 0 }
+    var safeCurrentStreak: Int { currentStreak ?? 0 }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -44,9 +52,48 @@ struct SessionUser: Codable, Identifiable {
 enum SessionStatus: String, Codable {
     case lobby = "lobby"           // En attente de démarrage
     case active = "active"         // Session en cours
-    case paused = "paused"         // ✅ NEW: Session en pause
+    case paused = "paused"         // Session en pause
     case completed = "completed"   // Terminée avec succès
     case dissolved = "dissolved"   // Dissoute par le leader
+}
+
+// MARK: - Join Request (pour éviter le chevauchement de sessions)
+
+enum JoinRequestStatus: String, Codable {
+    case pending = "pending"
+    case approved = "approved"
+    case rejected = "rejected"
+    case cancelled = "cancelled"
+}
+
+struct JoinRequest: Codable, Identifiable {
+    @DocumentID var id: String?
+    var userId: String
+    var username: String
+    var targetSessionId: String
+    var targetSessionTitle: String
+    var currentSessionId: String?
+    var currentSessionTitle: String?
+    var leaderId: String
+    var status: JoinRequestStatus
+    var createdAt: Timestamp
+    var respondedAt: Timestamp?
+    var message: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id  // ✅ FIX: Nécessaire pour que @DocumentID soit décodé
+        case userId
+        case username
+        case targetSessionId
+        case targetSessionTitle
+        case currentSessionId
+        case currentSessionTitle
+        case leaderId
+        case status
+        case createdAt
+        case respondedAt
+        case message
+    }
 }
 
 enum SessionVisibility: String, Codable {
@@ -57,34 +104,39 @@ enum SessionVisibility: String, Codable {
 struct Session: Codable, Identifiable {
     @DocumentID var id: String?
     var title: String
-    var description: String
+    var description: String?                // ✅ FIX: Optionnel
     var leaderId: String
     var leaderUsername: String
-    var visibility: SessionVisibility
-    var inviteCode: String  // 6 caractères
+    var visibility: SessionVisibility?      // ✅ FIX: Optionnel
+    var inviteCode: String
     var maxParticipants: Int?
     var status: SessionStatus
     var createdAt: Timestamp
     var startedAt: Timestamp?
     var endedAt: Timestamp?
-    var pausedAt: Timestamp?          // ✅ NEW: Quand la session a été mise en pause
-    var pausedBy: String?             // ✅ NEW: UID de celui qui a déclenché la pause
-    var memberIds: [String]  // Pour queries Firestore
+    var pausedAt: Timestamp?
+    var pausedBy: String?
+    var memberIds: [String]?                // ✅ FIX: Optionnel (sécurité)
 
-    // ✅ NEW: Durée de session
-    var durationMinutes: Int?        // Durée en minutes (nil = manuel)
-    var scheduledEndTime: Timestamp? // Heure de fin prévue (calculée au démarrage)
+    // Durée de session
+    var durationMinutes: Int?
+    var scheduledEndTime: Timestamp?
 
-    // ✅ NEW: Sessions programmées (démarrage/arrêt automatique via DeviceActivity)
-    var scheduledStartTime: Timestamp? // Heure de début programmée (nil = démarrage manuel)
-    var isScheduled: Bool              // Indique si c'est une session programmée
+    // Sessions programmées
+    var scheduledStartTime: Timestamp?
+    var isScheduled: Bool?                  // ✅ FIX: Bool? au lieu de Bool
 
-    // ⚠️ IMPORTANT: PAS de liste d'apps car Apple ne permet pas de partager ça
-    // Chaque membre choisit ses apps en privé
-    var suggestedAppsCount: Int  // Nombre d'apps suggérées par le leader (sans détails)
+    var suggestedAppsCount: Int?            // ✅ FIX: Int? au lieu de Int
 
-    // ✅ NEW: Background image pour personnaliser la session
-    var backgroundImageUrl: String? // URL Firebase Storage de l'image de fond
+    // Background image
+    var backgroundImageUrl: String?
+
+    // ✅ Helpers pour accès sûr
+    var safeDescription: String { description ?? "" }
+    var safeVisibility: SessionVisibility { visibility ?? .privateSession }
+    var safeMemberIds: [String] { memberIds ?? [] }
+    var isScheduledSession: Bool { isScheduled ?? false }
+    var safeAppsCount: Int { suggestedAppsCount ?? 0 }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -114,11 +166,11 @@ struct Session: Codable, Identifiable {
 // MARK: - Session Member
 
 enum MemberStatus: String, Codable {
-    case joined = "joined"   // Vient de rejoindre
-    case ready = "ready"     // Prêt à démarrer
-    case active = "active"   // Session active
-    case paused = "paused"   // ✅ NEW: En pause avec la session
-    case left = "left"       // A quitté la session
+    case joined = "joined"
+    case ready = "ready"
+    case active = "active"
+    case paused = "paused"
+    case left = "left"
 }
 
 enum MemberRole: String, Codable {
@@ -133,14 +185,19 @@ struct SessionMember: Codable, Identifiable {
     var status: MemberStatus
     var joinedAt: Timestamp
     var leftAt: Timestamp?
-    var isReady: Bool
-    var bypassAttempts: Int
-    var messagesCount: Int
+    var isReady: Bool?                  // ✅ FIX: Optionnel
+    var bypassAttempts: Int?           // ✅ FIX: Optionnel
+    var messagesCount: Int?            // ✅ FIX: Optionnel
 
-    // ⚠️ APPLE RESTRICTION: Pas de selectedApps visible par les autres
-    // Les apps restent sur l'appareil local uniquement
-    var hasSelectedApps: Bool  // Booléen pour savoir s'il a choisi au moins 1 app
-    var selectedAppsCount: Int  // Juste le nombre, pas les détails
+    var hasSelectedApps: Bool?         // ✅ FIX: Optionnel
+    var selectedAppsCount: Int?        // ✅ FIX: Optionnel
+
+    // ✅ Helpers pour accès sûr
+    var safeIsReady: Bool { isReady ?? false }
+    var safeBypassAttempts: Int { bypassAttempts ?? 0 }
+    var safeMessagesCount: Int { messagesCount ?? 0 }
+    var safeHasSelectedApps: Bool { hasSelectedApps ?? false }
+    var safeSelectedAppsCount: Int { selectedAppsCount ?? 0 }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -188,18 +245,18 @@ struct SessionMessage: Codable, Identifiable {
 enum SessionEventType: String, Codable {
     case sessionCreated = "session_created"
     case sessionStarted = "session_started"
-    case sessionPaused = "session_paused"           // ✅ NEW
-    case sessionResumed = "session_resumed"         // ✅ NEW
-    case sessionStopped = "session_stopped"         // ✅ NEW
+    case sessionPaused = "session_paused"
+    case sessionResumed = "session_resumed"
+    case sessionStopped = "session_stopped"
     case sessionCompleted = "session_completed"
     case sessionDissolved = "session_dissolved"
     case memberJoined = "member_joined"
     case memberReady = "member_ready"
     case memberLeft = "member_left"
     case memberBypassAttempt = "member_bypass_attempt"
-    case pauseRequested = "pause_requested"         // ✅ NEW
-    case pauseRequestAccepted = "pause_request_accepted" // ✅ NEW
-    case pauseRequestDeclined = "pause_request_declined" // ✅ NEW
+    case pauseRequested = "pause_requested"
+    case pauseRequestAccepted = "pause_request_accepted"
+    case pauseRequestDeclined = "pause_request_declined"
 }
 
 struct SessionEvent: Codable, Identifiable {
@@ -220,7 +277,7 @@ struct SessionEvent: Codable, Identifiable {
     }
 }
 
-// MARK: - Pause Request ✅ NEW
+// MARK: - Pause Request
 
 enum PauseRequestStatus: String, Codable {
     case pending = "pending"
@@ -238,7 +295,7 @@ struct PauseRequest: Codable, Identifiable {
     var status: PauseRequestStatus
     var requestedAt: Timestamp
     var respondedAt: Timestamp?
-    var respondedBy: String?  // UID du leader qui a répondu
+    var respondedBy: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -273,7 +330,10 @@ struct SessionInvitation: Codable, Identifiable {
     var sentAt: Timestamp
     var respondedAt: Timestamp?
     var sessionTitle: String
-    var sessionDescription: String
+    var sessionDescription: String?    // ✅ FIX: Optionnel
+
+    // Helper
+    var safeSessionDescription: String { sessionDescription ?? "" }
 
     enum CodingKeys: String, CodingKey {
         case id

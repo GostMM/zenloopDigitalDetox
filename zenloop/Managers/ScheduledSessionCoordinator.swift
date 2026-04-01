@@ -135,6 +135,132 @@ class ScheduledSessionCoordinator {
         }
     }
 
+    // MARK: - ✅ NEW: Monitor Active Session End (for duration-based sessions)
+
+    /// Programme un DeviceActivity monitoring pour arrêter automatiquement une session active avec durée
+    /// Utilisé pour les sessions NON programmées qui ont une durée définie
+    /// Le Monitor lèvera automatiquement les restrictions même si l'app est fermée
+    func scheduleSessionEndMonitoring(
+        sessionId: String,
+        endTime: Date,
+        apps: FamilyActivitySelection
+    ) async throws {
+        scheduledLogger.critical("⏰ [END_MONITOR] Scheduling auto-stop for active session: \(sessionId)")
+        scheduledLogger.info("   → End time: \(endTime.formatted())")
+
+        // Vérifier que l'heure de fin est dans le futur
+        guard endTime > Date() else {
+            scheduledLogger.error("❌ [END_MONITOR] End time is in the past")
+            throw ScheduledSessionError.startTimeInPast
+        }
+
+        // Créer le nom d'activité unique pour cette session active
+        let activityName = DeviceActivityName("active_session_\(sessionId)")
+
+        // Sauvegarder le SelectionPayload pour le Monitor
+        let payload = SelectionPayload(
+            sessionId: sessionId,
+            apps: Array(apps.applicationTokens),
+            categories: Array(apps.categoryTokens),
+            restrictionMode: .shield
+        )
+
+        if let payloadData = try? JSONEncoder().encode(payload) {
+            let payloadKey = "payload_active_session_\(sessionId)"
+            appGroup.set(payloadData, forKey: payloadKey)
+            scheduledLogger.info("✅ [END_MONITOR] SelectionPayload saved under key: \(payloadKey)")
+        }
+
+        // Sauvegarder les infos de session active
+        let sessionInfo = ScheduledSessionInfo(
+            sessionId: sessionId,
+            startTime: Date(), // Déjà démarrée
+            endTime: endTime,
+            status: .started,
+            actualStartTime: Date(),
+            actualEndTime: nil
+        )
+
+        if let data = try? JSONEncoder().encode(sessionInfo) {
+            appGroup.set(data, forKey: "active_session_\(sessionId)")
+            appGroup.synchronize()
+        }
+
+        // Créer le schedule DeviceActivity (du maintenant jusqu'à la fin)
+        let nowComponents = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: Date()
+        )
+        let endComponents = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: endTime
+        )
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: nowComponents,
+            intervalEnd: endComponents,
+            repeats: false
+        )
+
+        // Démarrer le monitoring
+        do {
+            try center.startMonitoring(activityName, during: schedule)
+            scheduledLogger.info("✅ [END_MONITOR] DeviceActivity monitoring started for session end")
+
+            // Enregistrer l'activité active
+            var activeEndMonitors = appGroup.stringArray(forKey: "active_end_monitors") ?? []
+            if !activeEndMonitors.contains(sessionId) {
+                activeEndMonitors.append(sessionId)
+                appGroup.set(activeEndMonitors, forKey: "active_end_monitors")
+                appGroup.synchronize()
+            }
+        } catch {
+            scheduledLogger.error("❌ [END_MONITOR] Failed to start monitoring: \(error.localizedDescription)")
+            cleanupSessionData(sessionId: sessionId)
+            throw error
+        }
+    }
+
+    /// Met à jour le monitoring de fin de session (appelé lors de pause/resume)
+    func updateSessionEndMonitoring(
+        sessionId: String,
+        newEndTime: Date,
+        apps: FamilyActivitySelection
+    ) async throws {
+        scheduledLogger.critical("🔄 [END_MONITOR] Updating end time for session: \(sessionId)")
+        scheduledLogger.info("   → New end time: \(newEndTime.formatted())")
+
+        // Annuler l'ancien monitoring
+        let activityName = DeviceActivityName("active_session_\(sessionId)")
+        center.stopMonitoring([activityName])
+
+        // Recréer avec la nouvelle heure de fin
+        try await scheduleSessionEndMonitoring(
+            sessionId: sessionId,
+            endTime: newEndTime,
+            apps: apps
+        )
+    }
+
+    /// Annule le monitoring de fin pour une session active
+    func cancelSessionEndMonitoring(sessionId: String) {
+        scheduledLogger.info("🚫 [END_MONITOR] Cancelling end monitoring for session: \(sessionId)")
+
+        let activityName = DeviceActivityName("active_session_\(sessionId)")
+        center.stopMonitoring([activityName])
+
+        // Nettoyer les données
+        appGroup.removeObject(forKey: "payload_active_session_\(sessionId)")
+        appGroup.removeObject(forKey: "active_session_\(sessionId)")
+
+        var activeEndMonitors = appGroup.stringArray(forKey: "active_end_monitors") ?? []
+        activeEndMonitors.removeAll { $0 == sessionId }
+        appGroup.set(activeEndMonitors, forKey: "active_end_monitors")
+        appGroup.synchronize()
+
+        scheduledLogger.info("✅ [END_MONITOR] End monitoring cancelled")
+    }
+
     // MARK: - Notifications
 
     /// Programme les notifications pour une session programmée

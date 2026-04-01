@@ -136,6 +136,12 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
             print("⏰ [MONITOR] This is a scheduled social session")
             logger.critical("⏰ [MONITOR] Scheduled social session detected: \(activity.rawValue)")
             activateSessionInMainApp(for: activity)
+        } else if activity.rawValue.hasPrefix("active_session_") {
+            // ✅ NEW: Session active avec durée — monitoring de fin automatique
+            print("⏰ [MONITOR] This is an active duration-based session (end monitoring)")
+            logger.critical("⏰ [MONITOR] Active session end monitoring: \(activity.rawValue)")
+            // Pas besoin de démarrer — la session est déjà active
+            // Le shield sera appliqué automatiquement par applyShield()
         } else if activity.rawValue.hasPrefix("scheduled_") {
             // Ancien système de défis
             print("⏰ [MONITOR] This is a scheduled challenge")
@@ -202,6 +208,14 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
             // ✅ FIX: Nettoyer le payload de la session programmée
             cleanupScheduledSessionPayload(for: activity)
+        } else if activity.rawValue.hasPrefix("active_session_") {
+            // ✅ NEW: Session active avec durée — arrêt automatique
+            logger.critical("⏰ [MONITOR] Detected active_session_ activity END")
+            print("⏰ [MONITOR] Detected active_session_ activity END")
+            handleActiveSessionEnd(activity)
+
+            // Nettoyer le payload de la session active
+            cleanupActiveSessionPayload(for: activity)
         } else if activity.rawValue.hasPrefix("scheduled_") {
             // Sauvegarder les stats de session (ancien système de défis)
             logger.critical("⏰ [MONITOR] Detected scheduled_ activity")
@@ -487,7 +501,29 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         print("🧹 [MONITOR] Cleaned up mapping: \(mappingKey)")
     }
 
-    // MARK: - ✅ NEW: Cleanup Scheduled Session Payload
+    // MARK: - ✅ NEW: Cleanup Session Payloads
+
+    /// Nettoie les données de payload et apps d'une session active avec durée après son arrêt
+    private func cleanupActiveSessionPayload(for activity: DeviceActivityName) {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else { return }
+
+        let activityName = activity.rawValue
+        let sessionId = String(activityName.dropFirst("active_session_".count))
+
+        // Nettoyer le payload
+        suite.removeObject(forKey: "payload_active_session_\(sessionId)")
+
+        // Nettoyer les infos de session
+        suite.removeObject(forKey: "active_session_\(sessionId)")
+
+        // Retirer de la liste des end monitors actifs
+        var activeEndMonitors = suite.stringArray(forKey: "active_end_monitors") ?? []
+        activeEndMonitors.removeAll { $0 == sessionId }
+        suite.set(activeEndMonitors, forKey: "active_end_monitors")
+
+        suite.synchronize()
+        print("🧹 [MONITOR] Cleaned up active session payload for: \(sessionId)")
+    }
 
     /// Nettoie les données de payload et apps d'une session programmée après son arrêt
     private func cleanupScheduledSessionPayload(for activity: DeviceActivityName) {
@@ -705,6 +741,47 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
 
         print("🔥 [MONITOR] Scheduled session auto-start triggered: \(sessionId)")
         print("🎯 [MONITOR] Main app will start Firebase session on next activation")
+    }
+
+    /// ✅ NEW: Arrête automatiquement une session active avec durée
+    private func handleActiveSessionEnd(_ activity: DeviceActivityName) {
+        guard let suite = UserDefaults(suiteName: "group.com.app.zenloop") else {
+            print("❌ [MONITOR] Cannot access App Group")
+            return
+        }
+
+        let activityName = activity.rawValue
+        let sessionId = String(activityName.dropFirst("active_session_".count))
+
+        print("🛑 [MONITOR] === AUTO-STOPPING ACTIVE SESSION (DURATION ENDED) ===")
+        print("📝 [MONITOR] Session ID: \(sessionId)")
+
+        // Récupérer les infos de la session active
+        if let infoData = suite.data(forKey: "active_session_\(sessionId)"),
+           var info = try? JSONDecoder().decode(ScheduledSessionInfo.self, from: infoData) {
+
+            // Marquer la session comme terminée
+            info.status = .completed
+            info.actualEndTime = Date()
+
+            if let data = try? JSONEncoder().encode(info) {
+                suite.set(data, forKey: "active_session_\(sessionId)")
+                suite.synchronize()
+            }
+
+            print("✅ [MONITOR] Session info updated to completed")
+        } else {
+            print("⚠️ [MONITOR] No active session info found for \(sessionId) — proceeding with stop signal anyway")
+        }
+
+        // ✅ CRUCIAL: Signaler à l'app principale d'arrêter la session Firebase
+        suite.set(sessionId, forKey: "auto_stop_session_id")
+        suite.set(Date().timeIntervalSince1970, forKey: "auto_stop_session_timestamp")
+        suite.synchronize()
+
+        print("🔥 [MONITOR] Active session auto-stop triggered: \(sessionId)")
+        print("🎯 [MONITOR] Main app will stop Firebase session on next activation")
+        print("🔓 [MONITOR] Restrictions will be lifted automatically")
     }
 
     /// ✅ Arrête automatiquement une session sociale programmée

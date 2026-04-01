@@ -38,7 +38,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: \(newMemberUsername) joined session \(sessionId)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -58,7 +58,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: \(leftMemberUsername) left session \(sessionId)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -78,7 +78,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: Session started by \(startedByUsername)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -98,7 +98,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: Pause requested by \(requestedByUsername)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -118,7 +118,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: Session paused by \(pausedByUsername)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -138,7 +138,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: Session resumed by \(resumedByUsername)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -159,7 +159,7 @@ class SessionEventNotificationManager {
         eventLogger.info("📢 Notifying members: New message from \(senderUsername)")
 
         // Ne pas notifier l'expéditeur du message
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         // Limiter le preview à 100 caractères
         let preview = messagePreview.count > 100 ? String(messagePreview.prefix(97)) + "..." : messagePreview
@@ -182,7 +182,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: Session ended by \(endedByUsername)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -202,7 +202,7 @@ class SessionEventNotificationManager {
 
         eventLogger.info("📢 Notifying members: \(memberUsername) is struggling (\(attemptCount) attempts)")
 
-        let recipientIds = session.memberIds.filter { $0 != currentUserId }
+        let recipientIds = (session.memberIds ?? []).filter { $0 != currentUserId }
 
         await sendNotificationToMembers(
             recipientIds: recipientIds,
@@ -385,5 +385,55 @@ class SessionEventNotificationManager {
         ])
 
         eventLogger.info("✅ Push token removed successfully")
+    }
+
+    // MARK: - Join Request Notifications
+
+    /// Notifie le leader qu'un utilisateur veut rejoindre sa session (mais est déjà dans une autre)
+    func notifyJoinRequest(request: JoinRequest, targetSession: Session) async {
+        eventLogger.info("📢 Notifying leader about join request from \(request.username)")
+
+        let title = "Demande de rejoindre la session"
+        let body = "\(request.username) veut rejoindre \"\(targetSession.title)\" mais est déjà dans \"\(request.currentSessionTitle ?? "une autre session")\""
+
+        await sendNotificationToMembers(
+            recipientIds: [request.leaderId],
+            title: title,
+            body: body,
+            sessionId: targetSession.id ?? "",
+            eventType: "join_request"
+        )
+    }
+
+    /// Notifie l'utilisateur que sa demande a été approuvée
+    func notifyJoinRequestApproved(request: JoinRequest) async {
+        eventLogger.info("✅ Notifying user \(request.username) that join request was approved")
+
+        let title = "Demande acceptée ✅"
+        let body = "Tu as été accepté dans \"\(request.targetSessionTitle)\". Tu as été retiré de ton ancienne session."
+
+        await sendNotificationToMembers(
+            recipientIds: [request.userId],
+            title: title,
+            body: body,
+            sessionId: request.targetSessionId,
+            eventType: "join_request_approved"
+        )
+    }
+
+    /// Notifie l'utilisateur que sa demande a été rejetée
+    func notifyJoinRequestRejected(request: JoinRequest) async {
+        eventLogger.info("❌ Notifying user \(request.username) that join request was rejected")
+
+        let title = "Demande refusée"
+        let body = "Ta demande pour rejoindre \"\(request.targetSessionTitle)\" a été refusée. Tu restes dans ta session actuelle."
+
+        await sendNotificationToMembers(
+            recipientIds: [request.userId],
+            title: title,
+            body: body,
+            sessionId: request.currentSessionId ?? "",
+            eventType: "join_request_rejected"
+        )
     }
 }

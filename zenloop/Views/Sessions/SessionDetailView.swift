@@ -8,6 +8,10 @@
 //       - Lobby: affiche countdown au lieu du bouton Démarrer
 //       - Le leader peut annuler la session programmée
 //       - Les blocs sont appliqués automatiquement quand le Monitor déclenche le start
+//  ✅ FIX V3: Résolution du problème "Démarrage en cours" qui reste bloqué
+//       - Timer dédié qui vérifie le changement de statut lobby→active
+//       - Force-refresh du listener Firestore quand le countdown atteint 0
+//       - Meilleure détection du retour foreground pour les sessions programmées
 //
 
 import SwiftUI
@@ -20,7 +24,7 @@ struct SessionDetailView: View {
     @ObservedObject private var sessionManager = SessionManager.shared
     @EnvironmentObject var zenloopManager: ZenloopManager
     @Environment(\.dismiss) var dismiss
-    @Environment(\.scenePhase) var scenePhase // ✅ NEW
+    @Environment(\.scenePhase) var scenePhase
 
     @State private var showContent = false
     @State private var showAppPicker = false
@@ -30,11 +34,16 @@ struct SessionDetailView: View {
     @State private var showLeaveAlert = false
     @State private var showDissolveAlert = false
     @State private var showStopAlert = false
-    @State private var showCancelScheduleAlert = false // ✅ NEW
+    @State private var showCancelScheduleAlert = false
     @State private var showPauseRequestSheet = false
     @State private var pauseRequestReason = ""
     @State private var sessionExpirationTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     @State private var hasAppliedBlocks = false
+
+    // ✅ FIX V3: Timer dédié pour vérifier la transition lobby→active des sessions programmées
+    @State private var scheduledSessionCheckTimer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
+    @State private var scheduledStartReached = false // Flag: le countdown a atteint 0
+    @State private var hasTriedAutoStart = false // Flag: a déjà tenté de démarrer automatiquement
 
     enum Field { case messageInput }
 
@@ -50,9 +59,53 @@ struct SessionDetailView: View {
         sessionManager.currentSession ?? session
     }
 
-    // ✅ NEW: Détermine si c'est une session programmée
     private var isScheduledSession: Bool {
-        activeSession.isScheduled
+        activeSession.isScheduled ?? false
+    }
+
+    private var shouldShowControls: Bool {
+        activeSession.status == .active || activeSession.status == .paused || activeSession.status == .lobby
+    }
+
+    private var readyMembersCount: Int {
+        sessionManager.currentSessionMembers.filter { $0.isReady ?? false }.count
+    }
+
+    private var totalMembersCount: Int {
+        sessionManager.currentSessionMembers.count
+    }
+
+    private var controlsView: some View {
+        FixedBottomControls(
+            session: activeSession,
+            isLeader: isLeader,
+            isScheduled: isScheduledSession,
+            readyCount: readyMembersCount,
+            totalCount: totalMembersCount,
+            onStart: startSession,
+            onPause: pauseSession,
+            onResume: resumeSession,
+            onStop: { showStopAlert = true },
+            onDissolve: { showDissolveAlert = true },
+            onCancelSchedule: { showCancelScheduleAlert = true },
+            onRequestPause: { showPauseRequestSheet = true },
+            onLeave: { showLeaveAlert = true }
+        )
+        .padding(.horizontal, 24)
+        .padding(.bottom, 16)
+        .padding(.top, 8)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0),
+                    Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0.85),
+                    Color(red: 0.06, green: 0.06, blue: 0.08)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(.container, edges: .bottom)
+        )
     }
 
     var body: some View {
@@ -97,37 +150,8 @@ struct SessionDetailView: View {
                 }
 
                 // — Boutons d'action FIXES en bas —
-                if activeSession.status == .active || activeSession.status == .paused || activeSession.status == .lobby {
-                    FixedBottomControls(
-                        session: activeSession,
-                        isLeader: isLeader,
-                        isScheduled: isScheduledSession, // ✅ NEW
-                        readyCount: sessionManager.currentSessionMembers.filter { $0.isReady }.count,
-                        totalCount: sessionManager.currentSessionMembers.count,
-                        onStart: startSession,
-                        onPause: pauseSession,
-                        onResume: resumeSession,
-                        onStop: { showStopAlert = true },
-                        onDissolve: { showDissolveAlert = true },
-                        onCancelSchedule: { showCancelScheduleAlert = true }, // ✅ NEW
-                        onRequestPause: { showPauseRequestSheet = true },
-                        onLeave: { showLeaveAlert = true }
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
-                    .padding(.top, 8)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0),
-                                Color(red: 0.06, green: 0.06, blue: 0.08).opacity(0.85),
-                                Color(red: 0.06, green: 0.06, blue: 0.08)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .ignoresSafeArea(.container, edges: .bottom)
-                    )
+                if shouldShowControls {
+                    controlsView
                 }
             }
         }
@@ -156,6 +180,9 @@ struct SessionDetailView: View {
                     print("⏳ [LATE_JOIN] Session active but no apps selected yet. Waiting for user selection...")
                 }
             }
+
+            // ✅ FIX V3: Vérifier immédiatement si une session programmée aurait dû démarrer
+            checkScheduledSessionTransition()
         }
         .onChange(of: selectedApps) { oldSelection, newSelection in
             let hasApps = !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty
@@ -178,12 +205,17 @@ struct SessionDetailView: View {
             }
         }
         .onChange(of: activeSession.status) { oldStatus, newStatus in
+            print("🔄 [STATUS_CHANGE] Session status changed: \(oldStatus.rawValue) → \(newStatus.rawValue)")
+
             // Session démarre (manuellement OU automatiquement par le Monitor)
             if oldStatus != .active && newStatus == .active && !hasAppliedBlocks {
                 print("🚀 Session started/resumed! Applying blocks for all members...")
                 applySessionBlocks()
                 hasAppliedBlocks = true
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+                // ✅ FIX V3: Arrêter le timer de vérification une fois active
+                scheduledStartReached = false
             }
             else if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
                 print("🛑 Session ended! Removing blocks...")
@@ -203,16 +235,28 @@ struct SessionDetailView: View {
                 }
             }
         }
+        // ✅ FIX V3: Timer dédié pour vérifier la transition des sessions programmées
+        .onReceive(scheduledSessionCheckTimer) { _ in
+            checkScheduledSessionTransition()
+        }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
-        // ✅ NEW: Quand l'app revient en foreground, vérifier si la session a changé de status
+        // Quand l'app revient en foreground, vérifier si la session a changé de status
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .active {
                 print("📱 [SESSION_DETAIL] App returned to foreground — refreshing session")
-                // Redémarrer le listener pour capter les changements pendant le background
+
+                // ✅ FIX V3: TOUJOURS redémarrer le listener au retour foreground
                 if let sessionId = session.id {
                     sessionManager.startSessionListener(sessionId: sessionId)
                 }
-                // Vérifier si des blocks doivent être appliqués (session passée en active pendant le background)
+
+                // ✅ FIX V3: Forcer une vérification immédiate pour les sessions programmées
+                if isScheduledSession && activeSession.status == .lobby {
+                    print("📱 [SESSION_DETAIL] Scheduled session still in lobby after foreground — force checking...")
+                    forceRefreshSession()
+                }
+
+                // Vérifier si des blocks doivent être appliqués
                 if activeSession.status == .active && !hasAppliedBlocks {
                     if let sessionId = session.id,
                        let localApps = sessionManager.getLocalApps(sessionId: sessionId),
@@ -236,7 +280,6 @@ struct SessionDetailView: View {
             Button("Annuler", role: .cancel) {}
             Button("Arrêter", role: .destructive) { stopSession() }
         } message: { Text("La session sera marquée comme terminée pour tout le monde.") }
-        // ✅ NEW: Alert pour annuler une session programmée
         .alert("Annuler la Session Programmée", isPresented: $showCancelScheduleAlert) {
             Button("Non, garder", role: .cancel) {}
             Button("Oui, annuler", role: .destructive) { cancelScheduledSession() }
@@ -251,8 +294,74 @@ struct SessionDetailView: View {
         }
     }
 
+    // MARK: - ✅ FIX V3: Vérification périodique de la transition programmée
+
+    /// Vérifie si une session programmée devrait avoir démarré et force le refresh si nécessaire
+    private func checkScheduledSessionTransition() {
+        // Ne vérifier que pour les sessions programmées encore en lobby
+        guard isScheduledSession,
+              activeSession.status == .lobby,
+              let startTime = activeSession.scheduledStartTime?.dateValue() else {
+            return
+        }
+
+        let now = Date()
+
+        // Si le temps de démarrage est passé
+        if now >= startTime {
+            if !scheduledStartReached {
+                scheduledStartReached = true
+                print("⏰ [SCHEDULED_CHECK] Start time reached! Forcing session refresh...")
+            }
+
+            // La session devrait être active mais Firestore dit encore lobby
+            // → Force un refresh du listener
+            let timeSinceStart = now.timeIntervalSince(startTime)
+
+            // Après 2 secondes, commencer à forcer le refresh
+            if timeSinceStart > 2 && timeSinceStart < 5 {
+                print("⏰ [SCHEDULED_CHECK] Session still in lobby \(Int(timeSinceStart))s after scheduled start — refreshing...")
+                forceRefreshSession()
+            }
+
+            // ✅ NOUVEAU: Après 5 secondes, le Monitor n'a pas démarré la session
+            // → Le leader démarre manuellement via Firebase
+            if timeSinceStart > 5 && !hasTriedAutoStart {
+                hasTriedAutoStart = true
+                print("🚀 [SCHEDULED_AUTO_START] Monitor didn't start session after 5s — starting via Firebase...")
+                Task {
+                    guard let sessionId = activeSession.id else { return }
+                    do {
+                        try await sessionManager.startSession(sessionId: sessionId)
+                        print("✅ [SCHEDULED_AUTO_START] Session started successfully via Firebase")
+                    } catch {
+                        print("❌ [SCHEDULED_AUTO_START] Failed to start session: \(error.localizedDescription)")
+                    }
+                }
+            }
+
+            // Après 10 secondes, log un warning plus visible
+            if timeSinceStart > 10 && Int(timeSinceStart) % 10 == 0 {
+                print("⚠️ [SCHEDULED_CHECK] Session STILL in lobby \(Int(timeSinceStart))s after start!")
+            }
+        }
+    }
+
+    /// Force un refresh complet de la session depuis Firestore
+    private func forceRefreshSession() {
+        guard let sessionId = session.id ?? activeSession.id else { return }
+
+        // Redémarrer le listener pour capter les changements
+        sessionManager.startSessionListener(sessionId: sessionId)
+
+        // En plus, faire un getDocument() direct (pas de cache) pour forcer la lecture
+        Task {
+            await sessionManager.forceRefreshCurrentSession(sessionId: sessionId)
+        }
+    }
+
     // MARK: - Current display members based on status
-    
+
     private var currentDisplayMembers: [SessionMember] {
         switch activeSession.status {
         case .active:
@@ -271,7 +380,7 @@ struct SessionDetailView: View {
 
             InviteCodeOpen(code: activeSession.inviteCode, showContent: showContent)
 
-            // ✅ NEW: Si session programmée, afficher le countdown
+            // Si session programmée, afficher le countdown
             if isScheduledSession, let startTime = activeSession.scheduledStartTime?.dateValue() {
                 ScheduledSessionCountdown(
                     startTime: startTime,
@@ -376,7 +485,7 @@ struct SessionDetailView: View {
     }
 
     private func startSession() {
-        // ✅ FIX: Empêcher le lancement manuel d'une session programmée
+        // Empêcher le lancement manuel d'une session programmée
         guard !isScheduledSession else {
             print("⚠️ Cannot manually start a scheduled session — it will auto-start at the scheduled time")
             return
@@ -395,14 +504,10 @@ struct SessionDetailView: View {
         }
     }
 
-    // ✅ NEW: Annuler une session programmée
     private func cancelScheduledSession() {
         guard let sessionId = session.id else { return }
         Task {
-            // Annuler le monitoring DeviceActivity
             ScheduledSessionCoordinator.shared.cancelScheduledSession(sessionId: sessionId)
-
-            // Optionnel: dissoudre la session aussi
             try? await sessionManager.dissolveSession(sessionId: sessionId)
 
             await MainActor.run {
@@ -612,7 +717,7 @@ struct SessionDetailView: View {
 }
 
 
-// MARK: - ✅ NEW: Scheduled Session Countdown
+// MARK: - ✅ Scheduled Session Countdown (V3: amélioré)
 
 struct ScheduledSessionCountdown: View {
     let startTime: Date
@@ -661,13 +766,21 @@ struct ScheduledSessionCountdown: View {
                 }
 
                 if hasStarted {
-                    Text("Démarrage en cours...")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundColor(.green)
+                    // ✅ FIX V3: Affichage plus informatif pendant l'attente
+                    VStack(spacing: 8) {
+                        Text("Démarrage en cours...")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.green)
 
-                    Text("La session va démarrer automatiquement")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                        Text("En attente de la synchronisation Firestore")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
+
+                        // ✅ FIX V3: Indicateur de chargement animé
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                            .scaleEffect(0.8)
+                    }
                 } else {
                     Text("Démarre dans")
                         .font(.system(size: 14, weight: .medium))
@@ -818,8 +931,7 @@ struct SessionDetailHeaderWithAvatars: View {
     private var statusLabel: String {
         switch session.status {
         case .lobby:
-            // ✅ NEW: Indiquer "Programmée" dans le badge si applicable
-            if session.isScheduled { return "Programmée" }
+            if (session.isScheduled ?? false) { return "Programmée" }
             return "En attente"
         case .active: return "En cours"; case .paused: return "En pause"
         case .completed: return "Terminée"; case .dissolved: return "Dissoute"
@@ -869,8 +981,8 @@ struct SessionDetailHeaderWithAvatars: View {
                         .foregroundColor(.white)
                         .lineLimit(2).minimumScaleFactor(0.7)
 
-                    if !session.description.isEmpty {
-                        Text(session.description)
+                    if !(session.description ?? "").isEmpty {
+                        Text(session.description ?? "")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.4))
                             .lineLimit(1)
@@ -1064,7 +1176,7 @@ struct MemberDetailRow: View {
                 }
                 HStack(spacing: 8) {
                     Text(statusText).font(.system(size: 12, weight: .semibold)).foregroundColor(statusColor)
-                    if member.hasSelectedApps {
+                    if (member.hasSelectedApps ?? false) {
                         Text("· \(member.selectedAppsCount) apps").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3))
                     }
                 }
@@ -1371,12 +1483,12 @@ struct PauseRequestsOpen: View {
 }
 
 
-// MARK: - Fixed Bottom Controls (✅ UPDATED for scheduled sessions)
+// MARK: - Fixed Bottom Controls
 
 struct FixedBottomControls: View {
     let session: Session
     let isLeader: Bool
-    let isScheduled: Bool // ✅ NEW
+    let isScheduled: Bool
     let readyCount: Int
     let totalCount: Int
     let onStart: () -> Void
@@ -1384,7 +1496,7 @@ struct FixedBottomControls: View {
     let onResume: () -> Void
     let onStop: () -> Void
     let onDissolve: () -> Void
-    let onCancelSchedule: () -> Void // ✅ NEW
+    let onCancelSchedule: () -> Void
     let onRequestPause: () -> Void
     let onLeave: () -> Void
 
@@ -1414,11 +1526,8 @@ struct FixedBottomControls: View {
                             .foregroundColor(.green.opacity(0.7))
                     }
 
-                    // ✅ NEW: Boutons différents selon session programmée ou non
                     if isScheduled {
-                        // Session programmée: pas de bouton Démarrer, mais Annuler
                         HStack(spacing: 12) {
-                            // Info: démarrage auto
                             HStack(spacing: 8) {
                                 Image(systemName: "calendar.badge.clock")
                                     .font(.system(size: 14, weight: .bold))
@@ -1436,7 +1545,6 @@ struct FixedBottomControls: View {
                                     )
                             )
 
-                            // Bouton annuler la session programmée
                             Button(action: onCancelSchedule) {
                                 Image(systemName: "calendar.badge.minus")
                                     .font(.system(size: 15, weight: .bold))
@@ -1454,7 +1562,6 @@ struct FixedBottomControls: View {
                             }.buttonStyle(BounceButtonStyle())
                         }
                     } else {
-                        // Session manuelle: bouton Démarrer classique
                         HStack(spacing: 12) {
                             Button(action: onStart) {
                                 HStack(spacing: 8) {
@@ -1787,7 +1894,7 @@ struct CompletedContent: View {
             Text("Félicitations à tous").font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.4))
             HStack(spacing: 24) {
                 VStack(spacing: 4) {
-                    Text("\(session.memberIds.count)").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text("\((session.memberIds ?? []).count)").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
                     Text("membres").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
                 }
                 Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1, height: 36)
