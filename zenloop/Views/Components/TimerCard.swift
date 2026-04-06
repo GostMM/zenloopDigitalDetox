@@ -3,7 +3,7 @@
 //  zenloop
 //
 //  Created by MROIVILI MOUSTOIFA on 03/08/2025.
-//
+//  Fixed on 06/04/2026: removed redundant state monitoring triggers
 
 import SwiftUI
 import FamilyControls
@@ -93,7 +93,6 @@ struct TimerCard: View {
             .presentationDragIndicator(.hidden)
         }
         .onChange(of: selectedDifficulty) { oldValue, newValue in
-            // Quand une difficulté est sélectionnée dans le modal, juste fermer
             if showingDifficultySelector && newValue != nil {
                 showingDifficultySelector = false
             }

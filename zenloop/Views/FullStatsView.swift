@@ -15,9 +15,6 @@ struct FullStatsView: View {
     @State private var showContent = false
     @State private var reportKey = UUID() // Force reload du DeviceActivityReport
 
-    // Lazy loading des managers
-    private var purchaseManager: PurchaseManager { PurchaseManager.shared }
-
     // Filter pour toute la journée (de minuit à maintenant)
     private var dailyFilter: DeviceActivityFilter {
         let calendar = Calendar.current
@@ -89,7 +86,6 @@ struct FullStatsView: View {
                 MinimalHeader(
                     showContent: showContent,
                     currentState: zenloopManager.currentState,
-                    isPremium: purchaseManager.isPremium,
                     zenloopManager: zenloopManager
                 )
                 .padding(.horizontal, 20)

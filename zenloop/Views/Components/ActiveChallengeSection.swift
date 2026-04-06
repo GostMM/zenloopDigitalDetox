@@ -3,7 +3,7 @@
 //
 //  Created by MROIVILI MOUSTOIFA on 03/08/2025.
 //  Refactored: Timer en grand, Blocked Apps au-dessus, Jauge épaisse
-//
+//  Fixed on 06/04/2026: removed redundant ticker restarts, fixed pause display
 
 import SwiftUI
 import FamilyControls
@@ -44,19 +44,17 @@ struct ActiveChallengeSection: View {
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 30)
         .animation(Animation.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
-        .onAppear {
-            if zenloopManager.currentState == .active {
-                zenloopManager.startStateMonitoring()
-            }
-        }
-        .onChange(of: zenloopManager.currentState) { newState in
-            if newState == .active {
-                zenloopManager.startStateMonitoring()
-            }
-        }
+        // FIX Bug 1: Ne pas appeler startStateMonitoring() depuis la vue
+        // Le ChallengeStateManager gère son propre ticker avec un guard isMonitoring
+        // Les appels multiples depuis onAppear/onChange causaient des restarts du ticker
         .onChange(of: scenePhase) {
             if scenePhase == .active, zenloopManager.currentState == .active {
+                // FIX Bug 1: Utiliser startStateMonitoring qui a maintenant un guard isMonitoring
+                // Cela ne redémarrera le ticker que s'il n'est pas déjà actif
                 zenloopManager.startStateMonitoring()
+
+                // FIX Bug 8: Vérifier si la session a expiré pendant que l'app était en background
+                zenloopManager.challengeStateManager.checkAndCompleteExpiredSession()
             }
         }
         .fullScreenCover(isPresented: $showBreathingView, onDismiss: {
@@ -79,15 +77,35 @@ struct ActiveChallengeSection: View {
 
     private var timerSection: some View {
         VStack(spacing: 6) {
-            Text("TIME REMAINING")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(.white.opacity(0.4))
-                .tracking(1)
+            // FIX Bug 5: Afficher le bon label selon l'état
+            if zenloopManager.currentState == .paused {
+                Text("PAUSED")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.mint.opacity(0.6))
+                    .tracking(1)
+                
+                // Afficher le temps restant de PAUSE
+                Text(zenloopManager.pauseTimeRemaining)
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.mint.opacity(0.8))
+                    .monospacedDigit()
+                
+                // Afficher aussi le timer principal figé en dessous
+                Text(zenloopManager.currentTimeRemaining)
+                    .font(.system(size: 52, weight: .heavy))
+                    .foregroundColor(stateColor.opacity(0.5))
+                    .monospacedDigit()
+            } else {
+                Text("TIME REMAINING")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .tracking(1)
 
-            Text(zenloopManager.currentTimeRemaining)
-                .font(.system(size: 52, weight: .heavy))
-                .foregroundColor(stateColor)
-                .monospacedDigit()
+                Text(zenloopManager.currentTimeRemaining)
+                    .font(.system(size: 52, weight: .heavy))
+                    .foregroundColor(stateColor)
+                    .monospacedDigit()
+            }
         }
         .padding(.vertical, 14)
     }
@@ -301,7 +319,7 @@ struct ActiveChallengeSection: View {
         .cornerRadius(12)
     }
 
-        // MARK: - Goals Section
+    // MARK: - Goals Section
 
     private func goalsSection(challenge: ZenloopChallenge) -> some View {
         VStack(spacing: 6) {
@@ -309,18 +327,13 @@ struct ActiveChallengeSection: View {
             let pairCount = goals.count / 2
             let hasOddGoal = goals.count % 2 != 0
 
-            // Grille 2x2 pour les paires
             ForEach(0..<pairCount, id: \.self) { rowIndex in
                 HStack(spacing: 6) {
-                    // Goal gauche
                     goalCard(goal: goals[rowIndex * 2])
-
-                    // Goal droit
                     goalCard(goal: goals[rowIndex * 2 + 1])
                 }
             }
 
-            // Goal impair seul si nécessaire
             if hasOddGoal {
                 goalCard(goal: goals[goals.count - 1])
             }
@@ -349,7 +362,7 @@ struct ActiveChallengeSection: View {
         )
     }
 
-// MARK: - Helpers
+    // MARK: - Helpers
 
     private var stateColor: Color {
         switch zenloopManager.currentState {

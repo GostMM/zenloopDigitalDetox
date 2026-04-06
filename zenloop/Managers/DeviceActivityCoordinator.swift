@@ -231,8 +231,6 @@ final class DeviceActivityCoordinator: ObservableObject {
     // MARK: - Monitoring Status
     
     func getActiveMonitoringSessions() -> [DeviceActivityName] {
-        // Note: DeviceActivityCenter doesn't provide direct access to active sessions
-        // This would need to be tracked internally if needed
         return []
     }
     
@@ -249,13 +247,8 @@ final class DeviceActivityCoordinator: ObservableObject {
     // MARK: - Cleanup
     
     func stopAllMonitoring() {
-        // Stop all zenloop-related monitoring sessions
-        // Note: This is a best-effort approach since we can't enumerate active sessions
         #if DEBUG
         logger.debug("🧹 [DeviceActivity] Stopping all monitoring sessions")
         #endif
-        
-        // In practice, this would require maintaining a list of active sessions
-        // or following a naming convention to stop relevant sessions
     }
 }

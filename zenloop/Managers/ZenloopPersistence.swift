@@ -42,9 +42,13 @@ final class ZenloopPersistence: ObservableObject {
     // MARK: - Current State Persistence
     
     func persistCurrentStateNow(state: ZenloopState, challenge: ZenloopChallenge?) {
+        // FIX: Annuler tout debounce en cours pour éviter un overwrite tardif
+        persistWorkItem?.cancel()
+        persistWorkItem = nil
+
         _persistCurrentState(state: state, challenge: challenge)
         #if DEBUG
-        logger.debug("💾 [Persistence] Current state persisted immediately")
+        logger.debug("💾 [Persistence] Current state persisted immediately: \(state.rawValue)")
         #endif
     }
     
@@ -233,7 +237,6 @@ final class ZenloopPersistence: ObservableObject {
         } else {
             let count = UserDefaults.standard.integer(forKey: Keys.selectedAppsCount)
             if count > 0 {
-                // Réinitialiser si pas de données valides
                 UserDefaults.standard.set(0, forKey: Keys.selectedAppsCount)
                 return (selection: FamilyActivitySelection(), count: 0)
             }

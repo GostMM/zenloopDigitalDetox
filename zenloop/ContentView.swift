@@ -8,11 +8,6 @@
 import SwiftUI
 import FamilyControls
 
-// MARK: - Navigation Notifications
-
-extension Notification.Name {
-    static let navigateToHome = Notification.Name("navigateToHome")
-}
 
 struct ContentView: View {
     @StateObject private var zenloopManager = ZenloopManager.shared
@@ -169,11 +164,6 @@ struct ContentView: View {
             .ignoresSafeArea(.keyboard)
             .ignoresSafeArea(edges: .bottom)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToHome)) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                selectedTab = 0
-            }
-        }
         .fullScreenCover(isPresented: $zenloopManager.showBreathingMeditation, onDismiss: {}) {
             BreathingMeditationView(
                 zenloopManager: zenloopManager,
@@ -230,30 +220,6 @@ struct TabContentView: View {
     }
 }
 
-// MARK: - Lazy Tab View Helper
-
-struct LazyTabView<Content: View>: View {
-    let selectedTab: Int
-    let targetTab: Int
-    let content: () -> Content
-
-    @State private var hasLoaded = false
-
-    var body: some View {
-        Group {
-            if hasLoaded || selectedTab == targetTab {
-                content()
-                    .onAppear {
-                        hasLoaded = true
-                    }
-            } else {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
-}
 
 #Preview {
     ContentView()

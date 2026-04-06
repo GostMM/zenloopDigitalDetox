@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 struct BackgroundPickerView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedBackground: SessionBackground?

@@ -3,6 +3,7 @@
 //
 //  Created by MROIVILI MOUSTOIFA on 23/08/2025.
 //  Extracted from ZenloopManager.swift for better maintainability
+//  Minor safety improvements on 06/04/2026
 
 import Foundation
 import SwiftUI
@@ -31,10 +32,8 @@ final class AppRestrictionCoordinator: ObservableObject {
     // Helper pour obtenir le store approprié selon le contexte
     private func getManagedStore(for sessionId: String? = nil) -> ManagedSettingsStore {
         if let sessionId = sessionId {
-            // Utiliser un store nommé pour les sessions programmées
             return ManagedSettingsStore(named: ManagedSettingsStore.Name("scheduled_\(sessionId)"))
         } else {
-            // Utiliser le store par défaut pour les sessions manuelles
             return store
         }
     }
@@ -58,7 +57,6 @@ final class AppRestrictionCoordinator: ObservableObject {
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
 
-            // Attendre un court délai pour que le statut soit propagé
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
 
             checkAuthorizationStatus()
@@ -78,7 +76,9 @@ final class AppRestrictionCoordinator: ObservableObject {
         let wasAuthorized = isAuthorized
         isAuthorized = status == .approved
         #if DEBUG
-        logger.debug("🔐 [AppRestriction] Authorization status: \(String(describing: status)) (was: \(wasAuthorized), now: \(self.isAuthorized))")
+        if wasAuthorized != isAuthorized {
+            logger.debug("🔐 [AppRestriction] Authorization status changed: \(String(describing: status)) (was: \(wasAuthorized), now: \(self.isAuthorized))")
+        }
         #endif
     }
     
@@ -130,18 +130,14 @@ final class AppRestrictionCoordinator: ObservableObject {
 
         let targetStore = getManagedStore(for: sessionId)
 
-        // Vérifier s'il y a une sélection temporaire d'une seule app via le flag
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")
-        var appTokens = blockedAppsSelection.applicationTokens
+        let appTokens = blockedAppsSelection.applicationTokens
 
-        // Si le flag "use_single_app_token" est actif, on cherche dans blockedAppsSelection
         if suite?.bool(forKey: "use_single_app_token") == true {
-            // Le token a déjà été ajouté à blockedAppsSelection via setBlockedApps() côté ZenloopManager
             #if DEBUG
             logger.debug("🔒 [AppRestriction] Using single app from blockedAppsSelection: \(appTokens.count) app(s)")
             #endif
 
-            // Nettoyer le flag après utilisation
             suite?.removeObject(forKey: "use_single_app_token")
             suite?.synchronize()
         }
@@ -153,7 +149,6 @@ final class AppRestrictionCoordinator: ObservableObject {
 
         switch mode {
         case .shield:
-            // Mode Shield: Blocage avec overlay (comportement actuel)
             targetStore.shield.applications = appTokens
 
             if !blockedAppsSelection.categoryTokens.isEmpty {
@@ -166,11 +161,9 @@ final class AppRestrictionCoordinator: ObservableObject {
             #endif
 
         case .hide:
-            // Mode Hide: Masquage complet des apps individuelles
             let blockedApps: Set<Application> = Set(appTokens.map { Application(token: $0) })
             targetStore.application.blockedApplications = blockedApps.isEmpty ? nil : blockedApps
 
-            // Pour les catégories, utiliser shield car blockedApplicationCategories n'existe pas
             if !blockedAppsSelection.categoryTokens.isEmpty {
                 targetStore.shield.applicationCategories = ShieldSettings.ActivityCategoryPolicy
                     .specific(blockedAppsSelection.categoryTokens)
@@ -192,8 +185,6 @@ final class AppRestrictionCoordinator: ObservableObject {
 
         let targetStore = getManagedStore(for: sessionId)
 
-        // Si un mode spécifique est fourni, on ne nettoie que ce mode
-        // Sinon on nettoie les deux modes (comportement par défaut pour compatibilité)
         if mode == nil || mode == .shield {
             #if DEBUG
             logger.debug("   Clearing shield.applications...")
@@ -223,7 +214,6 @@ final class AppRestrictionCoordinator: ObservableObject {
     func hasActiveScheduledSession() -> Bool {
         let suite = UserDefaults(suiteName: "group.com.app.zenloop")
         
-        // Vérifier la queue d'activation des extensions
         if let activationQueue = suite?.array(forKey: "extension_activation_queue") as? [[String: Any]],
            !activationQueue.isEmpty {
             
@@ -319,7 +309,6 @@ final class AppRestrictionCoordinator: ObservableObject {
             let appCount = self.blockedAppsSelection.applicationTokens.count + self.blockedAppsSelection.categoryTokens.count
             return (true, appNames, appCount)
         } else {
-            // Fallback vers une liste par défaut
             let defaultApps = ["Instagram", "TikTok", "Twitter", "Facebook", "YouTube"]
             return (false, defaultApps, defaultApps.count)
         }
@@ -363,7 +352,6 @@ final class AppRestrictionCoordinator: ObservableObject {
         } else {
             self.selectedAppsCount = UserDefaults.standard.integer(forKey: "zenloop_selected_apps_count")
             if self.selectedAppsCount > 0 {
-                // Réinitialiser si pas de données valides
                 self.selectedAppsCount = 0
                 UserDefaults.standard.set(0, forKey: "zenloop_selected_apps_count")
             }

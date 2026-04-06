@@ -34,9 +34,9 @@ struct zenloopApp: App {
             _ = GlobalShieldManager.shared
         }
 
-        // ✅ NOUVEAU: Initialiser BlockController pour écouter les demandes de blocage
+        // ✅ NOUVEAU: Initialiser BlockCommandCoordinator pour écouter les demandes de blocage
         // depuis l'extension DeviceActivityReport
-        _ = BlockController.shared
+        _ = BlockCommandCoordinator.shared
 
         // Écouter les Darwin Notifications (inter-process)
         CFNotificationCenterAddObserver(
@@ -146,7 +146,7 @@ struct zenloopApp: App {
 
                         // ✅ NOUVEAU: Vérifier s'il y a des pending blocks depuis l'extension
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            BlockController.shared.processPendingBlockRequest()
+                            BlockCommandCoordinator.shared.startMonitoring()
                         }
                     }
 

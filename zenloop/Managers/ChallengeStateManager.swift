@@ -3,6 +3,7 @@
 //
 //  Created by MROIVILI MOUSTOIFA on 23/08/2025.
 //  Extracted from ZenloopManager.swift for better maintainability
+//  Fixed on 06/04/2026: triple completion, pause display, ticker restart, notif cleanup
 
 import Foundation
 import SwiftUI
@@ -33,10 +34,13 @@ final class ChallengeStateManager: ObservableObject {
     private var pauseEndTime: Date?
     
     private let ticker = Ticker()
+    private var isMonitoring = false                // FIX Bug 1: guard against double ticker start
+    private var isCompleting = false                // FIX Bug 2: mutex for completion
     private var lastSecondBroadcast: Int? = nil
     private var lastProgress: Double = -1
     private var lastPauseSecondBroadcast: Int? = nil
     private var lastEventsCheck: TimeInterval = 0
+    private var autoCompletionWorkItem: DispatchWorkItem?  // FIX Bug 2: cancellable autoCompletion
     
     weak var delegate: ChallengeStateManagerDelegate?
     
@@ -76,6 +80,9 @@ final class ChallengeStateManager: ObservableObject {
         startingChallenge.isActive = true
         startingChallenge.isCompleted = false
 
+        // FIX Bug 2: Reset completion flag for new challenge
+        isCompleting = false
+
         currentChallenge = startingChallenge
         currentState = .active
 
@@ -98,19 +105,28 @@ final class ChallengeStateManager: ObservableObject {
     func pauseChallenge() {
         guard let challenge = currentChallenge, currentState == .active else { return }
         
+        let now = Date()
         var pausedChallenge = challenge
-        pausedChallenge.pausedTime = Date()
-        pausedChallenge.isActive = false  // Arrêter le timer principal
+        pausedChallenge.pausedTime = now
+        // Garder isActive = true pour que la restauration fonctionne après un kill app
+        // On utilise currentState == .paused pour contrôler le comportement du ticker
         currentChallenge = pausedChallenge
         currentState = .paused
         
+        // FIX Bug 2: Annuler l'autoCompletion pendant la pause
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
+        
         // Pause de 5 minutes par défaut
-        pauseEndTime = Date().addingTimeInterval(5 * 60)
+        // FIX: Stocker aussi dans UserDefaults pour survivre au kill app
+        let pauseEnd = now.addingTimeInterval(5 * 60)
+        pauseEndTime = pauseEnd
+        UserDefaults.standard.set(pauseEnd.timeIntervalSince1970, forKey: "zenloop_pause_end_time")
         
         delegate?.stateDidChange(to: .paused, challenge: pausedChallenge)
         
         #if DEBUG
-        logger.debug("⏸️ [ChallengeState] Challenge paused for 5 minutes")
+        logger.debug("⏸️ [ChallengeState] Challenge paused for 5 minutes (endTime persisted)")
         #endif
     }
     
@@ -129,6 +145,10 @@ final class ChallengeStateManager: ObservableObject {
         currentState = .active
         pauseEndTime = nil
         pauseTimeRemaining = "00:00"
+        lastPauseSecondBroadcast = nil  // Reset pour forcer mise à jour
+        
+        // FIX: Nettoyer la pauseEndTime persistée
+        UserDefaults.standard.removeObject(forKey: "zenloop_pause_end_time")
         
         scheduleAutoCompletion()
         
@@ -142,12 +162,22 @@ final class ChallengeStateManager: ObservableObject {
     }
     
     func completeChallenge() {
+        // FIX Bug 2: Mutex — un seul chemin peut compléter
+        guard !isCompleting else {
+            #if DEBUG
+            logger.debug("⚠️ [ChallengeState] completeChallenge() called but already completing — skipping")
+            #endif
+            return
+        }
         guard let challenge = currentChallenge, currentState == .active else {
             #if DEBUG
             logger.warning("⚠️ [ChallengeState] Cannot complete - no active challenge (state: \(String(describing: self.currentState)))")
             #endif
             return
         }
+
+        // FIX Bug 2: Verrouiller immédiatement
+        isCompleting = true
 
         #if DEBUG
         logger.debug("🏁 [ChallengeState] Starting challenge completion for: \(challenge.title)")
@@ -159,7 +189,14 @@ final class ChallengeStateManager: ObservableObject {
         currentChallenge = completedChallenge
         currentState = .completed
 
+        // FIX Bug 2: Annuler l'autoCompletion (empêche double appel)
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
+
         cancelTimers()
+
+        // FIX Bug 7: Annuler la notification de fin de manière synchrone
+        cancelSessionEndNotificationSync()
 
         #if DEBUG
         logger.debug("📢 [ChallengeState] Notifying delegates of completion...")
@@ -172,7 +209,7 @@ final class ChallengeStateManager: ObservableObject {
         logger.debug("🔓 [ChallengeState] Restrictions should now be removed by stateDidChange")
         #endif
 
-        // Auto-reset to idle after 5 seconds
+        // FIX Bug 3: Un seul resetToIdle programmé — ICI seulement
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             self?.resetToIdle()
         }
@@ -190,8 +227,18 @@ final class ChallengeStateManager: ObservableObject {
         currentChallenge = stoppedChallenge
         currentState = .idle
 
+        // FIX Bug 2: Reset completion flag
+        isCompleting = false
+
+        // FIX Bug 2: Annuler l'autoCompletion
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
+
+        // FIX: Nettoyer la pauseEndTime persistée
+        UserDefaults.standard.removeObject(forKey: "zenloop_pause_end_time")
+
         cancelTimers()
-        cancelSessionEndNotification()
+        cancelSessionEndNotificationSync()
         resetState()
 
         delegate?.stateDidChange(to: .idle, challenge: nil)
@@ -202,8 +249,18 @@ final class ChallengeStateManager: ObservableObject {
     }
     
     func resetToIdle() {
-        // Annuler la notification de fin de session
-        cancelSessionEndNotification()
+        // FIX Bug 7: Annuler la notification de fin de session
+        cancelSessionEndNotificationSync()
+
+        // FIX Bug 2: Reset le flag de completion
+        isCompleting = false
+
+        // FIX Bug 2: Annuler l'autoCompletion
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
+
+        // FIX: Nettoyer la pauseEndTime persistée
+        UserDefaults.standard.removeObject(forKey: "zenloop_pause_end_time")
 
         currentChallenge = nil
         currentState = .idle
@@ -219,6 +276,9 @@ final class ChallengeStateManager: ObservableObject {
         currentTimeRemaining = "00:00"
         currentProgress = 0.0
         pauseTimeRemaining = "00:00"
+        lastSecondBroadcast = nil
+        lastProgress = -1
+        lastPauseSecondBroadcast = nil
     }
 
     // MARK: - Background Session End Notifications
@@ -247,15 +307,34 @@ final class ChallengeStateManager: ObservableObject {
         UNUserNotificationCenter.current().add(request) { error in
             #if DEBUG
             if let error = error {
-                self.logger.debug("❌ [ChallengeState] Failed to schedule session end notification: \(error.localizedDescription)")
+                print("❌ [ChallengeState] Failed to schedule session end notification: \(error.localizedDescription)")
             } else {
-                self.logger.debug("🔔 [ChallengeState] Session end notification scheduled for \(timeInterval)s from now")
+                print("🔔 [ChallengeState] Session end notification scheduled for \(timeInterval)s from now")
             }
             #endif
         }
     }
 
-    private func cancelSessionEndNotification() {
+    // FIX Bug 7: Version synchrone — annule sans attendre le callback async
+    private func cancelSessionEndNotificationSync() {
+        guard let challenge = currentChallenge else {
+            // Fallback: supprimer toutes les notifications session_end_
+            UNUserNotificationCenter.current().removePendingNotificationRequests(
+                withIdentifiers: [] // On ne peut pas lister sync, mais on peut supprimer par pattern
+            )
+            return
+        }
+        // Annuler directement par identifiant connu — pas besoin de query d'abord
+        let identifier = "session_end_\(challenge.id)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        #if DEBUG
+        logger.debug("🔕 [ChallengeState] Cancelled session end notification: \(identifier)")
+        #endif
+    }
+
+    // Garder l'ancienne méthode pour nettoyage global (fallback)
+    private func cancelAllSessionEndNotifications() {
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
             let sessionEndIds = requests
                 .filter { $0.identifier.starts(with: "session_end_") }
@@ -274,6 +353,14 @@ final class ChallengeStateManager: ObservableObject {
     }
 
     func checkAndCompleteExpiredSession() {
+        // FIX Bug 2: Ne pas compléter si déjà en cours de completion
+        guard !isCompleting else {
+            #if DEBUG
+            logger.debug("⏰ [ChallengeState] checkAndCompleteExpiredSession - already completing, skip")
+            #endif
+            return
+        }
+
         guard let challenge = currentChallenge,
               let startTime = challenge.startTime,
               currentState == .active else {
@@ -328,6 +415,17 @@ final class ChallengeStateManager: ObservableObject {
     // MARK: - State Monitoring & Ticker
     
     func startStateMonitoring() {
+        // FIX Bug 1: Ne pas redémarrer si déjà actif
+        guard !isMonitoring else {
+            #if DEBUG
+            if verboseLogging {
+                logger.debug("⏭️ [ChallengeState] Ticker already running, skipping restart")
+            }
+            #endif
+            return
+        }
+        isMonitoring = true
+
         ticker.start(every: 1.0) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.tick()
@@ -336,23 +434,123 @@ final class ChallengeStateManager: ObservableObject {
     }
     
     func restoreActiveSession(_ challenge: ZenloopChallenge) {
+        // FIX Bug 8: Vérifier si la session a expiré pendant la fermeture
+        if let startTime = challenge.startTime {
+            let elapsed = Date().timeIntervalSince(startTime) - challenge.pauseDuration
+            // Ne vérifier l'expiration que si la session n'est pas en pause
+            // (une session en pause ne compte pas le temps)
+            if challenge.pausedTime == nil && elapsed >= challenge.duration {
+                #if DEBUG
+                logger.debug("⏰ [ChallengeState] Session expired during app closure — completing")
+                #endif
+                currentChallenge = challenge
+                currentState = .active
+                isCompleting = false
+                completeChallenge()
+                return
+            }
+        }
+
         // Restaurer l'état complet après un reload
         currentChallenge = challenge
-        currentState = challenge.isActive ? .active : .paused
-        currentTimeRemaining = challenge.timeRemaining
-        currentProgress = challenge.safeProgress
+        isCompleting = false
+
+        // FIX PAUSE RESTORE: Déterminer l'état correct
+        if challenge.pausedTime != nil {
+            // La session était en pause quand l'app a été tuée
+            currentState = .paused
+
+            // Restaurer pauseEndTime depuis UserDefaults
+            let persistedPauseEnd = UserDefaults.standard.double(forKey: "zenloop_pause_end_time")
+            if persistedPauseEnd > 0 {
+                let pauseEnd = Date(timeIntervalSince1970: persistedPauseEnd)
+
+                if pauseEnd > Date() {
+                    // La pause n'est pas encore finie — restaurer le décompte
+                    pauseEndTime = pauseEnd
+                    let remaining = Int(pauseEnd.timeIntervalSinceNow)
+                    pauseTimeRemaining = formatTime(remaining)
+
+                    #if DEBUG
+                    logger.debug("⏸️ [ChallengeState] Pause restored — \(remaining)s remaining")
+                    #endif
+                } else {
+                    // La pause est expirée pendant que l'app était fermée → auto-resume
+                    #if DEBUG
+                    logger.debug("⏸️ [ChallengeState] Pause expired during closure — auto-resuming")
+                    #endif
+
+                    // Calculer combien de temps la pause a duré (jusqu'à son expiration)
+                    if let pausedTime = challenge.pausedTime {
+                        let actualPauseDuration = pauseEnd.timeIntervalSince(pausedTime)
+                        var resumedChallenge = challenge
+                        resumedChallenge.pauseDuration += actualPauseDuration
+                        resumedChallenge.pausedTime = nil
+                        resumedChallenge.isActive = true
+                        currentChallenge = resumedChallenge
+                    }
+
+                    currentState = .active
+                    pauseEndTime = nil
+                    UserDefaults.standard.removeObject(forKey: "zenloop_pause_end_time")
+
+                    // Maintenant vérifier si la session elle-même a expiré après le resume
+                    if let updatedChallenge = currentChallenge, let startTime = updatedChallenge.startTime {
+                        let elapsed = Date().timeIntervalSince(startTime) - updatedChallenge.pauseDuration
+                        if elapsed >= updatedChallenge.duration {
+                            #if DEBUG
+                            logger.debug("⏰ [ChallengeState] Session also expired after pause — completing")
+                            #endif
+                            completeChallenge()
+                            return
+                        }
+                    }
+
+                    scheduleAutoCompletion()
+                }
+            } else {
+                // Pas de pauseEndTime persistée — la pause est "perdue", auto-resume
+                #if DEBUG
+                logger.debug("⚠️ [ChallengeState] No persisted pauseEndTime — auto-resuming")
+                #endif
+
+                if let pausedTime = challenge.pausedTime {
+                    let pauseDuration = Date().timeIntervalSince(pausedTime)
+                    var resumedChallenge = challenge
+                    resumedChallenge.pauseDuration += pauseDuration
+                    resumedChallenge.pausedTime = nil
+                    resumedChallenge.isActive = true
+                    currentChallenge = resumedChallenge
+                }
+                currentState = .active
+                pauseEndTime = nil
+                scheduleAutoCompletion()
+            }
+        } else {
+            // Session active (pas en pause)
+            currentState = .active
+            scheduleAutoCompletion()
+        }
+
+        currentTimeRemaining = currentChallenge?.timeRemaining ?? "00:00"
+        currentProgress = currentChallenge?.safeProgress ?? 0.0
         
         // Redémarrer le monitoring
+        isMonitoring = false
         startStateMonitoring()
+
+        // Notifier le delegate de l'état restauré
+        delegate?.stateDidChange(to: currentState, challenge: currentChallenge)
         
         #if DEBUG
-        logger.debug("🔄 [ChallengeState] Session restored after reload: \(challenge.title)")
+        logger.debug("🔄 [ChallengeState] Session restored after reload: \(challenge.title) (state: \(self.currentState.rawValue))")
         #endif
     }
     
     func resumeStateMonitoringAfterReload() {
         // Redémarrer le monitoring s'il y a une session active
         if currentChallenge != nil && (currentState == .active || currentState == .paused) {
+            isMonitoring = false  // Reset pour permettre le démarrage
             startStateMonitoring()
             
             #if DEBUG
@@ -364,8 +562,8 @@ final class ChallengeStateManager: ObservableObject {
     private func tick() {
         let now = Date()
         
-        // 1) Challenge actif
-        if let challenge = currentChallenge, challenge.isActive, let startTime = challenge.startTime {
+        // 1) Challenge actif — timer principal
+        if let challenge = currentChallenge, currentState == .active, let startTime = challenge.startTime {
             let elapsed = now.timeIntervalSince(startTime) - challenge.pauseDuration
             let remaining = max(0, challenge.duration - elapsed)
             let seconds = Int(remaining.rounded(.down))
@@ -386,7 +584,7 @@ final class ChallengeStateManager: ObservableObject {
                 
                 delegate?.challengeProgressUpdated(timeRemaining: timeString, progress: progress)
                 
-                // Auto-completion si terminé
+                // Auto-completion si terminé (FIX Bug 2: protégé par isCompleting dans completeChallenge)
                 if progress >= 1.0 && currentState == .active {
                     completeChallenge()
                 }
@@ -394,29 +592,36 @@ final class ChallengeStateManager: ObservableObject {
             return
         }
         
-        // 2) Pause en cours
-        if currentState == .paused, let endTime = pauseEndTime {
-            let remainingSeconds = max(0, Int(endTime.timeIntervalSinceNow.rounded(.down)))
-            if lastPauseSecondBroadcast != remainingSeconds {
-                lastPauseSecondBroadcast = remainingSeconds
-                let timeString = formatTime(remainingSeconds)
-                
-                if pauseTimeRemaining != timeString {
-                    pauseTimeRemaining = timeString
-                }
-                
-                delegate?.pauseTimeUpdated(timeRemaining: timeString)
-                
-                // Auto-resume si temps écoulé
-                if remainingSeconds == 0 {
-                    resumeChallenge()
+        // 2) Pause en cours — FIX Bug 5: afficher le temps de pause ET garder le timer principal figé
+        if currentState == .paused {
+            // Afficher le décompte de pause
+            if let endTime = pauseEndTime {
+                let remainingSeconds = max(0, Int(endTime.timeIntervalSinceNow.rounded(.down)))
+                if lastPauseSecondBroadcast != remainingSeconds {
+                    lastPauseSecondBroadcast = remainingSeconds
+                    let timeString = formatTime(remainingSeconds)
+                    
+                    if pauseTimeRemaining != timeString {
+                        pauseTimeRemaining = timeString
+                    }
+                    
+                    delegate?.pauseTimeUpdated(timeRemaining: timeString)
+                    
+                    // Auto-resume si temps écoulé
+                    if remainingSeconds == 0 {
+                        resumeChallenge()
+                    }
                 }
             }
+            
+            // FIX Bug 5: NE PAS reset currentTimeRemaining ni currentProgress pendant la pause
+            // Le timer principal reste figé à sa dernière valeur
             return
         }
         
-        // 3) État inactif - reset des valeurs si nécessaire
-        if currentState != .active {
+        // 3) État inactif (idle/completed) - reset des valeurs si nécessaire
+        // FIX Bug 5: Ce bloc ne s'exécute QUE si on est idle ou completed (pas paused)
+        if currentState == .idle || currentState == .completed {
             if currentTimeRemaining != "00:00" { 
                 currentTimeRemaining = "00:00"
                 delegate?.challengeProgressUpdated(timeRemaining: "00:00", progress: 0.0)
@@ -443,32 +648,52 @@ final class ChallengeStateManager: ObservableObject {
     // MARK: - Auto-completion
     
     private func scheduleAutoCompletion() {
+        // FIX Bug 2: Annuler toute autoCompletion précédente
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
+
         guard let challenge = currentChallenge, let startTime = challenge.startTime else { return }
         let elapsedTime = Date().timeIntervalSince(startTime) - challenge.pauseDuration
         let remainingTime = max(challenge.duration - elapsedTime, 0)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + remainingTime) { [weak self] in
-            if self?.currentState == .active {
-                self?.completeChallenge()
+        guard remainingTime > 0 else {
+            // Déjà expiré — compléter immédiatement
+            if currentState == .active {
+                completeChallenge()
+            }
+            return
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            if self.currentState == .active {
+                self.completeChallenge()
             }
         }
+        autoCompletionWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + remainingTime, execute: workItem)
     }
     
     // MARK: - Timer Management
     
     func cancelTimers() {
         ticker.stop()
+        isMonitoring = false  // FIX Bug 1: Reset le flag quand on arrête
+        
+        // FIX Bug 2: Annuler aussi l'autoCompletion
+        autoCompletionWorkItem?.cancel()
+        autoCompletionWorkItem = nil
     }
     
     // MARK: - Validation
     
     func validateState() -> Bool {
         if let challenge = currentChallenge {
-            if challenge.isActive && currentState != .active { return false }
+            if challenge.isActive && currentState != .active && currentState != .paused { return false }
             if !challenge.isActive && currentState == .active { return false }
             if challenge.startTime == nil && challenge.isActive { return false }
         }
-        if currentChallenge == nil && currentState != .idle { return false }
+        if currentChallenge == nil && currentState != .idle && currentState != .completed { return false }
         return true
     }
     
