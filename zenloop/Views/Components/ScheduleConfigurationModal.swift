@@ -3,7 +3,7 @@
 //  zenloop
 //
 //  Refactorisé avec CompactTimerView pour cohérence
-//
+//  Fixed on 06/04/2026: frequency now used, past time validation, duration sync
 
 import SwiftUI
 import FamilyControls
@@ -42,6 +42,9 @@ struct ScheduleConfigurationModal: View {
     @State private var taskGoals: [(text: String, isCompleted: Bool)] = []
     @State private var showingGoalsModal = false
 
+    // FIX Bug 8: Validation feedback
+    @State private var showPastTimeWarning = false
+
     init(session: PopularSession,
          zenloopManager: ZenloopManager,
          initialAppsSelection: FamilyActivitySelection,
@@ -53,11 +56,8 @@ struct ScheduleConfigurationModal: View {
         self.onAppsSelected = onAppsSelected
         self.onAppsClear = onAppsClear
 
-        // Initialiser l'état pour affichage immédiat
         self._showContent = State(initialValue: true)
         self._hasInitialized = State(initialValue: true)
-
-        print("🚀 [SCHEDULE_MODAL] Init pour session: \(session.sessionId)")
     }
 
     // MARK: - Background Gradient
@@ -158,7 +158,6 @@ struct ScheduleConfigurationModal: View {
             onAppsSelected(newSelection)
         }
         .onChange(of: session.sessionId) { oldSessionId, newSessionId in
-            print("🔄 [SCHEDULE_MODAL] Session changée: \(oldSessionId) -> \(newSessionId)")
             hasInitialized = false
             showContent = false
 
@@ -170,12 +169,10 @@ struct ScheduleConfigurationModal: View {
             }
         }
         .onAppear {
-            print("🔄 [SCHEDULE_MODAL] onAppear")
             isAppearing = true
             selectedStartTime = calculateNextOptimalTime()
             selectedApps = initialAppsSelection
 
-            // Initialiser les heures et minutes depuis la durée de la session
             selectedHours = Int(session.duration / 3600)
             selectedMinutes = Int((session.duration.truncatingRemainder(dividingBy: 3600)) / 60)
 
@@ -185,13 +182,18 @@ struct ScheduleConfigurationModal: View {
         .onDisappear {
             isAppearing = false
         }
+        // FIX Bug 8: Alert for past time
+        .alert(String(localized: "invalid_time_title", defaultValue: "Heure invalide"), isPresented: $showPastTimeWarning) {
+            Button("OK") {}
+        } message: {
+            Text(String(localized: "invalid_time_message", defaultValue: "L'heure de début doit être au moins 2 minutes dans le futur. Veuillez choisir une heure ultérieure."))
+        }
     }
 
     // MARK: - Session Header Section
 
     private var sessionHeaderSection: some View {
         VStack(spacing: 16) {
-            // Icône de la session
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(
@@ -231,18 +233,15 @@ struct ScheduleConfigurationModal: View {
         .animation(.easeOut(duration: 0.3), value: showContent)
     }
 
-    // MARK: - Compact Timer Section (Custom Style)
+    // MARK: - Compact Timer Section
 
     private var compactTimerSection: some View {
         VStack(spacing: 16) {
-            // Section 1: App Selection + Duration
             HStack(alignment: .center, spacing: 20) {
-                // Apps (gauche)
                 Button {
                     showingAppSelection = true
                 } label: {
                     VStack(spacing: 10) {
-                        // Icône + Label
                         HStack(spacing: 10) {
                             Image(systemName: hasSelectedApps ? "shield.checkered" : "square.stack.3d.up.fill")
                                 .font(.system(size: 28, weight: .semibold))
@@ -263,7 +262,6 @@ struct ScheduleConfigurationModal: View {
                             Spacer()
                         }
 
-                        // Pile d'icônes (si apps sélectionnées)
                         if hasSelectedApps {
                             HStack(spacing: 0) {
                                 StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
@@ -276,7 +274,6 @@ struct ScheduleConfigurationModal: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Duration (droite - très grand avec icône)
                 Button {
                     showDurationModal = true
                 } label: {
@@ -297,9 +294,7 @@ struct ScheduleConfigurationModal: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
 
-            // Section 2: Difficulty + Goals
             HStack(spacing: 12) {
-                // Difficulty (gauche)
                 Button {
                     showDifficultyModal = true
                 } label: {
@@ -325,7 +320,6 @@ struct ScheduleConfigurationModal: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Goals (aligné à droite)
                 Button {
                     showingGoalsModal = true
                 } label: {
@@ -376,13 +370,9 @@ struct ScheduleConfigurationModal: View {
             }
 
             VStack(spacing: 16) {
-                // Sélection de l'heure de début
                 startTimeSelectionRow
-
-                // Sélection de la fréquence
                 frequencySelectionRow
 
-                // Sélection des jours (si récurrent)
                 if selectedFrequency == .weekly {
                     weekdaySelectionRow
                 }
@@ -400,7 +390,6 @@ struct ScheduleConfigurationModal: View {
 
     private var startTimeSelectionRow: some View {
         VStack(spacing: 12) {
-            // Date de début
             HStack {
                 Image(systemName: "calendar")
                     .font(.system(size: 16, weight: .semibold))
@@ -413,13 +402,13 @@ struct ScheduleConfigurationModal: View {
 
                 Spacer()
 
-                DatePicker("", selection: $selectedStartTime, displayedComponents: [.date])
+                // FIX Bug 8: Minimum date = maintenant
+                DatePicker("", selection: $selectedStartTime, in: Date()..., displayedComponents: [.date])
                     .labelsHidden()
                     .colorScheme(.dark)
                     .accentColor(session.accentColor.color)
             }
 
-            // Heure de début
             HStack {
                 Image(systemName: "clock")
                     .font(.system(size: 16, weight: .semibold))
@@ -436,6 +425,22 @@ struct ScheduleConfigurationModal: View {
                     .labelsHidden()
                     .colorScheme(.dark)
                     .accentColor(session.accentColor.color)
+            }
+
+            // FIX Bug 8: Indicateur visuel si l'heure est dans le passé
+            if selectedStartTime.timeIntervalSinceNow < 120 {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+
+                    Text(String(localized: "time_too_close_warning", defaultValue: "L'heure doit être au moins 2 minutes dans le futur"))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.orange)
+
+                    Spacer()
+                }
+                .transition(.opacity)
             }
         }
     }
@@ -550,12 +555,13 @@ struct ScheduleConfigurationModal: View {
         selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
     }
 
+    // FIX Bug 8: canSchedule vérifie aussi l'heure
     private var canSchedule: Bool {
-        hasSelectedApps
+        hasSelectedApps && selectedStartTime.timeIntervalSinceNow > 120
     }
 
     private var autoSuggestedDifficulty: DifficultyLevel {
-        let hours = session.duration / 3600
+        let hours = currentDuration / 3600
         if hours >= 8 {
             return .hard
         } else if hours >= 4 {
@@ -612,40 +618,118 @@ struct ScheduleConfigurationModal: View {
     // MARK: - Private Methods
 
     private func scheduleSession() {
-        print("🗓️ [SCHEDULE_MODAL] Tentative de programmation de '\(session.title)'")
+        // FIX Bug 8: Validation finale avant programmation
+        guard selectedStartTime.timeIntervalSinceNow > 120 else {
+            showPastTimeWarning = true
+            return
+        }
 
-        // Utiliser la difficulté sélectionnée par l'utilisateur ou celle suggérée
         let difficulty = selectedDifficulty ?? autoSuggestedDifficulty
 
-        // Vérifier l'accès Premium via PremiumGatekeeper
         PremiumGatekeeper.shared.performIfAllowed(.startScheduledSession) {
-            print("🗓️ [SCHEDULE_MODAL] Programmation autorisée pour '\(session.title)'")
-            print("   - Heure: \(selectedStartTime)")
-            print("   - Fréquence: \(selectedFrequency)")
-            print("   - Difficulté: \(difficulty.rawValue)")
-            print("   - Apps: \(selectedApps.applicationTokens.count)")
-            print("   - Catégories: \(selectedApps.categoryTokens.count)")
+            // FIX Bug 7: Gérer la fréquence sélectionnée
+            switch selectedFrequency {
+            case .once:
+                // Programmation unique
+                zenloopManager.scheduleCustomChallenge(
+                    title: session.title,
+                    duration: currentDuration,
+                    difficulty: difficulty,
+                    apps: selectedApps,
+                    startTime: selectedStartTime
+                )
 
-            // Programmer la session
-            zenloopManager.scheduleCustomChallenge(
-                title: session.title,
-                duration: currentDuration,
-                difficulty: difficulty,
-                apps: selectedApps,
-                startTime: selectedStartTime
-            )
+            case .daily:
+                // FIX Bug 7: Programmer pour les 7 prochains jours
+                let calendar = Calendar.current
+                for dayOffset in 0..<7 {
+                    guard let futureDate = calendar.date(byAdding: .day, value: dayOffset, to: selectedStartTime) else { continue }
+                    // Ne pas programmer si dans le passé
+                    guard futureDate.timeIntervalSinceNow > 120 else { continue }
 
-            // Feedback haptique
+                    zenloopManager.scheduleCustomChallenge(
+                        title: "\(session.title) (J\(dayOffset + 1))",
+                        duration: currentDuration,
+                        difficulty: difficulty,
+                        apps: selectedApps,
+                        startTime: futureDate
+                    )
+                }
+
+            case .weekly:
+                // FIX Bug 7: Programmer pour chaque jour sélectionné (4 prochaines semaines)
+                guard !selectedDays.isEmpty else {
+                    // Fallback: programmation unique si aucun jour sélectionné
+                    zenloopManager.scheduleCustomChallenge(
+                        title: session.title,
+                        duration: currentDuration,
+                        difficulty: difficulty,
+                        apps: selectedApps,
+                        startTime: selectedStartTime
+                    )
+                    break
+                }
+
+                let calendar = Calendar.current
+                let baseHour = calendar.component(.hour, from: selectedStartTime)
+                let baseMinute = calendar.component(.minute, from: selectedStartTime)
+
+                // Programmer pour les 4 prochaines semaines
+                for weekOffset in 0..<4 {
+                    for day in selectedDays {
+                        guard let targetDate = nextDate(for: day, weekOffset: weekOffset, hour: baseHour, minute: baseMinute) else { continue }
+                        guard targetDate.timeIntervalSinceNow > 120 else { continue }
+
+                        zenloopManager.scheduleCustomChallenge(
+                            title: "\(session.title) (\(day.shortName))",
+                            duration: currentDuration,
+                            difficulty: difficulty,
+                            apps: selectedApps,
+                            startTime: targetDate
+                        )
+                    }
+                }
+            }
+
             #if canImport(UIKit)
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
             #endif
 
-            // Fermer le modal
             dismiss()
-
-            print("✅ [SCHEDULE_MODAL] Session programmée avec succès")
         }
+    }
+
+    // FIX Bug 7: Helper pour calculer la prochaine date d'un jour de la semaine
+    private func nextDate(for weekday: Weekday, weekOffset: Int, hour: Int, minute: Int) -> Date? {
+        let calendar = Calendar.current
+        let today = Date()
+
+        // Convertir Weekday en numéro de jour Calendar (1=dimanche, 2=lundi, etc.)
+        let targetWeekday: Int
+        switch weekday {
+        case .sunday: targetWeekday = 1
+        case .monday: targetWeekday = 2
+        case .tuesday: targetWeekday = 3
+        case .wednesday: targetWeekday = 4
+        case .thursday: targetWeekday = 5
+        case .friday: targetWeekday = 6
+        case .saturday: targetWeekday = 7
+        }
+
+        // Trouver le prochain jour correspondant
+        var components = DateComponents()
+        components.weekday = targetWeekday
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+
+        guard let nextOccurrence = calendar.nextDate(after: today, matching: components, matchingPolicy: .nextTime) else {
+            return nil
+        }
+
+        // Ajouter l'offset de semaines
+        return calendar.date(byAdding: .weekOfYear, value: weekOffset, to: nextOccurrence)
     }
 
     private func calculateNextOptimalTime() -> Date {
@@ -653,17 +737,13 @@ struct ScheduleConfigurationModal: View {
         let now = Date()
         let currentHour = calendar.component(.hour, from: now)
 
-        // Si on est avant 23h, proposer une heure dans la journée actuelle
-        // Sinon, proposer demain matin
         let targetDate: Date
         let targetHour: Int
 
         if currentHour < 23 {
-            // Proposer dans 1 heure (arrondi à l'heure suivante)
             targetDate = now
             targetHour = currentHour + 1
         } else {
-            // Proposer demain à 8h
             targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
             targetHour = 8
         }
@@ -689,24 +769,15 @@ enum ScheduleFrequency: String, CaseIterable {
 
     var localizedName: String {
         switch self {
-        case .once:
-            return String(localized: "once")
-        case .daily:
-            return String(localized: "daily")
-        case .weekly:
-            return String(localized: "weekly")
+        case .once: return String(localized: "once")
+        case .daily: return String(localized: "daily")
+        case .weekly: return String(localized: "weekly")
         }
     }
 }
 
 enum Weekday: String, CaseIterable {
-    case monday = "monday"
-    case tuesday = "tuesday"
-    case wednesday = "wednesday"
-    case thursday = "thursday"
-    case friday = "friday"
-    case saturday = "saturday"
-    case sunday = "sunday"
+    case monday, tuesday, wednesday, thursday, friday, saturday, sunday
 
     var localizedName: String {
         switch self {
@@ -732,8 +803,6 @@ enum Weekday: String, CaseIterable {
         }
     }
 }
-
-// MARK: - Weekday Toggle
 
 struct WeekdayToggle: View {
     let day: Weekday

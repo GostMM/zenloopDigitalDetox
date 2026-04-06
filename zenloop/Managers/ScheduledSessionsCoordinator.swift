@@ -3,6 +3,7 @@
 //
 //  Created by MROIVILI MOUSTOIFA on 23/08/2025.
 //  Extracted from ZenloopManager.swift for better maintainability
+//  Fixed on 06/04/2026: double scheduling, ID mismatch, missing app names
 
 import Foundation
 import FamilyControls
@@ -21,6 +22,10 @@ protocol ScheduledSessionsCoordinatorDelegate: AnyObject {
 @MainActor
 final class ScheduledSessionsCoordinator: ObservableObject {
     
+    // MARK: - Published Properties
+    // FIX Bug 3: Publier les sessions pour forcer le re-render de UpcomingSessionsCard
+    @Published var scheduledSessionsVersion: Int = 0
+    
     // MARK: - Private Properties
     private var scheduledTimers: [String: DispatchWorkItem] = [:]
     
@@ -37,17 +42,24 @@ final class ScheduledSessionsCoordinator: ObservableObject {
     
     // MARK: - Public Interface
     
+    /// Programme une session. 
+    /// - Parameter externalSessionId: Si fourni, utilise cet ID au lieu d'en générer un nouveau.
+    ///   Cela évite le bug de double ID quand ZenloopManager a déjà créé un ID via BlockScheduler.
+    /// - Parameter skipBlockScheduler: Si true, ne PAS appeler BlockScheduler (déjà fait par l'appelant).
     func scheduleCustomChallenge(
         title: String,
         duration: TimeInterval,
         difficulty: DifficultyLevel,
         apps: FamilyActivitySelection,
         startTime: Date,
-        notificationManager: SessionNotificationManager
+        notificationManager: SessionNotificationManager,
+        externalSessionId: String? = nil,
+        skipBlockScheduler: Bool = false
     ) {
-        let sessionId = "scheduled_\(UUID().uuidString)"
+        // FIX Bug 2: Utiliser l'ID externe si fourni, sinon en générer un
+        let sessionId = externalSessionId ?? "scheduled_\(UUID().uuidString)"
         
-        // Créer la session programmée
+        // FIX Bug 5: Générer les noms d'apps pour l'affichage dans UpcomingSessionsCard
         let appNames = delegate?.generateAppNames(from: apps) ?? []
         
         // CORRECTION: Utiliser le même timing arrondi pour les notifications
@@ -63,16 +75,20 @@ final class ScheduledSessionsCoordinator: ObservableObject {
             apps: appNames
         )
         
-        // Enregistrer la session programmée pour démarrage automatique
-        let scheduledChallenge = ZenloopChallenge(
+        // Créer la session programmée
+        var scheduledChallenge = ZenloopChallenge(
             id: sessionId,
             title: title,
             description: "Session programmée",
             duration: duration,
             difficulty: difficulty,
-            startTime: roundedStartTime, // Utiliser le timing exact
+            startTime: roundedStartTime,
             isActive: false
         )
+        
+        // FIX Bug 5: Remplir les noms d'apps pour l'affichage
+        scheduledChallenge.blockedAppsCount = apps.applicationTokens.count + apps.categoryTokens.count
+        scheduledChallenge.blockedAppsNames = appNames
         
         // Sauvegarder dans UserDefaults pour persistance
         saveScheduledChallenge(scheduledChallenge, apps: apps)
@@ -80,27 +96,36 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         // Programmer le démarrage automatique (timer pour app ouverte)
         scheduleAutoStart(challenge: scheduledChallenge, apps: apps)
         
-        // CRUCIAL: Programmer AUSSI avec DeviceActivitySchedule pour arrière-plan
-        do {
-            try BlockScheduler.shared.scheduleSession(
-                title: title,
-                duration: duration,
-                startTime: roundedStartTime, // Réutiliser la même variable
-                selection: apps,
-                difficulty: difficulty
-            )
+        // FIX Bug 1: Ne PAS appeler BlockScheduler si l'appelant l'a déjà fait
+        if !skipBlockScheduler {
+            do {
+                try BlockScheduler.shared.scheduleSession(
+                    title: title,
+                    duration: duration,
+                    startTime: roundedStartTime,
+                    selection: apps,
+                    difficulty: difficulty
+                )
+                #if DEBUG
+                self.logger.debug("🛡️ [ScheduledSessions] DeviceActivity scheduled pour arrière-plan")
+                #endif
+            } catch {
+                #if DEBUG
+                self.logger.debug("❌ [ScheduledSessions] Erreur DeviceActivity: \(error)")
+                #endif
+            }
+        } else {
             #if DEBUG
-            self.logger.debug("🛡️ [ScheduledSessions] DeviceActivity scheduled pour arrière-plan")
-            #endif
-        } catch {
-            #if DEBUG
-            self.logger.debug("❌ [ScheduledSessions] Erreur DeviceActivity: \(error)")
+            self.logger.debug("⏭️ [ScheduledSessions] BlockScheduler skipped (already done by caller)")
             #endif
         }
         
         #if DEBUG
-        self.logger.debug("📅 [ScheduledSessions] Session programmée: \(title) pour \(startTime)")
+        self.logger.debug("📅 [ScheduledSessions] Session programmée: \(title) (id: \(sessionId)) pour \(startTime)")
         #endif
+        
+        // FIX Bug 3: Incrémenter la version pour forcer le re-render
+        scheduledSessionsVersion += 1
         
         delegate?.recordActivity(type: .challengeScheduled, title: "Session programmée: \(title)")
         delegate?.scheduledSessionCreated(sessionId: sessionId, title: title)
@@ -114,11 +139,14 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         scheduledTimers[challengeId]?.cancel()
         scheduledTimers.removeValue(forKey: challengeId)
         
-        // CRUCIAL: Annuler AUSSI le DeviceActivitySchedule
+        // Annuler le DeviceActivitySchedule (même ID maintenant grâce au fix)
         BlockScheduler.shared.cancelScheduledSession(challengeId)
         
         // Supprimer de la persistance
         removeScheduledChallenge(challengeId)
+        
+        // FIX Bug 3: Incrémenter la version pour forcer le re-render
+        scheduledSessionsVersion += 1
         
         #if DEBUG
         self.logger.debug("🗑️ [ScheduledSessions] Session programmée annulée: \(challengeId)")
@@ -151,10 +179,6 @@ final class ScheduledSessionsCoordinator: ObservableObject {
               let challenges = try? JSONDecoder().decode([String: ZenloopChallenge].self, from: data) else {
             return [:]
         }
-        
-        #if DEBUG
-        self.logger.debug("📥 [ScheduledSessions] Loaded \(challenges.count) scheduled challenges")
-        #endif
         return challenges
     }
     
@@ -177,7 +201,6 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         let timeInterval = startTime.timeIntervalSinceNow
         guard timeInterval > 0 else { return }
         
-        // Créer un DispatchWorkItem pour pouvoir l'annuler si nécessaire
         let workItem = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
             
@@ -197,12 +220,14 @@ final class ScheduledSessionsCoordinator: ObservableObject {
             self.removeScheduledChallenge(challenge.id)
             self.scheduledTimers.removeValue(forKey: challenge.id)
             
+            // FIX Bug 3: Forcer le re-render
+            self.scheduledSessionsVersion += 1
+            
             #if DEBUG
             self.logger.debug("🚀 [ScheduledSessions] Auto-started: \(challenge.title)")
             #endif
         }
         
-        // Programmer l'exécution et stocker le work item pour annulation possible
         scheduledTimers[challenge.id] = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + timeInterval, execute: workItem)
         
@@ -258,6 +283,9 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         }
         
         if hasChanges {
+            // FIX Bug 3: Forcer le re-render après cleanup
+            scheduledSessionsVersion += 1
+            
             #if DEBUG
             self.logger.debug("🧹 [ScheduledSessions] Cleanup completed")
             #endif
@@ -279,7 +307,6 @@ final class ScheduledSessionsCoordinator: ObservableObject {
     }
     
     deinit {
-        // Annuler tous les timers en cours
         for (_, workItem) in scheduledTimers {
             workItem.cancel()
         }

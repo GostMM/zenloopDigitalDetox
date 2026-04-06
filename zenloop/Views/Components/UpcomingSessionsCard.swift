@@ -3,7 +3,7 @@
 //  zenloop
 //
 //  Created by Claude on 19/10/2025.
-//
+//  Fixed on 06/04/2026: card now refreshes when sessions change
 
 import SwiftUI
 
@@ -11,8 +11,13 @@ struct UpcomingSessionsCard: View {
     @ObservedObject var zenloopManager: ZenloopManager
     let showContent: Bool
 
+    // FIX Bug 3: Forcer le re-calcul quand les sessions changent
+    // On observe indirectement via zenloopManager qui est @ObservedObject
     private var upcomingSessions: [ZenloopChallenge] {
-        zenloopManager.getUpcomingSessions(limit: 3)
+        // Accéder à la version pour créer une dépendance SwiftUI
+        // (le coordinator est accessible via zenloopManager)
+        let _ = zenloopManager.hasActiveScheduledSessions  // trigger re-render
+        return zenloopManager.getUpcomingSessions(limit: 3)
     }
 
     var body: some View {
@@ -38,6 +43,16 @@ struct UpcomingSessionsCard: View {
                         .foregroundColor(.white)
 
                     Spacer()
+
+                    // Nombre de sessions
+                    Text("\(upcomingSessions.count)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule().fill(.white.opacity(0.08))
+                        )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -80,32 +95,8 @@ struct UpcomingSessionRow: View {
         startTime.addingTimeInterval(session.duration)
     }
 
-    private var timeUntilStart: String {
-        let now = Date()
-        let interval = startTime.timeIntervalSince(now)
-
-        if interval < 0 {
-            return String(localized: "starting_now")
-        } else if interval < 60 {
-            return String(localized: "in_less_than_minute")
-        } else if interval < 3600 {
-            let minutes = Int(interval / 60)
-            return String(localized: "in_x_minutes")
-                .replacingOccurrences(of: "{count}", with: "\(minutes)")
-        } else if interval < 86400 {
-            let hours = Int(interval / 3600)
-            return String(localized: "in_x_hours")
-                .replacingOccurrences(of: "{count}", with: "\(hours)")
-        } else {
-            let days = Int(interval / 86400)
-            return String(localized: "in_x_days")
-                .replacingOccurrences(of: "{count}", with: "\(days)")
-        }
-    }
-
     private var timeUntilStartShort: String {
-        let now = Date()
-        let interval = startTime.timeIntervalSince(now)
+        let interval = startTime.timeIntervalSince(Date())
 
         if interval < 0 {
             return "Now"
@@ -125,18 +116,14 @@ struct UpcomingSessionRow: View {
 
     private var difficultyColor: Color {
         switch session.difficulty {
-        case .easy:
-            return Color.green
-        case .medium:
-            return Color.orange
-        case .hard:
-            return Color.red
+        case .easy: return .green
+        case .medium: return .orange
+        case .hard: return .red
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Main content
             HStack(spacing: 12) {
                 // Left side - Time badge
                 VStack(spacing: 2) {
@@ -191,7 +178,7 @@ struct UpcomingSessionRow: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
 
-            // Bottom - Apps preview
+            // Bottom - Apps preview (FIX Bug 5: now populated)
             if !session.blockedAppsNames.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "app.badge.fill")
@@ -211,7 +198,6 @@ struct UpcomingSessionRow: View {
         }
         .background(
             ZStack {
-                // Base background
                 RoundedRectangle(cornerRadius: 12)
                     .fill(
                         LinearGradient(
@@ -224,7 +210,6 @@ struct UpcomingSessionRow: View {
                         )
                     )
 
-                // Colored accent on left edge
                 HStack(spacing: 0) {
                     Rectangle()
                         .fill(
@@ -286,5 +271,8 @@ struct UpcomingSessionRow: View {
 
     private func cancelSession() {
         zenloopManager.cancelScheduledChallenge(session.id)
+        // FIX Bug 3: Le coordinator incrémente maintenant scheduledSessionsVersion
+        // ce qui force un re-render de UpcomingSessionsCard
+        zenloopManager.updateScheduledSessionsStatus()
     }
 }

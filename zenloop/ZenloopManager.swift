@@ -313,9 +313,23 @@ class BlockScheduler {
         duration: TimeInterval,
         startTime: Date,
         selection: FamilyActivitySelection,
-        difficulty: DifficultyLevel = .medium
+        difficulty: DifficultyLevel = .medium,
+        sessionId: String? = nil  // FIX 1: Accepter un ID externe
     ) throws {
-        let sessionId = "scheduled_\(UUID().uuidString)"
+        // FIX Bug 3: Vérifier la durée minimale (Apple impose 15 minutes pour DeviceActivitySchedule)
+        guard duration >= 15 * 60 else {
+            throw NSError(domain: "BlockScheduler", code: 2, 
+                          userInfo: [NSLocalizedDescriptionKey: "Durée trop courte (minimum 15 minutes pour DeviceActivitySchedule)"])
+        }
+
+        // FIX Bug 5: Vérifier le temps avec une marge suffisante AVANT le scheduling
+        guard startTime.timeIntervalSinceNow > 120 else {
+            throw NSError(domain: "BlockScheduler", code: 1, 
+                          userInfo: [NSLocalizedDescriptionKey: "Session trop proche (minimum 2 minutes)"])
+        }
+
+        // FIX 1: Utiliser l'ID externe si fourni, sinon générer
+        let sessionId = sessionId ?? "scheduled_\(UUID().uuidString)"
         let endTime = startTime.addingTimeInterval(duration)
 
         let sessionInfo = SessionInfo(
@@ -336,6 +350,18 @@ class BlockScheduler {
         // Sauvegarder les infos de session pour restauration
         let sessionData = try JSONEncoder().encode(sessionInfo)
         suite.set(sessionData, forKey: "session_info_\(sessionId)")
+
+        // FIX Bug 7: Sauvegarder les infos de session pour que le monitor puisse activer
+        // la session même si l'app est tuée (préfixe "scheduled_" sans "session_")
+        let activationInfo: [String: Any] = [
+            "id": sessionId,
+            "title": title,
+            "duration": duration,
+            "startTime": startTime.timeIntervalSince1970,
+            "isScheduled": true
+        ]
+        suite.set(activationInfo, forKey: "activation_info_\(sessionId)")
+        suite.synchronize()
         
         // Programmer avec retry pour iOS 18
         Task {
@@ -368,6 +394,8 @@ class BlockScheduler {
         }
     }
     
+    // FIX Bug 4: Marquer @MainActor pour garantir le thread safety avec DeviceActivityCenter
+    @MainActor
     private func performScheduling(sessionInfo: SessionInfo) async throws {
         let activityName = DeviceActivityName(sessionInfo.sessionId)
         
@@ -377,34 +405,67 @@ class BlockScheduler {
         // Petit délai pour éviter les conflits iOS 18
         try await Task.sleep(nanoseconds: 500_000_000) // 0.5 sec
         
-        // Créer le schedule avec timing précis (arrondir à la minute exacte)
         let calendar = Calendar.current
         
-        // CORRECTION: Arrondir à la minute exacte pour éviter les décalages de secondes
-        let startTimeRounded = calendar.dateInterval(of: .minute, for: sessionInfo.startTime)?.start ?? sessionInfo.startTime
-        let endTimeRounded = calendar.dateInterval(of: .minute, for: sessionInfo.endTime)?.start ?? sessionInfo.endTime
-        
-        let startComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: startTimeRounded)
-        let endComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .weekday], from: endTimeRounded)
-        
-        // Vérifier que la session est dans au moins 1 minute
-        guard sessionInfo.startTime.timeIntervalSinceNow > 60 else {
-            throw NSError(domain: "BlockScheduler", code: 1, userInfo: [NSLocalizedDescriptionKey: "Session trop proche (minimum 1 minute)"])
+        // Arrondir au DÉBUT de la minute suivante (pas la minute courante)
+        // Cela garantit que le schedule est toujours dans le futur
+        let now = Date()
+        let startOfCurrentMinute = calendar.dateInterval(of: .minute, for: sessionInfo.startTime)?.start ?? sessionInfo.startTime
+        let startTimeRounded: Date
+        if startOfCurrentMinute <= now {
+            // Si la minute de début est déjà passée, prendre la minute suivante
+            startTimeRounded = calendar.date(byAdding: .minute, value: 1, to: startOfCurrentMinute) ?? startOfCurrentMinute
+        } else {
+            startTimeRounded = startOfCurrentMinute
         }
         
+        let endTimeRounded = startTimeRounded.addingTimeInterval(sessionInfo.duration)
+        
+        // Vérifier le temps ARRONDI APRÈS le sleep
+        guard startTimeRounded.timeIntervalSinceNow > 30 else {
+            throw NSError(domain: "BlockScheduler", code: 1, 
+                          userInfo: [NSLocalizedDescriptionKey: "Session trop proche après arrondi"])
+        }
+        
+        // SOLUTION CORRECTE pour DeviceActivitySchedule :
+        // 
+        // Approche 1 (date absolue) : .year, .month, .day, .hour, .minute — SANS .weekday
+        //   → fonctionne pour des sessions ponctuelles à une date/heure précise
+        //   → .weekday DOIT être absent car il crée une contrainte contradictoire
+        //   → repeats: false car c'est une occurrence unique
+        //
+        // Approche 2 (time-of-day) : .hour, .minute seuls
+        //   → fonctionne pour des schedules récurrents quotidiens
+        //   → DANGER: si l'heure est déjà passée, attend le lendemain
+        //
+        // On utilise l'Approche 1 car nos sessions sont ponctuelles.
+        
+        let startComponents = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute],  // PAS de .weekday !
+            from: startTimeRounded
+        )
+        let endComponents = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute],  // PAS de .weekday !
+            from: endTimeRounded
+        )
+        
         print("🕐 [BlockScheduler] Creating schedule:")
-        print("   Start: \(startComponents)")
-        print("   End: \(endComponents)")
-        print("   Time until start: \(Int(sessionInfo.startTime.timeIntervalSinceNow)) seconds")
+        print("   Start: \(startComponents.year!)-\(startComponents.month!)-\(startComponents.day!) \(startComponents.hour!):\(startComponents.minute!)")
+        print("   End: \(endComponents.year!)-\(endComponents.month!)-\(endComponents.day!) \(endComponents.hour!):\(endComponents.minute!)")
+        print("   Time until start: \(Int(startTimeRounded.timeIntervalSinceNow)) seconds")
+        print("   Duration: \(Int(sessionInfo.duration / 60)) minutes")
         
         let schedule = DeviceActivitySchedule(
             intervalStart: startComponents,
             intervalEnd: endComponents,
-            repeats: true // CHANGÉ: repeats true fonctionne mieux même pour sessions uniques
+            repeats: false  // Session ponctuelle
         )
         
-        // Démarrer la surveillance
+        // Démarrer la surveillance (garanti main thread via @MainActor)
         try center.startMonitoring(activityName, during: schedule, events: [:])
+        
+        print("✅ [BlockScheduler] Monitoring started successfully on main thread")
+        print("   Activity name: \(activityName.rawValue)")
     }
     
     private func recreateSchedule(sessionInfo: SessionInfo, sessionId: String) async throws {
@@ -428,6 +489,7 @@ class BlockScheduler {
         suite.removeObject(forKey: "session_info_\(sessionId)")
         suite.removeObject(forKey: "session_title_\(sessionId)")
         suite.removeObject(forKey: "session_duration_\(sessionId)")
+        suite.removeObject(forKey: "activation_info_\(sessionId)")
     }
     
     // Méthode publique pour déclencher la restauration
@@ -780,37 +842,56 @@ class ZenloopManager: ObservableObject {
         apps: FamilyActivitySelection,
         startTime: Date
     ) {
+        // FIX Bug 8: Valider que startTime est dans le futur
+        guard startTime.timeIntervalSinceNow > 60 else {
+            print("❌ [ZENLOOP] Cannot schedule session in the past or less than 1 minute from now")
+            return
+        }
+
+        // FIX 1: UN SEUL ID partagé entre TOUS les systèmes
+        let sessionId = "scheduled_\(UUID().uuidString)"
+
         do {
+            // Étape 1: Programmer dans BlockScheduler avec LE MÊME ID
             try BlockScheduler.shared.scheduleSession(
                 title: title,
                 duration: duration,
                 startTime: startTime,
                 selection: apps,
-                difficulty: difficulty
+                difficulty: difficulty,
+                sessionId: sessionId  // FIX 1: Passer l'ID
             )
             
+            // Étape 2: Enregistrer dans le Coordinator avec le MÊME ID
+            // skipBlockScheduler = true car on vient de le faire ci-dessus
             scheduledSessionsCoordinator.scheduleCustomChallenge(
                 title: title,
                 duration: duration,
                 difficulty: difficulty,
                 apps: apps,
                 startTime: startTime,
-                notificationManager: notificationManager
+                notificationManager: notificationManager,
+                externalSessionId: sessionId,
+                skipBlockScheduler: true
             )
             
-            print("📅 [ZENLOOP] Scheduled session with background blocking: \(title)")
+            print("📅 [ZENLOOP] Scheduled session with single ID: \(sessionId)")
             
             updateScheduledSessionsStatus()
         } catch {
             print("❌ [ZENLOOP] Failed to schedule background session: \(error)")
             
+            // Fallback: Coordinator seul (sans BlockScheduler)
+            // Utilise le même ID pour cohérence
             scheduledSessionsCoordinator.scheduleCustomChallenge(
                 title: title,
                 duration: duration,
                 difficulty: difficulty,
                 apps: apps,
                 startTime: startTime,
-                notificationManager: notificationManager
+                notificationManager: notificationManager,
+                externalSessionId: sessionId,
+                skipBlockScheduler: true  // Déjà échoué, ne pas réessayer
             )
         }
     }
