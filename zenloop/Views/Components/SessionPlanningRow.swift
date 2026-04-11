@@ -3,7 +3,7 @@
 //  zenloop
 //
 //  Created by Claude on 27/08/2025.
-//  Fixed on 06/04/2026: stable session ID, prevent orphaned app saves
+//  Fixed on 07/04/2026: layout shift when apps selected
 
 import SwiftUI
 import FamilyControls
@@ -15,29 +15,21 @@ struct SessionPlanningRow: View {
     @State private var showingScheduleModal = false
     @State private var selectedSession: PopularSession?
 
-    // States pour la nouvelle carte dynamique
-    @State private var selectedDuration: TimeInterval = 30 * 60 // 30 min par défaut
+    @State private var selectedDuration: TimeInterval = 30 * 60
     @State private var selectedApps = FamilyActivitySelection()
     @State private var showingAppPicker = false
     @State private var isInitialLoad = true
 
-    // FIX Bug 6: Utiliser un ID stable qui ne change pas à chaque tap
     @State private var currentDynamicSessionId: String = "quick_schedule"
 
     var body: some View {
         VStack(spacing: 0) {
-            // Divider subtil
             HStack {
                 Rectangle()
                     .fill(
                         LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.0),
-                                Color.white.opacity(0.1),
-                                Color.white.opacity(0.0)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                            colors: [.white.opacity(0.0), .white.opacity(0.1), .white.opacity(0.0)],
+                            startPoint: .leading, endPoint: .trailing
                         )
                     )
                     .frame(height: 1)
@@ -48,9 +40,7 @@ struct SessionPlanningRow: View {
             CompactScheduleCard(
                 selectedDuration: $selectedDuration,
                 selectedApps: $selectedApps,
-                onSelectApps: {
-                    showingAppPicker = true
-                },
+                onSelectApps: { showingAppPicker = true },
                 onSchedule: {
                     if let session = createDynamicSession() {
                         selectedSession = session
@@ -66,10 +56,7 @@ struct SessionPlanningRow: View {
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.7), value: showContent)
         .familyActivityPicker(isPresented: $showingAppPicker, selection: $selectedApps)
         .onChange(of: selectedApps) { oldValue, newValue in
-            // Sauvegarder les apps pour la carte Quick Schedule (ID stable)
             saveQuickScheduleApps(newValue)
-
-            // Ouvrir automatiquement le modal après sélection d'apps (mais pas au chargement initial)
             let hasApps = !newValue.applicationTokens.isEmpty || !newValue.categoryTokens.isEmpty
             if hasApps && !isInitialLoad {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -79,10 +66,7 @@ struct SessionPlanningRow: View {
                     }
                 }
             }
-
-            if isInitialLoad {
-                isInitialLoad = false
-            }
+            if isInitialLoad { isInitialLoad = false }
         }
         .sheet(isPresented: $showingScheduleModal) {
             Group {
@@ -105,58 +89,40 @@ struct SessionPlanningRow: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
                             .foregroundColor(.orange)
-
                         Text(String(localized: "session_not_found"))
-                            .font(.title2)
-                            .foregroundColor(.white)
-
-                        Button(String(localized: "close")) {
-                            showingScheduleModal = false
-                        }
-                        .foregroundColor(.blue)
+                            .font(.title2).foregroundColor(.white)
+                        Button(String(localized: "close")) { showingScheduleModal = false }
+                            .foregroundColor(.blue)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.black)
                 }
             }
         }
-        .onAppear {
-            loadQuickScheduleApps()
-        }
+        .onAppear { loadQuickScheduleApps() }
         .onChange(of: showingScheduleModal) { oldValue, newValue in
             if !newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    selectedSession = nil
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { selectedSession = nil }
             }
         }
     }
-    
-    // MARK: - Quick Schedule Persistence (stable key, not per-session)
+
+    // MARK: - Quick Schedule Persistence
 
     private func saveQuickScheduleApps(_ apps: FamilyActivitySelection) {
         if let appGroup = UserDefaults(suiteName: "group.com.app.zenloop") {
-            do {
-                let encoder = JSONEncoder()
-                let data = try encoder.encode(apps)
+            if let data = try? JSONEncoder().encode(apps) {
                 appGroup.set(data, forKey: "quick_schedule_apps")
                 appGroup.synchronize()
-            } catch {
-                print("❌ [SESSION_ROW] Erreur persistance Quick Schedule: \(error)")
             }
         }
     }
 
     private func loadQuickScheduleApps() {
         if let appGroup = UserDefaults(suiteName: "group.com.app.zenloop"),
-           let data = appGroup.data(forKey: "quick_schedule_apps") {
-            do {
-                let decoder = JSONDecoder()
-                let selection = try decoder.decode(FamilyActivitySelection.self, from: data)
-                selectedApps = selection
-            } catch {
-                print("❌ [SESSION_ROW] Erreur chargement Quick Schedule: \(error)")
-            }
+           let data = appGroup.data(forKey: "quick_schedule_apps"),
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+            selectedApps = selection
         }
     }
 
@@ -166,9 +132,7 @@ struct SessionPlanningRow: View {
             appGroup.synchronize()
         }
     }
-    
-    // FIX Bug 6: createDynamicSession utilise un ID stable
-    // Le vrai ID unique est généré par le coordinator au moment de la programmation
+
     private func createDynamicSession() -> PopularSession? {
         let appsCount = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
         let title = appsCount > 0
@@ -176,7 +140,7 @@ struct SessionPlanningRow: View {
             : String(localized: "custom_focus_session")
 
         return PopularSession(
-            sessionId: currentDynamicSessionId,  // FIX: ID stable
+            sessionId: currentDynamicSessionId,
             title: title,
             description: String(localized: "personalized_session_description"),
             duration: selectedDuration,
@@ -199,41 +163,35 @@ struct CompactScheduleCard: View {
     let showContent: Bool
 
     private let durations: [(TimeInterval, String)] = [
-        (30 * 60, "30m"),
-        (60 * 60, "1h"),
-        (2 * 60 * 60, "2h"),
-        (4 * 60 * 60, "4h")
+        (30 * 60, "30m"), (60 * 60, "1h"), (2 * 60 * 60, "2h"), (4 * 60 * 60, "4h")
     ]
 
     private var selectedAppsCount: Int {
         selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
     }
 
-    private var hasSelectedApps: Bool {
-        selectedAppsCount > 0
-    }
+    private var hasSelectedApps: Bool { selectedAppsCount > 0 }
 
     private var formattedDuration: String {
         let hours = Int(selectedDuration) / 3600
         let minutes = (Int(selectedDuration) % 3600) / 60
-
         if hours > 0 {
-            if minutes > 0 {
-                return "\(hours)h \(minutes)m"
-            }
-            return "\(hours)h"
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
         }
         return "\(minutes)m"
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack(alignment: .center, spacing: 20) {
+            // FIX: Top row — apps à gauche, duration à droite (position fixe)
+            // alignment: .top empêche le shift vertical quand les icônes apparaissent
+            HStack(alignment: .top, spacing: 12) {
+                // Bloc gauche : apps — prend tout l'espace restant
                 Button(action: onSelectApps) {
-                    VStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 10) {
                             Image(systemName: hasSelectedApps ? "calendar.badge.checkmark" : "calendar.badge.clock")
-                                .font(.system(size: 28, weight: .semibold))
+                                .font(.system(size: 24, weight: .semibold))
                                 .foregroundColor(.purple)
 
                             VStack(alignment: .leading, spacing: 2) {
@@ -242,21 +200,27 @@ struct CompactScheduleCard: View {
                                     .foregroundColor(.white.opacity(0.5))
                                     .tracking(0.5)
 
-                                Text(hasSelectedApps ? String(localized: "apps_count", defaultValue: "\(selectedAppsCount) apps").replacingOccurrences(of: "%d", with: "\(selectedAppsCount)") : String(localized: "choose_apps"))
+                                Text(hasSelectedApps
+                                     ? String(localized: "apps_count", defaultValue: "\(selectedAppsCount) apps")
+                                        .replacingOccurrences(of: "%d", with: "\(selectedAppsCount)")
+                                     : String(localized: "choose_apps"))
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white.opacity(0.9))
                             }
                         }
 
+                        // Les icônes apparaissent EN DESSOUS, pas à côté
+                        // Le bloc duration ne bouge pas car il est fixedSize + aligné .top
                         if hasSelectedApps {
                             StackedAppIcons(selectedApps: selectedApps, maxToShow: 5)
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                Spacer()
-
+                // Bloc droit : duration — largeur intrinsèque, ne se compresse pas
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(String(localized: "duration_label"))
                         .font(.system(size: 9, weight: .bold))
@@ -272,8 +236,10 @@ struct CompactScheduleCard: View {
                             .foregroundColor(.white)
                     }
                 }
+                .fixedSize()  // Ne pas compresser ni étirer — position stable
             }
 
+            // Sélecteur de durée
             HStack(spacing: 8) {
                 ForEach(durations, id: \.0) { duration in
                     Button(action: {
@@ -295,11 +261,11 @@ struct CompactScheduleCard: View {
                 }
             }
 
+            // Bouton Schedule
             Button(action: onSchedule) {
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.badge.plus")
                         .font(.system(size: 16, weight: .bold))
-
                     Text(String(localized: "schedule_the_session"))
                         .font(.system(size: 16, weight: .bold))
                 }
@@ -307,11 +273,8 @@ struct CompactScheduleCard: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 54)
                 .background(
-                    LinearGradient(
-                        colors: [.purple, .purple.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    LinearGradient(colors: [.purple, .purple.opacity(0.8)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
                 )
                 .cornerRadius(16)
                 .shadow(color: .purple.opacity(0.3), radius: 12, x: 0, y: 6)
@@ -319,12 +282,4 @@ struct CompactScheduleCard: View {
             .buttonStyle(PlainButtonStyle())
         }
     }
-}
-
-#Preview {
-    SessionPlanningRow(
-        zenloopManager: ZenloopManager.shared,
-        showContent: true
-    )
-    .background(Color.black)
 }

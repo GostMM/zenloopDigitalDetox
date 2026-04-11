@@ -16,6 +16,7 @@ struct MinimalHeader: View {
     @State private var showSubscriptionStatus = false
     @State private var activeBlocksCount: Int = 0
     @State private var showActiveBlocks = false
+    @State private var showDebugView = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -100,6 +101,16 @@ struct MinimalHeader: View {
         }
         .frame(height: 44)
         .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: showContent)
+        #if os(iOS)
+        .onLongPressGesture(minimumDuration: 1.5) {
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.impactOccurred()
+            showDebugView = true
+        }
+        .sheet(isPresented: $showDebugView) {
+            DebugTimerView(zenloopManager: zenloopManager)
+        }
+        #endif
         .sheet(isPresented: $showSubscriptionStatus) {
             SubscriptionStatusView()
         }
