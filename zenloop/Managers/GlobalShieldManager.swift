@@ -82,6 +82,15 @@ class GlobalShieldManager: ObservableObject {
 
         logger.critical("🔄 [GLOBAL_SHIELD] Collected \(allBlockedTokens.count) tokens to apply")
 
+        // ✅ CRUCIAL: Ne pas écraser le DEFAULT store si aucun token n'est collecté.
+        // Le Monitor Extension peut avoir des restrictions actives dans le DEFAULT store
+        // pour une session programmée — les écraser avec Set() lèverait les blocages.
+        guard !allBlockedTokens.isEmpty else {
+            logger.critical("⚠️ [GLOBAL_SHIELD] allBlockedTokens is EMPTY — NOT overwriting DEFAULT store to preserve Monitor session restrictions")
+            logger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            return
+        }
+
         // ✅ APPLIQUER TOUS LES TOKENS EN UNE FOIS dans le store global
         logger.critical("⚠️⚠️⚠️ [GLOBAL_SHIELD] OVERWRITING DEFAULT store with \(allBlockedTokens.count) apps...")
         store.shield.applications = allBlockedTokens

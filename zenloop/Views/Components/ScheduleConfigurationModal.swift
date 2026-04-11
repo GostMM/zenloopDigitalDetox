@@ -467,6 +467,8 @@ struct ScheduleConfigurationModal: View {
         let difficulty = selectedDifficulty ?? autoSuggestedDifficulty
         scheduleLogger.critical("➡️ [MODAL] STEP 0 — guards passed, calling PremiumGatekeeper.performIfAllowed(.startScheduledSession)")
 
+        let goals = taskGoals.map { TaskGoal(text: $0.text, isCompleted: $0.isCompleted) }
+
         PremiumGatekeeper.shared.performIfAllowed(.startScheduledSession) {
             scheduleLogger.critical("➡️ [MODAL] STEP 0 → STEP 1 — PremiumGatekeeper allowed, frequency: \(selectedFrequency.rawValue, privacy: .public)")
             switch selectedFrequency {
@@ -474,7 +476,8 @@ struct ScheduleConfigurationModal: View {
                 scheduleLogger.critical("📅 [MODAL] STEP 0 — calling zenloopManager.scheduleCustomChallenge (once)")
                 zenloopManager.scheduleCustomChallenge(
                     title: session.title, duration: currentDuration,
-                    difficulty: difficulty, apps: selectedApps, startTime: selectedStartTime
+                    difficulty: difficulty, apps: selectedApps, startTime: selectedStartTime,
+                    taskGoals: goals
                 )
 
             case .daily:
@@ -484,7 +487,8 @@ struct ScheduleConfigurationModal: View {
                           futureDate.timeIntervalSinceNow > 120 else { continue }
                     zenloopManager.scheduleCustomChallenge(
                         title: "\(session.title) (J\(dayOffset + 1))", duration: currentDuration,
-                        difficulty: difficulty, apps: selectedApps, startTime: futureDate
+                        difficulty: difficulty, apps: selectedApps, startTime: futureDate,
+                        taskGoals: goals
                     )
                 }
 
@@ -492,7 +496,8 @@ struct ScheduleConfigurationModal: View {
                 guard !selectedDays.isEmpty else {
                     zenloopManager.scheduleCustomChallenge(
                         title: session.title, duration: currentDuration,
-                        difficulty: difficulty, apps: selectedApps, startTime: selectedStartTime
+                        difficulty: difficulty, apps: selectedApps, startTime: selectedStartTime,
+                        taskGoals: goals
                     )
                     break
                 }
@@ -505,7 +510,8 @@ struct ScheduleConfigurationModal: View {
                               targetDate.timeIntervalSinceNow > 120 else { continue }
                         zenloopManager.scheduleCustomChallenge(
                             title: "\(session.title) (\(day.shortName))", duration: currentDuration,
-                            difficulty: difficulty, apps: selectedApps, startTime: targetDate
+                            difficulty: difficulty, apps: selectedApps, startTime: targetDate,
+                            taskGoals: goals
                         )
                     }
                 }

@@ -24,7 +24,12 @@ struct HomeView: View {
     }
 
     private var hasNoActiveSession: Bool {
-        sessionManager.currentSession == nil
+        // ✅ CRUCIAL: On vérifie les deux : pas de session sociale (SessionManager) ET
+        // pas de session focus active (ZenloopManager). Cela évite un faux positif
+        // pendant les ~2s où checkForExtensionActivatedSession() reconstruit la session
+        // programmée — sans ce guard, PersistentBlocksAlert apparaît et clearAllBlocks()
+        // efface les restrictions du Monitor Extension dans le DEFAULT store.
+        sessionManager.currentSession == nil && zenloopManager.currentState == .idle
     }
 
     private var hasPersistentBlocks: Bool {

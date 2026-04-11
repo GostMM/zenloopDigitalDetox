@@ -2,13 +2,17 @@
 //  QuickBlockModesSection.swift
 //  zenloop
 //
-//  Section avec 4 modes de blocage rapide (Social, AI, Gaming, Adult)
-//  Chaque mode permet de sélectionner des apps via FamilyActivityPicker
-//  et de les bloquer instantanément ou de scheduler le blocage
+//  Redesign v2: Larger icons, better card layout, clearer UX
+//  11/04/2026
 //
 
 import SwiftUI
 import FamilyControls
+import ManagedSettings
+
+#if os(iOS)
+
+// MARK: - Quick Block Modes Section
 
 struct QuickBlockModesSection: View {
     @EnvironmentObject var zenloopManager: ZenloopManager
@@ -20,27 +24,15 @@ struct QuickBlockModesSection: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Divider subtil
-            HStack {
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.0),
-                                Color.white.opacity(0.1),
-                                Color.white.opacity(0.0)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(height: 1)
-            }
-            .padding(.horizontal, 40)
-            .padding(.vertical, 20)
+            // Divider
+            subtleDivider
+                .padding(.vertical, 20)
 
-            // Grid de 4 modes
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            // Grid 2×2
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: 10
+            ) {
                 ForEach(QuickBlockCategoryType.allCases) { categoryType in
                     QuickBlockModeCard(
                         categoryType: categoryType,
@@ -50,23 +42,19 @@ struct QuickBlockModesSection: View {
                             showingPicker = true
                         },
                         onBlockNow: {
-                            Task {
-                                await viewModel.blockNow(categoryType: categoryType)
-                            }
+                            Task { await viewModel.blockNow(categoryType: categoryType) }
                         },
                         onSchedule: {
                             selectedCategoryType = categoryType
                             showingScheduleModal = true
                         },
                         onUnblock: {
-                            Task {
-                                await viewModel.unblock(categoryType: categoryType)
-                            }
+                            Task { await viewModel.unblock(categoryType: categoryType) }
                         }
                     )
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 20)
@@ -103,9 +91,23 @@ struct QuickBlockModesSection: View {
             }
         }
     }
+
+    private var subtleDivider: some View {
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    colors: [.clear, .white.opacity(0.08), .clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(height: 1)
+            .padding(.horizontal, 40)
+    }
 }
 
-// MARK: - Quick Block Card
+// MARK: - Quick Block Card (Redesigned)
+
 struct QuickBlockModeCard: View {
     let categoryType: QuickBlockCategoryType
     let category: QuickBlockCategory?
@@ -113,241 +115,383 @@ struct QuickBlockModeCard: View {
     let onBlockNow: () -> Void
     let onSchedule: () -> Void
     let onUnblock: () -> Void
+
     @State private var currentTime = Date()
 
-    // Timer pour update l'affichage
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private var hasApps: Bool { category?.hasAppsSelected == true }
+    private var isActive: Bool { category?.isActive == true }
+    private var categoryColor: Color { categoryType.themeColor }
+
+    // Fixed card height so all 4 cards align in the grid
+    private let cardImageHeight: CGFloat = 140
+    private let cardBottomHeight: CGFloat = 110
 
     var body: some View {
         VStack(spacing: 0) {
-            // Image de fond avec texte
-            ZStack(alignment: .top) {
-                GeometryReader { geometry in
-                    Image(categoryType.imageName)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: 140)
-                        .clipped()
-                        .overlay(
-                            LinearGradient(
-                                colors: [
-                                    Color.black.opacity(0.2),
-                                    Color.black.opacity(0.5)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-                .frame(height: 140)
+            // ── Top: image background + icon + name ──
+            cardHeader
 
-                // Contenu de l'image
-                VStack(spacing: 0) {
-                    // Bouton de sélection d'apps (en haut à droite)
+            // ── Bottom: apps + actions ──
+            cardContent
+                .frame(height: cardBottomHeight)
+        }
+        .frame(height: cardImageHeight + cardBottomHeight)
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    isActive ? Color.green.opacity(0.2) : Color.white.opacity(0.05),
+                    lineWidth: 0.5
+                )
+        )
+        .onReceive(timer) { _ in currentTime = Date() }
+    }
+
+    // MARK: - Card Header (image + icon + name)
+
+    private var cardHeader: some View {
+        ZStack(alignment: .bottomLeading) {
+            // ── Background image from asset catalog ──
+            GeometryReader { geo in
+                Image(categoryType.imageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: cardImageHeight)
+                    .clipped()
+                    .overlay(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.15),
+                                Color.black.opacity(0.6)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+
+            // Active overlay (if session running)
+            if isActive, let endTime = activeEndTime, endTime > currentTime {
+                activeSessionOverlay(endTime: endTime)
+            }
+
+            // Normal header content (hidden when active)
+            if !isActive || activeEndTime == nil || (activeEndTime ?? .distantPast) <= currentTime {
+                headerContent
+            }
+
+            // Select / Edit apps pill (top-right)
+            if !isActive {
+                VStack {
                     HStack {
                         Spacer()
                         Button(action: onTap) {
-                            Image(systemName: category?.hasAppsSelected == true ? "checkmark.circle.fill" : "plus.circle.fill")
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-                        }
-                    }
-                    .padding(12)
-
-                    Spacer()
-
-                    // Texte au-dessus de l'image
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Image(systemName: categoryType.systemIcon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
-
-                            Text(categoryType.displayName)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                                .lineLimit(2)
-                                .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 2)
-                        }
-                        Spacer()
-                    }
-                    .padding(12)
-                }
-                .frame(height: 140)
-
-                // Overlay de session active (si en cours)
-                if let category = category,
-                   category.isActive,
-                   let startTime = category.scheduledStartTime,
-                   let duration = category.scheduledDuration {
-                    let endTime = startTime.addingTimeInterval(duration)
-                    let isPermanentBlock = duration >= 12 * 60 * 60 // Plus de 12h = blocage permanent
-
-                    if endTime > currentTime {
-                        ZStack {
-                            // Fond semi-transparent avec effet glassmorphism
-                            Rectangle()
-                                .fill(Color.black.opacity(0.75))
-                                .overlay(
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.green.opacity(0.3), Color.green.opacity(0.1)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                )
-
-                            VStack(spacing: 8) {
-                                // Icône de session active avec animation pulse
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(.green)
-                                    .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 0)
-
-                                // Temps restant ou statut permanent
-                                if isPermanentBlock {
-                                    Text(String(localized: "active_status"))
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.white)
-                                } else {
-                                    Text(timeRemaining(until: endTime))
-                                        .font(.system(size: 18, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-
-                                Text(isPermanentBlock ? String(localized: "permanent_block") : String(localized: "active_block"))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.8))
-
-                                // Bouton débloquer
-                                Button(action: onUnblock) {
-                                    Text(String(localized: "unblock"))
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 6)
-                                        .background(Color.red.opacity(0.8))
-                                        .cornerRadius(8)
-                                }
-                                .padding(.top, 4)
-                            }
-                        }
-                        .frame(height: 140)
-                        .cornerRadius(16, corners: [.topLeft, .topRight])
-                    }
-                }
-            }
-            .onReceive(timer) { _ in
-                currentTime = Date()
-            }
-
-            // Pile des apps et catégories sélectionnées
-            if let category = category, category.hasAppsSelected {
-                VStack(spacing: 8) {
-                    // Preview des apps et catégories (max 4 tokens en pile)
-                    HStack(spacing: -10) {
-                        // Afficher les apps
-                        ForEach(Array(category.selection.applicationTokens.prefix(3)), id: \.self) { token in
-                            Label(token)
-                                .labelStyle(.iconOnly)
-                                .frame(width: 36, height: 36)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                )
-                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        }
-
-                        // Afficher les catégories
-                        ForEach(Array(category.selection.categoryTokens.prefix(3)), id: \.self) { token in
-                            Label(token)
-                                .labelStyle(.iconOnly)
-                                .frame(width: 36, height: 36)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                )
-                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                        }
-
-                        if category.appsCount > 4 {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.gray.opacity(0.4))
-                                    .frame(width: 36, height: 36)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.3), lineWidth: 2)
-                                    )
-
-                                Text("+\(category.appsCount - 4)")
+                            HStack(spacing: 4) {
+                                Image(systemName: hasApps ? "pencil" : "plus")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.white)
+                                Text(hasApps ? "Edit" : "Select")
+                                    .font(.system(size: 11, weight: .bold))
                             }
-                        }
-                    }
-                    .padding(.top, 10)
-
-                    Text(category.appsCount > 1
-                        ? String(localized: "apps_selected_plural", defaultValue: "\(category.appsCount) apps selected").replacingOccurrences(of: "%d", with: "\(category.appsCount)")
-                        : String(localized: "apps_selected_singular", defaultValue: "\(category.appsCount) app selected").replacingOccurrences(of: "%d", with: "\(category.appsCount)")
-                    )
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.7))
-
-                    // Boutons d'action (ne pas afficher si déjà bloqué)
-                    if !category.isActive {
-                        HStack(spacing: 8) {
-                            Button(action: onBlockNow) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "shield.fill")
-                                        .font(.system(size: 10))
-                                    Text(String(localized: "block_now"))
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color.red.opacity(0.8), Color.red],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(hasApps
+                                          ? Color.white.opacity(0.2)
+                                          : Color.white.opacity(0.15))
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
                                     )
-                                )
-                                .cornerRadius(8)
-                            }
-
-                            Button(action: onSchedule) {
-                                Image(systemName: "calendar.badge.plus")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.white)
-                                    .padding(7)
-                                    .background(Color.white.opacity(0.2))
-                                    .cornerRadius(8)
-                            }
+                            )
+                            .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                         }
-                        .padding(.bottom, 10)
+                        .padding(10)
                     }
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.4))
-                .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
             }
         }
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(16)
+        .frame(height: cardImageHeight)
+        .clipped()
     }
 
-    // MARK: - Helper
+    private var headerContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Icon in a frosted rounded square
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.black.opacity(0.3))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                    )
+
+                Image(systemName: categoryType.systemIcon)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+            }
+
+            // Category name
+            Text(categoryType.displayName)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .shadow(color: .black.opacity(0.8), radius: 3, y: 2)
+        }
+        .padding(12)
+    }
+
+    // MARK: - Active Session Overlay
+
+    private func activeSessionOverlay(endTime: Date) -> some View {
+        let isPermanent = (category?.scheduledDuration ?? 0) >= 12 * 60 * 60
+
+        return ZStack {
+            // Dark overlay
+            Rectangle()
+                .fill(Color.black.opacity(0.8))
+
+            // Green tint
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.green.opacity(0.2), Color.green.opacity(0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VStack(spacing: 4) {
+                // Shield icon
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.green)
+                    .shadow(color: .green.opacity(0.4), radius: 8)
+
+                // Time or status
+                if isPermanent {
+                    Text(String(localized: "active_status"))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                } else {
+                    Text(timeRemaining(until: endTime))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+
+                Text(isPermanent
+                     ? String(localized: "permanent_block")
+                     : String(localized: "active_block"))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.5))
+
+                // Unblock button
+                Button(action: onUnblock) {
+                    Text(String(localized: "unblock"))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule().fill(Color.red.opacity(0.12))
+                        )
+                        .overlay(
+                            Capsule().stroke(Color.red.opacity(0.25), lineWidth: 0.5)
+                        )
+                }
+                .padding(.top, 2)
+            }
+        }
+        .frame(height: cardImageHeight)
+    }
+
+    // MARK: - Card Content (bottom half)
+
+    private var cardContent: some View {
+        VStack(spacing: 0) {
+            if hasApps {
+                // Apps preview row
+                appsPreviewRow
+                    .padding(.top, 12)
+
+                Spacer(minLength: 6)
+
+                // Action buttons (only when not active)
+                if !isActive {
+                    actionButtons
+                }
+            } else {
+                Spacer(minLength: 8)
+                // Empty state: invite to select
+                emptyStateButton
+                Spacer(minLength: 8)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 12)
+    }
+
+    // MARK: - Apps Preview Row
+
+    private var appsPreviewRow: some View {
+        HStack(spacing: 0) {
+            // App icons (stacked) — token types are iOS-only
+            #if os(iOS)
+            HStack(spacing: -6) {
+                if let category = category {
+                    ForEach(
+                        Array(category.selection.applicationTokens.prefix(3)),
+                        id: \.self
+                    ) { token in
+                        appTokenCircle(token: token)
+                    }
+
+                    ForEach(
+                        Array(category.selection.categoryTokens.prefix(
+                            max(0, 3 - category.selection.applicationTokens.count)
+                        )),
+                        id: \.self
+                    ) { token in
+                        categoryTokenCircle(token: token)
+                    }
+
+                    if category.appsCount > 3 {
+                        overflowBadge(count: category.appsCount - 3)
+                    }
+                }
+            }
+            #endif
+
+            Spacer()
+
+            // Total count
+            if let category = category {
+                Text("\(category.appsCount) apps")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.3))
+            }
+        }
+    }
+
+    #if os(iOS)
+    private func appTokenCircle(token: ApplicationToken) -> some View {
+        Label(token)
+            .labelStyle(.iconOnly)
+            .frame(width: 28, height: 28)
+            .background(Color.white)
+            .clipShape(Circle())
+            .overlay(
+                Circle().stroke(Color.black.opacity(0.7), lineWidth: 1.5)
+            )
+    }
+
+    private func categoryTokenCircle(token: ActivityCategoryToken) -> some View {
+        Label(token)
+            .labelStyle(.iconOnly)
+            .frame(width: 28, height: 28)
+            .background(Color.white)
+            .clipShape(Circle())
+            .overlay(
+                Circle().stroke(Color.black.opacity(0.7), lineWidth: 1.5)
+            )
+    }
+    #endif
+
+    private func overflowBadge(count: Int) -> some View {
+        Text("+\(count)")
+            .font(.system(size: 9, weight: .heavy))
+            .foregroundColor(.white.opacity(0.35))
+            .frame(width: 28, height: 28)
+            .background(Circle().fill(Color.white.opacity(0.06)))
+            .overlay(
+                Circle().stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+    }
+
+    // MARK: - Action Buttons
+
+    private var actionButtons: some View {
+        HStack(spacing: 6) {
+            // Block now
+            Button(action: onBlockNow) {
+                HStack(spacing: 5) {
+                    Image(systemName: "shield.fill")
+                        .font(.system(size: 11, weight: .bold))
+
+                    Text(String(localized: "block_now"))
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundColor(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.red.opacity(0.1))
+                )
+            }
+
+            // Schedule
+            Button(action: onSchedule) {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .frame(width: 38, height: 38)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.white.opacity(0.04))
+                    )
+            }
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyStateButton: some View {
+        Button(action: onTap) {
+            HStack(spacing: 8) {
+                // Plus icon
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white.opacity(0.3))
+                }
+
+                Text("Select apps to block")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.25))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        style: StrokeStyle(lineWidth: 1, dash: [6, 4])
+                    )
+                    .foregroundColor(.white.opacity(0.08))
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.top, 4)
+    }
+
+    // MARK: - Helpers
+
+    private var activeEndTime: Date? {
+        guard let startTime = category?.scheduledStartTime,
+              let duration = category?.scheduledDuration else { return nil }
+        return startTime.addingTimeInterval(duration)
+    }
+
     private func timeRemaining(until endTime: Date) -> String {
         let remaining = endTime.timeIntervalSince(currentTime)
         guard remaining > 0 else { return "0:00" }
@@ -364,7 +508,22 @@ struct QuickBlockModeCard: View {
     }
 }
 
-// MARK: - ViewModel
+// MARK: - Theme Color Extension
+
+extension QuickBlockCategoryType {
+    /// Color associated with each category for the card gradient & icon tint
+    var themeColor: Color {
+        switch self {
+        case .social:  return Color(red: 0.71, green: 0.48, blue: 1.0)   // purple
+        case .gaming:  return Color(red: 0.13, green: 0.77, blue: 0.37)  // green
+        case .adult:   return Color(red: 0.89, green: 0.29, blue: 0.29)  // red
+        default:       return Color(red: 0.05, green: 0.65, blue: 0.91)  // cyan-blue (AI, etc.)
+        }
+    }
+}
+
+// MARK: - ViewModel (unchanged logic, cleaned up)
+
 @MainActor
 class QuickBlockViewModel: ObservableObject {
     @Published var categories: [QuickBlockCategoryType: QuickBlockCategory] = [:]
@@ -372,12 +531,9 @@ class QuickBlockViewModel: ObservableObject {
     private let sharedDefaults = UserDefaults(suiteName: "group.com.app.zenloop")
 
     init() {
-        // Initialiser les 4 catégories
         for type in QuickBlockCategoryType.allCases {
             categories[type] = QuickBlockCategory(type: type)
         }
-
-        // Charger les sélections sauvegardées
         loadSelections()
     }
 
@@ -392,93 +548,92 @@ class QuickBlockViewModel: ObservableObject {
             return
         }
 
-        print("🛡️ [QUICK_BLOCK] Blocking \(category.appsCount) apps for \(categoryType.displayName)")
-
-        // Bloquer via GlobalShieldManager
         let selection = category.selection
+        let blockId = "quick_block_\(categoryType.rawValue)"
+
+        print("🛡️ [QUICK_BLOCK] Blocking \(category.appsCount) tokens for \(categoryType.displayName)")
+
         for token in selection.applicationTokens {
-            let blockId = "quick_block_\(categoryType.rawValue)_\(UUID().uuidString)"
             GlobalShieldManager.shared.addBlock(
-                token: token,
-                blockId: blockId,
-                appName: categoryType.displayName
+                token: token, blockId: blockId, appName: categoryType.displayName
+            )
+        }
+        for token in selection.categoryTokens {
+            GlobalShieldManager.shared.addCategoryBlock(
+                token: token, blockId: blockId, categoryName: categoryType.displayName
             )
         }
 
-        // Marquer comme actif avec durée par défaut de 24h (blocage permanent jusqu'à déblocage manuel)
         let startTime = Date()
-        let duration: TimeInterval = 24 * 60 * 60 // 24 heures
+        let duration: TimeInterval = 24 * 60 * 60
 
         categories[categoryType]?.isActive = true
         categories[categoryType]?.scheduledStartTime = startTime
         categories[categoryType]?.scheduledDuration = duration
         saveSelection(for: categoryType)
-
-        print("✅ [QUICK_BLOCK] Blocked until: \(startTime.addingTimeInterval(duration))")
     }
 
     func unblock(categoryType: QuickBlockCategoryType) async {
         guard let category = categories[categoryType] else { return }
 
+        let selection = category.selection
+        let blockId = "quick_block_\(categoryType.rawValue)"
+
         print("🔓 [QUICK_BLOCK] Unblocking \(categoryType.displayName)")
 
-        // Débloquer via GlobalShieldManager
-        let selection = category.selection
         for token in selection.applicationTokens {
-            let blockId = "quick_block_\(categoryType.rawValue)_\(UUID().uuidString)"
             GlobalShieldManager.shared.removeBlock(
-                token: token,
-                blockId: blockId,
-                appName: categoryType.displayName
+                token: token, blockId: blockId, appName: categoryType.displayName
+            )
+        }
+        for token in selection.categoryTokens {
+            GlobalShieldManager.shared.removeCategoryBlock(
+                token: token, blockId: blockId, categoryName: categoryType.displayName
             )
         }
 
-        // Marquer comme inactif
         categories[categoryType]?.isActive = false
         categories[categoryType]?.scheduledStartTime = nil
         categories[categoryType]?.scheduledDuration = nil
         saveSelection(for: categoryType)
-
-        print("✅ [QUICK_BLOCK] Unblocked \(categoryType.displayName)")
     }
 
-    func markSessionActive(categoryType: QuickBlockCategoryType, startTime: Date, duration: TimeInterval) {
+    func markSessionActive(
+        categoryType: QuickBlockCategoryType,
+        startTime: Date,
+        duration: TimeInterval
+    ) {
         categories[categoryType]?.isActive = true
         categories[categoryType]?.scheduledStartTime = startTime
         categories[categoryType]?.scheduledDuration = duration
         saveSelection(for: categoryType)
-        print("✅ [QUICK_BLOCK] Marked \(categoryType.displayName) as active until \(startTime.addingTimeInterval(duration))")
     }
 
-    // MARK: - Persistence
+    // MARK: Persistence
+
     private func saveSelection(for type: QuickBlockCategoryType) {
         guard let category = categories[type] else { return }
-
         do {
-            // Sauvegarder tout le modèle QuickBlockCategory
             let data = try JSONEncoder().encode(category)
             sharedDefaults?.set(data, forKey: "quick_block_\(type.rawValue)_category")
             sharedDefaults?.synchronize()
-            print("💾 [QUICK_BLOCK] Saved category for \(type.displayName) (active: \(category.isActive))")
         } catch {
-            print("❌ [QUICK_BLOCK] Failed to save: \(error)")
+            print("❌ [QUICK_BLOCK] Save failed: \(error)")
         }
     }
 
     private func loadSelections() {
         for type in QuickBlockCategoryType.allCases {
             guard let data = sharedDefaults?.data(forKey: "quick_block_\(type.rawValue)_category"),
-                  let category = try? JSONDecoder().decode(QuickBlockCategory.self, from: data) else {
-                continue
-            }
-
+                  let category = try? JSONDecoder().decode(QuickBlockCategory.self, from: data)
+            else { continue }
             categories[type] = category
-            print("📖 [QUICK_BLOCK] Loaded category for \(type.displayName) (active: \(category.isActive))")
         }
     }
 }
 
-// MARK: - Helper pour corner radius spécifiques
+// MARK: - Corner Radius Helper
+
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
@@ -503,3 +658,5 @@ struct RoundedCorner: Shape {
     QuickBlockModesSection(showContent: true)
         .background(Color.black)
 }
+
+#endif

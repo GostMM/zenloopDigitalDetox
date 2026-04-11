@@ -54,7 +54,8 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         startTime: Date,
         notificationManager: SessionNotificationManager,
         externalSessionId: String? = nil,
-        skipBlockScheduler: Bool = false
+        skipBlockScheduler: Bool = false,
+        taskGoals: [TaskGoal] = []
     ) {
         // FIX Bug 2: Utiliser l'ID externe si fourni, sinon en générer un
         let sessionId = externalSessionId ?? "scheduled_\(UUID().uuidString)"
@@ -89,6 +90,7 @@ final class ScheduledSessionsCoordinator: ObservableObject {
         // FIX Bug 5: Remplir les noms d'apps pour l'affichage
         scheduledChallenge.blockedAppsCount = apps.applicationTokens.count + apps.categoryTokens.count
         scheduledChallenge.blockedAppsNames = appNames
+        scheduledChallenge.taskGoals = taskGoals
         
         // Sauvegarder dans UserDefaults pour persistance
         saveScheduledChallenge(scheduledChallenge, apps: apps)

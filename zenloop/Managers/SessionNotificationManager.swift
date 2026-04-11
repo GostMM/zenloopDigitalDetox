@@ -581,29 +581,36 @@ final class SessionNotificationManager: NSObject, ObservableObject {
     // MARK: - Session Management
     
     func cancelSessionNotifications(sessionId: String) {
+        // ✅ Couvrir TOUS les suffixes possibles générés par createNotificationSequence()
+        // Les anciens identifiers manquants causaient des notifications zombies post-annulation
         let scheduledIdentifiers = [
             "\(sessionId)_reminder_15",
+            "\(sessionId)_reminder_5",
+            "\(sessionId)_reminder_2",
+            "\(sessionId)_reminder_1",
             "\(sessionId)_final_reminder",
             "\(sessionId)_start",
+            "\(sessionId)_starting_now",
             "\(sessionId)_progress",
             "\(sessionId)_end"
         ]
-        
+
         let immediateIdentifiers = [
             "session_started_\(sessionId)",
             "session_progress_\(sessionId)",
             "session_completed_\(sessionId)"
         ]
-        
+
         let allIdentifiers = scheduledIdentifiers + immediateIdentifiers
         notificationCenter.removePendingNotificationRequests(withIdentifiers: allIdentifiers)
-        
+        notificationCenter.removeDeliveredNotifications(withIdentifiers: allIdentifiers)
+
         // Marquer comme inactive dans la liste
         if let index = scheduledNotifications.firstIndex(where: { $0.id == sessionId }) {
             scheduledNotifications[index].isActive = false
             saveScheduledNotifications()
         }
-        
+
         print("🗑️ [SESSION_NOTIFICATIONS] Cancelled \(allIdentifiers.count) notifications for session: \(sessionId)")
     }
     

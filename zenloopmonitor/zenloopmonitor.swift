@@ -438,6 +438,7 @@ class ZenloopDeviceActivityMonitor: DeviceActivityMonitor {
         suite.removeObject(forKey: "payload_\(sessionId)")
         suite.removeObject(forKey: "session_info_\(sessionId)")
         suite.removeObject(forKey: "activation_info_\(sessionId)")
+        suite.removeObject(forKey: "session_difficulty_\(sessionId)")
         suite.synchronize()
 
         logger.info("🧹 [MONITOR] Cleaned up BlockScheduler session: \(sessionId)")

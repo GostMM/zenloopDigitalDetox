@@ -153,16 +153,14 @@ struct TimerCard: View {
         print("🚀 [TIMER_CARD] Démarrage session: \(title), difficulté: \(difficulty.rawValue)")
 
         if hasSelectedApps {
-            let goalsString = taskGoals.isEmpty ? nil : taskGoals.map { goal in
-                goal.isCompleted ? "✅ \(goal.text)" : "⭕️ \(goal.text)"
-            }.joined(separator: "\n")
+            let goals = taskGoals.map { TaskGoal(text: $0.text, isCompleted: $0.isCompleted) }
 
             zenloopManager.startCustomChallenge(
                 title: title,
                 duration: duration,
                 difficulty: difficulty,
                 apps: selectedApps,
-                taskGoal: goalsString
+                taskGoals: goals
             )
         } else {
             zenloopManager.startQuickChallenge(duration: duration, difficulty: difficulty)

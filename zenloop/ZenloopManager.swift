@@ -361,8 +361,10 @@ class BlockScheduler {
             "isScheduled": true
         ]
         suite.set(activationInfo, forKey: "activation_info_\(sessionId)")
+        // ✅ Sauvegarder la difficulté séparément pour la reconstruction UI
+        suite.set(difficulty.rawValue, forKey: "session_difficulty_\(sessionId)")
         suite.synchronize()
-        
+
         // Programmer avec retry pour iOS 18
         Task {
             await scheduleWithRetry(sessionInfo: sessionInfo)
@@ -537,7 +539,10 @@ class ZenloopManager: ObservableObject {
     @Published var currentTimeRemaining = "00:00"
     @Published var currentProgress: Double = 0.0
     @Published var showBreathingMeditation = false
-    
+
+    // Timer de polling extension → app principale (stocké pour éviter la libération par ARC)
+    private var extensionSessionMonitorTimer: Timer?
+
     // Statistiques publiées pour l'UI
     @Published var totalSavedTime: TimeInterval = 0.0
     @Published var completedChallengesTotal: Int = 0
@@ -781,7 +786,7 @@ class ZenloopManager: ObservableObject {
         startChallenge(challenge)
     }
     
-    func startCustomChallenge(title: String, duration: TimeInterval, difficulty: DifficultyLevel, apps: FamilyActivitySelection, taskGoal: String? = nil) {
+    func startCustomChallenge(title: String, duration: TimeInterval, difficulty: DifficultyLevel, apps: FamilyActivitySelection, taskGoals: [TaskGoal] = [], taskGoal: String? = nil) {
         guard self.currentState == .idle else { return }
         guard !apps.applicationTokens.isEmpty || !apps.categoryTokens.isEmpty else {
             self.recordActivity(.challengeStopped, title: "Échec démarrage: aucune app sélectionnée")
@@ -799,11 +804,12 @@ class ZenloopManager: ObservableObject {
             startTime: Date(),
             isActive: true
         )
-        
+        challenge.taskGoals = taskGoals
+
         challenge.blockedAppsCount = apps.applicationTokens.count + apps.categoryTokens.count
         challenge.blockedAppsNames = self.generateAppNamesFromSelection(apps)
         self.updateAppsSelection(apps)
-        
+
         self.startChallenge(challenge)
     }
     
@@ -840,59 +846,72 @@ class ZenloopManager: ObservableObject {
         duration: TimeInterval,
         difficulty: DifficultyLevel,
         apps: FamilyActivitySelection,
-        startTime: Date
+        startTime: Date,
+        taskGoals: [TaskGoal] = []
     ) {
-        // FIX Bug 8: Valider que startTime est dans le futur
         guard startTime.timeIntervalSinceNow > 60 else {
             print("❌ [ZENLOOP] Cannot schedule session in the past or less than 1 minute from now")
             return
+        }
+
+        // ✅ CRUCIAL: arrondir UNE SEULE FOIS ici, avant de passer à BlockScheduler ET au Coordinator
+        // Évite la désynchronisation entre les notifications, l'UI et le DeviceActivitySchedule
+        let calendar = Calendar.current
+        let startOfMinute = calendar.dateInterval(of: .minute, for: startTime)?.start ?? startTime
+        let effectiveStartTime: Date
+        if startOfMinute <= Date() {
+            // La minute choisie est déjà passée au moment du scheduling → minute suivante
+            effectiveStartTime = calendar.date(byAdding: .minute, value: 1, to: startOfMinute) ?? startOfMinute
+        } else {
+            effectiveStartTime = startOfMinute
         }
 
         // FIX 1: UN SEUL ID partagé entre TOUS les systèmes
         let sessionId = "scheduled_\(UUID().uuidString)"
 
         do {
-            // Étape 1: Programmer dans BlockScheduler avec LE MÊME ID
+            // Étape 1: Programmer dans BlockScheduler avec LE MÊME ID et LE MÊME temps arrondi
             try BlockScheduler.shared.scheduleSession(
                 title: title,
                 duration: duration,
-                startTime: startTime,
+                startTime: effectiveStartTime,
                 selection: apps,
                 difficulty: difficulty,
-                sessionId: sessionId  // FIX 1: Passer l'ID
+                sessionId: sessionId
             )
-            
-            // Étape 2: Enregistrer dans le Coordinator avec le MÊME ID
-            // skipBlockScheduler = true car on vient de le faire ci-dessus
+
+            // Étape 2: Enregistrer dans le Coordinator avec le MÊME ID et LE MÊME temps arrondi
             scheduledSessionsCoordinator.scheduleCustomChallenge(
                 title: title,
                 duration: duration,
                 difficulty: difficulty,
                 apps: apps,
-                startTime: startTime,
+                startTime: effectiveStartTime,
                 notificationManager: notificationManager,
                 externalSessionId: sessionId,
-                skipBlockScheduler: true
+                skipBlockScheduler: true,
+                taskGoals: taskGoals
             )
-            
-            print("📅 [ZENLOOP] Scheduled session with single ID: \(sessionId)")
-            
+
+            print("📅 [ZENLOOP] Scheduled session: \(sessionId) at \(effectiveStartTime) (rounded from \(startTime))")
+
             updateScheduledSessionsStatus()
         } catch {
             print("❌ [ZENLOOP] Failed to schedule background session: \(error)")
-            
-            // Fallback: Coordinator seul (sans BlockScheduler)
-            // Utilise le même ID pour cohérence
+
+            // Fallback foreground-only (app ouverte uniquement)
             scheduledSessionsCoordinator.scheduleCustomChallenge(
                 title: title,
                 duration: duration,
                 difficulty: difficulty,
                 apps: apps,
-                startTime: startTime,
+                startTime: effectiveStartTime,
                 notificationManager: notificationManager,
                 externalSessionId: sessionId,
-                skipBlockScheduler: true  // Déjà échoué, ne pas réessayer
+                skipBlockScheduler: true,
+                taskGoals: taskGoals
             )
+            print("⚠️ [ZENLOOP] Fallback: foreground-only scheduling (app must be open at start time)")
         }
     }
     
@@ -1086,6 +1105,17 @@ class ZenloopManager: ObservableObject {
         #endif
     }
 
+    func toggleTaskGoal(id: String) {
+        guard var challenge = self.currentChallenge else { return }
+        guard let idx = challenge.taskGoals.firstIndex(where: { $0.id == id }) else { return }
+        challenge.taskGoals[idx].isCompleted.toggle()
+        self.currentChallenge = challenge
+
+        #if DEBUG
+        print("✅ [ZENLOOP_MANAGER] TaskGoal toggled: \(challenge.taskGoals[idx].text) → \(challenge.taskGoals[idx].isCompleted)")
+        #endif
+    }
+
     // MARK: - Restrictions - Délégation aux managers
 
     private func applyRestrictions(mode: RestrictionMode? = nil) {
@@ -1204,7 +1234,8 @@ class ZenloopManager: ObservableObject {
     // MARK: - Extension Session Monitoring
     
     private func startExtensionSessionMonitoring() {
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        // ✅ Stocker le timer explicitement — sans ça, ARC peut le libérer sur certaines runloops
+        extensionSessionMonitorTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkForExtensionActivatedSession()
                 self?.checkForPendingAppBlock()
@@ -1261,12 +1292,26 @@ class ZenloopManager: ObservableObject {
             print("   Extension déclenchée: \(realStartTime)")
             print("   Maintenant: \(Date())")
             
+            // ✅ Récupérer la vraie difficulté depuis session_info_ (sauvé par BlockScheduler)
+            // Sans ça, toutes les sessions reconstruites avaient .medium quelle que soit la config
+            let difficulty: DifficultyLevel = {
+                if let infoData = suite?.data(forKey: "session_info_\(sessionId)"),
+                   let info = try? JSONDecoder().decode(SessionInfo.self, from: infoData),
+                   let raw = suite?.string(forKey: "session_difficulty_\(sessionId)"),
+                   let d = DifficultyLevel(rawValue: raw) {
+                    return d
+                }
+                // Fallback: lire depuis ScheduledSessionsCoordinator
+                let stored = scheduledSessionsCoordinator.getScheduledSession(id: sessionId)
+                return stored?.difficulty ?? .medium
+            }()
+
             let activeChallenge = ZenloopChallenge(
                 id: sessionId,
                 title: title,
                 description: "Session programmée déclenchée automatiquement",
                 duration: duration,
-                difficulty: .medium,
+                difficulty: difficulty,
                 startTime: realStartTime,
                 isActive: true
             )
@@ -1457,23 +1502,25 @@ class ZenloopManager: ObservableObject {
             print("⚠️ [ZENLOOP] No payload found for scheduled session: \(challenge.id)")
             return
         }
-        
+
         do {
             let payload = try JSONDecoder().decode(SelectionPayload.self, from: payloadData)
-            
+
             var selection = FamilyActivitySelection()
             selection.applicationTokens = Set(payload.apps)
             selection.categoryTokens = Set(payload.categories)
-            
+
+            // ✅ CRUCIAL: synchroniser la sélection complète dans appRestrictionCoordinator
+            // Sans ça, getAppsSelection() retourne vide et ActiveChallengeSection n'affiche rien
+            updateAppsSelection(selection)
+            updateAppsSelectionWithDetails(selection)
             selectedAppsCount = payload.apps.count + payload.categories.count
-            
-            let appsCount = payload.apps.count
-            let categoriesCount = payload.categories.count
+
             print("📱 [ZENLOOP] Apps synchronisées pour UI (session programmée):")
-            print("   Applications: \(appsCount)")
-            print("   Catégories: \(categoriesCount)")
+            print("   Applications: \(payload.apps.count)")
+            print("   Catégories: \(payload.categories.count)")
             print("   ⚠️  Restrictions PAS réappliquées - Extension les gère")
-            
+
         } catch {
             print("❌ [ZENLOOP] Failed to decode payload for session: \(challenge.id) - \(error)")
         }
