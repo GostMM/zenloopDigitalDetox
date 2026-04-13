@@ -199,6 +199,12 @@ struct TabContentView: View {
                 }
             case 2:
                 NavigationStack {
+                    GuiltTripView()
+                        .environmentObject(zenloopManager)
+                        .navigationBarHidden(true)
+                }
+            case 3:
+                NavigationStack {
                     SocialTab()
                         .environmentObject(zenloopManager)
                         .environmentObject(deepLinkCoordinator) // ✅ Passer au SocialTab

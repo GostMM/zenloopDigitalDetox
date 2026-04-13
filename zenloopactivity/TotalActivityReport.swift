@@ -130,6 +130,7 @@ struct SharedReportDayPoint: Codable {
 extension DeviceActivityReport.Context {
     static let totalActivity = Self("TotalActivity")
     static let fullStatsPage = Self("FullStatsPage")
+    static let guiltTrip = Self("GuiltTrip")
 }
 
 // MARK: - Report Scene
@@ -851,3 +852,129 @@ struct FullStatsPageReport: DeviceActivityReportScene {
     }
 }
 
+
+// MARK: - Guilt Trip Report Scene
+
+struct GuiltTripReport: DeviceActivityReportScene {
+    let context: DeviceActivityReport.Context = .guiltTrip
+    let content: (ExtensionActivityReport) -> GuiltTripExtensionView
+
+    private let logger = Logger(subsystem: "com.app.zenloop.activity", category: "GuiltTripReport")
+
+    func makeConfiguration(representing data: DeviceActivityResults<DeviceActivityData>) async -> ExtensionActivityReport {
+        logger.critical("🚀 [GUILT] === GuiltTripReport makeConfiguration CALLED ===")
+
+        var totalDuration: TimeInterval = 0
+        var appDurations: [ApplicationToken: (name: String, duration: TimeInterval)] = [:]
+        var categoryDurationsByID: [String: TimeInterval] = [:]
+        var categoryDisplayNameByID: [String: String] = [:]
+        var categoryAppTokensByID: [String: Set<ApplicationToken>] = [:]
+        var dailyDurations: [Date: TimeInterval] = [:]
+        var hourlyData: [Int: [String: TimeInterval]] = [:]
+        var globalStart: Date?
+        var globalEnd: Date?
+
+        let cal = Calendar.current
+
+        for await datum in data {
+            for await segment in datum.activitySegments {
+                let seg = segment.dateInterval
+                let segDur = segment.totalActivityDuration
+                guard segDur > 0 else { continue }
+
+                totalDuration += segDur
+                if globalStart == nil || seg.start < globalStart! { globalStart = seg.start }
+                if globalEnd == nil || seg.end > globalEnd! { globalEnd = seg.end }
+
+                distribute(segment: seg, duration: segDur, calendar: cal) { dayStart, secs in
+                    dailyDurations[dayStart, default: 0] += secs
+                }
+
+                for await catActivity in segment.categories {
+                    let cat: ActivityCategory = catActivity.category
+                    let catID = stableCategoryID(cat)
+                    let catName = displayName(for: cat)
+
+                    categoryDisplayNameByID[catID] = catName
+                    categoryDurationsByID[catID, default: 0] += catActivity.totalActivityDuration
+
+                    distributeHourly(segment: seg, duration: catActivity.totalActivityDuration, calendar: cal) { hour, secs in
+                        if hourlyData[hour] == nil { hourlyData[hour] = [:] }
+                        hourlyData[hour]![catName, default: 0] += secs
+                    }
+
+                    for await app in catActivity.applications {
+                        let dur = app.totalActivityDuration
+                        guard dur > 0 else { continue }
+                        let name = app.application.localizedDisplayName
+                            ?? app.application.bundleIdentifier
+                            ?? "Application"
+                        if let token = app.application.token {
+                            var cur = appDurations[token] ?? (name: name, duration: 0)
+                            if cur.name.isEmpty, !name.isEmpty { cur.name = name }
+                            cur.duration += dur
+                            appDurations[token] = cur
+                            var set = categoryAppTokensByID[catID] ?? []
+                            set.insert(token)
+                            categoryAppTokensByID[catID] = set
+                        }
+                    }
+                }
+            }
+        }
+
+        let allApps: [ExtensionAppUsage] = appDurations
+            .map { (token, v) in
+                #if os(iOS)
+                ExtensionAppUsage(name: v.name, duration: v.duration, token: token)
+                #else
+                ExtensionAppUsage(name: v.name, duration: v.duration)
+                #endif
+            }
+            .sorted { $0.duration > $1.duration }
+
+        let allCategories: [ExtensionCategoryUsage] = categoryDurationsByID.map { (catID, secs) in
+            let name = categoryDisplayNameByID[catID] ?? catID
+            let appCount = categoryAppTokensByID[catID]?.count ?? 0
+            return ExtensionCategoryUsage(categoryName: name, duration: secs, appCount: appCount)
+        }.sorted { $0.duration > $1.duration }
+
+        let daysSorted = dailyDurations
+            .map { (cal.startOfDay(for: $0.key), $0.value) }
+            .reduce(into: [Date: TimeInterval]()) { acc, pair in acc[pair.0, default: 0] += pair.1 }
+            .sorted { $0.key < $1.key }
+
+        let dayCount = max(1, daysSorted.count)
+        let averageDaily = totalDuration / Double(dayCount)
+        let start = globalStart ?? Date()
+        let end = globalEnd ?? start
+
+        let todayStart = cal.startOfDay(for: Date())
+        let todayScreen = dailyDurations[todayStart] ?? 0
+        let elapsedToday = max(0, Date().timeIntervalSince(todayStart))
+        let todayOff = max(0, elapsedToday - todayScreen)
+
+        let extensionHourlyData = (0..<24).compactMap { hour -> ExtensionHourData? in
+            guard let catData = hourlyData[hour], !catData.isEmpty else { return nil }
+            let totalMinutes = catData.values.reduce(0, +) / 60.0
+            return ExtensionHourData(hour: hour, totalMinutes: totalMinutes, categories: catData.mapValues { $0 / 60.0 })
+        }
+
+        let focusScore = calculateFocusScore(from: allCategories)
+        logger.critical("✅ [GUILT] todayScreen=\(todayScreen)s avg=\(averageDaily)s apps=\(allApps.count)")
+
+        return ExtensionActivityReport(
+            totalDuration: totalDuration,
+            averageDaily: averageDaily,
+            averageWeekly: end.timeIntervalSince(start),
+            allApps: allApps,
+            categories: Array(allCategories.prefix(4)),
+            todayScreenSeconds: todayScreen,
+            todayOffScreenSeconds: todayOff,
+            hourlyData: extensionHourlyData,
+            focusScore: focusScore,
+            topThreeMostUsed: Array(allApps.prefix(3)),
+            categoriesCount: allCategories.count
+        )
+    }
+}

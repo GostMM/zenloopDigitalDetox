@@ -4,6 +4,10 @@
 //
 //  Page Stats complète style Opal - Design immersif
 //
+//  ✅ FIX: prepareContent() protégé contre données vides
+//  ✅ FIX: SkeletonBox supprimé (défini dans FullStatsView)
+//  ✅ FIX: Timer leak corrigé
+//
 
 import SwiftUI
 import DeviceActivity
@@ -77,35 +81,29 @@ struct FullStatsPageView: View {
 
             if isContentReady {
                 ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header avec temps total géant
-                    heroHeader
+                    VStack(alignment: .leading, spacing: 0) {
+                        heroHeader
+                        metricsRow
 
-                    // Métriques compactes (Most Used, Focus Score, Pickups)
-                    metricsRow
+                        if !activeBlocks.isEmpty {
+                            blockedAppsSection
+                                .padding(.top, 20)
+                        }
 
-                    // Section Blocked Apps (si il y en a)
-                    if !activeBlocks.isEmpty {
-                        blockedAppsSection
-                            .padding(.top, 20)
+                        hourlyChart
+                            .padding(.top, 30)
+                            .padding(.bottom, 30)
+
+                        appsList
+                            .padding(.bottom, 60)
                     }
-
-                    // Graphique horaire (barres verticales) avec légende intégrée
-                    hourlyChart
-                        .padding(.top, 30)
-                        .padding(.bottom, 30)
-
-                    // Liste des apps avec jauges
-                    appsList
-                        .padding(.bottom, 60)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 60)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 60) // Espace pour le header
-            }
                 .transition(.opacity)
             } else {
-                // ✅ OPTIMIZED: Skeleton UI au lieu de loading spinner
-                SkeletonFullStatsView()
+                // ✅ FIX: Skeleton défini localement pour l'extension (pas de dépendance croisée)
+                ExtensionSkeletonView()
                     .transition(.opacity)
             }
         }
@@ -118,8 +116,20 @@ struct FullStatsPageView: View {
         }
     }
 
+    // ✅ FIX: Protégé contre les données vides au premier render
     private func prepareContent() {
-        // ✅ OPTIMIZED: Calcul immédiat sans délai artificiel
+        // Vérifier que les données sont réellement disponibles
+        guard reportData.totalDuration > 0 || !reportData.allApps.isEmpty || !reportData.hourlyData.isEmpty else {
+            logger.warning("⚠️ [FULLSTATS] reportData appears empty, showing content anyway to avoid stuck skeleton")
+            // Afficher quand même pour ne pas rester bloqué sur le skeleton
+            generateHourlyData()
+            loadActiveBlocks()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isContentReady = true
+            }
+            return
+        }
+
         generateHourlyData()
         loadActiveBlocks()
 
@@ -149,7 +159,6 @@ struct FullStatsPageView: View {
 
     private var metricsRow: some View {
         HStack(spacing: 20) {
-            // Most Used
             VStack(spacing: 8) {
                 Text(String(localized: "most_used_label"))
                     .font(.system(size: 9, weight: .bold))
@@ -157,7 +166,6 @@ struct FullStatsPageView: View {
                     .tracking(1)
 
                 HStack(spacing: 6) {
-                    // ✅ OPTIMIZED: Utiliser les top 3 pré-calculés
                     if !reportData.topThreeMostUsed.isEmpty {
                         ForEach(Array(reportData.topThreeMostUsed.enumerated()), id: \.offset) { index, app in
                             AppIconBadge(app: app, size: 24)
@@ -168,9 +176,7 @@ struct FullStatsPageView: View {
 
             Spacer()
 
-            // Focus Score (pré-calculé dans l'extension)
             VStack(spacing: 4) {
-                // ✅ OPTIMIZED: Utiliser le focus score pré-calculé
                 Text("\(reportData.focusScore)%")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(focusScoreColor(reportData.focusScore))
@@ -183,9 +189,7 @@ struct FullStatsPageView: View {
 
             Spacer()
 
-            // Catégories (remplace Pickups car non disponible dans DeviceActivity)
             VStack(spacing: 4) {
-                // ✅ OPTIMIZED: Utiliser le count pré-calculé
                 Text("\(reportData.categoriesCount)")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
@@ -236,32 +240,27 @@ struct FullStatsPageView: View {
     // MARK: - Hourly Chart
 
     private var hourlyChart: some View {
-        // Échelle fixe: 60 min = hauteur max du graphique
         let chartHeight: CGFloat = 80
         let maxPossibleMinutesPerHour: Double = 60
         let scale = chartHeight / maxPossibleMinutesPerHour
 
         return VStack(alignment: .leading, spacing: 12) {
-            // Légende PRODUCTIVE • DISTRACTING déplacée ici
             legendRow
 
-            // Graphique ultra-compact
             VStack(spacing: 8) {
                 GeometryReader { geometry in
                     let barCount = CGFloat(hourlyChartData.count)
-                    let totalSpacing = CGFloat(hourlyChartData.count - 1) * 1.5
+                    let totalSpacing = CGFloat(max(0, hourlyChartData.count - 1)) * 1.5
                     let availableWidth = geometry.size.width - totalSpacing
-                    let barWidth = availableWidth / barCount
+                    let barWidth = barCount > 0 ? availableWidth / barCount : 0
 
                     HStack(alignment: .bottom, spacing: 1.5) {
                         ForEach(hourlyChartData, id: \.hour) { data in
                             ZStack(alignment: .bottom) {
-                                // Background (vide)
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(Color.white.opacity(0.08))
                                     .frame(width: barWidth, height: chartHeight)
 
-                                // Valeur réelle
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(barColor(for: data))
                                     .frame(
@@ -275,7 +274,6 @@ struct FullStatsPageView: View {
                 }
                 .frame(height: chartHeight)
 
-                // Labels d'heures (seulement quelques-uns)
                 HStack(spacing: 0) {
                     let labels = getSmartHourLabels()
                     ForEach(Array(labels.enumerated()), id: \.offset) { index, hour in
@@ -287,7 +285,6 @@ struct FullStatsPageView: View {
                 }
             }
 
-            // Time Offline Section - ultra compact
             timeOfflineSection
         }
         .padding(.vertical, 6)
@@ -295,7 +292,6 @@ struct FullStatsPageView: View {
 
     private var timeOfflineSection: some View {
         HStack(spacing: 10) {
-            // Icône plus petite
             Image(systemName: "moon.stars.fill")
                 .font(.system(size: 16))
                 .foregroundColor(Color(red: 0.6, green: 0.7, blue: 0.9))
@@ -329,22 +325,17 @@ struct FullStatsPageView: View {
         )
     }
 
-    // Générer des labels intelligents selon le nombre d'heures
     private func getSmartHourLabels() -> [Int] {
         let currentHour = Calendar.current.component(.hour, from: Date())
         let hourCount = currentHour + 1
 
         if hourCount <= 6 {
-            // Afficher toutes les heures si moins de 6
             return Array(0...currentHour)
         } else if hourCount <= 12 {
-            // Afficher toutes les 2 heures
             return stride(from: 0, through: currentHour, by: 2).map { $0 }
         } else if hourCount <= 18 {
-            // Afficher toutes les 3 heures
             return stride(from: 0, through: currentHour, by: 3).map { $0 }
         } else {
-            // Afficher toutes les 4 heures
             return stride(from: 0, through: currentHour, by: 4).map { $0 }
         }
     }
@@ -365,7 +356,6 @@ struct FullStatsPageView: View {
 
     // MARK: - Apps List
 
-    // ✅ OPTIMIZED: Lazy loading avec LazyVStack
     private var appsList: some View {
         LazyVStack(spacing: 0, pinnedViews: []) {
             ForEach(Array(reportData.allApps.prefix(10).enumerated()), id: \.offset) { index, app in
@@ -390,15 +380,10 @@ struct FullStatsPageView: View {
 
     // MARK: - Helpers
 
-    // ✅ OPTIMIZED: Fonction simplifiée utilisant le score pré-calculé
     private func focusScoreColor(_ score: Int) -> Color {
-        if score >= 70 {
-            return .green
-        } else if score >= 40 {
-            return .orange
-        } else {
-            return .red
-        }
+        if score >= 70 { return .green }
+        else if score >= 40 { return .orange }
+        else { return .red }
     }
 
     private var formattedTotalTime: String {
@@ -408,13 +393,10 @@ struct FullStatsPageView: View {
         let seconds = totalSeconds % 60
 
         if hours > 0 {
-            // Si plus d'1h, afficher heures et minutes
             return "\(hours)h \(minutes)m"
         } else if minutes > 0 {
-            // Si moins d'1h, afficher minutes et secondes
             return "\(minutes)m \(seconds)s"
         } else {
-            // Si moins d'1 minute, afficher secondes
             return "\(seconds)s"
         }
     }
@@ -423,26 +405,15 @@ struct FullStatsPageView: View {
         let currentHour = Calendar.current.component(.hour, from: Date())
 
         logger.critical("🚀🚀🚀 [HOURLY_CHART] === generateHourlyData CALLED ===")
-        logger.critical("🚀🚀🚀 [HOURLY_CHART] Processing hourly data with \(reportData.hourlyData.count) entries")
-        logger.critical("🚀🚀🚀 [HOURLY_CHART] Current hour: \(currentHour)")
-        logger.critical("🚀 [HOURLY_CHART] Total duration: \(reportData.totalDuration)s")
-        logger.critical("🚀 [HOURLY_CHART] Apps count: \(reportData.allApps.count)")
+        logger.critical("🚀🚀🚀 [HOURLY_CHART] Processing hourly data with \(reportData.hourlyData.count) entries, currentHour=\(currentHour)")
 
-        // Debug: Print all available hourly data
-        for data in reportData.hourlyData {
-            logger.critical("🚀 [HOURLY_CHART] Available data - Hour \(data.hour): \(String(format: "%.1f", data.totalMinutes))min, categories: \(data.categories.count)")
-        }
-
-        // Create map from existing hourly data
         var hourDataMap: [Int: ExtensionHourData] = [:]
         for data in reportData.hourlyData {
             hourDataMap[data.hour] = data
         }
 
-        // Build chart data for all hours from 0 to currentHour
         hourlyChartData = (0...currentHour).map { hour in
             if let hourData = hourDataMap[hour] {
-                // Use real data
                 let isProductive = isHourProductive(hourData: hourData)
                 return HourData(
                     hour: hour,
@@ -450,25 +421,15 @@ struct FullStatsPageView: View {
                     isProductive: isProductive
                 )
             } else {
-                // No activity for this hour
                 return HourData(hour: hour, totalMinutes: 0, isProductive: true)
             }
         }
 
         logger.critical("🚀🚀🚀 [HOURLY_CHART] Generated \(hourlyChartData.count) hour bars")
-        for (index, data) in hourlyChartData.enumerated() {
-            if data.totalMinutes > 0 {
-                logger.critical("🚀 [HOURLY_CHART] Bar \(index): Hour \(data.hour) = \(String(format: "%.1f", data.totalMinutes))min [\(data.isProductive ? "GREEN" : "RED")]")
-            } else {
-                logger.critical("🚀 [HOURLY_CHART] Bar \(index): Hour \(data.hour) = 0min [EMPTY]")
-            }
-        }
     }
 
     private func isHourProductive(hourData: ExtensionHourData) -> Bool {
-        // Categories considered distracting
         let distractingKeywords = ["Social", "Entertainment", "Games", "Photo", "Video"]
-
         let totalMinutes = hourData.totalMinutes
         guard totalMinutes > 0 else { return true }
 
@@ -479,7 +440,6 @@ struct FullStatsPageView: View {
             }
         }
 
-        // If more than 50% is distracting time → red bar
         return (distractingMinutes / totalMinutes) < 0.5
     }
 
@@ -499,7 +459,6 @@ struct FullStatsPageView: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    // Pile d'icônes des apps bloquées
                     blockedAppsStack
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -517,7 +476,6 @@ struct FullStatsPageView: View {
 
                     Spacer()
 
-                    // Expand icon
                     Image(systemName: isBlockCardExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white.opacity(0.5))
@@ -531,12 +489,10 @@ struct FullStatsPageView: View {
             }
             .buttonStyle(.plain)
 
-            // Expanded content
             if isBlockCardExpanded {
                 VStack(spacing: 8) {
                     ForEach(activeBlocks, id: \.id) { block in
                         BlockedAppRow(block: block) {
-                            // Recharger la liste après déblocage
                             loadActiveBlocks()
                         }
                     }
@@ -546,16 +502,13 @@ struct FullStatsPageView: View {
         }
     }
 
-    // Pile d'icônes des apps bloquées
     private var blockedAppsStack: some View {
         ZStack {
             ForEach(Array(activeBlocks.prefix(3).enumerated()), id: \.element.id) { index, block in
-                // Essayer de récupérer le token de l'app
                 if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
                    let token = selection.applicationTokens.first {
 
                     ZStack(alignment: .bottomTrailing) {
-                        // Icône de l'app
                         Label(token)
                             .labelStyle(.iconOnly)
                             .frame(width: 40, height: 40)
@@ -565,12 +518,10 @@ struct FullStatsPageView: View {
                                     .strokeBorder(Color.black.opacity(0.2), lineWidth: 2)
                             )
 
-                        // Badge cadenas
                         ZStack {
                             Circle()
                                 .fill(Color.red)
                                 .frame(width: 18, height: 18)
-
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.white)
@@ -580,7 +531,6 @@ struct FullStatsPageView: View {
                     .offset(x: CGFloat(index * 12))
                     .zIndex(Double(3 - index))
                 } else {
-                    // Fallback si pas de token
                     ZStack(alignment: .bottomTrailing) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10)
@@ -601,12 +551,10 @@ struct FullStatsPageView: View {
                                 .foregroundColor(.white)
                         }
 
-                        // Badge cadenas
                         ZStack {
                             Circle()
                                 .fill(Color.red)
                                 .frame(width: 18, height: 18)
-
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.white)
@@ -628,33 +576,17 @@ struct FullStatsPageView: View {
         let blocks = blockManager.getActiveBlocks()
 
         logger.critical("📊 [FULLSTATS] Found \(blocks.count) active blocks")
-        for block in blocks {
-            logger.critical("  → Block: \(block.appName)")
-            logger.critical("     ID: \(block.id)")
-            logger.critical("     Status: \(block.status.rawValue)")
-            logger.critical("     Remaining: \(block.formattedRemainingTime)")
-            logger.critical("     StoreName: \(block.storeName)")
-        }
-
         activeBlocks = blocks
-
-        if blocks.isEmpty {
-            logger.warning("⚠️ [FULLSTATS] No active blocks found!")
-            logger.warning("   This could mean:")
-            logger.warning("   1. No blocks were created")
-            logger.warning("   2. BlockManager failed to save")
-            logger.warning("   3. BlockManager failed to read from App Group")
-        }
     }
 
     // MARK: - Block Refresh Timer
 
     private func startBlockRefreshTimer() {
-        // Timer pour vérifier les blocages toutes les 30 secondes
+        // ✅ FIX: Invalider l'ancien timer avant d'en créer un nouveau
+        blockRefreshTimer?.invalidate()
+
         blockRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
             logger.info("⏱️ [FULLSTATS] Refreshing blocks...")
-
-            // Recharger la liste pour afficher les changements
             loadActiveBlocks()
         }
     }
@@ -682,22 +614,12 @@ struct AppIconBadge: View {
         #if os(iOS)
         ZStack {
             if iconLoadFailed {
-                // Fallback: placeholder coloré avec initiale
                 placeholderIcon
             } else {
                 Label(app.token)
                     .labelStyle(.iconOnly)
                     .frame(width: size, height: size)
                     .clipShape(RoundedRectangle(cornerRadius: size * 0.25))
-                    .onAppear {
-                        // ✅ OPTIMIZED: Timeout plus court pour fallback rapide
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            if !iconLoadFailed {
-                                // Si après 0.5s l'icône n'est toujours pas chargée, utiliser fallback
-                                iconLoadFailed = false
-                            }
-                        }
-                    }
             }
         }
         #else
@@ -746,7 +668,6 @@ struct FullStatsAppRow: View {
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
-                    // Icône app avec lock indicator si bloquée
                     ZStack(alignment: .bottomTrailing) {
                         #if os(iOS)
                         if iconVisible {
@@ -768,7 +689,6 @@ struct FullStatsAppRow: View {
                         placeholderIcon
                         #endif
 
-                        // Lock badge si bloquée
                         if isBlocked {
                             ZStack {
                                 Circle()
@@ -782,7 +702,6 @@ struct FullStatsAppRow: View {
                         }
                     }
                     .onAppear {
-                        // ✅ OPTIMIZED: Chargement immédiat sans stagger delay
                         withAnimation(.easeIn(duration: 0.15)) {
                             iconVisible = true
                         }
@@ -801,7 +720,6 @@ struct FullStatsAppRow: View {
 
                     Spacer()
 
-                    // Bouton de blocage compact ou checkmark si bloquée
                     if isBlocked {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 24))
@@ -813,7 +731,6 @@ struct FullStatsAppRow: View {
                     }
                 }
 
-                // Mini jauge horizontale
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.white.opacity(0.1))
@@ -824,7 +741,6 @@ struct FullStatsAppRow: View {
                         .frame(width: gaugeWidth, height: 6)
                 }
 
-                // Badge catégorie
                 if index < 3 {
                     HStack(spacing: 4) {
                         Text(categoryLabel)
@@ -889,7 +805,6 @@ struct FullStatsAppRow: View {
     }
 
     private var categoryLabel: String {
-        // Simuler (tu peux utiliser de vraies données de catégorie)
         index == 0 ? String(localized: "distracting_category") : String(localized: "productive_category")
     }
 
@@ -913,14 +828,13 @@ struct FullStatsAppRow: View {
 struct BlockAppSheet: View {
     let app: ExtensionAppUsage
     @Environment(\.dismiss) var dismiss
-    @Environment(\.openURL) var openURL  // ✅ API officielle pour ouvrir des URLs depuis extensions
+    @Environment(\.openURL) var openURL
     @State private var selectedHours = 0
     @State private var selectedMinutes = 15
     @State private var isBlocking = false
     @State private var showIcon = false
     var onBlockAdded: (() -> Void)?
 
-    // Computed property pour la durée totale
     private var totalMinutes: Int {
         selectedHours * 60 + selectedMinutes
     }
@@ -948,13 +862,12 @@ struct BlockAppSheet: View {
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 30) {
-                    // Icône et nom de l'app (AGRANDIE)
                     VStack(spacing: 16) {
                         #if os(iOS)
                         if showIcon {
                             Label(app.token)
                                 .labelStyle(.iconOnly)
-                                .frame(width: 120, height: 120) // ✅ Agrandie de 80 à 120
+                                .frame(width: 120, height: 120)
                                 .clipShape(RoundedRectangle(cornerRadius: 26))
                                 .shadow(color: Color.white.opacity(0.15), radius: 20, x: 0, y: 10)
                                 .transition(.scale.combined(with: .opacity))
@@ -976,7 +889,6 @@ struct BlockAppSheet: View {
                     }
                     .padding(.top, 40)
 
-                    // Sélection de durée - Roulette compacte
                     VStack(spacing: 12) {
                         Text(String(localized: "duration_picker_label"))
                             .font(.system(size: 13, weight: .bold))
@@ -984,7 +896,6 @@ struct BlockAppSheet: View {
                             .tracking(1)
 
                         HStack(spacing: 16) {
-                            // Heures
                             VStack(spacing: 4) {
                                 Text(String(localized: "hours_label"))
                                     .font(.system(size: 12, weight: .medium))
@@ -1007,15 +918,13 @@ struct BlockAppSheet: View {
                                 .foregroundColor(.white.opacity(0.3))
                                 .padding(.top, 20)
 
-                            // Minutes
                             VStack(spacing: 4) {
                                 Text(String(localized: "minutes_label"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white.opacity(0.5))
 
                                 Picker("", selection: $selectedMinutes) {
-                                    // ✅ Ajout de 1 et 2 minutes pour les tests
-                                    ForEach([0, 1, 2, 5, 10, 15,16, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
+                                    ForEach([0, 1, 2, 5, 10, 15, 16, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
                                         Text("\(minute)").tag(minute)
                                             .foregroundColor(.white)
                                     }
@@ -1041,9 +950,7 @@ struct BlockAppSheet: View {
 
                     Spacer()
 
-                    // Boutons d'action
                     VStack(spacing: 16) {
-                        // Bouton Block
                         Button {
                             blockApp()
                         } label: {
@@ -1076,7 +983,6 @@ struct BlockAppSheet: View {
                         }
                         .disabled(isBlocking || totalMinutes == 0)
 
-                        // Bouton Cancel
                         Button {
                             dismiss()
                         } label: {
@@ -1094,7 +1000,6 @@ struct BlockAppSheet: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            // ✅ OPTIMIZED: Chargement immédiat de l'icône
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 showIcon = true
             }
@@ -1114,7 +1019,7 @@ struct BlockAppSheet: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 120, height: 120) // ✅ Agrandie pour correspondre
+                .frame(width: 120, height: 120)
 
             Text(String(app.name.prefix(1)).uppercased())
                 .font(.system(size: 48, weight: .bold))
@@ -1129,17 +1034,12 @@ struct BlockAppSheet: View {
         #if os(iOS)
         let blockLogger = Logger(subsystem: "com.app.zenloop.zenloopactivity", category: "BlockSheet")
 
-        // Utiliser la durée sélectionnée dans les roulettes
         let duration = TimeInterval(totalMinutes * 60)
         let blockId = UUID().uuidString
         let activityName = DeviceActivityName("block-\(blockId)")
 
-        blockLogger.critical("🎯 [BLOCK_SHEET] Starting IMMEDIATE block + auto-unblock")
-        blockLogger.critical("   → App: \(app.name)")
-        blockLogger.critical("   → Duration: \(Int(duration/60)) minutes")
-        blockLogger.critical("   → BlockID: \(blockId)")
+        blockLogger.critical("🎯 [BLOCK_SHEET] Starting block: \(app.name) for \(Int(duration/60))min")
 
-        // Encoder le token
         var selection = FamilyActivitySelection()
         selection.applicationTokens = [app.token]
 
@@ -1149,61 +1049,16 @@ struct BlockAppSheet: View {
             return
         }
 
-        // 1️⃣ APPLIQUER LE SHIELD IMMÉDIATEMENT dans le store PAR DÉFAUT
-        // ✅ CRUCIAL: Utiliser le store par défaut (sans nom) pour la persistance!
-        // Le GlobalShieldManager utilise aussi ce store, donc cohérence garantie
-        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        blockLogger.critical("🔒 [BLOCK_SHEET] ========== STEP 1: APPLYING SHIELD ==========")
-        blockLogger.critical("🔒 [BLOCK_SHEET] App: \(app.name)")
-        blockLogger.critical("🔒 [BLOCK_SHEET] Duration: \(Int(duration/60)) minutes")
-        blockLogger.critical("🔒 [BLOCK_SHEET] BlockID: \(blockId)")
-        blockLogger.critical("🔒 [BLOCK_SHEET] ActivityName: \(activityName.rawValue)")
-
-        let store = ManagedSettingsStore() // ✅ Store par défaut = persistance!
-        blockLogger.critical("🔒 [BLOCK_SHEET] Created DEFAULT ManagedSettingsStore")
-
-        let currentBlocked = store.shield.applications ?? Set()
-        blockLogger.critical("🔒 [BLOCK_SHEET] Current blocked apps in store: \(currentBlocked.count)")
-
-        var blockedApps = currentBlocked
-        let beforeCount = blockedApps.count
+        // 1️⃣ Appliquer le shield immédiatement
+        let store = ManagedSettingsStore()
+        var blockedApps = store.shield.applications ?? Set()
         blockedApps.insert(app.token)
-        let afterCount = blockedApps.count
-
-        blockLogger.critical("🔒 [BLOCK_SHEET] Before insert: \(beforeCount) apps")
-        blockLogger.critical("🔒 [BLOCK_SHEET] After insert: \(afterCount) apps")
-        blockLogger.critical("🔒 [BLOCK_SHEET] Actually added: \(afterCount > beforeCount)")
-
         store.shield.applications = blockedApps
-        blockLogger.critical("✅ [BLOCK_SHEET] store.shield.applications = blockedApps EXECUTED")
+        blockLogger.critical("✅ [BLOCK_SHEET] Shield applied, total blocked: \(blockedApps.count)")
 
-        // Vérifier immédiatement
-        let verifyBlocked = store.shield.applications?.count ?? 0
-        blockLogger.critical("🔒 [BLOCK_SHEET] Verification: store now has \(verifyBlocked) blocked apps")
-
-        if verifyBlocked != afterCount {
-            blockLogger.critical("⚠️ [BLOCK_SHEET] MISMATCH! Expected \(afterCount) but got \(verifyBlocked)")
-        }
-
-        blockLogger.critical("✅ [BLOCK_SHEET] Shield applied to DEFAULT store!")
-        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-        // 2️⃣ ENVOYER LES DONNÉES À L'APP PRINCIPALE pour la sauvegarde
-        blockLogger.critical("📝 [BLOCK_SHEET] Report Extension cannot save to App Group (sandbox restriction)")
-        blockLogger.critical("📤 [BLOCK_SHEET] Opening main app to save block data...")
-
-        // Encoder les données pour l'URL
-        let blockData: [String: Any] = [
-            "appName": app.name,
-            "duration": duration,
-            "activityName": activityName.rawValue,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-
-        // Encoder le token séparément (base64)
+        // 2️⃣ Ouvrir l'app principale pour sauvegarder
         let tokenBase64 = tokenData.base64EncodedString()
 
-        // Créer l'URL avec les paramètres
         var urlComponents = URLComponents(string: "zenloop://save-block")!
         urlComponents.queryItems = [
             URLQueryItem(name: "appName", value: app.name),
@@ -1213,31 +1068,16 @@ struct BlockAppSheet: View {
         ]
 
         if let url = urlComponents.url {
-            blockLogger.critical("🔗 [BLOCK_SHEET] Opening main app with block data...")
             openURL(url) { accepted in
                 if accepted {
-                    blockLogger.critical("✅ [BLOCK_SHEET] Main app opened - block will be saved there")
+                    blockLogger.critical("✅ [BLOCK_SHEET] Main app opened")
                 } else {
                     blockLogger.error("❌ [BLOCK_SHEET] Failed to open main app")
                 }
             }
-        } else {
-            blockLogger.error("❌ [BLOCK_SHEET] Failed to create URL")
         }
 
-        blockLogger.critical("💾 [BLOCK_SHEET] Block will be saved by main app (has write permissions)")
-
-        // 3️⃣ DEMANDER À L'APP PRINCIPALE DE PROGRAMMER LE MONITORING
-        blockLogger.critical("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        blockLogger.critical("⏰ [BLOCK_SHEET] ========== STEP 3: REQUESTING MAIN APP TO SCHEDULE ==========")
-        blockLogger.critical("⚠️ [BLOCK_SHEET] Extensions cannot call DeviceActivityCenter.startMonitoring()")
-        blockLogger.critical("⚠️ [BLOCK_SHEET] Main app will handle the scheduling instead")
-
-        let now = Date()
-        blockLogger.critical("⏰ [BLOCK_SHEET] Now: \(now)")
-        blockLogger.critical("⏰ [BLOCK_SHEET] Duration: \(duration) seconds (\(Int(duration/60)) minutes)")
-
-        // Sauvegarder le payload pour que le Monitor puisse l'utiliser plus tard
+        // 3️⃣ Sauvegarder le payload
         if let suite = UserDefaults(suiteName: "group.com.app.zenloop") {
             let payload = SelectionPayload(
                 sessionId: blockId,
@@ -1249,17 +1089,10 @@ struct BlockAppSheet: View {
             if let payloadData = try? JSONEncoder().encode(payload) {
                 suite.set(payloadData, forKey: "payload_\(activityName.rawValue)")
                 suite.synchronize()
-                blockLogger.critical("💾 [BLOCK_SHEET] Payload saved to App Group: payload_\(activityName.rawValue)")
-            } else {
-                blockLogger.error("❌ [BLOCK_SHEET] Failed to encode payload")
+                blockLogger.critical("💾 [BLOCK_SHEET] Payload saved")
             }
-        } else {
-            blockLogger.error("❌ [BLOCK_SHEET] Cannot access App Group")
         }
 
-        blockLogger.critical("✅ [BLOCK_SHEET] Shield applied, main app will schedule monitoring")
-
-        // Feedback visuel + fermeture
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             self.isBlocking = false
             self.onBlockAdded?()
@@ -1267,7 +1100,6 @@ struct BlockAppSheet: View {
         }
         #endif
     }
-
 }
 
 // MARK: - Blocked App Row
@@ -1284,9 +1116,7 @@ struct BlockedAppRow: View {
             showUnblockSheet = true
         } label: {
             HStack(spacing: 12) {
-                // Icône de l'app avec cadenas
                 ZStack(alignment: .bottomTrailing) {
-                    // Essayer d'afficher l'icône réelle
                     if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: block.appTokenData),
                        let token = selection.applicationTokens.first {
 
@@ -1295,7 +1125,6 @@ struct BlockedAppRow: View {
                             .frame(width: 48, height: 48)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
-                        // Fallback: placeholder
                         ZStack {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(
@@ -1316,12 +1145,10 @@ struct BlockedAppRow: View {
                         }
                     }
 
-                    // Badge cadenas
                     ZStack {
                         Circle()
                             .fill(Color.red)
                             .frame(width: 22, height: 22)
-
                         Image(systemName: "lock.fill")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.white)
@@ -1329,7 +1156,6 @@ struct BlockedAppRow: View {
                     .offset(x: 4, y: 4)
                 }
 
-                // App name
                 VStack(alignment: .leading, spacing: 2) {
                     Text(block.appName)
                         .font(.system(size: 14, weight: .semibold))
@@ -1342,7 +1168,6 @@ struct BlockedAppRow: View {
 
                 Spacer()
 
-                // Remaining time
                 Text(remainingTime)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.red.opacity(0.9))
@@ -1373,6 +1198,8 @@ struct BlockedAppRow: View {
     }
 
     private func startTimer() {
+        // ✅ FIX: Invalider l'ancien timer
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             updateRemainingTime()
         }
@@ -1384,80 +1211,65 @@ struct BlockedAppRow: View {
     }
 }
 
-// MARK: - Skeleton Loading View
+// MARK: - Extension Skeleton (local à l'extension, pas de dépendance croisée)
 
-/// ✅ OPTIMIZED: Skeleton UI pour feedback visuel instantané
-struct SkeletonFullStatsView: View {
+struct ExtensionSkeletonView: View {
     @State private var isAnimating = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                // Hero skeleton
                 VStack(spacing: 8) {
-                    SkeletonBox(width: 200, height: 56)
-                    SkeletonBox(width: 150, height: 12)
+                    skeletonRect(width: 200, height: 56)
+                    skeletonRect(width: 150, height: 12)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
 
-                // Metrics row skeleton
                 HStack(spacing: 20) {
                     VStack(spacing: 8) {
-                        SkeletonBox(width: 60, height: 12)
+                        skeletonRect(width: 60, height: 12)
                         HStack(spacing: 6) {
                             ForEach(0..<3, id: \.self) { _ in
-                                SkeletonBox(width: 24, height: 24, cornerRadius: 6)
+                                skeletonRect(width: 24, height: 24, cornerRadius: 6)
                             }
                         }
                     }
-
                     Spacer()
-
                     VStack(spacing: 4) {
-                        SkeletonBox(width: 40, height: 22)
-                        SkeletonBox(width: 80, height: 12)
+                        skeletonRect(width: 40, height: 22)
+                        skeletonRect(width: 80, height: 12)
                     }
-
                     Spacer()
-
                     VStack(spacing: 4) {
-                        SkeletonBox(width: 30, height: 22)
-                        SkeletonBox(width: 70, height: 12)
+                        skeletonRect(width: 30, height: 22)
+                        skeletonRect(width: 70, height: 12)
                     }
                 }
                 .padding(.vertical, 20)
 
-                // Chart skeleton
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        SkeletonBox(width: 100, height: 10)
-                        Spacer()
-                    }
+                    skeletonRect(width: 100, height: 10)
 
                     HStack(alignment: .bottom, spacing: 1.5) {
                         ForEach(0..<18, id: \.self) { _ in
-                            SkeletonBox(width: 15, height: CGFloat.random(in: 20...80), cornerRadius: 2)
+                            skeletonRect(width: 15, height: CGFloat.random(in: 20...80), cornerRadius: 2)
                         }
                     }
                     .frame(height: 80)
                 }
                 .padding(.top, 30)
 
-                // Apps list skeleton
                 VStack(spacing: 0) {
                     ForEach(0..<5, id: \.self) { index in
                         HStack(spacing: 12) {
-                            SkeletonBox(width: 44, height: 44, cornerRadius: 10)
-
+                            skeletonRect(width: 44, height: 44, cornerRadius: 10)
                             VStack(alignment: .leading, spacing: 4) {
-                                SkeletonBox(width: 120, height: 16)
-                                SkeletonBox(width: 60, height: 14)
+                                skeletonRect(width: 120, height: 16)
+                                skeletonRect(width: 60, height: 14)
                             }
-
                             Spacer()
-
-                            SkeletonBox(width: 24, height: 24, cornerRadius: 12)
+                            skeletonRect(width: 24, height: 24, cornerRadius: 12)
                         }
                         .padding(.vertical, 16)
 
@@ -1474,16 +1286,8 @@ struct SkeletonFullStatsView: View {
             .padding(.top, 60)
         }
     }
-}
 
-struct SkeletonBox: View {
-    let width: CGFloat
-    let height: CGFloat
-    var cornerRadius: CGFloat = 8
-
-    @State private var isAnimating = false
-
-    var body: some View {
+    private func skeletonRect(width: CGFloat, height: CGFloat, cornerRadius: CGFloat = 8) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius)
             .fill(
                 LinearGradient(
@@ -1498,10 +1302,11 @@ struct SkeletonBox: View {
             )
             .frame(width: width, height: height)
             .onAppear {
-                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                    isAnimating.toggle()
+                if !isAnimating {
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        isAnimating = true
+                    }
                 }
             }
     }
 }
-

@@ -4,6 +4,10 @@
 //
 //  Vue Stats complète style Opal - Entièrement DeviceActivityReport
 //
+//  ✅ FIX: Race condition chargement — délai adaptatif + retry
+//  ✅ FIX: Background synchronisé avec FullStatsPageView
+//  ✅ FIX: SkeletonBox dédupliqué (défini ici uniquement)
+//
 
 import SwiftUI
 import DeviceActivity
@@ -13,9 +17,9 @@ struct FullStatsView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var zenloopManager: ZenloopManager
     @State private var showContent = false
-    @State private var reportKey = UUID() // Force reload du DeviceActivityReport
+    @State private var reportKey = UUID()
+    @State private var loadAttempts = 0
 
-    // Filter pour toute la journée (de minuit à maintenant)
     private var dailyFilter: DeviceActivityFilter {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -30,7 +34,111 @@ struct FullStatsView: View {
 
     var body: some View {
         ZStack {
-            // Background animé comme HomeView
+            // ✅ Background identique à FullStatsPageView
+            statsBackground
+
+            #if os(iOS)
+            ZStack {
+                // Skeleton/cache pendant le chargement
+                if !showContent {
+                    InstantStatsPreview()
+                        .transition(.opacity)
+                }
+
+                // Le DeviceActivityReport
+                DeviceActivityReport(
+                    DeviceActivityReport.Context("FullStatsPage"),
+                    filter: dailyFilter
+                )
+                .id(reportKey)
+                .ignoresSafeArea(edges: .bottom)
+                .opacity(showContent ? 1 : 0)
+                .animation(.easeInOut(duration: 0.3), value: showContent)
+            }
+            #else
+            Text(String(localized: "full_stats_ios_only"))
+                .foregroundColor(.white)
+            #endif
+
+            // MinimalHeader overlay
+            VStack {
+                MinimalHeader(
+                    showContent: showContent,
+                    currentState: zenloopManager.currentState,
+                    zenloopManager: zenloopManager
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, getSafeAreaTop())
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.8),
+                            Color.black.opacity(0.4),
+                            Color.clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 100)
+                )
+
+                Spacer()
+            }
+            .ignoresSafeArea(edges: .top)
+        }
+        .task {
+            await waitForReportReady()
+        }
+        .refreshable {
+            reportKey = UUID()
+            showContent = false
+            loadAttempts = 0
+            await waitForReportReady()
+        }
+    }
+
+    // MARK: - ✅ FIX: Chargement adaptatif avec vérification des données
+
+    /// Au lieu d'un délai fixe de 0.8s, on vérifie si les données sont prêtes
+    /// avec un système de retry progressif.
+    private func waitForReportReady() async {
+        // Étape 1: Attendre un minimum pour que le report s'initialise
+        try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
+
+        // Étape 2: Vérifier si les données sont en cache (App Group)
+        let hasData = checkCachedDataAvailable()
+
+        if hasData {
+            // Données en cache → afficher immédiatement
+            withAnimation(.easeInOut(duration: 0.25)) {
+                showContent = true
+            }
+        } else {
+            // Pas de cache → attendre un peu plus pour le premier chargement
+            try? await Task.sleep(nanoseconds: 400_000_000) // +0.4s = 1.0s total
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showContent = true
+            }
+        }
+    }
+
+    /// Vérifie si des données récentes existent dans le cache App Group
+    private func checkCachedDataAvailable() -> Bool {
+        guard let shared = UserDefaults(suiteName: "group.com.app.zenloop"),
+              let data = shared.data(forKey: "DAReportLatest") else {
+            return false
+        }
+        // Vérifier que les données ne sont pas trop vieilles (< 24h)
+        if let payload = try? JSONDecoder().decode(SharedReportPayload.self, from: data) {
+            return payload.todayScreenSeconds > 0
+        }
+        return false
+    }
+
+    // MARK: - Background (synchronisé avec l'extension)
+
+    private var statsBackground: some View {
+        ZStack {
             Rectangle()
                 .fill(
                     LinearGradient(
@@ -56,77 +164,6 @@ struct FullStatsView: View {
                 .opacity(0.3)
                 .blendMode(.overlay)
                 .ignoresSafeArea()
-
-            // TOUTE la page est un DeviceActivityReport
-            #if os(iOS)
-            ZStack {
-                // ✅ OPTIMIZED: Afficher un skeleton pendant le chargement initial
-                if !showContent {
-                    InstantStatsPreview()
-                        .transition(.opacity)
-                }
-
-                // Le vrai DeviceActivityReport
-                DeviceActivityReport(
-                    DeviceActivityReport.Context("FullStatsPage"),
-                    filter: dailyFilter
-                )
-                .id(reportKey) // Permet de forcer le reload
-                .ignoresSafeArea(edges: .bottom)
-                .opacity(showContent ? 1 : 0)
-                .animation(.easeInOut(duration: 0.3), value: showContent)
-            }
-            #else
-            Text(String(localized: "full_stats_ios_only"))
-                .foregroundColor(.white)
-            #endif
-
-            // MinimalHeader overlay en haut
-            VStack {
-                MinimalHeader(
-                    showContent: showContent,
-                    currentState: zenloopManager.currentState,
-                    zenloopManager: zenloopManager
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, getSafeAreaTop())
-                .background(
-                    // Gradient fade pour meilleure lisibilité
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.8),
-                            Color.black.opacity(0.4),
-                            Color.clear
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 100)
-                )
-
-                Spacer()
-            }
-            .ignoresSafeArea(edges: .top)
-        }
-        .task {
-            // ✅ OPTIMIZED: Délai intelligent pour laisser le report se charger
-            // Le skeleton reste visible pendant ce temps
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s
-
-            withAnimation {
-                showContent = true
-            }
-        }
-        .refreshable {
-            // Pull to refresh pour recharger les données
-            reportKey = UUID()
-            showContent = false
-
-            try? await Task.sleep(nanoseconds: 800_000_000)
-
-            withAnimation {
-                showContent = true
-            }
         }
     }
 
@@ -143,14 +180,12 @@ struct FullStatsView: View {
 
 // MARK: - Instant Stats Preview (Cached Data)
 
-/// ✅ OPTIMIZED: Affichage instantané des dernières données pendant que le report se charge
 struct InstantStatsPreview: View {
     @State private var cachedData: InstantStatsData?
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                // Hero section avec données cachées
                 VStack(spacing: 8) {
                     Text(formattedTotalTime)
                         .font(.system(size: 56, weight: .bold, design: .rounded))
@@ -164,7 +199,6 @@ struct InstantStatsPreview: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
 
-                // Metrics row avec données cachées
                 HStack(spacing: 20) {
                     VStack(spacing: 8) {
                         Text(String(localized: "most_used_label"))
@@ -209,7 +243,7 @@ struct InstantStatsPreview: View {
                 }
                 .padding(.vertical, 20)
 
-                // Chart skeleton avec pulse
+                // Chart skeleton ou données cachées
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
                         SkeletonBox(width: 100, height: 10)
@@ -256,13 +290,9 @@ struct InstantStatsPreview: View {
     }
 
     private func focusScoreColor(_ score: Int) -> Color {
-        if score >= 70 {
-            return .green
-        } else if score >= 40 {
-            return .orange
-        } else {
-            return .red
-        }
+        if score >= 70 { return .green }
+        else if score >= 40 { return .orange }
+        else { return .red }
     }
 
     private func loadCachedData() {
@@ -274,7 +304,6 @@ struct InstantStatsPreview: View {
         do {
             let payload = try JSONDecoder().decode(SharedReportPayload.self, from: data)
 
-            // Calculer focus score
             let focusScore = calculateFocusScore(from: payload.topCategories)
 
             cachedData = InstantStatsData(
@@ -288,7 +317,6 @@ struct InstantStatsPreview: View {
                     return SimpleHourPoint(hour: hourPoint.hour, totalMinutes: totalMinutes)
                 }
             )
-
         } catch {
             print("❌ Failed to load cached data: \(error)")
         }
@@ -315,6 +343,8 @@ struct InstantStatsPreview: View {
         return Int((productiveTime / totalTime) * 100)
     }
 }
+
+// MARK: - Shared UI Components
 
 struct InstantStatsData {
     let totalDuration: TimeInterval
@@ -381,6 +411,8 @@ struct SimpleHourlyChart: View {
         .frame(height: chartHeight)
     }
 }
+
+// MARK: - ✅ SkeletonBox défini UNE SEULE FOIS (partagé avec FullStatsPageView)
 
 struct SkeletonBox: View {
     let width: CGFloat

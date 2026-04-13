@@ -64,6 +64,11 @@ struct zenloopactivity: DeviceActivityReportExtension {
             FullStatsPageView(reportData: activityReport)
         }
 
+        // Guilt Trip - vue culpabilisation avec vraies données Screen Time
+        GuiltTripReport { activityReport in
+            GuiltTripExtensionView(reportData: activityReport)
+        }
+
         // Quick Block Category Reports - liste des apps par catégorie
         QuickBlockSocialReport { reportData in
             CategoryAppsListView(reportData: reportData)

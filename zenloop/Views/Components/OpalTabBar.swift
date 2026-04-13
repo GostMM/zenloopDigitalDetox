@@ -14,7 +14,8 @@ struct OpalTabBar: View {
     let tabs: [OpalTabItem] = [
         OpalTabItem(icon: "house.fill", title: "Home", tag: 0),
         OpalTabItem(icon: "chart.xyaxis.line", title: "Screen Time", tag: 1),
-        OpalTabItem(icon: "person.2.fill", title: "Social", tag: 2)
+        OpalTabItem(icon: "flame.fill", title: "Guilt", tag: 2),
+        OpalTabItem(icon: "person.2.fill", title: "Social", tag: 3)
     ]
 
     var body: some View {

@@ -2,8 +2,7 @@
 //  QuickBlockScheduleModal.swift
 //  zenloop
 //
-//  Modal de configuration pour scheduler un Quick Block Mode
-//  Basé sur ScheduleConfigurationModal mais adapté pour les catégories
+//  Modal compacte pour planifier un Quick Block Mode
 //
 
 import SwiftUI
@@ -17,72 +16,29 @@ struct QuickBlockScheduleModal: View {
     let onSessionStarted: (Date, TimeInterval) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedDuration: TimeInterval = 30 * 60 // 30 min par défaut
+    @State private var selectedDuration: TimeInterval = 30 * 60
     @State private var selectedStartTime = Date()
     @State private var selectedDifficulty: DifficultyLevel = .medium
     @State private var showContent = false
 
-    // Durées disponibles (en minutes)
-    private let availableDurations: [TimeInterval] = [
-        15 * 60,  // 15 min
-        30 * 60,  // 30 min
-        60 * 60,  // 1h
-        90 * 60,  // 1h30
-        2 * 60 * 60,  // 2h
-        3 * 60 * 60,  // 3h
-        4 * 60 * 60,  // 4h
-        6 * 60 * 60,  // 6h
-        8 * 60 * 60   // 8h
-    ]
+    private let durations: [TimeInterval] = [
+        15, 30, 60, 90, 120, 180, 240, 360, 480
+    ].map { $0 * 60 }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationView {
             ZStack {
-                // Background moderne
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.02, green: 0.02, blue: 0.12),
-                        Color(red: 0.06, green: 0.03, blue: 0.15),
-                        Color(red: 0.08, green: 0.02, blue: 0.18)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        // Header avec info catégorie
-                        headerSection
-
-                        // Sélection de durée
-                        durationSelectionSection
-
-                        // Sélection de difficulté
-                        difficultySelectionSection
-
-                        // Heure de début
-                        startTimeSection
-
-                        // Boutons d'action
-                        actionButtonsSection
-
-                        Spacer(minLength: 100)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                }
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 20)
+                backgroundGradient
+                scrollContent
             }
             .navigationTitle("Planifier le blocage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
+                    Button("Annuler") { dismiss() }
+                        .foregroundColor(.white)
                 }
             }
             .onAppear {
@@ -94,205 +50,236 @@ struct QuickBlockScheduleModal: View {
         }
     }
 
-    // MARK: - Header Section
+    // MARK: - Background
+
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.02, green: 0.02, blue: 0.12),
+                Color(red: 0.06, green: 0.03, blue: 0.15),
+                Color(red: 0.08, green: 0.02, blue: 0.18)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Scroll Content
+
+    private var scrollContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+                headerSection
+                cardStack
+                actionButtons
+                Spacer(minLength: 80)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+    }
+
+    // MARK: - Header (compact)
+
     private var headerSection: some View {
-        VStack(spacing: 12) {
-            // Icône et titre
+        HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.1), Color.white.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 52, height: 52)
 
                 Image(systemName: categoryType.systemIcon)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
             }
 
-            Text(categoryType.displayName)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(categoryType.displayName)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
 
-            Text("\(selectedApps.applicationTokens.count + selectedApps.categoryTokens.count) apps sélectionnées")
-                .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.6))
-        }
-        .padding(.vertical, 20)
-    }
-
-    // MARK: - Duration Selection
-    private var durationSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Durée du blocage")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-
-            // Grid de durées
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(availableDurations, id: \.self) { duration in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            selectedDuration = duration
-                        }
-                    }) {
-                        Text(formatDuration(duration))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(selectedDuration == duration ? .white : .white.opacity(0.6))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(selectedDuration == duration ? Color.blue : Color.white.opacity(0.1))
-                            )
-                    }
-                }
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.05))
-        )
-    }
-
-    // MARK: - Difficulty Selection
-    private var difficultySelectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Niveau de restriction")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-
-            HStack(spacing: 12) {
-                ForEach(DifficultyLevel.allCases) { difficulty in
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            selectedDifficulty = difficulty
-                        }
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: difficulty.icon)
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(selectedDifficulty == difficulty ? .white : .white.opacity(0.5))
-
-                            Text(difficulty.rawValue)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(selectedDifficulty == difficulty ? .white : .white.opacity(0.5))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(selectedDifficulty == difficulty ? difficulty.color.opacity(0.3) : Color.white.opacity(0.05))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedDifficulty == difficulty ? difficulty.color : Color.clear, lineWidth: 2)
-                                )
-                        )
-                    }
-                }
+                let count = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
+                Text("\(count) apps sélectionnées")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.5))
             }
 
-            // Description du niveau
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Card Stack (durée + difficulté + heure dans une seule carte)
+
+    private var cardStack: some View {
+        VStack(spacing: 0) {
+            // ── Durée ──
+            sectionHeader("Durée", icon: "clock")
+            durationGrid
+                .padding(.bottom, 16)
+
+            Divider().background(Color.white.opacity(0.1))
+
+            // ── Difficulté ──
+            sectionHeader("Restriction", icon: "shield.lefthalf.filled")
+                .padding(.top, 16)
+            difficultyRow
             Text(difficultyDescription)
-                .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.6))
-                .padding(.top, 4)
-        }
-    }
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.45))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 6)
+                .padding(.bottom, 16)
 
-    // MARK: - Start Time Section
-    private var startTimeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Heure de début")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+            Divider().background(Color.white.opacity(0.1))
 
-            DatePicker(
-                "",
-                selection: $selectedStartTime,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-            .datePickerStyle(.compact)
-            .labelsHidden()
-            .colorScheme(.dark)
+            // ── Heure de début ──
+            HStack {
+                sectionHeader("Début", icon: "calendar")
+                Spacer()
+                DatePicker("", selection: $selectedStartTime, displayedComponents: [.date, .hourAndMinute])
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .colorScheme(.dark)
+                    .scaleEffect(0.9, anchor: .trailing)
+            }
+            .padding(.top, 12)
         }
-        .padding(20)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.white.opacity(0.05))
         )
+    }
+
+    // MARK: - Section Header Helper
+
+    private func sectionHeader(_ title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.4))
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.6))
+                .textCase(.uppercase)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Duration Grid (compact 3 colonnes)
+
+    private var durationGrid: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+            spacing: 8
+        ) {
+            ForEach(durations, id: \.self) { duration in
+                let isSelected = selectedDuration == duration
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                        selectedDuration = duration
+                    }
+                } label: {
+                    Text(formatDuration(duration))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(isSelected ? .white : .white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(isSelected ? Color.blue : Color.white.opacity(0.08))
+                        )
+                }
+            }
+        }
+    }
+
+    // MARK: - Difficulty Row (compact)
+
+    private var difficultyRow: some View {
+        HStack(spacing: 8) {
+            ForEach(DifficultyLevel.allCases) { difficulty in
+                let isSelected = selectedDifficulty == difficulty
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                        selectedDifficulty = difficulty
+                    }
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: difficulty.icon)
+                            .font(.system(size: 16, weight: .bold))
+                        Text(difficulty.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.4))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(isSelected ? difficulty.color.opacity(0.25) : Color.white.opacity(0.04))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isSelected ? difficulty.color.opacity(0.6) : .clear, lineWidth: 1.5)
+                            )
+                    )
+                }
+            }
+        }
     }
 
     // MARK: - Action Buttons
-    private var actionButtonsSection: some View {
-        VStack(spacing: 12) {
-            // Bouton "Planifier"
+
+    private var actionButtons: some View {
+        VStack(spacing: 10) {
             Button(action: scheduleSession) {
-                HStack {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(.system(size: 18, weight: .semibold))
-                    Text("Planifier le blocage")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [Color.blue, Color.purple],
-                        startPoint: .leading,
-                        endPoint: .trailing
+                Label("Planifier le blocage", systemImage: "calendar.badge.plus")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.blue, Color.purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
-                .cornerRadius(14)
-                .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .cornerRadius(12)
+                    .shadow(color: .blue.opacity(0.25), radius: 6, y: 3)
             }
 
-            // Bouton "Démarrer maintenant"
             Button(action: startNow) {
-                HStack {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Démarrer maintenant")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.1))
-                )
+                Label("Démarrer maintenant", systemImage: "play.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.8))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.08))
+                    )
             }
         }
-        .padding(.top, 8)
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Computed
+
     private var difficultyDescription: String {
         switch selectedDifficulty {
-        case .easy:
-            return "Shield overlay - Les apps sont visibles mais bloquées"
-        case .medium:
-            return "Shield avec notification - Blocage renforcé"
-        case .hard:
-            return "Masquage complet - Les apps disparaissent de l'écran"
+        case .easy:   return "Shield overlay – apps visibles mais bloquées"
+        case .medium: return "Shield + notification – blocage renforcé"
+        case .hard:   return "Masquage complet – apps invisibles"
         }
     }
 
     // MARK: - Actions
-    private func scheduleSession() {
-        print("🗓️ [QUICK_BLOCK] Scheduling session for \(categoryType.displayName)")
-        print("   → Start time: \(selectedStartTime)")
-        print("   → Duration: \(formatDuration(selectedDuration))")
-        print("   → Difficulty: \(selectedDifficulty.rawValue)")
 
-        // Scheduler via ZenloopManager
+    private func scheduleSession() {
         zenloopManager.scheduleCustomChallenge(
             title: categoryType.displayName,
             duration: selectedDuration,
@@ -300,16 +287,11 @@ struct QuickBlockScheduleModal: View {
             apps: selectedApps,
             startTime: selectedStartTime
         )
-
-        // Notifier le ViewModel
         onSessionStarted(selectedStartTime, selectedDuration)
         dismiss()
     }
 
     private func startNow() {
-        print("▶️ [QUICK_BLOCK] Starting session NOW for \(categoryType.displayName)")
-
-        // Démarrer via ZenloopManager
         zenloopManager.startCustomChallenge(
             title: categoryType.displayName,
             duration: selectedDuration,
@@ -317,23 +299,17 @@ struct QuickBlockScheduleModal: View {
             apps: selectedApps,
             taskGoal: nil
         )
-
-        // Notifier le ViewModel
         onSessionStarted(Date(), selectedDuration)
         dismiss()
     }
 
     // MARK: - Helpers
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
 
-        if hours > 0 && minutes > 0 {
-            return "\(hours)h\(minutes)"
-        } else if hours > 0 {
-            return "\(hours)h"
-        } else {
-            return "\(minutes)min"
-        }
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let h = Int(duration) / 3600
+        let m = (Int(duration) % 3600) / 60
+        if h > 0 && m > 0 { return "\(h)h\(m)" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)min"
     }
 }
