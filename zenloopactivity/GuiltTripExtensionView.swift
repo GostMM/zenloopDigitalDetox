@@ -348,7 +348,7 @@ struct GuiltTripExtensionView: View {
             }
 
             comparisonRow(
-                label: "Moyenne nationale 🇫🇷",
+                label: "Moyenne mondiale",
                 value: formattedTime(nationalAverageSeconds),
                 delta: todaySeconds - nationalAverageSeconds,
                 icon: "globe"
@@ -434,38 +434,42 @@ struct GuiltTripExtensionView: View {
                 ForEach(Array(apps.enumerated()), id: \.offset) { index, app in
                     VStack(spacing: 8) {
                         HStack(spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .foregroundColor(.white.opacity(0.2))
-                                .frame(width: 16)
+                            // Icône réelle de l'app
+                            #if os(iOS)
+                            AppIconBadge(app: app, size: 36)
+                            #endif
 
-                            Text(app.name)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(app.name)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .lineLimit(1)
+
+                                Text(formattedTime(app.duration))
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundColor(appBarColor(index: index).opacity(0.8))
+                            }
 
                             Spacer()
 
-                            Text(formattedTime(app.duration))
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 1.5)
-                                    .fill(Color.white.opacity(0.05))
-                                    .frame(height: 2)
-                                RoundedRectangle(cornerRadius: 1.5)
-                                    .fill(appBarColor(index: index).opacity(0.7))
-                                    .frame(
-                                        width: totalTop > 0 ? geo.size.width * CGFloat(app.duration / totalTop) : 0,
-                                        height: 2
-                                    )
+                            // Barre relative (longueur = % du total)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(Color.white.opacity(0.06))
+                                        .frame(height: 4)
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(appBarColor(index: index).opacity(0.7))
+                                        .frame(
+                                            width: totalTop > 0 ? geo.size.width * CGFloat(app.duration / totalTop) : 0,
+                                            height: 4
+                                        )
+                                }
                             }
+                            .frame(width: 70, height: 4)
                         }
-                        .frame(height: 2)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 4)
                 }
             }
         )
