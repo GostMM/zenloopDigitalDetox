@@ -39,6 +39,8 @@ struct SessionDetailView: View {
     @State private var pauseRequestReason = ""
     @State private var sessionExpirationTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     @State private var hasAppliedBlocks = false
+    @State private var isApplyingBlocks = false // Mutex pour éviter les applications concurrentes
+    @State private var lastAppliedSharedTokensHash: Int? = nil // Pour détecter les changements de sélection partagée
 
     // ✅ FIX V3: Timer dédié pour vérifier la transition lobby→active des sessions programmées
     @State private var scheduledSessionCheckTimer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
@@ -168,23 +170,14 @@ struct SessionDetailView: View {
                 isReady = localApps.selectedAppsCount > 0
             }
 
-            // Late join detection
-            if activeSession.status == .active && !hasAppliedBlocks {
-                if let sessionId = session.id,
-                   let localApps = sessionManager.getLocalApps(sessionId: sessionId),
-                   localApps.selectedAppsCount > 0 {
-                    print("🔄 [LATE_JOIN] Session already active and apps selected! Applying blocks for late joiner...")
-                    applySessionBlocks()
-                    hasAppliedBlocks = true
-                } else {
-                    print("⏳ [LATE_JOIN] Session active but no apps selected yet. Waiting for user selection...")
-                }
-            }
+            // Sync initial + évaluation unique pour l'état déjà présent
+            syncSharedAppsIfNeeded()
+            evaluateBlockApplication(reason: "onAppear")
 
             // ✅ FIX V3: Vérifier immédiatement si une session programmée aurait dû démarrer
             checkScheduledSessionTransition()
         }
-        .onChange(of: selectedApps) { oldSelection, newSelection in
+        .onChange(of: selectedApps) { _, newSelection in
             let hasApps = !newSelection.applicationTokens.isEmpty || !newSelection.categoryTokens.isEmpty
 
             if hasApps, let sessionId = session.id {
@@ -195,32 +188,28 @@ struct SessionDetailView: View {
                 }
             }
 
-            if activeSession.status == .active && !hasAppliedBlocks && hasApps {
-                print("📱 [LATE_JOIN] User selected apps while session active! Applying blocks now...")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.applySessionBlocks()
-                    self.hasAppliedBlocks = true
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-            }
+            evaluateBlockApplication(reason: "selectedAppsChanged")
+        }
+        // Surveille l'apparition/modification de la sélection partagée par le leader.
+        // Se déclenche aussi sur le 1er snapshot Firestore (contrairement à onChange(status)).
+        .onChange(of: activeSession.sharedAppTokens) { _, _ in
+            syncSharedAppsIfNeeded()
+            evaluateBlockApplication(reason: "sharedAppTokensChanged")
         }
         .onChange(of: activeSession.status) { oldStatus, newStatus in
             print("🔄 [STATUS_CHANGE] Session status changed: \(oldStatus.rawValue) → \(newStatus.rawValue)")
 
-            // Session démarre (manuellement OU automatiquement par le Monitor)
-            if oldStatus != .active && newStatus == .active && !hasAppliedBlocks {
-                print("🚀 Session started/resumed! Applying blocks for all members...")
-                applySessionBlocks()
-                hasAppliedBlocks = true
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-
-                // ✅ FIX V3: Arrêter le timer de vérification une fois active
+            if newStatus == .active {
                 scheduledStartReached = false
+                scheduledSessionCheckTimer.upstream.connect().cancel()
+                syncSharedAppsIfNeeded()
+                evaluateBlockApplication(reason: "statusActive")
             }
-            else if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
+            if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
                 print("🛑 Session ended! Removing blocks...")
                 removeSessionBlocks()
                 hasAppliedBlocks = false
+                lastAppliedSharedTokensHash = nil
             }
         }
         .onReceive(sessionExpirationTimer) { _ in
@@ -241,31 +230,17 @@ struct SessionDetailView: View {
         }
         .familyActivityPicker(isPresented: $showAppPicker, selection: $selectedApps)
         // Quand l'app revient en foreground, vérifier si la session a changé de status
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 print("📱 [SESSION_DETAIL] App returned to foreground — refreshing session")
-
-                // ✅ FIX V3: TOUJOURS redémarrer le listener au retour foreground
                 if let sessionId = session.id {
                     sessionManager.startSessionListener(sessionId: sessionId)
                 }
-
-                // ✅ FIX V3: Forcer une vérification immédiate pour les sessions programmées
                 if isScheduledSession && activeSession.status == .lobby {
-                    print("📱 [SESSION_DETAIL] Scheduled session still in lobby after foreground — force checking...")
                     forceRefreshSession()
                 }
-
-                // Vérifier si des blocks doivent être appliqués
-                if activeSession.status == .active && !hasAppliedBlocks {
-                    if let sessionId = session.id,
-                       let localApps = sessionManager.getLocalApps(sessionId: sessionId),
-                       localApps.selectedAppsCount > 0 {
-                        print("🔄 [SESSION_DETAIL] Session became active while in background — applying blocks")
-                        applySessionBlocks()
-                        hasAppliedBlocks = true
-                    }
-                }
+                syncSharedAppsIfNeeded()
+                evaluateBlockApplication(reason: "foreground")
             }
         }
         .alert("Quitter la Session", isPresented: $showLeaveAlert) {
@@ -494,8 +469,9 @@ struct SessionDetailView: View {
         Task {
             do {
                 try await sessionManager.startSession(sessionId: session.id!)
+                // L'application des blocks est déclenchée par onChange(currentSession)
+                // une fois que le listener Firestore propage le status .active.
                 await MainActor.run {
-                    applySessionBlocks()
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
             } catch {
@@ -600,13 +576,66 @@ struct SessionDetailView: View {
         }
     }
 
-    private func applySessionBlocks() {
+    /// Sync la sélection partagée par le leader dans la session Firestore
+    /// vers le stockage local du membre courant. Garantit que tous les membres
+    /// (y compris late joiners) appliquent les mêmes restrictions.
+    private func syncSharedAppsIfNeeded() {
+        guard let sessionId = session.id,
+              let shared = activeSession.sharedAppTokens,
+              let count = activeSession.sharedAppsCount, count > 0 else { return }
+
+        let currentLocal = sessionManager.getLocalApps(sessionId: sessionId)
+        if currentLocal?.selectedAppTokens == shared { return }
+
+        sessionManager.saveLocalApps(sessionId: sessionId, appTokens: shared, count: count)
+        if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: shared) {
+            selectedApps = selection
+        }
+        // Invalide le hash pour forcer une ré-application avec la nouvelle sélection
+        lastAppliedSharedTokensHash = nil
+        print("🔄 [SHARED_APPS] Synced shared selection from leader (\(count) items)")
+    }
+
+    /// Évalue si les blocks doivent être appliqués ou ré-appliqués, avec garde anti-concurrence.
+    private func evaluateBlockApplication(reason: String) {
+        guard activeSession.status == .active else { return }
+        guard !isApplyingBlocks else {
+            print("⏭️ [EVAL:\(reason)] Already applying, skip")
+            return
+        }
+        guard let sessionId = session.id,
+              let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+              localApps.selectedAppsCount > 0 else {
+            return
+        }
+
+        let currentHash = localApps.selectedAppTokens.hashValue
+        if hasAppliedBlocks && lastAppliedSharedTokensHash == currentHash {
+            return
+        }
+
+        print("🚀 [EVAL:\(reason)] Applying session blocks...")
+        isApplyingBlocks = true
+        Task { @MainActor in
+            let success = await applySessionBlocks()
+            isApplyingBlocks = false
+            if success {
+                hasAppliedBlocks = true
+                lastAppliedSharedTokensHash = currentHash
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+    }
+
+    @MainActor
+    @discardableResult
+    private func applySessionBlocks() async -> Bool {
         guard let sessionId = session.id,
               let localApps = sessionManager.getLocalApps(sessionId: sessionId),
               localApps.selectedAppsCount > 0,
               let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) else {
             print("⚠️ No apps to block for session \(session.id ?? "")")
-            return
+            return false
         }
 
         #if os(iOS)
@@ -614,71 +643,67 @@ struct SessionDetailView: View {
         let categoryCount = selection.categoryTokens.count
         print("🛡️ [SESSION_BLOCKS] Starting block application for \(appCount) apps + \(categoryCount) categories in session \(sessionId)")
 
-        Task { @MainActor in
-            let authCenter = AuthorizationCenter.shared
-            let status = authCenter.authorizationStatus
-
-            print("🔐 [SESSION_BLOCKS] Screen Time authorization status: \(status.rawValue)")
-
-            guard status == .approved else {
-                print("❌ [SESSION_BLOCKS] Screen Time not authorized! Status: \(status)")
-                do {
-                    try await authCenter.requestAuthorization(for: .individual)
-                    print("✅ [SESSION_BLOCKS] Authorization granted, retrying blocks...")
-                    await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
-                } catch {
-                    print("❌ [SESSION_BLOCKS] Failed to get authorization: \(error)")
-                }
-                return
+        let authCenter = AuthorizationCenter.shared
+        if authCenter.authorizationStatus != .approved {
+            print("❌ [SESSION_BLOCKS] Screen Time not authorized! Requesting...")
+            do {
+                try await authCenter.requestAuthorization(for: .individual)
+            } catch {
+                print("❌ [SESSION_BLOCKS] Failed to get authorization: \(error)")
+                return false
             }
-
-            await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
         }
+
+        return await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount, attempt: 1)
+        #else
+        return false
         #endif
     }
 
     @MainActor
-    private func applyBlocksWithDelay(sessionId: String, selection: FamilyActivitySelection, appCount: Int, categoryCount: Int) async {
+    private func applyBlocksWithDelay(sessionId: String, selection: FamilyActivitySelection, appCount: Int, categoryCount: Int, attempt: Int) async -> Bool {
         try? await Task.sleep(nanoseconds: 500_000_000)
 
-        print("🛡️ [SESSION_BLOCKS] Applying blocks NOW...")
+        print("🛡️ [SESSION_BLOCKS] Applying blocks NOW (attempt \(attempt))...")
 
         for (index, token) in selection.applicationTokens.enumerated() {
             let blockId = "session_\(sessionId)_app_\(index)"
             let appName = "Session App \(index + 1)"
             GlobalShieldManager.shared.addBlock(token: token, blockId: blockId, appName: appName)
-            print("  → Blocked app: \(appName) with ID: \(blockId)")
         }
 
         for (index, token) in selection.categoryTokens.enumerated() {
             let blockId = "session_\(sessionId)_category_\(index)"
             let categoryName = "Session Category \(index + 1)"
             GlobalShieldManager.shared.addCategoryBlock(token: token, blockId: blockId, categoryName: categoryName)
-            print("  → Blocked category: \(categoryName) with ID: \(blockId)")
         }
 
         UserDefaults.standard.set(appCount + categoryCount, forKey: "session_\(sessionId)_blocks_count")
-        print("✅ [SESSION_BLOCKS] All blocks applied successfully! (\(appCount) apps + \(categoryCount) categories)")
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            let store = ManagedSettingsStore()
-            let verifyApps = store.shield.applications?.count ?? 0
-            let verifyCategories: Int
-            if let cats = store.shield.applicationCategories,
-               case .specific(let tokens, except: _) = cats {
-                verifyCategories = tokens.count
-            } else {
-                verifyCategories = 0
-            }
-            print("🔍 [SESSION_BLOCKS] Verification: \(verifyApps) apps + \(verifyCategories) categories blocked in store")
-
-            if verifyApps + verifyCategories == 0 && appCount + categoryCount > 0 {
-                print("⚠️ [SESSION_BLOCKS] BLOCKS NOT APPLIED! Retrying...")
-                Task { @MainActor in
-                    await self.applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount)
-                }
-            }
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        let store = ManagedSettingsStore()
+        let verifyApps = store.shield.applications?.count ?? 0
+        let verifyCategories: Int
+        if let cats = store.shield.applicationCategories,
+           case .specific(let tokens, except: _) = cats {
+            verifyCategories = tokens.count
+        } else {
+            verifyCategories = 0
         }
+        print("🔍 [SESSION_BLOCKS] Verification: \(verifyApps) apps + \(verifyCategories) categories blocked")
+
+        let expected = appCount + categoryCount
+        let actual = verifyApps + verifyCategories
+        if actual == 0 && expected > 0 && attempt < 3 {
+            print("⚠️ [SESSION_BLOCKS] Blocks not applied, retry \(attempt + 1)/3")
+            return await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount, attempt: attempt + 1)
+        }
+        if actual == 0 && expected > 0 {
+            print("❌ [SESSION_BLOCKS] Failed after 3 attempts")
+            return false
+        }
+        print("✅ [SESSION_BLOCKS] Applied (\(actual)/\(expected))")
+        return true
     }
 
     private func removeSessionBlocks() {

@@ -131,6 +131,11 @@ struct Session: Codable, Identifiable {
     // Background image
     var backgroundImageUrl: String?
 
+    // Sélection d'apps partagée — publiée par le leader, appliquée par tous les membres.
+    // Encode un FamilyActivitySelection (Data base64 via Firestore).
+    var sharedAppTokens: Data?
+    var sharedAppsCount: Int?
+
     // ✅ Helpers pour accès sûr
     var safeDescription: String { description ?? "" }
     var safeVisibility: SessionVisibility { visibility ?? .privateSession }
@@ -160,6 +165,8 @@ struct Session: Codable, Identifiable {
         case isScheduled
         case suggestedAppsCount
         case backgroundImageUrl
+        case sharedAppTokens
+        case sharedAppsCount
     }
 }
 

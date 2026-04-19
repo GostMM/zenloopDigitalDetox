@@ -93,11 +93,18 @@ class SessionManager: ObservableObject {
         startUserListener(uid: uid)
     }
 
+    private var didBootstrapListeners = false
+
     func loadUserSessions() async {
         guard let uid = currentUser?.id else { return }
-        startMySessionsListener(uid: uid)
-        startPublicSessionsListener()
-        startInvitationsListener(uid: uid)
+
+        if !didBootstrapListeners {
+            startMySessionsListener(uid: uid)
+            startPublicSessionsListener()
+            startInvitationsListener(uid: uid)
+            didBootstrapListeners = true
+            sessionLogger.info("🟢 Listeners bootstrapped once for uid: \(uid)")
+        }
 
         await loadActiveSession()
         await checkPendingScheduledActions()
@@ -241,7 +248,9 @@ class SessionManager: ObservableObject {
             scheduledStartTime: scheduledStartTime != nil ? Timestamp(date: scheduledStartTime!) : nil,
             isScheduled: isScheduled,
             suggestedAppsCount: suggestedAppsCount,
-            backgroundImageUrl: backgroundImageUrl
+            backgroundImageUrl: backgroundImageUrl,
+            sharedAppTokens: nil,
+            sharedAppsCount: nil
         )
 
         let sessionRef = try db.collection("sessions").addDocument(from: newSession)
@@ -731,6 +740,13 @@ class SessionManager: ObservableObject {
         if let durationMinutes = session.durationMinutes {
             let scheduledEnd = Date().addingTimeInterval(TimeInterval(durationMinutes * 60))
             updateData["scheduledEndTime"] = Timestamp(date: scheduledEnd)
+        }
+
+        // Publie la sélection d'apps du leader pour que tous les membres (y compris
+        // late joiners) appliquent les mêmes restrictions.
+        if let localApps = getLocalApps(sessionId: sessionId), localApps.selectedAppsCount > 0 {
+            updateData["sharedAppTokens"] = localApps.selectedAppTokens
+            updateData["sharedAppsCount"] = localApps.selectedAppsCount
         }
 
         batch.updateData(updateData, forDocument: sessionRef)
@@ -1289,6 +1305,28 @@ class SessionManager: ObservableObject {
         publicSessionsListener?.remove(); publicSessionsListener = nil
         invitationsListener?.remove(); invitationsListener = nil
         stopCurrentSessionListeners()
+        didBootstrapListeners = false
+    }
+
+    // MARK: - Shared Apps (leader → tous les membres)
+
+    /// Le leader publie sa sélection d'apps sur le document session.
+    /// Tous les membres (incluant late joiners) récupèrent la même sélection
+    /// via le listener Firestore et appliquent les mêmes restrictions.
+    func publishSharedApps(sessionId: String, appTokens: Data, count: Int) async throws {
+        guard let uid = currentUser?.id else { throw SessionError.notAuthenticated }
+
+        let sessionRef = db.collection("sessions").document(sessionId)
+        let snapshot = try await sessionRef.getDocument()
+        guard let leaderId = snapshot.data()?["leaderId"] as? String, leaderId == uid else {
+            throw SessionError.notAuthorized
+        }
+
+        try await sessionRef.updateData([
+            "sharedAppTokens": appTokens,
+            "sharedAppsCount": count
+        ])
+        sessionLogger.info("✅ Shared apps published for session \(sessionId): \(count) items")
     }
 
     // MARK: - Local Apps Storage

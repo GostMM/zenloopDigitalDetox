@@ -25,7 +25,9 @@ struct SocialTab: View {
     @State private var showSessionDetail = false
     @State private var inviteCode = ""
     @State private var selectedSessionId: String? = nil
-    @State private var highlightedSession: Session? = nil // ✅ Session actuellement affichée dans ActiveSessionCard
+    @State private var highlightedSession: Session? = nil
+    @State private var feedSegment: SessionFeedSegment = .mine
+    @State private var didBootstrap = false
 
     var body: some View {
         Group {
@@ -37,17 +39,28 @@ struct SocialTab: View {
         }
     }
 
+    private var heroSession: Session? {
+        highlightedSession ?? sessionManager.currentSession ?? sessionManager.mySessions.first
+    }
+
+    private var alertCount: Int {
+        let pause = sessionManager.currentSession.map { session in
+            session.leaderId == sessionManager.currentUser?.id ? sessionManager.pendingPauseRequests.count : 0
+        } ?? 0
+        let join = sessionManager.pendingJoinRequests.count
+        return pause + join
+    }
+
     private var authenticatedContent: some View {
         ZStack {
             OptimizedBackground(currentState: .idle)
                 .ignoresSafeArea(.all, edges: .all)
-            
+
             FloatingParticlesOverlay()
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                // — Header compact —
                 SocialMinimalHeader(
                     showContent: showContent,
                     unreadCount: notificationManager.unreadCount,
@@ -59,24 +72,29 @@ struct SocialTab: View {
                 .padding(.top, 20)
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 28) {
 
-                        // — Top band : Online + Quick Actions fusionnés —
-                        TopSocialBand(
+                        // 1. HERO — carte unique qui adapte son contenu
+                        HeroSection(
+                            session: heroSession,
                             showContent: showContent,
-                            onCreateSession: { showCreateSession = true },
-                            onJoinSession: { showJoinSession = true }
+                            onCreate: { showCreateSession = true },
+                            onJoin: { showJoinSession = true }
                         )
+                        .padding(.horizontal, 20)
                         .padding(.top, 20)
 
-                        // — Session active (carte hero avec sélection dynamique) —
-                        if let displayedSession = highlightedSession ?? sessionManager.currentSession {
-                            ActiveSessionCard(session: displayedSession, showContent: showContent)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 24)
-                        }
+                        // 2. ACTION RAIL — toujours visible, discret
+                        ActionRail(
+                            showContent: showContent,
+                            activeMembersCount: onlineMembersCount,
+                            alertCount: alertCount,
+                            onCreate: { showCreateSession = true },
+                            onJoin: { showJoinSession = true }
+                        )
+                        .padding(.horizontal, 20)
 
-                        // — Demandes de pause (leader only) —
+                        // 3. ALERTS (leader) — affichées UNIQUEMENT si count > 0
                         if let currentSession = sessionManager.currentSession,
                            let currentUserId = sessionManager.currentUser?.id,
                            currentSession.leaderId == currentUserId,
@@ -87,61 +105,36 @@ struct SocialTab: View {
                                 showContent: showContent
                             )
                             .padding(.horizontal, 20)
-                            .padding(.top, 24)
                         }
 
-                        // — Demandes de rejoindre (leader only) —
-                        if let currentUserId = sessionManager.currentUser?.id,
-                           !sessionManager.pendingJoinRequests.isEmpty {
+                        if !sessionManager.pendingJoinRequests.isEmpty {
                             JoinRequestsSection(
                                 requests: sessionManager.pendingJoinRequests,
                                 showContent: showContent
                             )
                             .padding(.horizontal, 20)
-                            .padding(.top, 24)
                         }
 
-                        // — Invitations (compact inline) —
+                        // 4. INVITATIONS — carousel si présent
                         if !sessionManager.pendingInvitations.isEmpty {
                             InvitationsCarousel(
                                 invitations: sessionManager.pendingInvitations,
                                 showContent: showContent
                             )
-                            .padding(.top, 28)
                         }
 
-                        // — Mes Sessions (carousel horizontal) —
-                        if !sessionManager.mySessions.isEmpty {
-                            SessionCarousel(
-                                title: "Mes Sessions",
-                                icon: "rectangle.stack.fill",
-                                sessions: sessionManager.mySessions,
-                                accentColor: .cyan,
-                                showContent: showContent,
-                                onSessionTap: { session in
-                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                        highlightedSession = session
-                                    }
-                                }
-                            )
-                            .padding(.top, 28)
-                        }
-
-                        // — Sessions Publiques (carousel horizontal) —
-                        SessionCarousel(
-                            title: "Découvrir",
-                            icon: "globe",
-                            sessions: sessionManager.publicSessions,
-                            accentColor: Color(red: 0.6, green: 0.4, blue: 1.0),
+                        // 5. FEED unifié — segment Mes / Découvrir
+                        SessionsFeedSection(
+                            segment: $feedSegment,
+                            mySessions: sessionManager.mySessions,
+                            publicSessions: sessionManager.publicSessions,
                             showContent: showContent,
-                            emptyMessage: "Crée la première session publique !",
                             onSessionTap: { session in
                                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                                     highlightedSession = session
                                 }
                             }
                         )
-                        .padding(.top, 28)
 
                         Spacer(minLength: 120)
                     }
@@ -153,16 +146,19 @@ struct SocialTab: View {
             withAnimation(.spring(response: 1.0, dampingFraction: 0.75)) {
                 showContent = true
             }
-            if let userId = sessionManager.currentUser?.id {
-                notificationManager.startListening(userId: userId)
-                // ✅ FIX: Force reload sessions on first appearance
-                Task {
-                    await sessionManager.loadUserSessions()
-                }
-            }
+            // ✅ Bootstrap UNE SEULE FOIS par vie de la vue.
+            // Les listeners Firestore sont idempotents (SessionManager garde un flag),
+            // et restent actifs en background — aucun refresh brutal à chaque onAppear.
+            guard !didBootstrap, let userId = sessionManager.currentUser?.id else { return }
+            didBootstrap = true
+            notificationManager.startListening(userId: userId)
+            Task { await sessionManager.loadUserSessions() }
         }
-        .onDisappear {
-            notificationManager.stopListening()
+        .onChange(of: authManager.isAuthenticated) { _, isAuth in
+            if !isAuth {
+                didBootstrap = false
+                notificationManager.stopListening()
+            }
         }
         .onChange(of: deepLinkCoordinator.shouldNavigateToSession) { _, shouldNavigate in
             if shouldNavigate, let sessionId = deepLinkCoordinator.pendingSessionId {
@@ -198,6 +194,10 @@ struct SocialTab: View {
         sessionManager.mySessions.first(where: { $0.id == id })
             ?? sessionManager.publicSessions.first(where: { $0.id == id })
             ?? sessionManager.currentSession
+    }
+
+    private var onlineMembersCount: Int {
+        (sessionManager.currentSession?.memberIds ?? []).count
     }
 
     private func getSessionStatus() -> SocialSessionStatus {
@@ -248,128 +248,378 @@ enum SocialSessionStatus {
 }
 
 
-// MARK: - Top Social Band (Online + Actions fusionnés en une seule bande)
+// MARK: - Hero Section (adapte le contenu au state)
 
-struct TopSocialBand: View {
+struct HeroSection: View {
+    let session: Session?
     let showContent: Bool
-    let onCreateSession: () -> Void
-    let onJoinSession: () -> Void
-    @ObservedObject private var sessionManager = SessionManager.shared
-    @State private var breathe = false
+    let onCreate: () -> Void
+    let onJoin: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 0) {
-                // Avatars en ligne (gauche)
-                HStack(spacing: 0) {
+        Group {
+            if let session = session {
+                ActiveSessionCard(session: session, showContent: showContent)
+            } else {
+                EmptyHeroCard(showContent: showContent, onCreate: onCreate, onJoin: onJoin)
+            }
+        }
+    }
+}
+
+struct EmptyHeroCard: View {
+    let showContent: Bool
+    let onCreate: () -> Void
+    let onJoin: () -> Void
+    @State private var shimmerPhase: CGFloat = 0
+    @State private var appeared = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(red: 0.4, green: 0.6, blue: 1.0).opacity(0.3), .clear],
+                            center: .center, startRadius: 10, endRadius: 60
+                        )
+                    )
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(appeared ? 1 : 0.5)
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(red: 0.5, green: 0.7, blue: 1.0), Color(red: 0.6, green: 0.4, blue: 1.0)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .rotationEffect(.degrees(appeared ? 0 : -30))
+            }
+
+            VStack(spacing: 6) {
+                Text("Prêt à focus ensemble")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+
+                Text("Crée une session ou rejoins-en une\npour démarrer ton focus partagé.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white.opacity(0.45))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+
+            HStack(spacing: 10) {
+                HeroPrimaryCTA(icon: "plus.circle.fill", label: "Créer", gradient: [
+                    Color(red: 0.35, green: 0.55, blue: 1.0),
+                    Color(red: 0.25, green: 0.4, blue: 0.95)
+                ], action: onCreate)
+
+                HeroPrimaryCTA(icon: "person.badge.plus", label: "Rejoindre", gradient: [
+                    Color(red: 0.6, green: 0.35, blue: 1.0),
+                    Color(red: 0.45, green: 0.2, blue: 0.9)
+                ], action: onJoin)
+            }
+            .padding(.top, 4)
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.12, green: 0.14, blue: 0.22),
+                                Color(red: 0.07, green: 0.08, blue: 0.14)
+                            ],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+
+                RoundedRectangle(cornerRadius: 28)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.10),
+                                Color.white.opacity(0.02)
+                            ],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        )
+        .shadow(color: Color.blue.opacity(0.08), radius: 20, x: 0, y: 10)
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 30)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
+        .onAppear {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.4)) {
+                appeared = true
+            }
+        }
+    }
+}
+
+struct HeroPrimaryCTA: View {
+    let icon: String
+    let label: String
+    let gradient: [Color]
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .bold))
+                Text(label)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(
+                Capsule().fill(
+                    LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+            )
+            .shadow(color: gradient[0].opacity(0.4), radius: 10, x: 0, y: 4)
+        }
+        .buttonStyle(BounceButtonStyle())
+    }
+}
+
+
+// MARK: - Action Rail (compact, toujours visible sous le hero)
+
+struct ActionRail: View {
+    let showContent: Bool
+    let activeMembersCount: Int
+    let alertCount: Int
+    let onCreate: () -> Void
+    let onJoin: () -> Void
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Indicateur online membres
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.25))
+                        .frame(width: 18, height: 18)
+                        .scaleEffect(pulse ? 1.3 : 1.0)
                     Circle()
                         .fill(Color.green)
                         .frame(width: 8, height: 8)
-                        .scaleEffect(breathe ? 1.3 : 0.8)
-                        .padding(.trailing, 10)
-
-                    let onlineMembers = getOnlineMembers()
-
-                    if onlineMembers.isEmpty {
-                        HStack(spacing: -6) {
-                            ForEach(0..<3, id: \.self) { i in
-                                Circle()
-                                    .fill(Color.white.opacity(0.06))
-                                    .frame(width: 36, height: 36)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
-                                    )
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.white.opacity(0.1))
-                                    )
-                            }
-                        }
-
-                        Text("Invite !")
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.3))
-                            .padding(.leading, 10)
-                    } else {
-                        HStack(spacing: -8) {
-                            ForEach(Array(onlineMembers.prefix(6).enumerated()), id: \.offset) { index, member in
-                                CompactOnlineAvatar(username: member, index: index)
-                            }
-
-                            if onlineMembers.count > 6 {
-                                Text("+\(onlineMembers.count - 6)")
-                                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .frame(width: 36, height: 36)
-                                    .background(
-                                        Circle()
-                                            .fill(Color.white.opacity(0.08))
-                                            .overlay(Circle().stroke(Color(red: 0.08, green: 0.08, blue: 0.1), lineWidth: 2))
-                                    )
-                            }
-                        }
-                    }
                 }
+                Text(activeMembersCount > 0 ? "\(activeMembersCount) en ligne" : "Personne en focus")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(activeMembersCount > 0 ? 0.75 : 0.35))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(Color.white.opacity(0.05))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 1))
+            )
 
-                Spacer(minLength: 12)
-
-                // Boutons action compacts (droite)
-                HStack(spacing: 10) {
-                    Button(action: onCreateSession) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.35, green: 0.55, blue: 1.0), Color(red: 0.25, green: 0.4, blue: 0.95)],
-                                        startPoint: .topLeading, endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 48, height: 48)
-                                .shadow(color: Color(red: 0.3, green: 0.5, blue: 1.0).opacity(0.35), radius: 12, x: 0, y: 4)
-
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .buttonStyle(BounceButtonStyle())
-
-                    Button(action: onJoinSession) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.6, green: 0.35, blue: 1.0), Color(red: 0.45, green: 0.2, blue: 0.9)],
-                                        startPoint: .topLeading, endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 48, height: 48)
-                                .shadow(color: Color(red: 0.5, green: 0.3, blue: 1.0).opacity(0.35), radius: 12, x: 0, y: 4)
-
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .buttonStyle(BounceButtonStyle())
+            if alertCount > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("\(alertCount)")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
                 }
+                .foregroundColor(.orange)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule().fill(Color.orange.opacity(0.12))
+                        .overlay(Capsule().stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                )
+                .transition(.scale.combined(with: .opacity))
+            }
+
+            Spacer(minLength: 4)
+
+            // Actions rapides
+            Button(action: onCreate) {
+                Image(systemName: "plus")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.35, green: 0.55, blue: 1.0), Color(red: 0.25, green: 0.4, blue: 0.95)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .shadow(color: Color(red: 0.3, green: 0.5, blue: 1.0).opacity(0.3), radius: 8, x: 0, y: 3)
+            }
+            .buttonStyle(BounceButtonStyle())
+
+            Button(action: onJoin) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.6, green: 0.35, blue: 1.0), Color(red: 0.45, green: 0.2, blue: 0.9)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .shadow(color: Color(red: 0.5, green: 0.3, blue: 1.0).opacity(0.3), radius: 8, x: 0, y: 3)
+            }
+            .buttonStyle(BounceButtonStyle())
+        }
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 20)
+        .animation(.spring(response: 0.9, dampingFraction: 0.78).delay(0.3), value: showContent)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) { pulse = true }
+        }
+    }
+}
+
+
+// MARK: - Sessions Feed (segment Mes / Découvrir)
+
+enum SessionFeedSegment: String, CaseIterable {
+    case mine = "Mes Sessions"
+    case discover = "Découvrir"
+
+    var icon: String {
+        switch self {
+        case .mine: return "rectangle.stack.fill"
+        case .discover: return "globe"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .mine: return .cyan
+        case .discover: return Color(red: 0.6, green: 0.4, blue: 1.0)
+        }
+    }
+}
+
+struct SessionsFeedSection: View {
+    @Binding var segment: SessionFeedSegment
+    let mySessions: [Session]
+    let publicSessions: [Session]
+    let showContent: Bool
+    var onSessionTap: ((Session) -> Void)? = nil
+
+    private var currentSessions: [Session] {
+        segment == .mine ? mySessions : publicSessions
+    }
+
+    private var emptyMessage: String {
+        segment == .mine ? "Tu n'as pas encore de session." : "Crée la première session publique !"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Segment control
+            HStack(spacing: 6) {
+                ForEach(SessionFeedSegment.allCases, id: \.self) { seg in
+                    SegmentPill(
+                        segment: seg,
+                        isSelected: segment == seg,
+                        count: seg == .mine ? mySessions.count : publicSessions.count,
+                        onTap: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                segment = seg
+                            }
+                        }
+                    )
+                }
+                Spacer()
             }
             .padding(.horizontal, 20)
+
+            Group {
+                if currentSessions.isEmpty {
+                    CarouselEmptyState(message: emptyMessage, accentColor: segment.accent)
+                        .padding(.horizontal, 20)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 14) {
+                            ForEach(Array(currentSessions.enumerated()), id: \.element.id) { index, session in
+                                SessionCarouselCard(
+                                    session: session,
+                                    accentColor: segment.accent,
+                                    index: index,
+                                    showContent: showContent,
+                                    onTap: onSessionTap
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: segment)
         }
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 25)
-        .animation(.spring(response: 0.9, dampingFraction: 0.78).delay(0.15), value: showContent)
-        .onAppear { breathe = true }
-        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: breathe)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.45), value: showContent)
     }
+}
 
-    private func getOnlineMembers() -> [String] {
-        guard let session = sessionManager.currentSession else { return [] }
-        return (session.memberIds ?? []).prefix(8).enumerated().map { index, _ in
-            "Membre \(index + 1)"
+struct SegmentPill: View {
+    let segment: SessionFeedSegment
+    let isSelected: Bool
+    let count: Int
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Image(systemName: segment.icon)
+                    .font(.system(size: 12, weight: .bold))
+                Text(segment.rawValue)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundColor(isSelected ? .white : segment.accent)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule().fill(isSelected ? Color.white.opacity(0.22) : segment.accent.opacity(0.15))
+                        )
+                }
+            }
+            .foregroundColor(isSelected ? .white : .white.opacity(0.45))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(isSelected ? segment.accent.opacity(0.9) : Color.white.opacity(0.04))
+                    .overlay(
+                        Capsule().stroke(
+                            isSelected ? segment.accent.opacity(0.5) : Color.white.opacity(0.06),
+                            lineWidth: 1
+                        )
+                    )
+            )
+            .shadow(
+                color: isSelected ? segment.accent.opacity(0.35) : .clear,
+                radius: 10, x: 0, y: 4
+            )
         }
+        .buttonStyle(BounceButtonStyle())
     }
 }
 
@@ -414,72 +664,7 @@ struct CompactOnlineAvatar: View {
 }
 
 
-// MARK: - Session Carousel (horizontal scroll — vivant, avec énergie)
-
-struct SessionCarousel: View {
-    let title: String
-    let icon: String
-    let sessions: [Session]
-    let accentColor: Color
-    let showContent: Bool
-    var emptyMessage: String? = nil
-    var onSessionTap: ((Session) -> Void)? = nil // ✅ Callback pour sélection
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Header avec accent couleur
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(accentColor)
-                    .frame(width: 3, height: 18)
-
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(accentColor.opacity(0.8))
-
-                Text(title)
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
-
-                if !sessions.isEmpty {
-                    Text("\(sessions.count)")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(accentColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(accentColor.opacity(0.12)))
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-
-            if sessions.isEmpty {
-                CarouselEmptyState(message: emptyMessage ?? "Rien ici pour l'instant", accentColor: accentColor)
-                    .padding(.horizontal, 20)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
-                            SessionCarouselCard(
-                                session: session,
-                                accentColor: accentColor,
-                                index: index,
-                                showContent: showContent,
-                                onTap: onSessionTap
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 25)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.35), value: showContent)
-    }
-}
+// MARK: - Session Carousel Card (réutilisé par SessionsFeedSection)
 
 struct SessionCarouselCard: View {
     let session: Session
@@ -1052,107 +1237,237 @@ struct ActiveSessionCard: View {
     let showContent: Bool
     @State private var glowPhase: CGFloat = 0
     @State private var memberAvatarsVisible = false
+    @State private var elapsedTick = Date()
+    @State private var livePulse = false
+
+    private let liveTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var statusColor: Color {
         switch session.status {
-        case .active: return .green; case .paused: return .orange
+        case .active: return Color(red: 0.3, green: 0.9, blue: 0.5)
+        case .paused: return Color(red: 1.0, green: 0.75, blue: 0.3)
+        case .lobby: return Color(red: 0.5, green: 0.7, blue: 1.0)
         default: return Color(red: 0.4, green: 0.6, blue: 1.0)
         }
     }
+
     private var statusLabel: String {
         switch session.status {
-        case .active: return "EN COURS"; case .paused: return "EN PAUSE"; default: return "SESSION"
+        case .active: return "EN COURS"
+        case .paused: return "EN PAUSE"
+        case .lobby: return "LOBBY"
+        default: return "SESSION"
         }
     }
+
     private var statusIcon: String {
         switch session.status {
-        case .active: return "bolt.fill"; case .paused: return "pause.fill"; default: return "circle.fill"
+        case .active: return "bolt.fill"
+        case .paused: return "pause.fill"
+        case .lobby: return "hourglass"
+        default: return "circle.fill"
         }
     }
+
+    private var elapsedText: String? {
+        guard session.status == .active, let started = session.startedAt?.dateValue() else { return nil }
+        let interval = max(0, Int(elapsedTick.timeIntervalSince(started)))
+        let h = interval / 3600
+        let m = (interval % 3600) / 60
+        let s = interval % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+    }
+
+    private var memberCount: Int { (session.memberIds ?? []).count }
 
     var body: some View {
         NavigationLink(destination: SessionDetailView(session: session)) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 8) {
-                    HStack(spacing: 6) {
-                        Image(systemName: statusIcon).font(.system(size: 10, weight: .bold))
-                        Text(statusLabel).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5)
-                    }
-                    .foregroundColor(statusColor)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(statusColor.opacity(0.15)))
-                    Spacer()
-                    Image(systemName: "arrow.right.circle.fill").font(.system(size: 22)).foregroundColor(.white.opacity(0.3))
-                }
-
-                Text(session.title).font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white).lineLimit(2)
-
-                if !(session.description ?? "").isEmpty {
-                    Text(session.description ?? "").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6)).lineLimit(2)
-                }
-
-                if (session.suggestedAppsCount ?? 0) > 0 { ActiveSessionAppsRow(session: session) }
-
-                HStack(spacing: 0) {
-                    HStack(spacing: -10) {
-                        ForEach(0..<min((session.memberIds ?? []).count, 5), id: \.self) { index in
-                            MiniAvatar(index: index)
-                                .scaleEffect(memberAvatarsVisible ? 1 : 0)
-                                .animation(.spring(response: 0.4, dampingFraction: 0.6).delay(Double(index) * 0.06), value: memberAvatarsVisible)
-                        }
-                        if (session.memberIds ?? []).count > 5 {
-                            Text("+\((session.memberIds ?? []).count - 5)")
-                                .font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.7))
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(Color.white.opacity(0.1)).overlay(Circle().stroke(Color(red: 0.12, green: 0.22, blue: 0.12), lineWidth: 2)))
-                        }
-                    }
-                    Spacer()
-                    HStack(spacing: 6) {
-                        Image(systemName: "key.fill").font(.system(size: 11, weight: .semibold))
-                        Text(session.inviteCode).font(.system(size: 13, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundColor(.white.opacity(0.5))
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Capsule().fill(Color.white.opacity(0.08)))
-                }
-            }
-            .padding(22)
-            .frame(maxHeight: 280)
-            .background(
-                GeometryReader { geometry in
-                    ZStack {
-                        // ✅ Image de fond depuis Firebase Storage avec cache et shimmer
-                        if let storagePath = session.backgroundImageUrl, !storagePath.isEmpty {
-                            CachedFirebaseImage(storagePath: storagePath, cornerRadius: 24)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .clipped()
-                                .withReadabilityOverlay(cornerRadius: 24)
-                        } else {
-                            // Pas d'image: motif de fond par défaut
-                            CardPatternBackground(color: statusColor, cornerRadius: 24)
-                        }
-
-                        // Bordure animée
-                        RoundedRectangle(cornerRadius: 24).stroke(
-                            AngularGradient(
-                                gradient: Gradient(colors: [statusColor.opacity(0.5), statusColor.opacity(0.1), statusColor.opacity(0.3), statusColor.opacity(0.0), statusColor.opacity(0.5)]),
-                                center: .center, startAngle: .degrees(glowPhase), endAngle: .degrees(glowPhase + 360)
-                            ), lineWidth: 2
-                        )
-                    }
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .shadow(color: statusColor.opacity(0.15), radius: 20, x: 0, y: 10)
+            cardContent
         }
         .buttonStyle(BounceButtonStyle())
-        .opacity(showContent ? 1 : 0).offset(y: showContent ? 0 : 30)
-        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.3), value: showContent)
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 30)
+        .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(0.2), value: showContent)
         .onAppear {
-            memberAvatarsVisible = true
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.5)) {
+                memberAvatarsVisible = true
+            }
             if session.status == .active {
-                withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) { glowPhase = 360 }
+                withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { glowPhase = 360 }
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { livePulse = true }
+            }
+        }
+        .onReceive(liveTimer) { now in
+            if session.status == .active { elapsedTick = now }
+        }
+    }
+
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // Top row : status + LIVE timer + arrow
+            HStack(alignment: .center, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: statusIcon).font(.system(size: 10, weight: .heavy))
+                    Text(statusLabel)
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .tracking(1.8)
+                }
+                .foregroundColor(statusColor)
+                .padding(.horizontal, 11).padding(.vertical, 6)
+                .background(
+                    Capsule().fill(statusColor.opacity(0.18))
+                        .overlay(Capsule().stroke(statusColor.opacity(0.35), lineWidth: 1))
+                )
+
+                if session.status == .active {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 7, height: 7)
+                            .scaleEffect(livePulse ? 1.3 : 0.9)
+                        Text("LIVE")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundColor(.white.opacity(0.85))
+                        if let elapsed = elapsedText {
+                            Text(elapsed)
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.black.opacity(0.35)))
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.9))
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Color.white.opacity(0.12)))
+                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 1))
+            }
+
+            // Titre + description
+            VStack(alignment: .leading, spacing: 6) {
+                Text(session.title)
+                    .font(.system(size: 26, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !(session.description ?? "").isEmpty {
+                    Text(session.description ?? "")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(2)
+                }
+            }
+
+            // Apps row (si présent)
+            if (session.suggestedAppsCount ?? 0) > 0 {
+                ActiveSessionAppsRow(session: session)
+            }
+
+            Spacer(minLength: 0)
+
+            // Bottom : avatars + invite code
+            HStack(spacing: 12) {
+                HStack(spacing: -10) {
+                    ForEach(0..<min(memberCount, 5), id: \.self) { index in
+                        MiniAvatar(index: index)
+                            .scaleEffect(memberAvatarsVisible ? 1 : 0)
+                            .animation(
+                                .spring(response: 0.5, dampingFraction: 0.65).delay(Double(index) * 0.07),
+                                value: memberAvatarsVisible
+                            )
+                    }
+                    if memberCount > 5 {
+                        Text("+\(memberCount - 5)")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white.opacity(0.8))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle().fill(Color.white.opacity(0.12))
+                                    .overlay(Circle().stroke(Color.black.opacity(0.4), lineWidth: 2))
+                            )
+                    }
+                }
+
+                if memberCount > 0 {
+                    Text("\(memberCount) membre\(memberCount > 1 ? "s" : "")")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Image(systemName: "key.fill").font(.system(size: 10, weight: .bold))
+                    Text(session.inviteCode)
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .tracking(1)
+                }
+                .foregroundColor(.white.opacity(0.6))
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(
+                    Capsule().fill(Color.white.opacity(0.08))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
+                )
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, minHeight: 260, alignment: .topLeading)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 28))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28).stroke(
+                AngularGradient(
+                    gradient: Gradient(colors: [
+                        statusColor.opacity(0.6),
+                        statusColor.opacity(0.1),
+                        statusColor.opacity(0.4),
+                        statusColor.opacity(0.0),
+                        statusColor.opacity(0.6)
+                    ]),
+                    center: .center,
+                    startAngle: .degrees(glowPhase),
+                    endAngle: .degrees(glowPhase + 360)
+                ),
+                lineWidth: 1.5
+            )
+        )
+        .shadow(color: statusColor.opacity(0.2), radius: 24, x: 0, y: 12)
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if let storagePath = session.backgroundImageUrl, !storagePath.isEmpty {
+                    CachedFirebaseImage(storagePath: storagePath, cornerRadius: 28)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                        .withReadabilityOverlay(cornerRadius: 28)
+
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.25),
+                            Color.black.opacity(0.55)
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                } else {
+                    CardPatternBackground(color: statusColor, cornerRadius: 28)
+                    LinearGradient(
+                        colors: [
+                            statusColor.opacity(0.12),
+                            Color(red: 0.06, green: 0.08, blue: 0.14)
+                        ],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                }
             }
         }
     }
