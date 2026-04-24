@@ -984,3 +984,51 @@
 "per_month_short" = "/mese";
 "subscription_plan" = "Abbonamento";
 "cancel_anytime" = "Annullabile in qualsiasi momento";
+
+"your_reality_check" = "La tua realtà";
+"your_reality_check_subtitle" = "Ecco quanto tempo hai speso oggi. Pronto a riprenderlo?";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "Il tuo telefono ti ruba il tempo";
+"onboard_welcome_subtitle" = "In media passiamo 4+ ore al giorno a scrollare. Zenloop ti aiuta a riprenderlo.";
+"onboard_screentime_title" = "Ti mostriamo la verità";
+"onboard_screentime_subtitle" = "Autorizza l'accesso a Tempo di Utilizzo per vedere dove va la tua giornata.";
+"onboard_guilttrip_title" = "La tua giornata, senza filtri";
+"onboard_guilttrip_subtitle" = "Ecco quanto tempo ti ha preso il telefono — oggi.";
+"onboard_howitworks_title" = "Ecco come lo risolviamo";
+"onboard_howitworks_subtitle" = "Sessioni di focus, blocco intelligente e una community che ti supporta.";
+"onboard_feature_block_title" = "Blocca su richiesta";
+"onboard_feature_block_subtitle" = "Metti in pausa le app che ti risucchiano, al tuo ritmo.";
+"onboard_feature_social_title" = "Focus insieme";
+"onboard_feature_social_subtitle" = "Partecipa a sessioni live e senti la responsabilità condivisa.";
+"onboard_feature_stats_title" = "Traccia ciò che conta";
+"onboard_feature_stats_subtitle" = "Vedi i tuoi progressi settimana dopo settimana, senza giudizio.";
+"onboard_social_title" = "Non sei solo";
+"onboard_social_subtitle" = "Unisciti a migliaia che recuperano ore ogni settimana.";
+"onboard_stat_users" = "utenti";
+"onboard_stat_avg_saved" = "risparmiato/g";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "Ti avviseremo al momento giusto";
+"onboard_notifications_subtitle" = "Promemoria delicati solo quando contano — mai spam.";
+"onboard_continue_shocked" = "Voglio cambiare";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "MIGLIOR PREZZO";
+"break_even_months" = "Si ripaga in %d mesi";
+"one_time" = "una tantum";
+"cta_get_lifetime" = "Ottieni l'accesso a vita";
+"cta_start_trial" = "Inizia la prova di 7 giorni";
+
+
+// Stats redesign
+"stats_title" = "Stats";
+"period_today" = "Oggi";
+"period_week" = "Settimana";
+"period_month" = "Mese";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "PUNTEGGIO FOCUS";
+"categories_label" = "CATEGORIE";
+"most_used_label" = "PIÙ USATE";

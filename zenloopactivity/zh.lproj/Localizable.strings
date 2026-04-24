@@ -527,3 +527,13 @@
 "cancel_button" = "取消";
 "distracting_category" = "分心";
 "productive_category" = "高效";
+
+
+// Stats redesign (extension)
+"less_than_avg" = "低于平均";
+"more_than_avg" = "高于平均";
+"today_activity_label" = "每小时活动";
+"chart_morning" = "早晨";
+"chart_afternoon" = "下午";
+"chart_evening" = "晚上";
+"apps_section_title" = "应用";

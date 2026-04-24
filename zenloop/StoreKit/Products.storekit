@@ -28,30 +28,46 @@
       "productID" : "com.app.zenloop.premium.lifetime.v2",
       "referenceName" : "Zenloop Lifetime Premium",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "39.00",
+      "familyShareable" : true,
+      "internalID" : "F5F6518C",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "Zenlopp Premium Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.app.zenloop.premium.lifetime.v3",
+      "referenceName" : "Zenloop Premium Lifetime V3",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
     "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
     "_storeKitErrors" : [
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Load Products"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Purchase"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Verification"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "App Store Sync"
       },
@@ -72,21 +88,19 @@
         "name" : "App Transaction"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Manage Subscriptions Sheet"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Refund Request Sheet"
       },
       {
-        "current" : null,
         "enabled" : false,
         "name" : "Offer Code Redeem Sheet"
       }
-    ]
+    ],
+    "_timeRate" : 0
   },
   "subscriptionGroups" : [
     {
@@ -154,6 +168,38 @@
           "productID" : "com.app.zenloop.premium.yearly.v2",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Zenloop Premium Yearly",
+          "subscriptionGroupID" : "F921B1DB",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "7.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "C2911920",
+          "introductoryOffer" : {
+            "internalID" : "6830221B",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "",
+              "displayName" : "",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.app.zenloop.premium.monthly.v3",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Zenloop Premium Monthly V3",
           "subscriptionGroupID" : "F921B1DB",
           "type" : "RecurringSubscription",
           "winbackOffers" : [

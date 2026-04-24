@@ -527,3 +527,13 @@
 "cancel_button" = "إلغاء";
 "distracting_category" = "مشتت";
 "productive_category" = "منتج";
+
+
+// Stats redesign (extension)
+"less_than_avg" = "أقل من متوسطك";
+"more_than_avg" = "أكثر من متوسطك";
+"today_activity_label" = "النشاط كل ساعة";
+"chart_morning" = "الصباح";
+"chart_afternoon" = "بعد الظهر";
+"chart_evening" = "المساء";
+"apps_section_title" = "التطبيقات";

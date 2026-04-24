@@ -1713,14 +1713,35 @@ struct ActiveSessionAppsRow: View {
             Spacer()
         }
         .onAppear { loadSessionApps() }
+        .onChange(of: session.id) { _, _ in loadSessionApps() }
+        .onChange(of: session.sharedAppTokens) { _, _ in loadSessionApps() }
     }
 
     private func loadSessionApps() {
-        if let sessionId = session.id,
-           let localApps = sessionManager.getLocalApps(sessionId: sessionId),
-           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) {
-            sessionApps = selection
+        guard let sessionId = session.id else {
+            sessionApps = FamilyActivitySelection()
+            return
         }
+
+        // 1) Sélection locale du membre (source prioritaire — ce sont ses propres tokens,
+        //    donc `Label(token)` rend correctement les icônes d'apps).
+        if let localApps = sessionManager.getLocalApps(sessionId: sessionId),
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens),
+           !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty {
+            sessionApps = selection
+            return
+        }
+
+        // 2) Fallback: sélection partagée publiée par le leader via Firestore
+        //    (pour late joiners qui n'ont pas encore fait leur choix).
+        if let shared = session.sharedAppTokens,
+           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: shared),
+           !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty {
+            sessionApps = selection
+            return
+        }
+
+        sessionApps = FamilyActivitySelection()
     }
     private func getGenericAppIcon(index: Int) -> String {
         ["app.fill", "square.stack.3d.up.fill", "app.badge.fill", "square.grid.2x2.fill"][index % 4]

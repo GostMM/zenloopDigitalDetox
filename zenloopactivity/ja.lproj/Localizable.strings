@@ -527,3 +527,13 @@
 "cancel_button" = "キャンセル";
 "distracting_category" = "気が散る";
 "productive_category" = "生産的";
+
+
+// Stats redesign (extension)
+"less_than_avg" = "平均より少ない";
+"more_than_avg" = "平均より多い";
+"today_activity_label" = "時間別アクティビティ";
+"chart_morning" = "朝";
+"chart_afternoon" = "午後";
+"chart_evening" = "夜";
+"apps_section_title" = "アプリ";

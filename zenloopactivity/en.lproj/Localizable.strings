@@ -532,3 +532,13 @@
 "cancel_button" = "Cancel";
 "distracting_category" = "Distracting";
 "productive_category" = "Productive";
+
+
+// Stats redesign (extension)
+"less_than_avg" = "less than your avg";
+"more_than_avg" = "more than your avg";
+"today_activity_label" = "Hourly activity";
+"chart_morning" = "MORNING";
+"chart_afternoon" = "AFTERNOON";
+"chart_evening" = "EVENING";
+"apps_section_title" = "Apps";

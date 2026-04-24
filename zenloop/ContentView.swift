@@ -111,7 +111,7 @@ struct ContentView: View {
             object: nil,
             queue: .main
         ) { _ in
-            selectedTab = 2
+            selectedTab = 1
         }
 
         NotificationCenter.default.addObserver(
@@ -198,12 +198,6 @@ struct TabContentView: View {
                         .navigationBarHidden(true)
                 }
             case 2:
-                NavigationStack {
-                    GuiltTripView()
-                        .environmentObject(zenloopManager)
-                        .navigationBarHidden(true)
-                }
-            case 3:
                 NavigationStack {
                     SocialTab()
                         .environmentObject(zenloopManager)

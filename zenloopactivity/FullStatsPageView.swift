@@ -80,25 +80,33 @@ struct FullStatsPageView: View {
                 .ignoresSafeArea()
 
             if isContentReady {
-                ScrollView(.vertical, showsIndicators: true) {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         heroHeader
+
                         metricsRow
+                            .padding(.top, 8)
 
                         if !activeBlocks.isEmpty {
                             blockedAppsSection
-                                .padding(.top, 20)
+                                .padding(.top, 24)
                         }
 
                         hourlyChart
-                            .padding(.top, 30)
-                            .padding(.bottom, 30)
+                            .padding(.top, 32)
+
+                        timeOfflineSection
+                            .padding(.top, 20)
+
+                        appsListSectionHeader
+                            .padding(.top, 36)
+                            .padding(.bottom, 8)
 
                         appsList
                             .padding(.bottom, 60)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 60)
+                    .padding(.top, 110)
                 }
                 .transition(.opacity)
             } else {
@@ -138,69 +146,113 @@ struct FullStatsPageView: View {
         }
     }
 
-    // MARK: - Hero Header
+    // MARK: - Hero Header (redesigned)
 
     private var heroHeader: some View {
-        VStack(spacing: 8) {
-            Text(formattedTotalTime)
-                .font(.system(size: 56, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-
+        VStack(spacing: 10) {
             Text(String(localized: "screen_time_today"))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.4))
-                .tracking(1.5)
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundColor(.white.opacity(0.45))
+                .tracking(2)
+
+            Text(formattedTotalTime)
+                .font(.system(size: 64, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+
+            avgComparisonPill
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
+        .padding(.vertical, 24)
     }
 
-    // MARK: - Metrics Row
+    /// Pill de comparaison avec la moyenne (affichée quand la moyenne existe et diffère du jour)
+    @ViewBuilder
+    private var avgComparisonPill: some View {
+        let avg = reportData.averageDaily
+        let today = reportData.todayScreenSeconds
+
+        if avg > 60, abs(today - avg) > 60 {
+            let isUnder = today < avg
+            let deltaMinutes = Int(abs(today - avg) / 60)
+            let color: Color = isUnder
+                ? Color(red: 0.35, green: 0.9, blue: 0.55)
+                : Color(red: 1.0, green: 0.45, blue: 0.45)
+
+            HStack(spacing: 6) {
+                Image(systemName: isUnder ? "arrow.down" : "arrow.up")
+                    .font(.system(size: 10, weight: .heavy))
+                Text("\(deltaMinutes)m \(isUnder ? String(localized: "less_than_avg") : String(localized: "more_than_avg"))")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+            }
+            .foregroundColor(color)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule().fill(color.opacity(0.14))
+                    .overlay(Capsule().stroke(color.opacity(0.35), lineWidth: 1))
+            )
+        }
+    }
+
+    // MARK: - Metrics Row (3 cards)
 
     private var metricsRow: some View {
-        HStack(spacing: 20) {
-            VStack(spacing: 8) {
-                Text(String(localized: "most_used_label"))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(1)
+        HStack(spacing: 12) {
+            // Most used
+            FSStatCard {
+                VStack(spacing: 10) {
+                    Text(String(localized: "most_used_label"))
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(1.2)
 
-                HStack(spacing: 6) {
-                    if !reportData.topThreeMostUsed.isEmpty {
-                        ForEach(Array(reportData.topThreeMostUsed.enumerated()), id: \.offset) { index, app in
-                            AppIconBadge(app: app, size: 24)
+                    HStack(spacing: -8) {
+                        if !reportData.topThreeMostUsed.isEmpty {
+                            ForEach(Array(reportData.topThreeMostUsed.prefix(3).enumerated()), id: \.offset) { index, app in
+                                AppIconBadge(app: app, size: 32)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.black.opacity(0.35), lineWidth: 1.5)
+                                    )
+                                    .zIndex(Double(3 - index))
+                            }
+                        } else {
+                            Text("—")
+                                .foregroundColor(.white.opacity(0.35))
                         }
                     }
+                    .frame(height: 32)
                 }
             }
 
-            Spacer()
+            // Focus score with ring
+            FSStatCard {
+                VStack(spacing: 6) {
+                    Text(String(localized: "focus_score_label"))
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(1.2)
 
-            VStack(spacing: 4) {
-                Text("\(reportData.focusScore)%")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(focusScoreColor(reportData.focusScore))
-
-                Text(String(localized: "focus_score_label"))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(1)
+                    FocusScoreRing(score: reportData.focusScore, size: 46)
+                }
             }
 
-            Spacer()
+            // Categories
+            FSStatCard {
+                VStack(spacing: 10) {
+                    Text(String(localized: "categories_label"))
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(1.2)
 
-            VStack(spacing: 4) {
-                Text("\(reportData.categoriesCount)")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text(String(localized: "categories_label"))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(1)
+                    Text("\(reportData.categoriesCount)")
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                }
             }
         }
-        .padding(.vertical, 20)
     }
 
     // MARK: - Legend Row
@@ -237,36 +289,48 @@ struct FullStatsPageView: View {
         }
     }
 
-    // MARK: - Hourly Chart
+    // MARK: - Hourly Chart (redesigned)
 
     private var hourlyChart: some View {
-        let chartHeight: CGFloat = 80
+        let chartHeight: CGFloat = 96
         let maxPossibleMinutesPerHour: Double = 60
         let scale = chartHeight / maxPossibleMinutesPerHour
+        let currentHour = Calendar.current.component(.hour, from: Date())
 
-        return VStack(alignment: .leading, spacing: 12) {
-            legendRow
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                Text(String(localized: "today_activity_label"))
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+                    .tracking(1.2)
 
-            VStack(spacing: 8) {
+                Spacer()
+
+                legendRow
+            }
+
+            VStack(spacing: 10) {
                 GeometryReader { geometry in
                     let barCount = CGFloat(hourlyChartData.count)
-                    let totalSpacing = CGFloat(max(0, hourlyChartData.count - 1)) * 1.5
+                    let totalSpacing = CGFloat(max(0, hourlyChartData.count - 1)) * 2
                     let availableWidth = geometry.size.width - totalSpacing
                     let barWidth = barCount > 0 ? availableWidth / barCount : 0
 
-                    HStack(alignment: .bottom, spacing: 1.5) {
+                    HStack(alignment: .bottom, spacing: 2) {
                         ForEach(hourlyChartData, id: \.hour) { data in
+                            let isCurrent = data.hour == currentHour
                             ZStack(alignment: .bottom) {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.white.opacity(isCurrent ? 0.14 : 0.06))
                                     .frame(width: barWidth, height: chartHeight)
 
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(barColor(for: data))
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(barGradient(for: data))
                                     .frame(
                                         width: barWidth,
-                                        height: max(2, CGFloat(data.totalMinutes) * scale)
+                                        height: max(3, CGFloat(data.totalMinutes) * scale)
                                     )
+                                    .shadow(color: isCurrent ? Color.white.opacity(0.35) : .clear, radius: 6)
                                     .animation(.spring(response: 0.6, dampingFraction: 0.7), value: data.totalMinutes)
                             }
                         }
@@ -274,54 +338,93 @@ struct FullStatsPageView: View {
                 }
                 .frame(height: chartHeight)
 
+                // Section labels (Morning / Afternoon / Evening)
                 HStack(spacing: 0) {
-                    let labels = getSmartHourLabels()
-                    ForEach(Array(labels.enumerated()), id: \.offset) { index, hour in
-                        Text("\(hour < 10 ? "0" : "")\(hour)")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
-                            .frame(maxWidth: .infinity, alignment: index == 0 ? .leading : (index == labels.count - 1 ? .trailing : .center))
-                    }
+                    Text(String(localized: "chart_morning"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(String(localized: "chart_afternoon"))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text(String(localized: "chart_evening"))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white.opacity(0.35))
+                .tracking(0.5)
             }
-
-            timeOfflineSection
         }
-        .padding(.vertical, 6)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func barGradient(for data: HourData) -> LinearGradient {
+        let baseColor = data.isProductive
+            ? Color(red: 0.4, green: 0.75, blue: 0.45)
+            : Color(red: 1.0, green: 0.35, blue: 0.4)
+        return LinearGradient(
+            colors: [baseColor, baseColor.opacity(0.6)],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+
+    // MARK: - Apps list section header
+
+    private var appsListSectionHeader: some View {
+        HStack {
+            Text(String(localized: "apps_section_title"))
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+            Spacer()
+            Text("\(reportData.allApps.count)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.55))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color.white.opacity(0.08)))
+        }
     }
 
     private var timeOfflineSection: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 16))
-                .foregroundColor(Color(red: 0.6, green: 0.7, blue: 0.9))
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                )
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.6, green: 0.7, blue: 0.95).opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(red: 0.65, green: 0.75, blue: 0.95))
+            }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(String(localized: "time_offline"))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
 
                 Text(formattedOfflinePercentage)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.5))
             }
 
             Spacer()
 
             Text(formattedOfflineTime)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 22, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
         )
     }
 
@@ -603,6 +706,65 @@ struct FullStatsPageView: View {
     }
 }
 
+// MARK: - Stat Card (conteneur générique pour metrics)
+
+struct FSStatCard<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                    )
+            )
+    }
+}
+
+// MARK: - Focus Score Ring
+
+struct FocusScoreRing: View {
+    let score: Int
+    let size: CGFloat
+
+    private var ringColor: Color {
+        if score >= 70 { return Color(red: 0.4, green: 0.9, blue: 0.5) }
+        if score >= 40 { return Color(red: 1.0, green: 0.7, blue: 0.2) }
+        return Color(red: 1.0, green: 0.35, blue: 0.35)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.1), lineWidth: 4)
+                .frame(width: size, height: size)
+
+            Circle()
+                .trim(from: 0, to: CGFloat(score) / 100)
+                .stroke(
+                    AngularGradient(
+                        colors: [ringColor.opacity(0.75), ringColor, ringColor.opacity(0.75)],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .frame(width: size, height: size)
+                .animation(.spring(response: 0.8, dampingFraction: 0.85), value: score)
+
+            Text("\(score)")
+                .font(.system(size: size * 0.38, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+        }
+    }
+}
+
 // MARK: - App Icon Badge
 
 struct AppIconBadge: View {
@@ -666,8 +828,8 @@ struct FullStatsAppRow: View {
                 showBlockSheet = true
             }
         } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 14) {
                     ZStack(alignment: .bottomTrailing) {
                         #if os(iOS)
                         if iconVisible {
@@ -675,15 +837,15 @@ struct FullStatsAppRow: View {
                                 .labelStyle(.iconOnly)
                                 .frame(width: 44, height: 44)
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .opacity(isBlocked ? 0.6 : 1.0)
+                                .opacity(isBlocked ? 0.55 : 1.0)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(isBlocked ? Color.red.opacity(0.4) : Color.clear, lineWidth: 2)
+                                        .stroke(isBlocked ? Color.red.opacity(0.45) : Color.clear, lineWidth: 2)
                                 )
                                 .transition(.opacity)
                         } else {
                             placeholderIcon
-                                .opacity(isBlocked ? 0.6 : 1.0)
+                                .opacity(isBlocked ? 0.55 : 1.0)
                         }
                         #else
                         placeholderIcon
@@ -708,52 +870,58 @@ struct FullStatsAppRow: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .opacity(isBlocked ? 0.6 : 1.0)
+                        HStack(spacing: 8) {
+                            Text(app.name)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .opacity(isBlocked ? 0.6 : 1.0)
+                                .lineLimit(1)
+
+                            // Tag catégorie sur TOUTES les rows
+                            Text(categoryLabel)
+                                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                                .foregroundColor(categoryColor)
+                                .tracking(0.5)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(categoryColor.opacity(0.15)))
+                        }
 
                         Text(isBlocked ? String(localized: "blocked_status") : formatTime(app.duration))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(isBlocked ? .red.opacity(0.8) : .white.opacity(0.5))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(isBlocked ? .red.opacity(0.8) : .white.opacity(0.55))
                     }
 
                     Spacer()
 
+                    // Action pill (plus discrète que l'ancien cercle)
                     if isBlocked {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.green.opacity(0.6))
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundColor(.red)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(Color.red.opacity(0.14)))
                     } else {
-                        Image(systemName: "hand.raised.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.red.opacity(0.8))
+                        Image(systemName: "hand.raised.fill")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.75))
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(Color.white.opacity(0.08)))
                     }
                 }
 
+                // Barre de progression
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.1))
-                        .frame(height: 6)
+                        .fill(Color.white.opacity(0.07))
+                        .frame(height: 5)
 
                     RoundedRectangle(cornerRadius: 3)
                         .fill(gaugeColor)
-                        .frame(width: gaugeWidth, height: 6)
-                }
-
-                if index < 3 {
-                    HStack(spacing: 4) {
-                        Text(categoryLabel)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(categoryColor)
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(categoryColor)
-                    }
+                        .frame(width: gaugeWidth, height: 5)
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.vertical, 12)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showBlockSheet) {
@@ -835,6 +1003,18 @@ struct BlockAppSheet: View {
     @State private var showIcon = false
     var onBlockAdded: (() -> Void)?
 
+    struct QuickPreset {
+        let label: String
+        let totalMinutes: Int
+    }
+
+    static let quickPresets: [QuickPreset] = [
+        QuickPreset(label: "15m", totalMinutes: 15),
+        QuickPreset(label: "30m", totalMinutes: 30),
+        QuickPreset(label: "1h", totalMinutes: 60),
+        QuickPreset(label: "2h", totalMinutes: 120)
+    ]
+
     private var totalMinutes: Int {
         selectedHours * 60 + selectedMinutes
     }
@@ -889,64 +1069,92 @@ struct BlockAppSheet: View {
                     }
                     .padding(.top, 40)
 
-                    VStack(spacing: 12) {
-                        Text(String(localized: "duration_picker_label"))
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .tracking(1)
-
-                        HStack(spacing: 16) {
-                            VStack(spacing: 4) {
-                                Text(String(localized: "hours_label"))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-
-                                Picker("", selection: $selectedHours) {
-                                    ForEach(0..<13) { hour in
-                                        Text("\(hour)").tag(hour)
-                                            .foregroundColor(.white)
+                    VStack(spacing: 16) {
+                        // Presets rapides
+                        HStack(spacing: 10) {
+                            ForEach(Self.quickPresets, id: \.totalMinutes) { preset in
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                        selectedHours = preset.totalMinutes / 60
+                                        selectedMinutes = preset.totalMinutes % 60
                                     }
+                                } label: {
+                                    Text(preset.label)
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(totalMinutes == preset.totalMinutes ? .black : .white.opacity(0.8))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(totalMinutes == preset.totalMinutes ? Color.white : Color.white.opacity(0.08))
+                                        )
                                 }
-                                .pickerStyle(.wheel)
-                                .frame(width: 70, height: 100)
-                                .compositingGroup()
-                                .clipped()
-                            }
-
-                            Text(":")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white.opacity(0.3))
-                                .padding(.top, 20)
-
-                            VStack(spacing: 4) {
-                                Text(String(localized: "minutes_label"))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-
-                                Picker("", selection: $selectedMinutes) {
-                                    ForEach([0, 1, 2, 5, 10, 15, 16, 20, 25, 30, 35, 40, 45, 50, 55], id: \.self) { minute in
-                                        Text("\(minute)").tag(minute)
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(width: 70, height: 100)
-                                .compositingGroup()
-                                .clipped()
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
-                        .padding(.vertical, 12)
                         .padding(.horizontal, 20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.white.opacity(0.08))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                                )
-                        )
+
+                        // Picker custom
+                        VStack(spacing: 10) {
+                            Text(String(localized: "duration_picker_label"))
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white.opacity(0.5))
+                                .tracking(1.2)
+
+                            HStack(spacing: 16) {
+                                VStack(spacing: 4) {
+                                    Text(String(localized: "hours_label"))
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.5))
+
+                                    Picker("", selection: $selectedHours) {
+                                        ForEach(0..<13) { hour in
+                                            Text("\(hour)").tag(hour)
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(width: 70, height: 100)
+                                    .compositingGroup()
+                                    .clipped()
+                                }
+
+                                Text(":")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.3))
+                                    .padding(.top, 20)
+
+                                VStack(spacing: 4) {
+                                    Text(String(localized: "minutes_label"))
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.5))
+
+                                    Picker("", selection: $selectedMinutes) {
+                                        ForEach([0, 5, 10, 15, 20, 30, 45], id: \.self) { minute in
+                                            Text("\(minute)").tag(minute)
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(width: 70, height: 100)
+                                    .compositingGroup()
+                                    .clipped()
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .fill(Color.white.opacity(0.06))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
 
                     Spacer()
 

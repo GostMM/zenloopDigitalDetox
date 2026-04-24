@@ -984,3 +984,51 @@
 "per_month_short" = "/月";
 "subscription_plan" = "订阅";
 "cancel_anytime" = "随时可取消";
+
+"your_reality_check" = "你的真实使用";
+"your_reality_check_subtitle" = "这是你今天花费的时间。准备好夺回它了吗？";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "你的手机在偷你的时间";
+"onboard_welcome_subtitle" = "平均每天刷屏超过4小时。Zenloop帮你把它拿回来。";
+"onboard_screentime_title" = "让我们告诉你真相";
+"onboard_screentime_subtitle" = "授权屏幕使用时间访问，看看你的一天去哪里了。";
+"onboard_guilttrip_title" = "你的一天，真实呈现";
+"onboard_guilttrip_subtitle" = "这是今天你的手机夺走的时间。";
+"onboard_howitworks_title" = "我们这样解决";
+"onboard_howitworks_subtitle" = "专注会话、智能屏蔽、支持你的社区。";
+"onboard_feature_block_title" = "按需屏蔽";
+"onboard_feature_block_subtitle" = "随时暂停吸引你的应用。";
+"onboard_feature_social_title" = "一起专注";
+"onboard_feature_social_subtitle" = "加入实时会话，感受团队的责任感。";
+"onboard_feature_stats_title" = "追踪重要的事";
+"onboard_feature_stats_subtitle" = "不带评判地查看每周进展。";
+"onboard_social_title" = "你并不孤单";
+"onboard_social_subtitle" = "加入每周都在夺回时间的数千人。";
+"onboard_stat_users" = "用户";
+"onboard_stat_avg_saved" = "日均节省";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "在合适的时候提醒你";
+"onboard_notifications_subtitle" = "只在重要时轻轻提醒 — 绝不打扰。";
+"onboard_continue_shocked" = "我要改变这个";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "最划算";
+"break_even_months" = "%d个月回本";
+"one_time" = "一次性";
+"cta_get_lifetime" = "获取终身访问";
+"cta_start_trial" = "开始7天免费试用";
+
+
+// Stats redesign
+"stats_title" = "统计";
+"period_today" = "今天";
+"period_week" = "周";
+"period_month" = "月";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "专注分数";
+"categories_label" = "类别";
+"most_used_label" = "最常用";

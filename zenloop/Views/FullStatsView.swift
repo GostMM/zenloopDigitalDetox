@@ -19,17 +19,35 @@ struct FullStatsView: View {
     @State private var showContent = false
     @State private var reportKey = UUID()
     @State private var loadAttempts = 0
+    @State private var selectedPeriod: StatsPeriod = .today
 
-    private var dailyFilter: DeviceActivityFilter {
+    private var periodFilter: DeviceActivityFilter {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
         let now = Date()
 
-        return DeviceActivityFilter(
-            segment: .daily(during: DateInterval(start: today, end: now)),
-            users: .all,
-            devices: .init([.iPhone, .iPad])
-        )
+        switch selectedPeriod {
+        case .today:
+            let start = calendar.startOfDay(for: now)
+            return DeviceActivityFilter(
+                segment: .daily(during: DateInterval(start: start, end: now)),
+                users: .all,
+                devices: .init([.iPhone, .iPad])
+            )
+        case .week:
+            let start = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: now)) ?? now
+            return DeviceActivityFilter(
+                segment: .daily(during: DateInterval(start: start, end: now)),
+                users: .all,
+                devices: .init([.iPhone, .iPad])
+            )
+        case .month:
+            let start = calendar.date(byAdding: .day, value: -29, to: calendar.startOfDay(for: now)) ?? now
+            return DeviceActivityFilter(
+                segment: .daily(during: DateInterval(start: start, end: now)),
+                users: .all,
+                devices: .init([.iPhone, .iPad])
+            )
+        }
     }
 
     var body: some View {
@@ -48,7 +66,7 @@ struct FullStatsView: View {
                 // Le DeviceActivityReport
                 DeviceActivityReport(
                     DeviceActivityReport.Context("FullStatsPage"),
-                    filter: dailyFilter
+                    filter: periodFilter
                 )
                 .id(reportKey)
                 .ignoresSafeArea(edges: .bottom)
@@ -60,26 +78,25 @@ struct FullStatsView: View {
                 .foregroundColor(.white)
             #endif
 
-            // MinimalHeader overlay
+            // StatsHeader overlay — titre + période
             VStack {
-                MinimalHeader(
-                    showContent: showContent,
-                    currentState: zenloopManager.currentState,
-                    zenloopManager: zenloopManager
+                StatsHeader(
+                    selectedPeriod: $selectedPeriod,
+                    showContent: showContent
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, getSafeAreaTop())
                 .background(
                     LinearGradient(
                         colors: [
-                            Color.black.opacity(0.8),
-                            Color.black.opacity(0.4),
+                            Color.black.opacity(0.85),
+                            Color.black.opacity(0.5),
                             Color.clear
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: 100)
+                    .frame(height: 120)
                 )
 
                 Spacer()
@@ -94,6 +111,12 @@ struct FullStatsView: View {
             showContent = false
             loadAttempts = 0
             await waitForReportReady()
+        }
+        .onChange(of: selectedPeriod) { _, _ in
+            // Change de période → refetch le report
+            reportKey = UUID()
+            showContent = false
+            Task { await waitForReportReady() }
         }
     }
 

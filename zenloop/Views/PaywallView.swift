@@ -14,8 +14,6 @@ struct PaywallView: View {
     @Binding var isOnboardingComplete: Bool?
     @Environment(\.dismiss) private var dismiss
     @StateObject private var purchaseManager = PurchaseManager.shared
-    @State private var showPermissionsSetup = false
-    
     // Initializer for onboarding context
     init(isOnboardingComplete: Binding<Bool>) {
         let optionalBinding = Binding<Bool?>(
@@ -37,6 +35,7 @@ struct PaywallView: View {
     @State private var selectedPlan: PricingPlan = .lifetime  // Sélection par défaut sur achat unique
     @State private var isPurchasing = false
     @State private var purchaseError: String?
+    @State private var isVideoMuted = true  // ✅ Son coupé par défaut
 
     // Haptic Feedback
     private let impactLight = UIImpactFeedbackGenerator(style: .light)
@@ -46,8 +45,8 @@ struct PaywallView: View {
    
     var body: some View {
         ZStack {
-            // Background vidéo en plein écran
-            VideoBackgroundView()
+            // Background vidéo en plein écran (son contrôlé par isVideoMuted)
+            VideoBackgroundView(isMuted: $isVideoMuted)
 
             // Dégradé dark en bas pour lisibilité
             VStack {
@@ -84,18 +83,35 @@ struct PaywallView: View {
 
                     Spacer()
 
-                    Button(action: {
-                        impactLight.impactOccurred()
-                        Task {
-                            await FirebaseManager.shared.trackPaywallAction(action: .dismissed)
+                    HStack(spacing: 10) {
+                        // Sound toggle — par défaut muet
+                        Button(action: {
+                            impactLight.impactOccurred()
+                            isVideoMuted.toggle()
+                        }) {
+                            Image(systemName: isVideoMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .contentTransition(.symbolEffect(.replace))
                         }
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(.ultraThinMaterial, in: Circle())
+                        .accessibilityLabel(isVideoMuted ? "Unmute video" : "Mute video")
+
+                        // Close
+                        Button(action: {
+                            impactLight.impactOccurred()
+                            Task {
+                                await FirebaseManager.shared.trackPaywallAction(action: .dismissed)
+                            }
+                            dismiss()
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
                     }
                 }
                 .padding(.horizontal, 24)
@@ -104,10 +120,10 @@ struct PaywallView: View {
 
                     Spacer()
 
-                    // Plans en row horizontal compact
-                    HStack(spacing: 12) {
-                        // LIFETIME - Achat unique
-                        CompactPlanCard(
+                    // Plans — stack vertical premium
+                    VStack(spacing: 14) {
+                        // LIFETIME — best value
+                        PremiumPlanRow(
                             plan: .lifetime,
                             isSelected: selectedPlan == .lifetime,
                             purchaseManager: purchaseManager,
@@ -117,8 +133,8 @@ struct PaywallView: View {
                             }
                         )
 
-                        // MONTHLY - Abonnement
-                        CompactPlanCard(
+                        // MONTHLY
+                        PremiumPlanRow(
                             plan: .monthly,
                             isSelected: selectedPlan == .monthly,
                             purchaseManager: purchaseManager,
@@ -129,10 +145,10 @@ struct PaywallView: View {
                         )
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 18)
                     .opacity(showContent ? 1 : 0)
 
-                    // CTA minimaliste
+                    // CTA primaire — blanc plein pour max conversion
                     VStack(spacing: 14) {
                         Button(action: {
                             impactHeavy.impactOccurred()
@@ -141,24 +157,27 @@ struct PaywallView: View {
                             HStack(spacing: 10) {
                                 if isPurchasing {
                                     ProgressView()
-                                        .tint(.white)
+                                        .tint(.black)
                                 } else {
-                                    Text(String(localized: "unlock_your_potential_cta"))
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.white)
+                                    Text(selectedPlan == .lifetime
+                                         ? String(localized: "cta_get_lifetime")
+                                         : String(localized: "cta_start_trial"))
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundColor(.black)
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 14, weight: .heavy))
+                                        .foregroundColor(.black.opacity(0.7))
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 56)
+                            .frame(height: 58)
                             .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(.white.opacity(0.2))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(.white.opacity(0.3), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 18)
+                                    .fill(Color.white)
+                                    .shadow(color: .white.opacity(0.4), radius: 24, x: 0, y: 8)
                             )
                         }
+                        .buttonStyle(PlainButtonStyle())
                         .disabled(isPurchasing)
 
                         // Footer compact
@@ -201,9 +220,6 @@ struct PaywallView: View {
                     .padding(.bottom, 32)
                     .opacity(showContent ? 1 : 0)
             }
-        }
-        .fullScreenCover(isPresented: $showPermissionsSetup) {
-            PermissionsSetupView(isOnboardingComplete: $isOnboardingComplete)
         }
         .onAppear {
             impactMedium.impactOccurred()
@@ -271,11 +287,13 @@ struct PaywallView: View {
                     productId: product.id
                 )
                
-                // Succès de l'achat - afficher les permissions
+                // Succès de l'achat — les permissions ont déjà été accordées
+                // pendant l'onboarding narratif (Screen Time + Notifications).
                 await MainActor.run {
                     notificationFeedback.notificationOccurred(.success)
                     isPurchasing = false
-                    showPermissionsSetup = true
+                    isOnboardingComplete? = true
+                    dismiss()
                 }
                
             } catch {
@@ -313,6 +331,7 @@ struct PaywallView: View {
 
 // MARK: - Video Background
 struct VideoBackgroundView: View {
+    @Binding var isMuted: Bool
     @StateObject private var playerViewModel = VideoPlayerViewModel()
 
     var body: some View {
@@ -322,13 +341,18 @@ struct VideoBackgroundView: View {
                 .edgesIgnoringSafeArea(.all)
                 .onAppear {
                     print("🎬 [VIDEO] VideoBackgroundView appeared")
-                    // Force play au cas où
+                    // Synchronise l'état mute avec le binding parent
+                    player.isMuted = isMuted
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         if player.rate == 0 {
                             player.play()
                             print("▶️ [VIDEO] Force play from view")
                         }
                     }
+                }
+                .onChange(of: isMuted) { _, newValue in
+                    player.isMuted = newValue
+                    print("🔊 [VIDEO] Mute toggled: \(newValue)")
                 }
         } else {
             // Fond noir en attendant
@@ -528,7 +552,136 @@ class VideoPlayerViewModel: ObservableObject {
     }
 }
 
-// MARK: - Compact Plan Card (Horizontal)
+// MARK: - Premium Plan Row (2-plan paywall — lifetime + monthly)
+//
+// Layout horizontal riche avec hiérarchie claire :
+//   LIFETIME → badge "BEST VALUE" + prix gros + "≈ N months to break even"
+//   MONTHLY  → prix + /mo + trial hint
+struct PremiumPlanRow: View {
+    let plan: PricingPlan
+    let isSelected: Bool
+    let purchaseManager: PurchaseManager
+    let onSelect: () -> Void
+
+    private var isLifetime: Bool { plan == .lifetime }
+
+    private var planTitle: String {
+        isLifetime ? String(localized: "one_time_purchase") : String(localized: "monthly_plan")
+    }
+
+    private var priceText: String {
+        purchaseManager.priceForPlan(plan)
+    }
+
+    private var tagline: String {
+        if isLifetime {
+            if let months = purchaseManager.breakEvenMonths() {
+                return String(format: String(localized: "break_even_months"), months)
+            }
+            return String(localized: "lifetime_access")
+        } else {
+            return String(localized: "cancel_anytime")
+        }
+    }
+
+    private var accentColor: Color {
+        isLifetime ? Color(red: 1.0, green: 0.85, blue: 0.3) : .white
+    }
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 16) {
+                // Radio indicator
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? accentColor : Color.white.opacity(0.3), lineWidth: 2)
+                        .frame(width: 22, height: 22)
+
+                    if isSelected {
+                        Circle()
+                            .fill(accentColor)
+                            .frame(width: 12, height: 12)
+                    }
+                }
+
+                // Title + tagline
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(planTitle)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+
+                        if isLifetime {
+                            Text(String(localized: "best_value_badge"))
+                                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                                .tracking(1)
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(accentColor)
+                                )
+                        }
+                    }
+
+                    Text(tagline)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.65))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                // Price block
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(priceText)
+                        .font(.system(size: 22, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+
+                    if !isLifetime {
+                        Text(String(localized: "per_month_short"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.55))
+                    } else {
+                        Text(String(localized: "one_time"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(accentColor.opacity(0.85))
+                    }
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(
+                        isSelected ?
+                        LinearGradient(
+                            colors: [accentColor.opacity(0.22), accentColor.opacity(0.08)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ) :
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(
+                        isSelected ? accentColor : Color.white.opacity(0.15),
+                        lineWidth: isSelected ? 1.8 : 1
+                    )
+            )
+            .shadow(color: isSelected ? accentColor.opacity(0.25) : .clear, radius: 14, x: 0, y: 4)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .animation(.spring(response: 0.35, dampingFraction: 0.78), value: isSelected)
+    }
+}
+
+// MARK: - Compact Plan Card (Horizontal — legacy, non utilisé par le nouveau paywall)
 struct CompactPlanCard: View {
     let plan: PricingPlan
     let isSelected: Bool
@@ -840,337 +993,6 @@ struct PremiumPlanCard: View {
     }
 }
 
-// MARK: - Permissions Setup View (After Purchase)
-struct PermissionsSetupView: View {
-    @Binding var isOnboardingComplete: Bool?
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var onboardingManager = OnboardingManager.shared
-    @State private var currentStep = 0
-    @State private var showContent = false
-    @State private var isRequesting = false
-
-    private let impactMedium = UIImpactFeedbackGenerator(style: .medium)
-    private let notificationFeedback = UINotificationFeedbackGenerator()
-
-    var body: some View {
-        ZStack {
-            // Background noir avec jeu de lumière comme l'onboarding
-            Color.black
-                .ignoresSafeArea()
-
-            // Lumière douce en haut
-            RadialGradient(
-                colors: [
-                    .white.opacity(0.05),
-                    .clear
-                ],
-                center: .top,
-                startRadius: 0,
-                endRadius: 400
-            )
-            .ignoresSafeArea()
-
-            // Lumière douce en bas
-            RadialGradient(
-                colors: [
-                    .white.opacity(0.03),
-                    .clear
-                ],
-                center: .bottom,
-                startRadius: 0,
-                endRadius: 300
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                // Header minimaliste
-                HStack {
-                    Text(String(localized: "final_setup"))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Spacer()
-
-                    // Progress dots
-                    HStack(spacing: 6) {
-                        ForEach(0..<2, id: \.self) { index in
-                            Circle()
-                                .fill(index == currentStep ? .white : .white.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-
-                Spacer()
-
-                // Current step content
-                if currentStep == 0 {
-                    screenTimePermissionStep
-                } else {
-                    notificationPermissionStep
-                }
-
-                Spacer()
-
-                // Action buttons style paywall
-                VStack(spacing: 14) {
-                    // Primary action button
-                    Button(action: handleAction) {
-                        HStack(spacing: 10) {
-                            if isRequesting {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text(buttonText)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.white.opacity(0.2))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(.white.opacity(0.3), lineWidth: 1)
-                        )
-                    }
-                    .disabled(isRequesting)
-
-                    // Skip button for notifications step
-                    if currentStep == 1 && onboardingManager.notificationStatus != .granted {
-                        Button(action: {
-                            print("⏭️ [PERMISSIONS] Skipping notifications")
-                            finishSetup()
-                        }) {
-                            Text(String(localized: "skip_for_now"))
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .disabled(isRequesting)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
-            }
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8)) {
-                showContent = true
-            }
-            onboardingManager.checkPermissionStatuses()
-        }
-    }
-
-    @ViewBuilder
-    private var screenTimePermissionStep: some View {
-        VStack(spacing: 32) {
-            // Icône avec halo
-            ZStack {
-                // Halo doux
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                .white.opacity(0.1),
-                                .white.opacity(0.05),
-                                .clear
-                            ],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 80
-                        )
-                    )
-                    .frame(width: 160, height: 160)
-
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 60, weight: .regular))
-                    .foregroundColor(.white)
-                    .shadow(color: .white.opacity(0.3), radius: 20)
-            }
-
-            // Texte
-            VStack(spacing: 16) {
-                Text(String(localized: "screen_time_access"))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .white.opacity(0.2), radius: 10)
-
-                Text(String(localized: "screen_time_explanation"))
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.white.opacity(0.75))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(6)
-                    .padding(.horizontal, 40)
-
-                // Status
-                if onboardingManager.screenTimeStatus == .granted {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(String(localized: "authorized"))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(.green.opacity(0.15), in: Capsule())
-                    .padding(.top, 10)
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-
-    @ViewBuilder
-    private var notificationPermissionStep: some View {
-        VStack(spacing: 32) {
-            // Icône avec halo
-            ZStack {
-                // Halo doux
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                .white.opacity(0.1),
-                                .white.opacity(0.05),
-                                .clear
-                            ],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 80
-                        )
-                    )
-                    .frame(width: 160, height: 160)
-
-                Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 60, weight: .regular))
-                    .foregroundColor(.white)
-                    .shadow(color: .white.opacity(0.3), radius: 20)
-            }
-
-            // Texte
-            VStack(spacing: 16) {
-                Text(String(localized: "smart_notifications"))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .white.opacity(0.2), radius: 10)
-
-                Text(String(localized: "notification_explanation"))
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.white.opacity(0.75))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(6)
-                    .padding(.horizontal, 40)
-
-                Text(String(localized: "optional_can_skip"))
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.white.opacity(0.6))
-
-                // Status
-                if onboardingManager.notificationStatus == .granted {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(String(localized: "enabled"))
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(.green.opacity(0.15), in: Capsule())
-                    .padding(.top, 10)
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-
-    private var buttonText: String {
-        if currentStep == 0 {
-            return onboardingManager.screenTimeStatus == .granted ?
-                String(localized: "continue") :
-                String(localized: "authorize_screen_time")
-        } else {
-            return onboardingManager.notificationStatus == .granted ?
-                String(localized: "finish_setup") :
-                String(localized: "enable_notifications")
-        }
-    }
-
-    private func handleAction() {
-        impactMedium.impactOccurred()
-
-        print("🔵 [PERMISSIONS] handleAction called - currentStep: \(currentStep)")
-
-        if currentStep == 0 {
-            // Screen Time
-            print("🔵 [PERMISSIONS] Screen Time step - current status: \(onboardingManager.screenTimeStatus)")
-
-            if onboardingManager.screenTimeStatus == .granted {
-                print("✅ [PERMISSIONS] Screen Time already granted, moving to step 1")
-                withAnimation {
-                    currentStep = 1
-                }
-            } else {
-                print("🔵 [PERMISSIONS] Requesting Screen Time permission...")
-                isRequesting = true
-                Task {
-                    let granted = await onboardingManager.requestScreenTimePermission()
-                    print("🔵 [PERMISSIONS] Screen Time request result: \(granted)")
-
-                    await MainActor.run {
-                        isRequesting = false
-                        if granted {
-                            print("✅ [PERMISSIONS] Screen Time granted, moving to step 1")
-                            notificationFeedback.notificationOccurred(.success)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                withAnimation {
-                                    currentStep = 1
-                                }
-                            }
-                        } else {
-                            print("❌ [PERMISSIONS] Screen Time denied or error")
-                            notificationFeedback.notificationOccurred(.error)
-                        }
-                    }
-                }
-            }
-        } else {
-            // Notifications
-            print("🔵 [PERMISSIONS] Notifications step - current status: \(onboardingManager.notificationStatus)")
-
-            if onboardingManager.notificationStatus != .granted {
-                print("🔵 [PERMISSIONS] Requesting Notification permission...")
-                isRequesting = true
-                Task {
-                    let granted = await onboardingManager.requestNotificationPermission()
-                    print("🔵 [PERMISSIONS] Notification request result: \(granted)")
-
-                    await MainActor.run {
-                        isRequesting = false
-                        finishSetup()
-                    }
-                }
-            } else {
-                print("✅ [PERMISSIONS] Notifications already granted, finishing setup")
-                finishSetup()
-            }
-        }
-    }
-
-    private func finishSetup() {
-        notificationFeedback.notificationOccurred(.success)
-        isOnboardingComplete? = true
-        dismiss()
-    }
-}
 
 // MARK: - Data Models (moved to PurchaseManager)
 #Preview {

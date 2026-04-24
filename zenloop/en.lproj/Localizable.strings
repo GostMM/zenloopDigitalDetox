@@ -1232,3 +1232,51 @@
 "session_ended_by" = "\"%@\" completed by %@";
 "member_needs_support" = "Member Needs Support";
 "member_struggling" = "%@ is struggling (%d app opening attempts)";
+
+"your_reality_check" = "Your reality check";
+"your_reality_check_subtitle" = "Here's how much time you've spent today. Ready to take it back?";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "Your phone is stealing your time";
+"onboard_welcome_subtitle" = "Average user spends 4+ hours a day scrolling. Zenloop helps you take it back.";
+"onboard_screentime_title" = "Let's show you the truth";
+"onboard_screentime_subtitle" = "Grant Screen Time access so we can reveal exactly where your day goes.";
+"onboard_guilttrip_title" = "Your day, unfiltered";
+"onboard_guilttrip_subtitle" = "This is how much time your phone took from you — today.";
+"onboard_howitworks_title" = "Here's how we fix it";
+"onboard_howitworks_subtitle" = "Focus sessions, smart blocking, and a community that has your back.";
+"onboard_feature_block_title" = "Block on demand";
+"onboard_feature_block_subtitle" = "Pause the apps that pull you in, on your schedule.";
+"onboard_feature_social_title" = "Focus together";
+"onboard_feature_social_subtitle" = "Join live sessions with friends and feel the accountability.";
+"onboard_feature_stats_title" = "Track what matters";
+"onboard_feature_stats_subtitle" = "See your progress week after week, without judgement.";
+"onboard_social_title" = "You're not alone";
+"onboard_social_subtitle" = "Join thousands already reclaiming hours every week.";
+"onboard_stat_users" = "users";
+"onboard_stat_avg_saved" = "avg saved/day";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "We'll nudge you at the right moment";
+"onboard_notifications_subtitle" = "Gentle reminders only when they matter — never spam.";
+"onboard_continue_shocked" = "I want to change that";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "BEST VALUE";
+"break_even_months" = "Pays off in %d months";
+"one_time" = "one-time";
+"cta_get_lifetime" = "Get Lifetime Access";
+"cta_start_trial" = "Start 7-Day Free Trial";
+
+
+// Stats redesign
+"stats_title" = "Stats";
+"period_today" = "Today";
+"period_week" = "Week";
+"period_month" = "Month";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "FOCUS SCORE";
+"categories_label" = "CATEGORIES";
+"most_used_label" = "MOST USED";

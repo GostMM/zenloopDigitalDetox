@@ -203,7 +203,14 @@ struct SessionDetailView: View {
                 scheduledStartReached = false
                 scheduledSessionCheckTimer.upstream.connect().cancel()
                 syncSharedAppsIfNeeded()
+                if oldStatus == .paused, let sessionId = session.id {
+                    SessionShieldCoordinator.shared.resume(sessionId: sessionId)
+                }
                 evaluateBlockApplication(reason: "statusActive")
+            }
+            if newStatus == .paused, let sessionId = session.id {
+                print("⏸️ Session paused — lifting restrictions for this session")
+                SessionShieldCoordinator.shared.pause(sessionId: sessionId)
             }
             if oldStatus == .active && (newStatus == .completed || newStatus == .dissolved) {
                 print("🛑 Session ended! Removing blocks...")
@@ -577,23 +584,31 @@ struct SessionDetailView: View {
     }
 
     /// Sync la sélection partagée par le leader dans la session Firestore
-    /// vers le stockage local du membre courant. Garantit que tous les membres
-    /// (y compris late joiners) appliquent les mêmes restrictions.
+    /// vers le stockage local du membre courant — UNIQUEMENT pour les late joiners
+    /// qui n'ont pas encore fait leur propre sélection.
+    /// ⚠️ On n'écrase JAMAIS la sélection locale d'un membre qui a déjà choisi ses apps,
+    /// sinon les icônes rendues par `Label(token)` disparaissent (tokens appartenant au leader,
+    /// pas au membre courant) et on risque d'écraser les apps que le membre voulait bloquer.
     private func syncSharedAppsIfNeeded() {
         guard let sessionId = session.id,
               let shared = activeSession.sharedAppTokens,
               let count = activeSession.sharedAppsCount, count > 0 else { return }
 
         let currentLocal = sessionManager.getLocalApps(sessionId: sessionId)
-        if currentLocal?.selectedAppTokens == shared { return }
 
+        // Le membre a déjà une sélection locale → on la respecte.
+        if let existing = currentLocal, existing.selectedAppsCount > 0 {
+            return
+        }
+
+        // Late joiner sans sélection: on copie la sélection partagée localement
+        // pour qu'il puisse au moins voir le compteur et déclencher l'application.
         sessionManager.saveLocalApps(sessionId: sessionId, appTokens: shared, count: count)
         if let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: shared) {
             selectedApps = selection
         }
-        // Invalide le hash pour forcer une ré-application avec la nouvelle sélection
         lastAppliedSharedTokensHash = nil
-        print("🔄 [SHARED_APPS] Synced shared selection from leader (\(count) items)")
+        print("🔄 [SHARED_APPS] Late joiner synced shared selection (\(count) items)")
     }
 
     /// Évalue si les blocks doivent être appliqués ou ré-appliqués, avec garde anti-concurrence.
@@ -662,38 +677,27 @@ struct SessionDetailView: View {
 
     @MainActor
     private func applyBlocksWithDelay(sessionId: String, selection: FamilyActivitySelection, appCount: Int, categoryCount: Int, attempt: Int) async -> Bool {
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
-        print("🛡️ [SESSION_BLOCKS] Applying blocks NOW (attempt \(attempt))...")
+        print("🛡️ [SESSION_BLOCKS] Applying blocks NOW via coordinator (attempt \(attempt))...")
 
-        for (index, token) in selection.applicationTokens.enumerated() {
-            let blockId = "session_\(sessionId)_app_\(index)"
-            let appName = "Session App \(index + 1)"
-            GlobalShieldManager.shared.addBlock(token: token, blockId: blockId, appName: appName)
+        // Encode la sélection et délègue au SessionShieldCoordinator.
+        // Il maintient un registre par session et recompute l'union
+        // des tokens de toutes les sessions actives → pas de chevauchement.
+        guard let tokenData = try? JSONEncoder().encode(selection) else {
+            print("❌ [SESSION_BLOCKS] Failed to encode selection")
+            return false
         }
-
-        for (index, token) in selection.categoryTokens.enumerated() {
-            let blockId = "session_\(sessionId)_category_\(index)"
-            let categoryName = "Session Category \(index + 1)"
-            GlobalShieldManager.shared.addCategoryBlock(token: token, blockId: blockId, categoryName: categoryName)
-        }
+        SessionShieldCoordinator.shared.apply(sessionId: sessionId, tokenData: tokenData)
 
         UserDefaults.standard.set(appCount + categoryCount, forKey: "session_\(sessionId)_blocks_count")
 
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        let store = ManagedSettingsStore()
-        let verifyApps = store.shield.applications?.count ?? 0
-        let verifyCategories: Int
-        if let cats = store.shield.applicationCategories,
-           case .specific(let tokens, except: _) = cats {
-            verifyCategories = tokens.count
-        } else {
-            verifyCategories = 0
-        }
-        print("🔍 [SESSION_BLOCKS] Verification: \(verifyApps) apps + \(verifyCategories) categories blocked")
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        let verify = SessionShieldCoordinator.shared.verifyApplied()
+        print("🔍 [SESSION_BLOCKS] Verification: \(verify.apps) apps + \(verify.categories) categories blocked (union of all active sessions)")
 
         let expected = appCount + categoryCount
-        let actual = verifyApps + verifyCategories
+        let actual = verify.apps + verify.categories
         if actual == 0 && expected > 0 && attempt < 3 {
             print("⚠️ [SESSION_BLOCKS] Blocks not applied, retry \(attempt + 1)/3")
             return await applyBlocksWithDelay(sessionId: sessionId, selection: selection, appCount: appCount, categoryCount: categoryCount, attempt: attempt + 1)
@@ -702,7 +706,7 @@ struct SessionDetailView: View {
             print("❌ [SESSION_BLOCKS] Failed after 3 attempts")
             return false
         }
-        print("✅ [SESSION_BLOCKS] Applied (\(actual)/\(expected))")
+        print("✅ [SESSION_BLOCKS] Applied (\(actual) tokens active in union)")
         return true
     }
 
@@ -710,32 +714,8 @@ struct SessionDetailView: View {
         guard let sessionId = session.id else { return }
 
         #if os(iOS)
-        print("🔓 Session blocks will be removed when session ends")
-
-        if let localApps = sessionManager.getLocalApps(sessionId: sessionId),
-           let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: localApps.selectedAppTokens) {
-
-            let appCount = selection.applicationTokens.count
-            let categoryCount = selection.categoryTokens.count
-            print("🔓 Removing \(appCount) app blocks + \(categoryCount) category blocks for session \(sessionId)")
-
-            for (index, token) in selection.applicationTokens.enumerated() {
-                let blockId = "session_\(sessionId)_app_\(index)"
-                let appName = "Session App \(index + 1)"
-                GlobalShieldManager.shared.removeBlock(token: token, blockId: blockId, appName: appName)
-                print("  → Removed app block: \(blockId)")
-            }
-
-            for (index, token) in selection.categoryTokens.enumerated() {
-                let blockId = "session_\(sessionId)_category_\(index)"
-                let categoryName = "Session Category \(index + 1)"
-                GlobalShieldManager.shared.removeCategoryBlock(token: token, blockId: blockId, categoryName: categoryName)
-                print("  → Removed category block: \(blockId)")
-            }
-
-            print("✅ All session blocks removed successfully! (\(appCount) apps + \(categoryCount) categories)")
-        }
-
+        print("🔓 Removing session \(sessionId) from shield coordinator")
+        SessionShieldCoordinator.shared.remove(sessionId: sessionId)
         UserDefaults.standard.removeObject(forKey: "session_\(sessionId)_blocks_count")
         #endif
     }

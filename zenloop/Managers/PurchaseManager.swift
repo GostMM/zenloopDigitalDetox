@@ -40,15 +40,15 @@ enum PricingPlan: CaseIterable {
     
     var price: String {
         switch self {
-        case .lifetime: return "99,99€"
-        case .yearly: return "47,99€/an" // Fallback seulement
-        case .monthly: return "9,99€/mois" // Fallback seulement
+        case .lifetime: return "$50.99"
+        case .yearly: return "$47.99/yr"
+        case .monthly: return "$6.99/mo"
         }
     }
-    
+
     var oldPrice: String? {
         switch self {
-        case .lifetime: return "119,99€"
+        case .lifetime: return nil
         case .yearly: return nil
         case .monthly: return nil
         }
@@ -67,9 +67,9 @@ enum PricingPlan: CaseIterable {
 extension PricingPlan {
     var productIdentifier: String {
         switch self {
-        case .lifetime: return "com.app.zenloop.premium.lifetime.v2"
-        case .yearly: return "com.app.zenloop.premium.yearly.v2"
-        case .monthly: return "com.app.zenloop.premium.monthly.v2"
+        case .lifetime: return "com.app.zenloop.premium.lifetime.v3"
+        case .yearly: return "com.app.zenloop.premium.yearly.v2"  // legacy, plus vendu
+        case .monthly: return "com.app.zenloop.premium.monthly.v3"
         }
     }
     
@@ -83,9 +83,9 @@ extension PricingPlan {
     
     var fallbackPrice: String {
         switch self {
-        case .lifetime: return "99,99€"
-        case .monthly: return "9,99€/mois"
-        case .yearly: return "47,99€/an"
+        case .lifetime: return "$50.99"
+        case .monthly: return "$6.99"
+        case .yearly: return "$47.99"
         }
     }
 }
@@ -160,10 +160,10 @@ class PurchaseManager: ObservableObject {
     @Published var hasRefundedSubscription: Bool = false
     
     // MARK: - Private Properties
+    // ✅ 2 offres actives: lifetime + monthly (v3). Yearly retiré.
     private let productIdentifiers: Set<String> = [
-        "com.app.zenloop.premium.lifetime.v2",
-        "com.app.zenloop.premium.monthly.v2",
-        "com.app.zenloop.premium.yearly.v2"
+        "com.app.zenloop.premium.lifetime.v3",
+        "com.app.zenloop.premium.monthly.v3"
     ]
     
     private var transactionListener: Task<Void, Error>?
@@ -540,9 +540,31 @@ class PurchaseManager: ObservableObject {
             NSLog("⚠️ Product not found for plan: \(plan.productIdentifier), using fallback price")
             return plan.fallbackPrice // Utilise le fallback price au bon format
         }
-        
+
         // Utilise le prix dynamique de StoreKit
         return product.displayPrice
+    }
+
+    /// Nombre de mois pour que le lifetime soit amorti par rapport au monthly.
+    /// Retourne nil si un des produits n'est pas disponible.
+    func breakEvenMonths() -> Int? {
+        guard let lifetime = lifetimeProduct(),
+              let monthly = monthlyProduct(),
+              monthly.price > 0 else { return nil }
+        let months = Double(truncating: (lifetime.price / monthly.price) as NSNumber)
+        return max(1, Int(months.rounded(.up)))
+    }
+
+    /// Prix formaté par mois pour un plan monthly (ex: "$6.99").
+    func monthlyPriceDisplay() -> String {
+        guard let monthly = monthlyProduct() else { return PricingPlan.monthly.fallbackPrice }
+        return monthly.displayPrice
+    }
+
+    /// Prix formaté pour le lifetime (ex: "$50.99").
+    func lifetimePriceDisplay() -> String {
+        guard let lifetime = lifetimeProduct() else { return PricingPlan.lifetime.fallbackPrice }
+        return lifetime.displayPrice
     }
     
     private func hasFreeTrial(_ product: Product) -> Bool {

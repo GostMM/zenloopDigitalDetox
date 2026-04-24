@@ -984,3 +984,51 @@
 "per_month_short" = "/شهر";
 "subscription_plan" = "اشتراك";
 "cancel_anytime" = "قابل للإلغاء في أي وقت";
+
+"your_reality_check" = "واقعك اليوم";
+"your_reality_check_subtitle" = "هذا هو الوقت الذي استهلكته اليوم. هل أنت مستعد لاستعادته؟";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "هاتفك يسرق وقتك";
+"onboard_welcome_subtitle" = "المعدل أكثر من 4 ساعات يومياً في التمرير. Zenloop يساعدك على استعادته.";
+"onboard_screentime_title" = "دعنا نظهر لك الحقيقة";
+"onboard_screentime_subtitle" = "امنح الوصول إلى مدة الاستخدام لنكشف أين يذهب يومك.";
+"onboard_guilttrip_title" = "يومك بدون فلتر";
+"onboard_guilttrip_subtitle" = "هذا هو الوقت الذي أخذه منك هاتفك — اليوم.";
+"onboard_howitworks_title" = "هكذا نصلح ذلك";
+"onboard_howitworks_subtitle" = "جلسات تركيز، حظر ذكي، ومجتمع يدعمك.";
+"onboard_feature_block_title" = "احظر عند الطلب";
+"onboard_feature_block_subtitle" = "أوقف التطبيقات التي تجذبك.";
+"onboard_feature_social_title" = "ركّز معاً";
+"onboard_feature_social_subtitle" = "انضم إلى الجلسات المباشرة واشعر بالمسؤولية.";
+"onboard_feature_stats_title" = "تتبع ما يهم";
+"onboard_feature_stats_subtitle" = "شاهد تقدمك أسبوعاً بعد أسبوع، دون أحكام.";
+"onboard_social_title" = "لست وحدك";
+"onboard_social_subtitle" = "انضم إلى الآلاف الذين يستعيدون ساعات كل أسبوع.";
+"onboard_stat_users" = "مستخدم";
+"onboard_stat_avg_saved" = "يومياً";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "سننبهك في اللحظة المناسبة";
+"onboard_notifications_subtitle" = "تذكيرات لطيفة فقط عندما تهم — لا سبام.";
+"onboard_continue_shocked" = "أريد تغيير ذلك";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "الأفضل";
+"break_even_months" = "يسترد خلال %d شهر";
+"one_time" = "مرة واحدة";
+"cta_get_lifetime" = "احصل على الوصول مدى الحياة";
+"cta_start_trial" = "ابدأ التجربة المجانية 7 أيام";
+
+
+// Stats redesign
+"stats_title" = "الإحصائيات";
+"period_today" = "اليوم";
+"period_week" = "الأسبوع";
+"period_month" = "الشهر";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "درجة التركيز";
+"categories_label" = "الفئات";
+"most_used_label" = "الأكثر استخدامًا";

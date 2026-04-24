@@ -1234,3 +1234,51 @@
 "session_ended_by" = "\"%@\" terminée par %@";
 "member_needs_support" = "Membre en difficulté";
 "member_struggling" = "%@ a des difficultés (%d tentatives d'ouverture d'apps)";
+
+"your_reality_check" = "Ta vraie consommation";
+"your_reality_check_subtitle" = "Voici combien de temps tu as perdu aujourd'hui. Prêt à reprendre le contrôle ?";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "Ton téléphone te vole ton temps";
+"onboard_welcome_subtitle" = "En moyenne, on passe 4h+ par jour à scroller. Zenloop t'aide à le récupérer.";
+"onboard_screentime_title" = "On va te montrer la vérité";
+"onboard_screentime_subtitle" = "Autorise l'accès Temps d'écran pour voir exactement où part ta journée.";
+"onboard_guilttrip_title" = "Ta journée, sans filtre";
+"onboard_guilttrip_subtitle" = "Voici combien de temps ton téléphone t'a pris — aujourd'hui.";
+"onboard_howitworks_title" = "Voilà comment on répare ça";
+"onboard_howitworks_subtitle" = "Sessions de focus, blocages intelligents, et une communauté qui te soutient.";
+"onboard_feature_block_title" = "Bloque à la demande";
+"onboard_feature_block_subtitle" = "Mets en pause les apps qui t'aspirent, à ton rythme.";
+"onboard_feature_social_title" = "Focus à plusieurs";
+"onboard_feature_social_subtitle" = "Rejoins des sessions live et sens la responsabilité collective.";
+"onboard_feature_stats_title" = "Suis ce qui compte";
+"onboard_feature_stats_subtitle" = "Vois ta progression semaine après semaine, sans jugement.";
+"onboard_social_title" = "Tu n'es pas seul";
+"onboard_social_subtitle" = "Rejoins des milliers de personnes qui reprennent leurs heures chaque semaine.";
+"onboard_stat_users" = "utilisateurs";
+"onboard_stat_avg_saved" = "gagnées/jour";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "On te réveille au bon moment";
+"onboard_notifications_subtitle" = "Des rappels doux uniquement quand ça compte — jamais de spam.";
+"onboard_continue_shocked" = "Je veux changer ça";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "LE DEAL";
+"break_even_months" = "Amorti en %d mois";
+"one_time" = "une fois";
+"cta_get_lifetime" = "Obtenir l'accès à vie";
+"cta_start_trial" = "Démarrer l'essai de 7 jours";
+
+
+// Stats redesign
+"stats_title" = "Stats";
+"period_today" = "Jour";
+"period_week" = "Semaine";
+"period_month" = "Mois";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "SCORE DE FOCUS";
+"categories_label" = "CATÉGORIES";
+"most_used_label" = "PLUS UTILISÉES";

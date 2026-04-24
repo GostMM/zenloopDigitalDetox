@@ -984,3 +984,51 @@
 "per_month_short" = "/月";
 "subscription_plan" = "サブスクリプション";
 "cancel_anytime" = "いつでもキャンセル可能";
+
+"your_reality_check" = "あなたの現実";
+"your_reality_check_subtitle" = "今日使った時間です。取り戻す準備はできましたか？";
+
+
+// Onboarding narrative (added)
+"onboard_welcome_title" = "スマホはあなたの時間を奪っている";
+"onboard_welcome_subtitle" = "平均1日4時間以上スクロール。Zenloopが取り戻すお手伝いをします。";
+"onboard_screentime_title" = "真実をお見せします";
+"onboard_screentime_subtitle" = "スクリーンタイムのアクセスを許可して、1日がどこに消えるか見てみましょう。";
+"onboard_guilttrip_title" = "あなたの1日、ありのまま";
+"onboard_guilttrip_subtitle" = "今日、スマホに奪われた時間です。";
+"onboard_howitworks_title" = "こうやって解決します";
+"onboard_howitworks_subtitle" = "集中セッション、スマートなブロック、支え合うコミュニティ。";
+"onboard_feature_block_title" = "必要なときにブロック";
+"onboard_feature_block_subtitle" = "気が散るアプリを自分のペースで止める。";
+"onboard_feature_social_title" = "みんなで集中";
+"onboard_feature_social_subtitle" = "ライブセッションに参加して一緒に取り組む。";
+"onboard_feature_stats_title" = "大事なことを追跡";
+"onboard_feature_stats_subtitle" = "週ごとの進捗を、判断なしに確認。";
+"onboard_social_title" = "あなたは一人じゃない";
+"onboard_social_subtitle" = "毎週時間を取り戻している何千人もの仲間に加わりましょう。";
+"onboard_stat_users" = "ユーザー";
+"onboard_stat_avg_saved" = "1日平均";
+"onboard_stat_rating" = "App Store";
+"onboard_notifications_title" = "ちょうどいいタイミングでお知らせ";
+"onboard_notifications_subtitle" = "大切なときだけの優しい通知 — スパムは一切なし。";
+"onboard_continue_shocked" = "変えたい";
+
+
+// Paywall v3 (2 plans: lifetime + monthly)
+"best_value_badge" = "ベスト";
+"break_even_months" = "%dヶ月で元が取れる";
+"one_time" = "一回払い";
+"cta_get_lifetime" = "生涯アクセスを取得";
+"cta_start_trial" = "7日間無料トライアル";
+
+
+// Stats redesign
+"stats_title" = "統計";
+"period_today" = "今日";
+"period_week" = "週";
+"period_month" = "月";
+
+// Shared with extension (used in InstantStatsPreview)
+"focus_score_label" = "集中スコア";
+"categories_label" = "カテゴリー";
+"most_used_label" = "最も使用";
