@@ -1032,3 +1032,254 @@
 "focus_score_label" = "درجة التركيز";
 "categories_label" = "الفئات";
 "most_used_label" = "الأكثر استخدامًا";
+
+// Background Picker
+"background_picker_title" = "صورة الخلفية";
+"background_picker_subtitle" = "خصص جلستك";
+"background_none" = "لا شيء";
+"background_load_failed" = "فشل التحميل";
+
+// Create Session
+"session_create_title" = "جلسة جديدة";
+"session_create_subtitle" = "تركيز جماعي";
+"session_create_button" = "إنشاء الجلسة";
+"session_creating" = "جاري الإنشاء…";
+"session_field_title" = "العنوان";
+"session_field_title_placeholder" = "مثال: ماراثون التركيز";
+"session_field_description" = "الوصف";
+"session_field_description_placeholder" = "صف جلستك…";
+"session_field_max_participants" = "الحد الأقصى للمشاركين";
+"session_field_optional" = "اختياري";
+"session_visibility" = "الظهور";
+"session_visibility_public" = "عامة";
+"session_visibility_private" = "خاصة";
+"session_duration" = "المدة";
+"session_duration_manual" = "يدوي";
+"session_duration_timed" = "موقوت";
+"session_duration_scheduled" = "مجدول";
+"session_duration_manual_sub" = "إدارة يدوية";
+"session_duration_timed_sub" = "إنهاء تلقائي";
+"session_duration_scheduled_sub" = "بدء وإنهاء تلقائي";
+"session_hours" = "ساعات";
+"session_minutes" = "دقائق";
+"session_start" = "البدء";
+"session_end" = "النهاية";
+"session_apps_to_block" = "التطبيقات للحظر";
+"session_apps_count" = "%d محدد(ة)";
+"session_background_image" = "صورة الخلفية";
+
+// Join Session
+"join_title" = "الانضمام";
+"join_subtitle" = "أدخل رمز الدعوة";
+"join_enter_code" = "أدخل رمز الدعوة";
+"join_code_length" = "6 أحرف";
+"join_search_button" = "البحث عن الجلسة";
+"join_searching" = "جاري البحث…";
+"join_session_button" = "الانضمام إلى الجلسة";
+"join_connecting" = "جاري الاتصال…";
+"join_session_closed" = "لم تعد هذه الجلسة تقبل أعضاء جدد";
+"join_members_count" = "%d عضو";
+"join_by_leader" = "بواسطة %@";
+"join_error_format" = "خطأ: %@";
+"join_request_sent_format" = "تم إرسال الطلب إلى القائد!\n\nأنت بالفعل في جلسة نشطة. سيتلقى قائد \"%@\" طلبك ويمكنه قبولك.";
+"session_status_lobby" = "في الانتظار";
+"session_status_active" = "نشطة";
+"session_status_paused" = "موقوفة";
+"session_status_completed" = "مكتملة";
+"session_status_dissolved" = "منحلّة";
+
+// Notifications
+"notifications_title" = "الإشعارات";
+"notifications_mark_all_read" = "تعليم الكل كمقروء";
+"notifications_empty_title" = "لا توجد إشعارات";
+"notifications_empty_subtitle" = "ستظهر إشعاراتك الاجتماعية هنا";
+"notifications_time_now" = "الآن";
+"notifications_time_minutes" = "منذ %d د";
+"notifications_time_hours" = "منذ %d س";
+"notifications_time_days" = "منذ %d يوم";
+
+// Session Detail
+"session_detail_leave_title" = "مغادرة الجلسة";
+"session_detail_cancel" = "إلغاء";
+"session_detail_leave_confirm" = "مغادرة";
+"session_detail_leave_message" = "سيتم إزالة قيود التطبيقات.";
+"session_detail_dissolve_title" = "حل الجلسة";
+"session_detail_dissolve_confirm" = "حل";
+"session_detail_dissolve_message" = "سينهي هذا الجلسة لجميع الأعضاء.";
+"session_detail_stop_title" = "إيقاف الجلسة";
+"session_detail_stop_confirm" = "إيقاف";
+"session_detail_stop_message" = "ستُعلَّم الجلسة كمكتملة للجميع.";
+"session_detail_cancel_schedule_title" = "إلغاء الجلسة المجدولة";
+"session_detail_keep" = "الاحتفاظ";
+"session_detail_yes_cancel" = "نعم، إلغاء";
+"session_detail_cancel_schedule_message" = "سيتم إلغاء البدء التلقائي. يمكنك حل الجلسة بعد ذلك.";
+"session_detail_status_scheduled" = "مجدولة";
+"session_detail_status_waiting" = "في انتظار";
+"session_detail_status_active" = "نشطة";
+"session_detail_status_paused" = "متوقفة";
+"session_detail_status_completed" = "مكتملة";
+"session_detail_status_dissolved" = "محلولة";
+"session_detail_leader_badge" = "قائد";
+"session_detail_members_in_focus" = "%d في التركيز";
+"session_detail_members_section" = "الأعضاء";
+"session_detail_member_joined" = "انضم";
+"session_detail_member_ready" = "مستعد";
+"session_detail_member_active" = "نشط";
+"session_detail_member_paused" = "متوقف";
+"session_detail_member_left" = "غادر";
+"session_detail_invite_code_label" = "رمز الدعوة";
+"session_detail_copied" = "تم النسخ";
+"session_detail_apps_to_block" = "التطبيقات للحظر";
+"session_detail_choose_apps" = "اختر التطبيقات";
+"session_detail_choose_apps_subtitle" = "اختر التطبيقات التي ستُحظر أثناء الجلسة";
+"session_detail_edit_apps" = "تعديل";
+"session_detail_i_am_ready" = "أنا مستعد";
+"session_detail_blocked_label" = "محظورة";
+"session_detail_session_ongoing" = "الجلسة جارية";
+"session_detail_select_apps_to_block" = "اختر تطبيقاتك لتفعيل الحظر";
+"session_detail_select_apps_button" = "اختر تطبيقات للحظر";
+"session_detail_paused_title" = "الجلسة متوقفة";
+"session_detail_leader" = "القائد";
+"session_detail_paused_by" = "بواسطة %@";
+"session_detail_pause_requests" = "طلبات التوقف";
+"session_detail_ready_count" = "%d/%d مستعد";
+"session_detail_auto_start" = "بدء تلقائي";
+"session_detail_start_button" = "بدء";
+"session_detail_pause_button" = "توقف";
+"session_detail_stop_button" = "إيقاف";
+"session_detail_leave_button" = "مغادرة";
+"session_detail_resume_button" = "استئناف";
+"session_detail_leave_session_button" = "مغادرة الجلسة";
+"session_detail_chat_label" = "دردشة";
+"session_detail_no_messages" = "لا رسائل — ابدأ المحادثة!";
+"session_detail_scheduled_session_label" = "جلسة مجدولة";
+"session_detail_starting" = "جار البدء...";
+"session_detail_starting_subtitle" = "في انتظار المزامنة";
+"session_detail_starts_in" = "يبدأ في";
+"session_detail_start_time" = "البداية: %@";
+"session_detail_end_time" = "النهاية: %@";
+"session_detail_completed_title" = "اكتملت الجلسة";
+"session_detail_completed_subtitle" = "تهانٍ للجميع";
+"session_detail_members_label" = "أعضاء";
+"session_detail_duration_label" = "المدة";
+"session_detail_dissolved_title" = "الجلسة محلولة";
+"session_detail_dissolved_subtitle" = "أغلقها القائد";
+"session_detail_request_pause_title" = "طلب توقف";
+"session_detail_request_pause_subtitle" = "يجب أن يوافق القائد";
+"session_detail_pause_reason_label" = "السبب (اختياري)";
+"session_detail_pause_reason_placeholder" = "مثال: أحتاج استراحة";
+"session_detail_send_button" = "إرسال";
+"session_detail_finished" = "انتهى";
+
+// Session Preview
+"session_preview_status_lobby" = "في انتظار البدء";
+"session_preview_status_active" = "جارية";
+"session_preview_status_paused" = "متوقفة";
+"session_preview_status_completed" = "مكتملة";
+"session_preview_status_dissolved" = "محلولة";
+"session_preview_back" = "رجوع";
+"session_preview_public_label" = "جلسة عامة";
+"session_preview_description_label" = "الوصف";
+"session_preview_participants" = "المشاركون";
+"session_preview_leader" = "القائد";
+"session_preview_invite_code" = "رمز الدعوة";
+"session_preview_duration" = "المدة";
+"session_preview_full" = "الجلسة ممتلئة";
+"session_preview_joining" = "جار الانضمام...";
+"session_preview_join_button" = "انضم للجلسة";
+
+// Social Login
+"social_login_title" = "الجلسات الاجتماعية";
+"social_login_subtitle" = "ركّز مع أصدقائك معاً";
+"social_login_feature1_title" = "جلسات جماعية";
+"social_login_feature1_desc" = "أنشئ أو انضم إلى الجلسات";
+"social_login_feature2_title" = "دردشة مباشرة";
+"social_login_feature2_desc" = "تواصل مع المشاركين";
+"social_login_feature3_title" = "المساءلة";
+"social_login_feature3_desc" = "ابقوا متحفزين معاً";
+"social_login_cta_hint" = "سجّل دخولك للوصول إلى الميزات الاجتماعية";
+"social_login_error_title" = "خطأ في المصادقة";
+"social_login_error_ok" = "حسناً";
+
+// Social Tab
+"social_status_idle" = "جاهز للتركيز معاً";
+"social_status_lobby" = "جلسة في انتظار";
+"social_status_active" = "جلسة نشطة";
+"social_status_paused" = "جلسة متوقفة";
+"social_feed_mine" = "جلساتي";
+"social_feed_discover" = "اكتشاف";
+"social_feed_empty_mine" = "ليس لديك جلسات بعد.";
+"social_feed_empty_discover" = "أنشئ أول جلسة عامة!";
+"social_hero_empty_title" = "جاهز للتركيز معاً";
+"social_hero_empty_subtitle" = "أنشئ جلسة أو انضم إلى إحداها\nلبدء تركيزك المشترك.";
+"social_cta_create" = "إنشاء";
+"social_cta_join" = "انضمام";
+"social_online_count" = "%d متصل";
+"social_nobody_focusing" = "لا أحد يركّز";
+"social_invitations_title" = "الدعوات";
+"social_invites_you" = "يدعوك";
+"social_card_status_active" = "نشطة";
+"social_card_status_paused" = "متوقفة";
+"social_card_status_lobby" = "لوبي";
+"social_card_status_session" = "جلسة";
+"social_member_count" = "%d عضو";
+"social_pause_requests_title" = "طلبات التوقف";
+"social_join_requests_title" = "طلبات الانضمام";
+"social_wants_to_join" = "يريد الانضمام إلى \"%@\"";
+"social_currently_in" = "حالياً في \"%@\"";
+"social_time_just_now" = "الآن";
+"social_time_minutes_ago" = "منذ %d دقيقة";
+"social_time_hours_ago" = "منذ %d ساعة";
+
+// System Messages (chat)
+"sys_member_joined" = "انضم %@ إلى الجلسة";
+"sys_member_left" = "غادر %@ الجلسة";
+"sys_session_started" = "بدأت الجلسة! وقت التركيز!";
+"sys_session_paused" = "%@ أوقف الجلسة مؤقتاً";
+"sys_session_paused_reason" = "%@ أوقف الجلسة مؤقتاً — %@";
+"sys_session_paused_accepted" = "%@ قبل طلب التوقف من %@";
+"sys_session_resumed" = "استُؤنفت الجلسة! هيا نكمل!";
+"sys_session_completed" = "انتهت الجلسة! عمل رائع للجميع!";
+"sys_pause_requested" = "%@ يطلب توقفاً مؤقتاً";
+"sys_pause_requested_reason" = "%@ يطلب توقفاً مؤقتاً — \"%@\"";
+"sys_pause_declined" = "تم رفض طلب التوقف من %@";
+
+"tap_to_select" = "اختيار";
+
+// GuiltTripView
+"guilt_ios_only" = "متاح على iOS فقط";
+
+// Difficulty modal + session goals + durations
+"difficulty_modal_title" = "مستوى التقييد";
+"difficulty_modal_subtitle" = "اختر شدة حجب التطبيقات";
+"difficulty_easy_mode" = "وضع الحماية";
+"difficulty_medium_mode" = "حماية معززة";
+"difficulty_hard_mode" = "وضع الإخفاء";
+"read_20_pages" = "قراءة 20 صفحة";
+"finish_report" = "إنهاء تقريري";
+"meditate_10_min" = "التأمل 10 دقائق";
+"complete_workout" = "إتمام التمرين";
+"quick_durations" = "مدد سريعة";
+"custom_duration" = "مدة مخصصة";
+"write_1000_words" = "كتابة 1000 كلمة";
+"study_chapter" = "دراسة فصل";
+
+// ActiveChallengeSection
+"active_challenge_focus_session" = "جلسة تركيز";
+"active_challenge_remaining" = "متبقي";
+"active_challenge_pause_label" = "إيقاف";
+"active_challenge_blocked" = "محجوبة";
+"active_challenge_done" = "منجز";
+"active_challenge_attempts" = "محاولات";
+"active_challenge_attempt" = "محاولة";
+"active_challenge_blocked_apps" = "التطبيقات المحجوبة";
+"active_challenge_session_goals" = "أهداف الجلسة";
+"active_challenge_tag_done" = "منجز";
+"active_challenge_tag_todo" = "للإنجاز";
+"active_challenge_blocked_attempts" = "%d محاولات محجوبة";
+"active_challenge_blocked_attempt_single" = "محاولة واحدة محجوبة";
+"difficulty_easy_desc" = "التطبيقات تبقى مرئية لكن محجوبة بطبقة تغطية";
+"difficulty_medium_desc" = "حجب صارم مع إشعارات تذكير";
+"difficulty_hard_desc" = "التطبيقات مخفية كلياً من الشاشة الرئيسية";
+"finish_setup" = "إنهاء الإعداد";
+"optional_can_skip" = "اختياري – يمكنك تخطي هذه الخطوة";

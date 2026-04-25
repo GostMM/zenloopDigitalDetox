@@ -1032,3 +1032,254 @@
 "focus_score_label" = "集中スコア";
 "categories_label" = "カテゴリー";
 "most_used_label" = "最も使用";
+
+// Background Picker
+"background_picker_title" = "背景画像";
+"background_picker_subtitle" = "セッションをカスタマイズ";
+"background_none" = "なし";
+"background_load_failed" = "読み込み失敗";
+
+// Create Session
+"session_create_title" = "新しいセッション";
+"session_create_subtitle" = "グループフォーカス";
+"session_create_button" = "セッションを作成";
+"session_creating" = "作成中…";
+"session_field_title" = "タイトル";
+"session_field_title_placeholder" = "例: Focus Marathon";
+"session_field_description" = "説明";
+"session_field_description_placeholder" = "セッションを説明…";
+"session_field_max_participants" = "最大参加者数";
+"session_field_optional" = "任意";
+"session_visibility" = "公開設定";
+"session_visibility_public" = "公開";
+"session_visibility_private" = "非公開";
+"session_duration" = "期間";
+"session_duration_manual" = "手動";
+"session_duration_timed" = "時間指定";
+"session_duration_scheduled" = "スケジュール";
+"session_duration_manual_sub" = "手動で管理";
+"session_duration_timed_sub" = "自動終了";
+"session_duration_scheduled_sub" = "自動開始と終了";
+"session_hours" = "時間";
+"session_minutes" = "分";
+"session_start" = "開始";
+"session_end" = "終了";
+"session_apps_to_block" = "ブロックするアプリ";
+"session_apps_count" = "%d件選択済み";
+"session_background_image" = "背景画像";
+
+// Join Session
+"join_title" = "参加";
+"join_subtitle" = "招待コードを入力";
+"join_enter_code" = "招待コードを入力";
+"join_code_length" = "6文字";
+"join_search_button" = "セッションを検索";
+"join_searching" = "検索中…";
+"join_session_button" = "セッションに参加";
+"join_connecting" = "接続中…";
+"join_session_closed" = "このセッションは新しいメンバーを受け付けていません";
+"join_members_count" = "%d 人のメンバー";
+"join_by_leader" = "%@ さんによる";
+"join_error_format" = "エラー: %@";
+"join_request_sent_format" = "リーダーにリクエストを送信しました！\n\n既にアクティブなセッションに参加しています。「%@」のリーダーがリクエストを受け取り、承認できます。";
+"session_status_lobby" = "待機中";
+"session_status_active" = "進行中";
+"session_status_paused" = "一時停止";
+"session_status_completed" = "完了";
+"session_status_dissolved" = "解散";
+
+// Notifications
+"notifications_title" = "通知";
+"notifications_mark_all_read" = "すべて既読";
+"notifications_empty_title" = "通知はありません";
+"notifications_empty_subtitle" = "ソーシャル通知はここに表示されます";
+"notifications_time_now" = "たった今";
+"notifications_time_minutes" = "%d 分前";
+"notifications_time_hours" = "%d 時間前";
+"notifications_time_days" = "%d 日前";
+
+// Session Detail
+"session_detail_leave_title" = "セッションを退出";
+"session_detail_cancel" = "キャンセル";
+"session_detail_leave_confirm" = "退出";
+"session_detail_leave_message" = "ブロックが解除されます。";
+"session_detail_dissolve_title" = "セッションを解散";
+"session_detail_dissolve_confirm" = "解散";
+"session_detail_dissolve_message" = "全メンバーのセッションが終了します。";
+"session_detail_stop_title" = "セッションを停止";
+"session_detail_stop_confirm" = "停止";
+"session_detail_stop_message" = "セッションは全員に対して完了とマークされます。";
+"session_detail_cancel_schedule_title" = "予定セッションをキャンセル";
+"session_detail_keep" = "保持";
+"session_detail_yes_cancel" = "はい、キャンセル";
+"session_detail_cancel_schedule_message" = "自動開始がキャンセルされます。その後セッションを解散できます。";
+"session_detail_status_scheduled" = "予定済み";
+"session_detail_status_waiting" = "待機中";
+"session_detail_status_active" = "進行中";
+"session_detail_status_paused" = "一時停止";
+"session_detail_status_completed" = "完了";
+"session_detail_status_dissolved" = "解散済み";
+"session_detail_leader_badge" = "リーダー";
+"session_detail_members_in_focus" = "%d人集中中";
+"session_detail_members_section" = "メンバー";
+"session_detail_member_joined" = "参加";
+"session_detail_member_ready" = "準備完了";
+"session_detail_member_active" = "アクティブ";
+"session_detail_member_paused" = "一時停止";
+"session_detail_member_left" = "退出済み";
+"session_detail_invite_code_label" = "招待コード";
+"session_detail_copied" = "クリップボードにコピー";
+"session_detail_apps_to_block" = "ブロックするアプリ";
+"session_detail_choose_apps" = "アプリを選択";
+"session_detail_choose_apps_subtitle" = "セッション中にブロックするアプリを選んでください";
+"session_detail_edit_apps" = "編集";
+"session_detail_i_am_ready" = "準備完了";
+"session_detail_blocked_label" = "ブロック中";
+"session_detail_session_ongoing" = "セッション進行中";
+"session_detail_select_apps_to_block" = "アプリを選択してブロックを有効化";
+"session_detail_select_apps_button" = "ブロックするアプリを選択";
+"session_detail_paused_title" = "セッション一時停止中";
+"session_detail_leader" = "リーダー";
+"session_detail_paused_by" = "%@による停止";
+"session_detail_pause_requests" = "一時停止リクエスト";
+"session_detail_ready_count" = "%d/%d 準備完了";
+"session_detail_auto_start" = "自動開始";
+"session_detail_start_button" = "開始";
+"session_detail_pause_button" = "一時停止";
+"session_detail_stop_button" = "停止";
+"session_detail_leave_button" = "退出";
+"session_detail_resume_button" = "再開";
+"session_detail_leave_session_button" = "セッションを退出";
+"session_detail_chat_label" = "チャット";
+"session_detail_no_messages" = "メッセージなし — 会話を始めよう！";
+"session_detail_scheduled_session_label" = "予定セッション";
+"session_detail_starting" = "開始中...";
+"session_detail_starting_subtitle" = "同期を待っています";
+"session_detail_starts_in" = "開始まで";
+"session_detail_start_time" = "開始: %@";
+"session_detail_end_time" = "終了: %@";
+"session_detail_completed_title" = "セッション完了";
+"session_detail_completed_subtitle" = "皆さんおめでとうございます";
+"session_detail_members_label" = "メンバー";
+"session_detail_duration_label" = "時間";
+"session_detail_dissolved_title" = "セッション解散";
+"session_detail_dissolved_subtitle" = "リーダーにより終了";
+"session_detail_request_pause_title" = "一時停止を申請";
+"session_detail_request_pause_subtitle" = "リーダーの承認が必要です";
+"session_detail_pause_reason_label" = "理由（任意）";
+"session_detail_pause_reason_placeholder" = "例：休憩が必要";
+"session_detail_send_button" = "送信";
+"session_detail_finished" = "終了";
+
+// Session Preview
+"session_preview_status_lobby" = "開始待ち";
+"session_preview_status_active" = "進行中";
+"session_preview_status_paused" = "一時停止";
+"session_preview_status_completed" = "完了";
+"session_preview_status_dissolved" = "解散済み";
+"session_preview_back" = "戻る";
+"session_preview_public_label" = "公開セッション";
+"session_preview_description_label" = "説明";
+"session_preview_participants" = "参加者";
+"session_preview_leader" = "リーダー";
+"session_preview_invite_code" = "招待コード";
+"session_preview_duration" = "時間";
+"session_preview_full" = "セッション満員";
+"session_preview_joining" = "参加中...";
+"session_preview_join_button" = "セッションに参加";
+
+// Social Login
+"social_login_title" = "ソーシャルセッション";
+"social_login_subtitle" = "友達と一緒に集中しよう";
+"social_login_feature1_title" = "グループセッション";
+"social_login_feature1_desc" = "セッションを作成または参加";
+"social_login_feature2_title" = "ライブチャット";
+"social_login_feature2_desc" = "参加者とコミュニケーション";
+"social_login_feature3_title" = "アカウンタビリティ";
+"social_login_feature3_desc" = "一緒にモチベーションを維持";
+"social_login_cta_hint" = "サインインしてソーシャル機能を利用";
+"social_login_error_title" = "認証エラー";
+"social_login_error_ok" = "OK";
+
+// Social Tab
+"social_status_idle" = "一緒に集中する準備完了";
+"social_status_lobby" = "セッション待機中";
+"social_status_active" = "セッション進行中";
+"social_status_paused" = "セッション一時停止";
+"social_feed_mine" = "マイセッション";
+"social_feed_discover" = "発見";
+"social_feed_empty_mine" = "まだセッションがありません。";
+"social_feed_empty_discover" = "最初の公開セッションを作成しよう！";
+"social_hero_empty_title" = "一緒に集中する準備完了";
+"social_hero_empty_subtitle" = "セッションを作成するか参加して\n共有フォーカスを始めよう。";
+"social_cta_create" = "作成";
+"social_cta_join" = "参加";
+"social_online_count" = "%d人オンライン";
+"social_nobody_focusing" = "集中中の人なし";
+"social_invitations_title" = "招待";
+"social_invites_you" = "が招待しています";
+"social_card_status_active" = "進行中";
+"social_card_status_paused" = "一時停止";
+"social_card_status_lobby" = "ロビー";
+"social_card_status_session" = "セッション";
+"social_member_count" = "%d人のメンバー";
+"social_pause_requests_title" = "一時停止リクエスト";
+"social_join_requests_title" = "参加リクエスト";
+"social_wants_to_join" = "「%@」に参加希望";
+"social_currently_in" = "現在「%@」に参加中";
+"social_time_just_now" = "たった今";
+"social_time_minutes_ago" = "%d分前";
+"social_time_hours_ago" = "%d時間前";
+
+// System Messages (chat)
+"sys_member_joined" = "%@がセッションに参加しました";
+"sys_member_left" = "%@がセッションを退出しました";
+"sys_session_started" = "セッション開始！集中しよう！";
+"sys_session_paused" = "%@がセッションを一時停止しました";
+"sys_session_paused_reason" = "%@がセッションを一時停止しました — %@";
+"sys_session_paused_accepted" = "%@が%@の一時停止リクエストを承認しました";
+"sys_session_resumed" = "セッション再開！行くぞ！";
+"sys_session_completed" = "セッション完了！皆さんお疲れ様でした！";
+"sys_pause_requested" = "%@が一時停止をリクエストしています";
+"sys_pause_requested_reason" = "%@が一時停止をリクエストしています — \"%@\"";
+"sys_pause_declined" = "%@の一時停止リクエストが却下されました";
+
+"tap_to_select" = "選択";
+
+// GuiltTripView
+"guilt_ios_only" = "iOSのみ対応";
+
+// Difficulty modal + session goals + durations
+"difficulty_modal_title" = "制限レベル";
+"difficulty_modal_subtitle" = "アプリブロックの強度を選択";
+"difficulty_easy_mode" = "シールドモード";
+"difficulty_medium_mode" = "強化シールド";
+"difficulty_hard_mode" = "ハイドモード";
+"read_20_pages" = "20ページ読む";
+"finish_report" = "レポートを仕上げる";
+"meditate_10_min" = "10分瞑想する";
+"complete_workout" = "トレーニングを完了する";
+"quick_durations" = "クイック時間";
+"custom_duration" = "カスタム時間";
+"write_1000_words" = "1000文字書く";
+"study_chapter" = "1章勉強する";
+
+// ActiveChallengeSection
+"active_challenge_focus_session" = "フォーカスセッション";
+"active_challenge_remaining" = "残り";
+"active_challenge_pause_label" = "一時停止";
+"active_challenge_blocked" = "ブロック中";
+"active_challenge_done" = "完了";
+"active_challenge_attempts" = "試行";
+"active_challenge_attempt" = "試行";
+"active_challenge_blocked_apps" = "ブロック中のアプリ";
+"active_challenge_session_goals" = "セッション目標";
+"active_challenge_tag_done" = "完了";
+"active_challenge_tag_todo" = "未完了";
+"active_challenge_blocked_attempts" = "%d回のブロック";
+"active_challenge_blocked_attempt_single" = "1回のブロック";
+"difficulty_easy_desc" = "アプリは表示されますがオーバーレイでブロックされます";
+"difficulty_medium_desc" = "リマインダー通知付きの厳格なブロック";
+"difficulty_hard_desc" = "アプリがホーム画面から完全に非表示";
+"finish_setup" = "設定を完了";
+"optional_can_skip" = "任意 – このステップはスキップできます";

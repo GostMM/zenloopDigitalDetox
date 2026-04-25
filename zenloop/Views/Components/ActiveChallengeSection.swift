@@ -54,7 +54,7 @@ struct ActiveChallengeSection: View {
         VStack(spacing: 0) {
             if challenge != nil {
                 // ━━ HEADER LABEL ━━
-                sectionLabel("Focus session")
+                sectionLabel(String(localized: "active_challenge_focus_session"))
                     .padding(.bottom, 16)
 
                 // ━━ HERO: Ring Timer + Controls ━━
@@ -215,7 +215,7 @@ struct ActiveChallengeSection: View {
                 .foregroundColor(.white)
                 .shadow(color: accentColor.opacity(ringPulse ? 0.3 : 0.0), radius: 20)
 
-            Text("remaining")
+            Text(String(localized: "active_challenge_remaining"))
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.white.opacity(0.2))
         }
@@ -223,7 +223,7 @@ struct ActiveChallengeSection: View {
 
     private var pausedContent: some View {
         VStack(spacing: 2) {
-            Text("PAUSE")
+            Text(String(localized: "active_challenge_pause_label"))
                 .font(.system(size: 9, weight: .heavy))
                 .tracking(2)
                 .foregroundColor(.mint)
@@ -256,7 +256,9 @@ struct ActiveChallengeSection: View {
                           ? "play.fill" : "pause.fill")
                         .font(.system(size: 12, weight: .bold))
 
-                    Text(zenloopManager.currentState == .paused ? "Resume" : "Pause")
+                    Text(zenloopManager.currentState == .paused
+                         ? String(localized: "resume")
+                         : String(localized: "pause"))
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundColor(pauseResumeColor)
@@ -275,7 +277,7 @@ struct ActiveChallengeSection: View {
                 HStack(spacing: 6) {
                     Image(systemName: "stop.fill")
                         .font(.system(size: 11, weight: .bold))
-                    Text("Stop")
+                    Text(String(localized: "stop"))
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundColor(Color.red.opacity(0.9))
@@ -320,7 +322,7 @@ struct ActiveChallengeSection: View {
                 statItem(
                     icon: "shield.fill",
                     value: "\(c.blockedAppsCount)",
-                    label: "blocked",
+                    label: String(localized: "active_challenge_blocked"),
                     color: .purple
                 )
             }
@@ -330,7 +332,7 @@ struct ActiveChallengeSection: View {
             statItem(
                 icon: "flame.fill",
                 value: "\(Int(zenloopManager.currentProgress * 100))%",
-                label: "done",
+                label: String(localized: "active_challenge_done"),
                 color: accentColor
             )
 
@@ -339,7 +341,9 @@ struct ActiveChallengeSection: View {
                 statItem(
                     icon: "hand.raised.fill",
                     value: "\(c.appOpenAttempts)",
-                    label: c.appOpenAttempts > 1 ? "attempts" : "attempt",
+                    label: c.appOpenAttempts > 1
+                        ? String(localized: "active_challenge_attempts")
+                        : String(localized: "active_challenge_attempt"),
                     color: .orange
                 )
             }
@@ -372,7 +376,7 @@ struct ActiveChallengeSection: View {
 
         return VStack(spacing: 8) {
             sectionHeader(
-                title: "Blocked apps",
+                title: String(localized: "active_challenge_blocked_apps"),
                 trailing: "\(effectiveTotal) apps",
                 trailingColor: accentColor
             )
@@ -429,7 +433,7 @@ struct ActiveChallengeSection: View {
         VStack(spacing: 8) {
             // Header with counter
             sectionHeader(
-                title: "Session goals",
+                title: String(localized: "active_challenge_session_goals"),
                 trailing: "\(completedGoals) / \(totalGoals)",
                 trailingColor: completedGoals == totalGoals && totalGoals > 0 ? .green : .cyan
             )
@@ -516,11 +520,9 @@ struct ActiveChallengeSection: View {
     @ViewBuilder
     private func goalTag(for goal: TaskGoal) -> some View {
         if goal.isCompleted {
-            tagPill(text: "Done", bgColor: .green, textColor: .green)
+            tagPill(text: String(localized: "active_challenge_tag_done"), bgColor: .green, textColor: .green)
         } else {
-            // You can extend TaskGoal with a `priority` field to show "Priority" vs "Optional"
-            // For now, fallback to a neutral tag
-            tagPill(text: "To do", bgColor: .white, textColor: .white)
+            tagPill(text: String(localized: "active_challenge_tag_todo"), bgColor: .white, textColor: .white)
         }
     }
 
@@ -575,8 +577,8 @@ struct ActiveChallengeSection: View {
                 .foregroundColor(.orange.opacity(0.8))
 
             Text(challenge.appOpenAttempts > 1
-                 ? "\(challenge.appOpenAttempts) blocked attempts"
-                 : "1 blocked attempt")
+                 ? String(format: String(localized: "active_challenge_blocked_attempts"), challenge.appOpenAttempts)
+                 : String(localized: "active_challenge_blocked_attempt_single"))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.orange.opacity(0.7))
 

@@ -152,7 +152,7 @@ struct GuiltTripExtensionView: View {
     private var heroSection: some View {
         VStack(spacing: 18) {
             // Label minuscule
-            Text("TEMPS D'ÉCRAN AUJOURD'HUI")
+            Text(String(localized: "guilt_hero_label"))
                 .font(.system(size: 10, weight: .heavy, design: .rounded))
                 .tracking(3)
                 .foregroundColor(.white.opacity(phase >= .counterSpin ? 0.35 : 0))
@@ -252,7 +252,7 @@ struct GuiltTripExtensionView: View {
         let totalLifetimeYears = totalLifetimeDays / 365
 
         return VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Si tu continues comme ça…")
+            sectionTitle(String(localized: "guilt_lifetime_title"))
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -264,13 +264,13 @@ struct GuiltTripExtensionView: View {
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
-                    Text(totalLifetimeYears >= 1 ? "ANS" : "MOIS")
+                    Text(totalLifetimeYears >= 1 ? String(localized: "guilt_years") : String(localized: "guilt_months"))
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
                         .tracking(2)
                         .foregroundColor(.white.opacity(0.55))
                 }
 
-                Text("passés sur ton téléphone jusqu'à la fin de ta vie,\nau rythme actuel.")
+                Text(String(localized: "guilt_lifetime_subtitle"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
@@ -292,7 +292,7 @@ struct GuiltTripExtensionView: View {
 
     private var equivalencesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Ce que tu aurais pu faire")
+            sectionTitle(String(localized: "guilt_equiv_title"))
 
             VStack(spacing: 14) {
                 ForEach(equivalences) { equiv in
@@ -329,7 +329,7 @@ struct GuiltTripExtensionView: View {
                 Image(systemName: "exclamationmark.octagon.fill")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(stealColor(index: 0))
-                Text("LES VOLEURS DE TON TEMPS")
+                Text(String(localized: "guilt_thieves_label"))
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .tracking(2)
@@ -504,44 +504,34 @@ struct GuiltTripExtensionView: View {
     }
 
     private var verdictLabel: String {
-        if todayHours >= 6 { return "Addictif" }
-        if todayHours >= 4 { return "Excessif" }
-        if todayHours >= 2 { return "À surveiller" }
-        return "Sain"
+        if todayHours >= 6 { return String(localized: "guilt_verdict_addictive") }
+        if todayHours >= 4 { return String(localized: "guilt_verdict_excessive") }
+        if todayHours >= 2 { return String(localized: "guilt_verdict_watch") }
+        return String(localized: "guilt_verdict_healthy")
     }
 
     private var verdictHeadline: String {
-        if todayHours >= 6 { return "Tu es en zone rouge." }
-        if todayHours >= 4 { return "C'est beaucoup trop." }
-        if todayHours >= 2 { return "Tu peux encore redresser." }
-        return "Bravo, tu maîtrises."
+        if todayHours >= 6 { return String(localized: "guilt_headline_addictive") }
+        if todayHours >= 4 { return String(localized: "guilt_headline_excessive") }
+        if todayHours >= 2 { return String(localized: "guilt_headline_watch") }
+        return String(localized: "guilt_headline_healthy")
     }
 
     private var verdictSubtitle: String {
-        if todayHours >= 6 {
-            return "Ton cerveau ne distingue plus la pause de la compulsion. Ton attention s'effondre."
-        }
-        if todayHours >= 4 {
-            return "Tu perds des heures que tu ne récupéreras jamais. Chaque jour."
-        }
-        if todayHours >= 2 {
-            return "Tu es au-dessus de la moyenne recommandée. Pas grave — encore."
-        }
-        return "Continue comme ça. Peu de gens y arrivent."
+        if todayHours >= 6 { return String(localized: "guilt_subtitle_addictive") }
+        if todayHours >= 4 { return String(localized: "guilt_subtitle_excessive") }
+        if todayHours >= 2 { return String(localized: "guilt_subtitle_watch") }
+        return String(localized: "guilt_subtitle_healthy")
     }
 
     private var shockPhrase: String {
-        if todayHours >= 6 {
-            return "Tu as passé plus de temps sur ton téléphone qu'à parler à un être humain aujourd'hui."
-        }
-        if todayHours >= 4 {
-            return "C'est presque un mi-temps.\nChaque jour. Pour scroller."
-        }
+        if todayHours >= 6 { return String(localized: "guilt_shock_addictive") }
+        if todayHours >= 4 { return String(localized: "guilt_shock_excessive") }
         if todayHours >= 2 {
             let weeklyHours = Int(todayHours * 7)
-            return "\(weeklyHours) heures par semaine.\nC'est un film. Chaque soir."
+            return String(format: String(localized: "guilt_shock_watch"), weeklyHours)
         }
-        return "Tu utilises ton téléphone comme un outil, pas comme une drogue.\nRare."
+        return String(localized: "guilt_shock_healthy")
     }
 
     private var equivalences: [GuiltEquivalence] {
@@ -552,8 +542,8 @@ struct GuiltTripExtensionView: View {
         if annualDays >= 1 {
             result.append(GuiltEquivalence(
                 emoji: "📅",
-                headline: "\(Int(annualDays)) jours entiers par an",
-                body: "À ce rythme, c'est \(Int(annualDays)) journées complètes rayées de ta vie cette année."
+                headline: String(format: String(localized: "guilt_equiv_days_headline"), Int(annualDays)),
+                body: String(format: String(localized: "guilt_equiv_days_body"), Int(annualDays))
             ))
         }
 
@@ -561,8 +551,8 @@ struct GuiltTripExtensionView: View {
         if books > 0 {
             result.append(GuiltEquivalence(
                 emoji: "📚",
-                headline: "\(books) livres par an",
-                body: "Tu aurais pu lire \(books) livres cette année avec ce temps."
+                headline: String(format: String(localized: "guilt_equiv_books_headline"), books),
+                body: String(format: String(localized: "guilt_equiv_books_body"), books)
             ))
         }
 
@@ -571,8 +561,8 @@ struct GuiltTripExtensionView: View {
         if workoutHours > 100 {
             result.append(GuiltEquivalence(
                 emoji: "💪",
-                headline: "\(workoutHours) heures de sport",
-                body: "De quoi transformer complètement ton corps en une année."
+                headline: String(format: String(localized: "guilt_equiv_workout_headline"), workoutHours),
+                body: String(localized: "guilt_equiv_workout_body")
             ))
         }
 
@@ -580,8 +570,8 @@ struct GuiltTripExtensionView: View {
         if sleepHoursPerYear >= 50 {
             result.append(GuiltEquivalence(
                 emoji: "😴",
-                headline: "\(sleepHoursPerYear)h de sommeil volé",
-                body: "Imagine ta productivité avec \(sleepHoursPerYear)h de sommeil en plus par an."
+                headline: String(format: String(localized: "guilt_equiv_sleep_headline"), sleepHoursPerYear),
+                body: String(format: String(localized: "guilt_equiv_sleep_body"), sleepHoursPerYear)
             ))
         }
 

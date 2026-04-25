@@ -542,3 +542,36 @@
 "chart_afternoon" = "AFTERNOON";
 "chart_evening" = "EVENING";
 "apps_section_title" = "Apps";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "SCREEN TIME TODAY";
+"guilt_verdict_addictive" = "Addictive";
+"guilt_verdict_excessive" = "Excessive";
+"guilt_verdict_watch" = "Watch out";
+"guilt_verdict_healthy" = "Healthy";
+"guilt_headline_addictive" = "You're in the red zone.";
+"guilt_headline_excessive" = "That's way too much.";
+"guilt_headline_watch" = "You can still turn it around.";
+"guilt_headline_healthy" = "Well done, you're in control.";
+"guilt_subtitle_addictive" = "Your brain can no longer tell a break from a compulsion. Your attention is collapsing.";
+"guilt_subtitle_excessive" = "You're losing hours you'll never get back. Every day.";
+"guilt_subtitle_watch" = "You're above the recommended average. Not a big deal — yet.";
+"guilt_subtitle_healthy" = "Keep it up. Very few people manage this.";
+"guilt_shock_addictive" = "You spent more time on your phone today than talking to another human being.";
+"guilt_shock_excessive" = "That's almost a part-time job.\nEvery day. Just scrolling.";
+"guilt_shock_watch" = "%d hours a week.\nThat's a movie. Every evening.";
+"guilt_shock_healthy" = "You use your phone as a tool, not a drug.\nRare.";
+"guilt_lifetime_title" = "If you keep this up…";
+"guilt_years" = "YRS";
+"guilt_months" = "MOS";
+"guilt_lifetime_subtitle" = "spent on your phone until the end of your life,\nat your current pace.";
+"guilt_equiv_title" = "What you could have done";
+"guilt_thieves_label" = "THE THIEVES OF YOUR TIME";
+"guilt_equiv_days_headline" = "%d full days a year";
+"guilt_equiv_days_body" = "At this rate, that's %d complete days wiped from your life this year.";
+"guilt_equiv_books_headline" = "%d books a year";
+"guilt_equiv_books_body" = "You could have read %d books this year with that time.";
+"guilt_equiv_workout_headline" = "%d hours of exercise";
+"guilt_equiv_workout_body" = "Enough to completely transform your body in a year.";
+"guilt_equiv_sleep_headline" = "%dh of stolen sleep";
+"guilt_equiv_sleep_body" = "Imagine your productivity with %dh of extra sleep a year.";

@@ -250,23 +250,23 @@ struct SessionDetailView: View {
                 evaluateBlockApplication(reason: "foreground")
             }
         }
-        .alert("Quitter la Session", isPresented: $showLeaveAlert) {
-            Button("Annuler", role: .cancel) {}
-            Button("Quitter", role: .destructive) { leaveSession() }
-        } message: { Text("Vos blocages seront retirés.") }
-        .alert("Dissoudre la Session", isPresented: $showDissolveAlert) {
-            Button("Annuler", role: .cancel) {}
-            Button("Dissoudre", role: .destructive) { dissolveSession() }
-        } message: { Text("Cela terminera la session pour tous les membres.") }
-        .alert("Arrêter la Session", isPresented: $showStopAlert) {
-            Button("Annuler", role: .cancel) {}
-            Button("Arrêter", role: .destructive) { stopSession() }
-        } message: { Text("La session sera marquée comme terminée pour tout le monde.") }
-        .alert("Annuler la Session Programmée", isPresented: $showCancelScheduleAlert) {
-            Button("Non, garder", role: .cancel) {}
-            Button("Oui, annuler", role: .destructive) { cancelScheduledSession() }
+        .alert(String(localized: "session_detail_leave_title"), isPresented: $showLeaveAlert) {
+            Button(String(localized: "session_detail_cancel"), role: .cancel) {}
+            Button(String(localized: "session_detail_leave_confirm"), role: .destructive) { leaveSession() }
+        } message: { Text(String(localized: "session_detail_leave_message")) }
+        .alert(String(localized: "session_detail_dissolve_title"), isPresented: $showDissolveAlert) {
+            Button(String(localized: "session_detail_cancel"), role: .cancel) {}
+            Button(String(localized: "session_detail_dissolve_confirm"), role: .destructive) { dissolveSession() }
+        } message: { Text(String(localized: "session_detail_dissolve_message")) }
+        .alert(String(localized: "session_detail_stop_title"), isPresented: $showStopAlert) {
+            Button(String(localized: "session_detail_cancel"), role: .cancel) {}
+            Button(String(localized: "session_detail_stop_confirm"), role: .destructive) { stopSession() }
+        } message: { Text(String(localized: "session_detail_stop_message")) }
+        .alert(String(localized: "session_detail_cancel_schedule_title"), isPresented: $showCancelScheduleAlert) {
+            Button(String(localized: "session_detail_keep"), role: .cancel) {}
+            Button(String(localized: "session_detail_yes_cancel"), role: .destructive) { cancelScheduledSession() }
         } message: {
-            Text("Le démarrage automatique sera annulé. Vous pourrez dissoudre la session ensuite.")
+            Text(String(localized: "session_detail_cancel_schedule_message"))
         }
         .sheet(isPresented: $showPauseRequestSheet) {
             PauseRequestSheet(
@@ -744,7 +744,7 @@ struct ScheduledSessionCountdown: View {
                 Image(systemName: "calendar.badge.clock")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.cyan.opacity(0.7))
-                Text("SESSION PROGRAMMÉE")
+                Text(String(localized: "session_detail_scheduled_session_label"))
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .tracking(1.5)
                     .foregroundColor(.cyan.opacity(0.5))
@@ -773,11 +773,11 @@ struct ScheduledSessionCountdown: View {
                 if hasStarted {
                     // ✅ FIX V3: Affichage plus informatif pendant l'attente
                     VStack(spacing: 8) {
-                        Text("Démarrage en cours...")
+                        Text(String(localized: "session_detail_starting"))
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundColor(.green)
 
-                        Text("En attente de la synchronisation Firestore")
+                        Text(String(localized: "session_detail_starting_subtitle"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.4))
 
@@ -787,7 +787,7 @@ struct ScheduledSessionCountdown: View {
                             .scaleEffect(0.8)
                     }
                 } else {
-                    Text("Démarre dans")
+                    Text(String(localized: "session_detail_starts_in"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.5))
 
@@ -802,7 +802,7 @@ struct ScheduledSessionCountdown: View {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 12))
                             .foregroundColor(.green)
-                        Text("Début: \(startTime.formatted(date: .abbreviated, time: .shortened))")
+                        Text(String(format: String(localized: "session_detail_start_time"), startTime.formatted(date: .abbreviated, time: .shortened)))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.6))
                         Spacer()
@@ -813,7 +813,7 @@ struct ScheduledSessionCountdown: View {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: 12))
                                 .foregroundColor(.red)
-                            Text("Fin: \(endTime.formatted(date: .abbreviated, time: .shortened))")
+                            Text(String(format: String(localized: "session_detail_end_time"), endTime.formatted(date: .abbreviated, time: .shortened)))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                             Spacer()
@@ -936,10 +936,12 @@ struct SessionDetailHeaderWithAvatars: View {
     private var statusLabel: String {
         switch session.status {
         case .lobby:
-            if (session.isScheduled ?? false) { return "Programmée" }
-            return "En attente"
-        case .active: return "En cours"; case .paused: return "En pause"
-        case .completed: return "Terminée"; case .dissolved: return "Dissoute"
+            if (session.isScheduled ?? false) { return String(localized: "session_detail_status_scheduled") }
+            return String(localized: "session_detail_status_waiting")
+        case .active: return String(localized: "session_detail_status_active")
+        case .paused: return String(localized: "session_detail_status_paused")
+        case .completed: return String(localized: "session_detail_status_completed")
+        case .dissolved: return String(localized: "session_detail_status_dissolved")
         }
     }
 
@@ -971,7 +973,7 @@ struct SessionDetailHeaderWithAvatars: View {
                 if isLeader {
                     HStack(spacing: 3) {
                         Image(systemName: "crown.fill").font(.system(size: 9))
-                        Text("LEADER").font(.system(size: 9, weight: .heavy, design: .rounded)).tracking(0.6)
+                        Text(String(localized: "session_detail_leader_badge")).font(.system(size: 9, weight: .heavy, design: .rounded)).tracking(0.6)
                     }
                     .foregroundColor(.yellow)
                     .padding(.horizontal, 9).padding(.vertical, 5)
@@ -1002,7 +1004,7 @@ struct SessionDetailHeaderWithAvatars: View {
             HStack(spacing: 14) {
                 HStack(spacing: 5) {
                     Image(systemName: "person.2.fill").font(.system(size: 11))
-                    Text("\(members.count) en focus")
+                    Text(String(format: String(localized: "session_detail_members_in_focus"), members.count))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                 }.foregroundColor(.white.opacity(0.35))
 
@@ -1128,7 +1130,7 @@ struct MembersDetailList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 6) {
-                Text("MEMBRES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                Text(String(localized: "session_detail_members_section")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.35))
                 Text("\(members.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.7))
             }
             ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
@@ -1155,8 +1157,11 @@ struct MemberDetailRow: View {
 
     private var statusText: String {
         switch member.status {
-        case .joined: return "Rejoint"; case .ready: return "Prêt"
-        case .active: return "Actif"; case .paused: return "En pause"; case .left: return "Parti"
+        case .joined: return String(localized: "session_detail_member_joined")
+        case .ready: return String(localized: "session_detail_member_ready")
+        case .active: return String(localized: "session_detail_member_active")
+        case .paused: return String(localized: "session_detail_member_paused")
+        case .left: return String(localized: "session_detail_member_left")
         }
     }
 
@@ -1204,7 +1209,7 @@ struct InviteCodeOpen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("CODE D'INVITATION").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.cyan.opacity(0.6))
+            Text(String(localized: "session_detail_invite_code_label")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.cyan.opacity(0.6))
             Button(action: {
                 UIPasteboard.general.string = code
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { copied = true }
@@ -1230,7 +1235,7 @@ struct InviteCodeOpen: View {
                 }
             }
             if copied {
-                Text("Copié dans le presse-papier").font(.system(size: 12, weight: .medium, design: .rounded)).foregroundColor(.green.opacity(0.7))
+                Text(String(localized: "session_detail_copied")).font(.system(size: 12, weight: .medium, design: .rounded)).foregroundColor(.green.opacity(0.7))
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -1252,7 +1257,7 @@ struct AppSelectionOpen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("APPS À BLOQUER").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.6))
+            Text(String(localized: "session_detail_apps_to_block")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.6))
             if selectedCount == 0 {
                 Button(action: onSelect) {
                     HStack(spacing: 12) {
@@ -1261,8 +1266,8 @@ struct AppSelectionOpen: View {
                             Image(systemName: "plus").font(.system(size: 22, weight: .semibold)).foregroundColor(.white.opacity(0.3))
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Choisir les apps").font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.7))
-                            Text("Sélectionne les apps à bloquer pendant la session").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.35))
+                            Text(String(localized: "session_detail_choose_apps")).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.7))
+                            Text(String(localized: "session_detail_choose_apps_subtitle")).font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.35))
                         }
                         Spacer()
                     }
@@ -1275,7 +1280,7 @@ struct AppSelectionOpen: View {
                             Spacer()
                             VStack(spacing: 4) {
                                 Image(systemName: "pencil.circle.fill").font(.system(size: 20)).foregroundColor(.white.opacity(0.25))
-                                Text("Modifier").font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25))
+                                Text(String(localized: "session_detail_edit_apps")).font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.25))
                             }
                         }
                     }.buttonStyle(BounceButtonStyle())
@@ -1283,7 +1288,7 @@ struct AppSelectionOpen: View {
                     Button(action: onReady) {
                         HStack(spacing: 10) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 20, weight: .bold)).scaleEffect(readyPulse ? 1.12 : 1.0)
-                            Text("Je suis Prêt").font(.system(size: 18, weight: .bold, design: .rounded))
+                            Text(String(localized: "session_detail_i_am_ready")).font(.system(size: 18, weight: .bold, design: .rounded))
                         }
                         .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(
@@ -1357,14 +1362,14 @@ struct LateJoinAppSelectionCard: View {
                     Image(systemName: "clock.badge.exclamationmark.fill").font(.system(size: 24)).foregroundColor(.orange)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Session en cours").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
-                    Text("Sélectionnez vos apps pour activer le blocage").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6))
+                    Text(String(localized: "session_detail_session_ongoing")).font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text(String(localized: "session_detail_select_apps_to_block")).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.6))
                 }
             }
             Button(action: onSelect) {
                 HStack(spacing: 12) {
                     Image(systemName: "apps.iphone").font(.system(size: 18, weight: .semibold))
-                    Text("Sélectionner les apps à bloquer").font(.system(size: 16, weight: .semibold, design: .rounded))
+                    Text(String(localized: "session_detail_select_apps_button")).font(.system(size: 16, weight: .semibold, design: .rounded))
                     Spacer()
                     Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold))
                 }
@@ -1399,7 +1404,7 @@ struct BlockedAppsOpen: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "shield.lefthalf.filled").font(.system(size: 13, weight: .bold)).foregroundColor(.purple.opacity(0.7)).scaleEffect(shieldPulse ? 1.1 : 1.0)
-                Text("BLOQUÉES").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.5))
+                Text(String(localized: "session_detail_blocked_label")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.purple.opacity(0.5))
                 let total = selectedApps.applicationTokens.count + selectedApps.categoryTokens.count
                 Text("\(total)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.purple)
                     .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Color.purple.opacity(0.12)))
@@ -1428,10 +1433,10 @@ struct PausedIndicatorOpen: View {
                 Image(systemName: "pause.circle.fill").font(.system(size: 40, weight: .light))
                     .foregroundStyle(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing))
             }
-            Text("Session en pause").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+            Text(String(localized: "session_detail_paused_title")).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
             if let pausedBy = pausedBy {
-                let name = members.first(where: { $0.id == pausedBy })?.username ?? "Leader"
-                Text("par \(name)").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.4))
+                let name = members.first(where: { $0.id == pausedBy })?.username ?? String(localized: "session_detail_leader")
+                Text(String(format: String(localized: "session_detail_paused_by"), name)).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.4))
             }
         }
         .frame(maxWidth: .infinity).padding(.vertical, 20)
@@ -1454,7 +1459,7 @@ struct PauseRequestsOpen: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "hand.raised.fill").font(.system(size: 14, weight: .bold)).foregroundColor(.orange).scaleEffect(alertPulse ? 1.15 : 1.0)
-                Text("DEMANDES DE PAUSE").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.2).foregroundColor(.orange.opacity(0.6))
+                Text(String(localized: "session_detail_pause_requests")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.2).foregroundColor(.orange.opacity(0.6))
                 Text("\(requests.count)").font(.system(size: 11, weight: .bold, design: .rounded)).foregroundColor(.orange)
                     .padding(.horizontal, 7).padding(.vertical, 2).background(Capsule().fill(Color.orange.opacity(0.12)))
             }
@@ -1512,7 +1517,7 @@ struct FixedBottomControls: View {
                 if isLeader {
                     // Barre de progression ready
                     HStack(spacing: 8) {
-                        Text("\(readyCount)/\(totalCount) prêts")
+                        Text(String(format: String(localized: "session_detail_ready_count"), readyCount, totalCount))
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
 
@@ -1536,7 +1541,7 @@ struct FixedBottomControls: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "calendar.badge.clock")
                                     .font(.system(size: 14, weight: .bold))
-                                Text("Démarrage auto")
+                                Text(String(localized: "session_detail_auto_start"))
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.cyan.opacity(0.7))
@@ -1571,7 +1576,7 @@ struct FixedBottomControls: View {
                             Button(action: onStart) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
-                                    Text("Démarrer").font(.system(size: 16, weight: .bold, design: .rounded))
+                                    Text(String(localized: "session_detail_start_button")).font(.system(size: 16, weight: .bold, design: .rounded))
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity).padding(.vertical, 16)
@@ -1607,7 +1612,7 @@ struct FixedBottomControls: View {
                         Button(action: onPause) {
                             HStack(spacing: 8) {
                                 Image(systemName: "pause.fill").font(.system(size: 14, weight: .bold))
-                                Text("Pause").font(.system(size: 15, weight: .bold, design: .rounded))
+                                Text(String(localized: "session_detail_pause_button")).font(.system(size: 15, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.orange)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
@@ -1618,7 +1623,7 @@ struct FixedBottomControls: View {
                         Button(action: onStop) {
                             HStack(spacing: 8) {
                                 Image(systemName: "stop.fill").font(.system(size: 14, weight: .bold))
-                                Text("Arrêter").font(.system(size: 15, weight: .bold, design: .rounded))
+                                Text(String(localized: "session_detail_stop_button")).font(.system(size: 15, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
@@ -1631,7 +1636,7 @@ struct FixedBottomControls: View {
                         Button(action: onRequestPause) {
                             HStack(spacing: 8) {
                                 Image(systemName: "hand.raised.fill").font(.system(size: 14, weight: .bold))
-                                Text("Pause").font(.system(size: 14, weight: .bold, design: .rounded))
+                                Text(String(localized: "session_detail_pause_button")).font(.system(size: 14, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.orange)
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
@@ -1642,7 +1647,7 @@ struct FixedBottomControls: View {
                         Button(action: onLeave) {
                             HStack(spacing: 8) {
                                 Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 14, weight: .bold))
-                                Text("Quitter").font(.system(size: 14, weight: .bold, design: .rounded))
+                                Text(String(localized: "session_detail_leave_button")).font(.system(size: 14, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.red.opacity(0.7))
                             .frame(maxWidth: .infinity).padding(.vertical, 15)
@@ -1658,7 +1663,7 @@ struct FixedBottomControls: View {
                         Button(action: onResume) {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.system(size: 16, weight: .bold))
-                                Text("Reprendre").font(.system(size: 16, weight: .bold, design: .rounded))
+                                Text(String(localized: "session_detail_resume_button")).font(.system(size: 16, weight: .bold, design: .rounded))
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
@@ -1684,7 +1689,7 @@ struct FixedBottomControls: View {
                     Button(action: onLeave) {
                         HStack(spacing: 8) {
                             Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 15, weight: .bold))
-                            Text("Quitter la Session").font(.system(size: 15, weight: .bold, design: .rounded))
+                            Text(String(localized: "session_detail_leave_session_button")).font(.system(size: 15, weight: .bold, design: .rounded))
                         }
                         .foregroundColor(.orange)
                         .frame(maxWidth: .infinity).padding(.vertical, 15)
@@ -1721,7 +1726,7 @@ struct ExpandedChatSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "bubble.left.and.bubble.right.fill").font(.system(size: 12, weight: .semibold)).foregroundColor(.white.opacity(0.25))
-                Text("CHAT").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.3))
+                Text(String(localized: "session_detail_chat_label")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.5).foregroundColor(.white.opacity(0.3))
                 if !messages.isEmpty {
                     Text("\(messages.count)").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.cyan.opacity(0.6))
                 }
@@ -1730,7 +1735,7 @@ struct ExpandedChatSection: View {
             if messages.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 16, weight: .light)).foregroundColor(.white.opacity(0.12))
-                    Text("Aucun message — lance la conversation !").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.2))
+                    Text(String(localized: "session_detail_no_messages")).font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.2))
                 }.padding(.vertical, 16)
             } else {
                 ScrollViewReader { proxy in
@@ -1837,7 +1842,7 @@ struct ChatBubbleRow: View {
     var body: some View {
         Group {
             if isSystem {
-                Text(message.content).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).italic()
+                Text(message.localizedSystemContent).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).italic()
                     .frame(maxWidth: .infinity).padding(.vertical, 4)
             } else {
                 HStack(alignment: .top, spacing: 10) {
@@ -1895,17 +1900,17 @@ struct CompletedContent: View {
                     .foregroundStyle(LinearGradient(colors: [.green, .mint], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .scaleEffect(confetti ? 1.0 : 0.7)
             }
-            Text("Session Terminée").font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundColor(.white)
-            Text("Félicitations à tous").font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.4))
+            Text(String(localized: "session_detail_completed_title")).font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundColor(.white)
+            Text(String(localized: "session_detail_completed_subtitle")).font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.4))
             HStack(spacing: 24) {
                 VStack(spacing: 4) {
                     Text("\((session.memberIds ?? []).count)").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
-                    Text("membres").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
+                    Text(String(localized: "session_detail_members_label")).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
                 }
                 Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1, height: 36)
                 VStack(spacing: 4) {
                     Text("—").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(.white)
-                    Text("durée").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
+                    Text(String(localized: "session_detail_duration_label")).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.35))
                 }
             }
         }
@@ -1925,8 +1930,8 @@ struct DissolvedContent: View {
         VStack(spacing: 20) {
             Image(systemName: "xmark.circle.fill").font(.system(size: 52, weight: .light))
                 .foregroundStyle(LinearGradient(colors: [.gray.opacity(0.5), .gray.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-            Text("Session Dissoute").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.6))
-            Text("Fermée par le leader").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.3))
+            Text(String(localized: "session_detail_dissolved_title")).font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.6))
+            Text(String(localized: "session_detail_dissolved_subtitle")).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.3))
         }
         .frame(maxWidth: .infinity).padding(.vertical, 48).opacity(showContent ? 1 : 0)
     }
@@ -1952,19 +1957,19 @@ struct PauseRequestSheet: View {
                             .foregroundStyle(LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing))
                     }
                     VStack(spacing: 8) {
-                        Text("Demander une Pause").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white)
-                        Text("Le leader devra accepter").font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.45))
+                        Text(String(localized: "session_detail_request_pause_title")).font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.white)
+                        Text(String(localized: "session_detail_request_pause_subtitle")).font(.system(size: 14, weight: .medium)).foregroundColor(.white.opacity(0.45))
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("RAISON (OPTIONNEL)").font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.0).foregroundColor(.white.opacity(0.35))
-                        TextField("Ex: Besoin d'une pause", text: $reason).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
+                        Text(String(localized: "session_detail_pause_reason_label")).font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(1.0).foregroundColor(.white.opacity(0.35))
+                        TextField(String(localized: "session_detail_pause_reason_placeholder"), text: $reason).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
                             .padding(16).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.05)))
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
                     }
                     Button(action: onSubmit) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill").font(.system(size: 16, weight: .bold))
-                            Text("Envoyer").font(.system(size: 17, weight: .bold, design: .rounded))
+                            Text(String(localized: "session_detail_send_button")).font(.system(size: 17, weight: .bold, design: .rounded))
                         }
                         .foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 17)
                         .background(
@@ -2010,7 +2015,7 @@ struct TimeRemainingPill: View {
     private func updateTimeRemaining() {
         let remaining = endTime.timeIntervalSinceNow
         if remaining <= 0 {
-            timeRemaining = "Terminé"
+            timeRemaining = String(localized: "session_detail_finished")
             timer.upstream.connect().cancel()
         } else {
             let hours = Int(remaining) / 3600

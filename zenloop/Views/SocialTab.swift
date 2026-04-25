@@ -239,10 +239,10 @@ enum SocialSessionStatus {
 
     var text: String {
         switch self {
-        case .idle: return "Prêt à focus ensemble"
-        case .lobby: return "Session en attente"
-        case .active: return "Session active"
-        case .paused: return "Session en pause"
+        case .idle: return String(localized: "social_status_idle")
+        case .lobby: return String(localized: "social_status_lobby")
+        case .active: return String(localized: "social_status_active")
+        case .paused: return String(localized: "social_status_paused")
         }
     }
 }
@@ -299,12 +299,12 @@ struct EmptyHeroCard: View {
             }
 
             VStack(spacing: 6) {
-                Text("Prêt à focus ensemble")
+                Text(String(localized: "social_hero_empty_title"))
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
-                Text("Crée une session ou rejoins-en une\npour démarrer ton focus partagé.")
+                Text(String(localized: "social_hero_empty_subtitle"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white.opacity(0.45))
                     .multilineTextAlignment(.center)
@@ -312,12 +312,12 @@ struct EmptyHeroCard: View {
             }
 
             HStack(spacing: 10) {
-                HeroPrimaryCTA(icon: "plus.circle.fill", label: "Créer", gradient: [
+                HeroPrimaryCTA(icon: "plus.circle.fill", label: String(localized: "social_cta_create"), gradient: [
                     Color(red: 0.35, green: 0.55, blue: 1.0),
                     Color(red: 0.25, green: 0.4, blue: 0.95)
                 ], action: onCreate)
 
-                HeroPrimaryCTA(icon: "person.badge.plus", label: "Rejoindre", gradient: [
+                HeroPrimaryCTA(icon: "person.badge.plus", label: String(localized: "social_cta_join"), gradient: [
                     Color(red: 0.6, green: 0.35, blue: 1.0),
                     Color(red: 0.45, green: 0.2, blue: 0.9)
                 ], action: onJoin)
@@ -416,7 +416,7 @@ struct ActionRail: View {
                         .fill(Color.green)
                         .frame(width: 8, height: 8)
                 }
-                Text(activeMembersCount > 0 ? "\(activeMembersCount) en ligne" : "Personne en focus")
+                Text(activeMembersCount > 0 ? String(format: String(localized: "social_online_count"), activeMembersCount) : String(localized: "social_nobody_focusing"))
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(activeMembersCount > 0 ? 0.75 : 0.35))
             }
@@ -494,8 +494,15 @@ struct ActionRail: View {
 // MARK: - Sessions Feed (segment Mes / Découvrir)
 
 enum SessionFeedSegment: String, CaseIterable {
-    case mine = "Mes Sessions"
-    case discover = "Découvrir"
+    case mine
+    case discover
+
+    var title: String {
+        switch self {
+        case .mine: return String(localized: "social_feed_mine")
+        case .discover: return String(localized: "social_feed_discover")
+        }
+    }
 
     var icon: String {
         switch self {
@@ -524,7 +531,7 @@ struct SessionsFeedSection: View {
     }
 
     private var emptyMessage: String {
-        segment == .mine ? "Tu n'as pas encore de session." : "Crée la première session publique !"
+        segment == .mine ? String(localized: "social_feed_empty_mine") : String(localized: "social_feed_empty_discover")
     }
 
     var body: some View {
@@ -588,7 +595,7 @@ struct SegmentPill: View {
             HStack(spacing: 6) {
                 Image(systemName: segment.icon)
                     .font(.system(size: 12, weight: .bold))
-                Text(segment.rawValue)
+                Text(segment.title)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                 if count > 0 {
                     Text("\(count)")
@@ -696,8 +703,11 @@ struct SessionCarouselCard: View {
 
     private var statusText: String {
         switch session.status {
-        case .lobby: return "En attente"; case .active: return "En cours"; case .paused: return "En pause"
-        case .completed: return "Terminée"; case .dissolved: return "Dissoute"
+        case .lobby: return String(localized: "session_preview_status_lobby")
+        case .active: return String(localized: "session_preview_status_active")
+        case .paused: return String(localized: "session_preview_status_paused")
+        case .completed: return String(localized: "session_preview_status_completed")
+        case .dissolved: return String(localized: "session_preview_status_dissolved")
         }
     }
 
@@ -925,7 +935,7 @@ struct InvitationsCarousel: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.purple.opacity(0.8))
 
-                Text("Invitations")
+                Text(String(localized: "social_invitations_title"))
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
 
@@ -978,7 +988,7 @@ struct InvitationCompactCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(invitation.fromUsername)
                         .font(.system(size: 13, weight: .bold, design: .rounded)).foregroundColor(.white.opacity(0.8))
-                    Text("t'invite")
+                    Text(String(localized: "social_invites_you"))
                         .font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.35))
                 }
             }
@@ -992,7 +1002,7 @@ struct InvitationCompactCard: View {
             // Actions
             HStack(spacing: 8) {
                 Button(action: { /* accept */ }) {
-                    Text("Rejoindre")
+                    Text(String(localized: "social_cta_join"))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 9)
@@ -1253,10 +1263,10 @@ struct ActiveSessionCard: View {
 
     private var statusLabel: String {
         switch session.status {
-        case .active: return "EN COURS"
-        case .paused: return "EN PAUSE"
-        case .lobby: return "LOBBY"
-        default: return "SESSION"
+        case .active: return String(localized: "social_card_status_active")
+        case .paused: return String(localized: "social_card_status_paused")
+        case .lobby: return String(localized: "social_card_status_lobby")
+        default: return String(localized: "social_card_status_session")
         }
     }
 
@@ -1396,7 +1406,7 @@ struct ActiveSessionCard: View {
                 }
 
                 if memberCount > 0 {
-                    Text("\(memberCount) membre\(memberCount > 1 ? "s" : "")")
+                    Text(String(format: String(localized: "social_member_count"), memberCount))
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.5))
                 }
@@ -1501,7 +1511,7 @@ struct OpenPauseRequestsSection: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Circle().fill(Color.orange).frame(width: 10, height: 10).scaleEffect(pulseAlert ? 1.4 : 0.9)
-                Text("Demandes de Pause").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
+                Text(String(localized: "social_pause_requests_title")).font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Text("\(requests.count)").font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.orange)
                     .padding(.horizontal, 8).padding(.vertical, 3).background(Capsule().fill(Color.orange.opacity(0.12)))
                 Spacer()
@@ -1561,9 +1571,9 @@ struct OpenPauseRequestRow: View {
     }
     private func timeAgo(from date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "À l'instant" }
-        if interval < 3600 { return "Il y a \(Int(interval / 60))min" }
-        return "Il y a \(Int(interval / 3600))h"
+        if interval < 60 { return String(localized: "social_time_just_now") }
+        if interval < 3600 { return String(format: String(localized: "social_time_minutes_ago"), Int(interval / 60)) }
+        return String(format: String(localized: "social_time_hours_ago"), Int(interval / 3600))
     }
 }
 
@@ -1578,7 +1588,7 @@ struct JoinRequestsSection: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Circle().fill(Color.blue).frame(width: 10, height: 10).scaleEffect(pulseAlert ? 1.4 : 0.9)
-                Text("Demandes de rejoindre").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
+                Text(String(localized: "social_join_requests_title")).font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Text("\(requests.count)").font(.system(size: 12, weight: .bold, design: .rounded)).foregroundColor(.blue)
                     .padding(.horizontal, 8).padding(.vertical, 3).background(Capsule().fill(Color.blue.opacity(0.12)))
                 Spacer()
@@ -1607,9 +1617,9 @@ struct JoinRequestRow: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(request.username).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundColor(.white)
-                    Text("Veut rejoindre « \(request.targetSessionTitle) »").font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.45)).lineLimit(1)
+                    Text(String(format: String(localized: "social_wants_to_join"), request.targetSessionTitle)).font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.45)).lineLimit(1)
                     if let currentSessionTitle = request.currentSessionTitle {
-                        Text("Actuellement dans « \(currentSessionTitle) »").font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).lineLimit(1)
+                        Text(String(format: String(localized: "social_currently_in"), currentSessionTitle)).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.3)).lineLimit(1)
                     }
                     Text(timeAgo(from: request.createdAt.dateValue())).font(.system(size: 11, weight: .medium)).foregroundColor(.white.opacity(0.3))
                 }
@@ -1660,9 +1670,9 @@ struct JoinRequestRow: View {
 
     private func timeAgo(from date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "À l'instant" }
-        if interval < 3600 { return "Il y a \(Int(interval / 60))min" }
-        return "Il y a \(Int(interval / 3600))h"
+        if interval < 60 { return String(localized: "social_time_just_now") }
+        if interval < 3600 { return String(format: String(localized: "social_time_minutes_ago"), Int(interval / 60)) }
+        return String(format: String(localized: "social_time_hours_ago"), Int(interval / 3600))
     }
 }
 

@@ -236,6 +236,8 @@ struct SessionMessage: Codable, Identifiable {
     var content: String
     var messageType: MessageType
     var timestamp: Timestamp
+    var systemKey: String?
+    var systemParams: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -244,6 +246,40 @@ struct SessionMessage: Codable, Identifiable {
         case content
         case messageType
         case timestamp
+        case systemKey
+        case systemParams
+    }
+
+    var localizedSystemContent: String {
+        guard let key = systemKey else { return content }
+        let params = systemParams ?? [:]
+        switch key {
+        case "sys_member_joined":
+            return String(format: String(localized: "sys_member_joined"), params["username"] ?? "")
+        case "sys_member_left":
+            return String(format: String(localized: "sys_member_left"), params["username"] ?? "")
+        case "sys_session_started":
+            return String(localized: "sys_session_started")
+        case "sys_session_paused":
+            return String(format: String(localized: "sys_session_paused"), params["username"] ?? "")
+        case "sys_session_paused_reason":
+            return String(format: String(localized: "sys_session_paused_reason"), params["username"] ?? "", params["reason"] ?? "")
+        case "sys_session_paused_accepted":
+            return String(format: String(localized: "sys_session_paused_accepted"), params["username"] ?? "", params["requester"] ?? "")
+        case "sys_session_resumed":
+            return String(localized: "sys_session_resumed")
+        case "sys_session_completed":
+            return String(localized: "sys_session_completed")
+        case "sys_pause_requested":
+            if let reason = params["reason"] {
+                return String(format: String(localized: "sys_pause_requested_reason"), params["username"] ?? "", reason)
+            }
+            return String(format: String(localized: "sys_pause_requested"), params["username"] ?? "")
+        case "sys_pause_declined":
+            return String(format: String(localized: "sys_pause_declined"), params["username"] ?? "")
+        default:
+            return content
+        }
     }
 }
 

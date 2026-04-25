@@ -108,12 +108,18 @@ class AuthenticationManager: NSObject, ObservableObject {
         authorizationController.performRequests()
     }
 
+    // ✅ NEW: Prepare nonce for native SignInWithAppleButton
+    /// À appeler dans le closure `request` du `SignInWithAppleButton` — setup nonce + renvoie
+    /// le hash SHA256 à assigner à `request.nonce`.
+    func prepareAppleNonce() -> String {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        return sha256(nonce)
+    }
+
     // ✅ NEW: Handle Apple authorization from native SignInWithAppleButton
     func handleAppleAuthorization(_ authorization: ASAuthorization) {
-        authorizationController(
-            controller: ASAuthorizationController(authorizationRequests: []),
-            didCompleteWithAuthorization: authorization
-        )
+        processAppleAuthorization(authorization)
     }
 
     // MARK: - Sign Out
@@ -206,6 +212,10 @@ class AuthenticationManager: NSObject, ObservableObject {
 
 extension AuthenticationManager: ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        processAppleAuthorization(authorization)
+    }
+
+    fileprivate func processAppleAuthorization(_ authorization: ASAuthorization) {
         authLogger.info("🍎 Apple authorization completed")
 
         guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {

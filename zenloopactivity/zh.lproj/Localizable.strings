@@ -537,3 +537,36 @@
 "chart_afternoon" = "下午";
 "chart_evening" = "晚上";
 "apps_section_title" = "应用";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "今日屏幕时间";
+"guilt_verdict_addictive" = "成瘾";
+"guilt_verdict_excessive" = "过度";
+"guilt_verdict_watch" = "需注意";
+"guilt_verdict_healthy" = "健康";
+"guilt_headline_addictive" = "你处于危险区域。";
+"guilt_headline_excessive" = "这太多了。";
+"guilt_headline_watch" = "你还可以扭转局面。";
+"guilt_headline_healthy" = "做得好，你掌控着自己。";
+"guilt_subtitle_addictive" = "你的大脑已无法区分休息和强迫。你的注意力正在崩塌。";
+"guilt_subtitle_excessive" = "你正在失去永远无法找回的时间。每一天。";
+"guilt_subtitle_watch" = "你超出了推荐平均水平。目前还不严重。";
+"guilt_subtitle_healthy" = "继续保持。很少有人能做到。";
+"guilt_shock_addictive" = "今天你花在手机上的时间超过了与人交谈的时间。";
+"guilt_shock_excessive" = "这几乎相当于兼职工作。\n每天。只是为了刷屏。";
+"guilt_shock_watch" = "每周%d小时。\n每晚一部电影的时间。";
+"guilt_shock_healthy" = "你把手机当工具用，而不是毒品。\n难得。";
+"guilt_lifetime_title" = "如果你继续这样…";
+"guilt_years" = "年";
+"guilt_months" = "个月";
+"guilt_lifetime_subtitle" = "以当前节奏，这是你余生花在手机上的时间。";
+"guilt_equiv_title" = "你本可以做的事";
+"guilt_thieves_label" = "时间的小偷";
+"guilt_equiv_days_headline" = "每年%d整天";
+"guilt_equiv_days_body" = "按此速度，今年有%d个完整的日子从你的生命中抹去。";
+"guilt_equiv_books_headline" = "每年%d本书";
+"guilt_equiv_books_body" = "用这些时间，你本可以今年读完%d本书。";
+"guilt_equiv_workout_headline" = "%d小时锻炼";
+"guilt_equiv_workout_body" = "足以在一年内彻底改变你的身体。";
+"guilt_equiv_sleep_headline" = "%d小时被盗走的睡眠";
+"guilt_equiv_sleep_body" = "想象每年多%d小时睡眠你的效率会有多高。";

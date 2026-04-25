@@ -542,3 +542,36 @@
 "chart_afternoon" = "APRÈS-MIDI";
 "chart_evening" = "SOIR";
 "apps_section_title" = "Apps";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "TEMPS D'ÉCRAN AUJOURD'HUI";
+"guilt_verdict_addictive" = "Addictif";
+"guilt_verdict_excessive" = "Excessif";
+"guilt_verdict_watch" = "À surveiller";
+"guilt_verdict_healthy" = "Sain";
+"guilt_headline_addictive" = "Tu es en zone rouge.";
+"guilt_headline_excessive" = "C'est beaucoup trop.";
+"guilt_headline_watch" = "Tu peux encore redresser.";
+"guilt_headline_healthy" = "Bravo, tu maîtrises.";
+"guilt_subtitle_addictive" = "Ton cerveau ne distingue plus la pause de la compulsion. Ton attention s'effondre.";
+"guilt_subtitle_excessive" = "Tu perds des heures que tu ne récupéreras jamais. Chaque jour.";
+"guilt_subtitle_watch" = "Tu es au-dessus de la moyenne recommandée. Pas grave — encore.";
+"guilt_subtitle_healthy" = "Continue comme ça. Peu de gens y arrivent.";
+"guilt_shock_addictive" = "Tu as passé plus de temps sur ton téléphone qu'à parler à un être humain aujourd'hui.";
+"guilt_shock_excessive" = "C'est presque un mi-temps.\nChaque jour. Pour scroller.";
+"guilt_shock_watch" = "%d heures par semaine.\nC'est un film. Chaque soir.";
+"guilt_shock_healthy" = "Tu utilises ton téléphone comme un outil, pas comme une drogue.\nRare.";
+"guilt_lifetime_title" = "Si tu continues comme ça…";
+"guilt_years" = "ANS";
+"guilt_months" = "MOIS";
+"guilt_lifetime_subtitle" = "passés sur ton téléphone jusqu'à la fin de ta vie,\nau rythme actuel.";
+"guilt_equiv_title" = "Ce que tu aurais pu faire";
+"guilt_thieves_label" = "LES VOLEURS DE TON TEMPS";
+"guilt_equiv_days_headline" = "%d jours entiers par an";
+"guilt_equiv_days_body" = "À ce rythme, c'est %d journées complètes rayées de ta vie cette année.";
+"guilt_equiv_books_headline" = "%d livres par an";
+"guilt_equiv_books_body" = "Tu aurais pu lire %d livres cette année avec ce temps.";
+"guilt_equiv_workout_headline" = "%d heures de sport";
+"guilt_equiv_workout_body" = "De quoi transformer complètement ton corps en une année.";
+"guilt_equiv_sleep_headline" = "%dh de sommeil volé";
+"guilt_equiv_sleep_body" = "Imagine ta productivité avec %dh de sommeil en plus par an.";

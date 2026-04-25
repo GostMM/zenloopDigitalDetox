@@ -31,11 +31,11 @@ struct SessionPreviewView: View {
 
     private var statusText: String {
         switch session.status {
-        case .lobby: return "En attente de démarrage"
-        case .active: return "En cours"
-        case .paused: return "En pause"
-        case .completed: return "Terminée"
-        case .dissolved: return "Dissoute"
+        case .lobby: return String(localized: "session_preview_status_lobby")
+        case .active: return String(localized: "session_preview_status_active")
+        case .paused: return String(localized: "session_preview_status_paused")
+        case .completed: return String(localized: "session_preview_status_completed")
+        case .dissolved: return String(localized: "session_preview_status_dissolved")
         }
     }
 
@@ -62,7 +62,7 @@ struct SessionPreviewView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                            Text("Retour")
+                            Text(String(localized: "session_preview_back"))
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(.white.opacity(0.8))
@@ -117,7 +117,7 @@ struct SessionPreviewView: View {
                         VStack(alignment: .leading, spacing: 24) {
                             // Title
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("SESSION PUBLIQUE")
+                                Text(String(localized: "session_preview_public_label"))
                                     .font(.system(size: 12, weight: .heavy, design: .rounded))
                                     .foregroundColor(.white.opacity(0.4))
                                     .tracking(1.5)
@@ -130,7 +130,7 @@ struct SessionPreviewView: View {
                             // Description
                             if !(session.description ?? "").isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("DESCRIPTION")
+                                    Text(String(localized: "session_preview_description_label"))
                                         .font(.system(size: 11, weight: .heavy, design: .rounded))
                                         .foregroundColor(.white.opacity(0.4))
                                         .tracking(1.2)
@@ -146,26 +146,26 @@ struct SessionPreviewView: View {
                             VStack(spacing: 12) {
                                 InfoRow(
                                     icon: "person.2.fill",
-                                    label: "Participants",
+                                    label: String(localized: "session_preview_participants"),
                                     value: "\((session.memberIds ?? []).count)\(session.maxParticipants.map { " / \($0)" } ?? "")"
                                 )
 
                                 InfoRow(
                                     icon: "person.crop.circle.badge.checkmark",
-                                    label: "Leader",
+                                    label: String(localized: "session_preview_leader"),
                                     value: session.leaderUsername
                                 )
 
                                 InfoRow(
                                     icon: "key.fill",
-                                    label: "Code d'invitation",
+                                    label: String(localized: "session_preview_invite_code"),
                                     value: session.inviteCode
                                 )
 
                                 if let duration = session.durationMinutes {
                                     InfoRow(
                                         icon: "timer",
-                                        label: "Durée",
+                                        label: String(localized: "session_preview_duration"),
                                         value: formatDuration(minutes: duration)
                                     )
                                 }
@@ -178,7 +178,7 @@ struct SessionPreviewView: View {
                                         .font(.system(size: 20))
                                         .foregroundColor(.orange)
 
-                                    Text("Session complète")
+                                    Text(String(localized: "session_preview_full"))
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
@@ -232,13 +232,13 @@ struct SessionPreviewView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
 
-                                Text("Jonction en cours...")
+                                Text(String(localized: "session_preview_joining"))
                                     .font(.system(size: 17, weight: .bold, design: .rounded))
                             } else {
                                 Image(systemName: "person.badge.plus.fill")
                                     .font(.system(size: 20, weight: .bold))
 
-                                Text("Rejoindre la Session")
+                                Text(String(localized: "session_preview_join_button"))
                                     .font(.system(size: 17, weight: .bold, design: .rounded))
                             }
                         }

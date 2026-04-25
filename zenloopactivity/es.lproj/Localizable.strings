@@ -537,3 +537,36 @@
 "chart_afternoon" = "TARDE";
 "chart_evening" = "NOCHE";
 "apps_section_title" = "Apps";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "TIEMPO DE PANTALLA HOY";
+"guilt_verdict_addictive" = "Adictivo";
+"guilt_verdict_excessive" = "Excesivo";
+"guilt_verdict_watch" = "A vigilar";
+"guilt_verdict_healthy" = "Saludable";
+"guilt_headline_addictive" = "Estás en zona roja.";
+"guilt_headline_excessive" = "Es demasiado.";
+"guilt_headline_watch" = "Todavía puedes corregirlo.";
+"guilt_headline_healthy" = "Bien hecho, lo tienes bajo control.";
+"guilt_subtitle_addictive" = "Tu cerebro ya no distingue el descanso de la compulsión. Tu atención se derrumba.";
+"guilt_subtitle_excessive" = "Estás perdiendo horas que nunca recuperarás. Cada día.";
+"guilt_subtitle_watch" = "Estás por encima del promedio recomendado. No es grave, de momento.";
+"guilt_subtitle_healthy" = "Sigue así. Pocos lo consiguen.";
+"guilt_shock_addictive" = "Hoy has pasado más tiempo con el teléfono que hablando con otro ser humano.";
+"guilt_shock_excessive" = "Es casi un trabajo a tiempo parcial.\nCada día. Solo para hacer scroll.";
+"guilt_shock_watch" = "%d horas a la semana.\nEs una película. Cada noche.";
+"guilt_shock_healthy" = "Usas el teléfono como herramienta, no como droga.\nPoco habitual.";
+"guilt_lifetime_title" = "Si sigues así…";
+"guilt_years" = "AÑOS";
+"guilt_months" = "MESES";
+"guilt_lifetime_subtitle" = "frente al teléfono hasta el fin de tu vida,\na tu ritmo actual.";
+"guilt_equiv_title" = "Lo que podrías haber hecho";
+"guilt_thieves_label" = "LOS LADRONES DE TU TIEMPO";
+"guilt_equiv_days_headline" = "%d días completos al año";
+"guilt_equiv_days_body" = "A este ritmo, son %d días enteros borrados de tu vida este año.";
+"guilt_equiv_books_headline" = "%d libros al año";
+"guilt_equiv_books_body" = "Podrías haber leído %d libros este año con ese tiempo.";
+"guilt_equiv_workout_headline" = "%d horas de ejercicio";
+"guilt_equiv_workout_body" = "Suficiente para transformar completamente tu cuerpo en un año.";
+"guilt_equiv_sleep_headline" = "%dh de sueño robado";
+"guilt_equiv_sleep_body" = "Imagina tu productividad con %dh de sueño extra al año.";

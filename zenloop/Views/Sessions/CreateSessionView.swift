@@ -46,17 +46,17 @@ struct CreateSessionView: View {
         
         var title: String {
             switch self {
-            case .manual: "Manuel"
-            case .timed: "Durée définie"
-            case .scheduled: "Programmée"
+            case .manual: String(localized: "session_duration_manual")
+            case .timed: String(localized: "session_duration_timed")
+            case .scheduled: String(localized: "session_duration_scheduled")
             }
         }
-        
+
         var subtitle: String {
             switch self {
-            case .manual: "Gérer manuellement"
-            case .timed: "Fin automatique"
-            case .scheduled: "Début & fin auto"
+            case .manual: String(localized: "session_duration_manual_sub")
+            case .timed: String(localized: "session_duration_timed_sub")
+            case .scheduled: String(localized: "session_duration_scheduled_sub")
             }
         }
     }
@@ -79,36 +79,38 @@ struct CreateSessionView: View {
                     .padding(.horizontal, 20)
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        SessionTextField(
-                            title: "Titre de la Session",
-                            placeholder: "Ex: Focus Marathon",
+                    VStack(alignment: .leading, spacing: 26) {
+                        InlineField(
+                            label: String(localized: "session_field_title"),
+                            placeholder: String(localized: "session_field_title_placeholder"),
                             text: $sessionTitle
                         )
-                        .staggerIn(showContent, delay: 0.1)
+                        .staggerIn(showContent, delay: 0.08)
 
-                        descriptionField
-                            .staggerIn(showContent, delay: 0.2)
+                        InlineField(
+                            label: String(localized: "session_field_description"),
+                            placeholder: String(localized: "session_field_description_placeholder"),
+                            text: $sessionDescription,
+                            multiline: true
+                        )
+                        .staggerIn(showContent, delay: 0.14)
 
                         visibilityPicker
-                            .staggerIn(showContent, delay: 0.3)
+                            .staggerIn(showContent, delay: 0.2)
 
-                        SessionTextField(
-                            title: "Max. Participants (optionnel)",
-                            placeholder: "Ex: 10",
+                        InlineField(
+                            label: String(localized: "session_field_max_participants"),
+                            placeholder: String(localized: "session_field_optional"),
                             text: $maxParticipants,
                             keyboard: .numberPad
                         )
-                        .staggerIn(showContent, delay: 0.4)
+                        .staggerIn(showContent, delay: 0.26)
 
                         durationSection
-                            .staggerIn(showContent, delay: 0.45)
+                            .staggerIn(showContent, delay: 0.32)
 
-                        appSelectionCard
-                            .staggerIn(showContent, delay: 0.5)
-
-                        backgroundSelectionCard
-                            .staggerIn(showContent, delay: 0.55)
+                        optionalRows
+                            .staggerIn(showContent, delay: 0.38)
 
                         if let error = errorMessage {
                             ErrorBanner(message: error)
@@ -116,12 +118,12 @@ struct CreateSessionView: View {
                         }
 
                         createButton
-                            .staggerIn(showContent, delay: 0.6)
+                            .staggerIn(showContent, delay: 0.44)
 
-                        Spacer(minLength: 100)
+                        Spacer(minLength: 80)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
+                    .padding(.top, 14)
                 }
             }
         }
@@ -139,65 +141,42 @@ struct CreateSessionView: View {
 private extension CreateSessionView {
 
     var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Nouvelle Session")
-                    .font(.system(size: 28, weight: .bold))
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(String(localized: "session_create_title"))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text("Invitez vos amis à focus")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+                Text(String(localized: "session_create_subtitle"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
             Button { dismiss() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.white.opacity(0.5))
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
             }
         }
-        .padding(.top, 20)
-        .padding(.bottom, 10)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
         .staggerIn(showContent, delay: 0)
     }
 
-    var descriptionField: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel("Description")
-            ZStack(alignment: .topLeading) {
-                if sessionDescription.isEmpty {
-                    Text("Décrivez votre session...")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.4))
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                }
-                TextEditor(text: $sessionDescription)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
-                    .scrollContentBackground(.hidden)
-                    .frame(height: 100)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-            }
-            .cardBackground()
-        }
-    }
-
     var visibilityPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel("Visibilité")
-            HStack(spacing: 12) {
-                SelectableCard(
-                    icon: "globe", title: "Publique",
-                    subtitle: "Visible par tous",
-                    isSelected: isPublic
-                ) { isPublic = true }
-
-                SelectableCard(
-                    icon: "lock.fill", title: "Privée",
-                    subtitle: "Code requis",
-                    isSelected: !isPublic
-                ) { isPublic = false }
+        VStack(alignment: .leading, spacing: 8) {
+            FieldLabel(String(localized: "session_visibility"))
+            SegmentedToggle(
+                options: [
+                    .init(id: "public", icon: "globe", title: String(localized: "session_visibility_public")),
+                    .init(id: "private", icon: "lock.fill", title: String(localized: "session_visibility_private"))
+                ],
+                selectedId: isPublic ? "public" : "private"
+            ) { id in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    isPublic = (id == "public")
+                }
             }
         }
     }
@@ -206,19 +185,19 @@ private extension CreateSessionView {
 
     var durationSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel("Durée de la Session")
+            FieldLabel(String(localized: "session_duration"))
 
-            // Mode buttons — 2-column top row + full-width scheduled
-            VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    ForEach([DurationMode.manual, .timed], id: \.self) { m in
-                        SelectableCard(icon: m.icon, title: m.title, subtitle: m.subtitle,
-                                       isSelected: durationMode == m, accent: .blue) { durationMode = m }
+            SegmentedToggle(
+                options: DurationMode.allCases.map {
+                    .init(id: $0.title, icon: $0.icon, title: $0.title)
+                },
+                selectedId: durationMode.title
+            ) { id in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    if let m = DurationMode.allCases.first(where: { $0.title == id }) {
+                        durationMode = m
                     }
                 }
-                SelectableCard(icon: DurationMode.scheduled.icon, title: DurationMode.scheduled.title,
-                               subtitle: DurationMode.scheduled.subtitle,
-                               isSelected: durationMode == .scheduled, accent: .blue) { durationMode = .scheduled }
             }
 
             if durationMode == .timed { timedPicker }
@@ -228,117 +207,56 @@ private extension CreateSessionView {
     }
 
     var timedPicker: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 16) {
-                StepperCard(label: "Heures", value: $selectedHours, range: 0...12)
-                StepperCard(label: "Minutes", value: $selectedMinutes, range: 0...45, step: 15)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                InlineStepper(label: String(localized: "session_hours"), value: $selectedHours, range: 0...12)
+                InlineStepper(label: String(localized: "session_minutes"), value: $selectedMinutes, range: 0...45, step: 15)
             }
             if selectedHours > 0 || selectedMinutes > 0 {
                 durationLabel(hours: selectedHours, minutes: selectedMinutes)
             }
         }
-        .padding(.top, 8)
-        .transition(.move(edge: .top).combined(with: .opacity))
+        .padding(.top, 4)
+        .transition(.opacity)
     }
 
     var scheduledPickers: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ScheduleDateRow(icon: "play.circle.fill", color: .green, label: "Heure de Début",
-                            date: $scheduledStartDate, minDate: Date()) { newVal in
+        VStack(alignment: .leading, spacing: 10) {
+            InlineDateRow(label: String(localized: "session_start"), date: $scheduledStartDate, minDate: Date()) { newVal in
                 if scheduledEndDate <= newVal {
                     scheduledEndDate = newVal.addingTimeInterval(3600)
                 }
             }
-
-            ScheduleDateRow(icon: "stop.circle.fill", color: .red, label: "Heure de Fin",
-                            date: $scheduledEndDate,
-                            minDate: scheduledStartDate.addingTimeInterval(900))
+            InlineDateRow(label: String(localized: "session_end"), date: $scheduledEndDate,
+                          minDate: scheduledStartDate.addingTimeInterval(900))
 
             let dur = scheduledEndDate.timeIntervalSince(scheduledStartDate)
             durationLabel(hours: Int(dur) / 3600, minutes: (Int(dur) % 3600) / 60)
         }
-        .padding(.top, 8)
-        .transition(.move(edge: .top).combined(with: .opacity))
+        .padding(.top, 4)
+        .transition(.opacity)
     }
 
-    // MARK: App Selection
+    // MARK: Optional Rows (apps + background)
 
-    var appSelectionCard: some View {
-        Button { showAppPicker = true } label: {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(.linearGradient(colors: [.init(red: 0.5, green: 0.4, blue: 1),
-                                                    .init(red: 0.4, green: 0.3, blue: 0.9)],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(systemName: selectedAppsCount > 0 ? "checkmark.circle.fill" : "app.badge.fill")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(.white)
-                    )
+    var optionalRows: some View {
+        VStack(spacing: 10) {
+            OptionRow(
+                icon: "app.badge",
+                title: String(localized: "session_apps_to_block"),
+                value: selectedAppsCount > 0
+                    ? String(format: String(localized: "session_apps_count"), selectedAppsCount)
+                    : String(localized: "session_field_optional"),
+                isActive: selectedAppsCount > 0
+            ) { showAppPicker = true }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Apps à Bloquer")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text(selectedAppsCount > 0 ? "\(selectedAppsCount) app(s) sélectionnée(s)" : "Suggérer des apps (optionnel)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-            }
-            .padding(16)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.cardFill))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(selectedAppsCount > 0 ? Color.purple.opacity(0.5) : .white.opacity(0.1),
-                            lineWidth: selectedAppsCount > 0 ? 2 : 1)
-            )
+            OptionRow(
+                icon: "photo",
+                title: String(localized: "session_background_image"),
+                value: selectedBackground?.name ?? String(localized: "session_field_optional"),
+                isActive: selectedBackground != nil
+            ) { showBackgroundPicker = true }
         }
-        .buttonStyle(ScaleButtonStyle())
-    }
-
-    // MARK: Background Selection
-
-    var backgroundSelectionCard: some View {
-        Button { showBackgroundPicker = true } label: {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(.linearGradient(colors: [.init(red: 1, green: 0.4, blue: 0.6),
-                                                    .init(red: 0.9, green: 0.3, blue: 0.5)],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Image(systemName: selectedBackground != nil ? "photo.fill" : "photo.badge.plus")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(.white)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Image de fond")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text(selectedBackground?.name ?? "Aucune image (optionnel)")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-            }
-            .padding(16)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.cardFill))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(selectedBackground != nil ? Color.pink.opacity(0.5) : .white.opacity(0.1),
-                            lineWidth: selectedBackground != nil ? 2 : 1)
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
         .sheet(isPresented: $showBackgroundPicker) {
             BackgroundPickerView(selectedBackground: $selectedBackground)
         }
@@ -348,39 +266,33 @@ private extension CreateSessionView {
 
     var createButton: some View {
         Button(action: createSession) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 if isCreating {
                     ProgressView().tint(.white)
-                    Text("Création...")
+                    Text(String(localized: "session_creating"))
                 } else {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
-                    Text("Créer la Session")
+                    Text(String(localized: "session_create_button"))
                 }
             }
-            .font(.system(size: 17, weight: .bold))
-            .foregroundStyle(.white)
+            .font(.system(size: 16, weight: .bold, design: .rounded))
+            .foregroundStyle(isValid ? .white : .white.opacity(0.45))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
+            .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.linearGradient(
-                        colors: isValid
-                            ? [Color(red: 0.3, green: 0.6, blue: 1), Color(red: 0.2, green: 0.5, blue: 0.9)]
-                            : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isValid
+                          ? Color(red: 0.3, green: 0.6, blue: 1)
+                          : Color.white.opacity(0.08))
             )
         }
         .disabled(!isValid || isCreating)
     }
 
     func durationLabel(hours: Int, minutes: Int) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "clock.fill").font(.system(size: 14))
-            Text("Durée: \(Self.formatDuration(h: hours, m: minutes))")
-                .font(.system(size: 14, weight: .medium))
-        }
-        .foregroundStyle(.blue.opacity(0.8))
+        Text(Self.formatDuration(h: hours, m: minutes))
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white.opacity(0.55))
+            .monospacedDigit()
     }
 
     static func formatDuration(h: Int, m: Int) -> String {
@@ -464,125 +376,181 @@ private extension CreateSessionView {
 
 // MARK: - Reusable Components
 
-/// Section label standardisé
-private struct SectionLabel: View {
+/// Label de champ minimal (caps + tracking)
+private struct FieldLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.8))
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .tracking(1.5)
+            .foregroundStyle(.white.opacity(0.4))
     }
 }
 
-/// Champ texte réutilisable avec style card
-struct SessionTextField: View {
-    let title: String
+/// Champ inline — label discret + input minimal sans card épaisse
+struct InlineField: View {
+    let label: String
     let placeholder: String
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
+    var multiline: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(title)
-            TextField(placeholder, text: $text)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.white)
-                .keyboardType(keyboard)
-                .padding(16)
-                .cardBackground()
-        }
-    }
-}
+        VStack(alignment: .leading, spacing: 8) {
+            FieldLabel(label)
 
-/// Carte sélectionnable (visibilité, mode durée)
-struct SelectableCard: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let isSelected: Bool
-    var accent: Color = .blue
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(isSelected ? accent : .white.opacity(0.5))
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+            Group {
+                if multiline {
+                    ZStack(alignment: .topLeading) {
+                        if text.isEmpty {
+                            Text(placeholder)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.3))
+                                .padding(.vertical, 8)
+                        }
+                        TextEditor(text: $text)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.white)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 70, maxHeight: 110)
+                            .padding(.leading, -4)
+                    }
+                } else {
+                    TextField("", text: $text, prompt: Text(placeholder)
+                        .foregroundColor(.white.opacity(0.3)))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .keyboardType(keyboard)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(RoundedRectangle(cornerRadius: 16).fill(.cardFill))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? accent : .white.opacity(0.1),
-                            lineWidth: isSelected ? 2 : 1)
-            )
+            .padding(.bottom, 8)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(text.isEmpty ? Color.white.opacity(0.1) : Color.white.opacity(0.25))
+                    .frame(height: 1)
+            }
         }
     }
 }
 
-/// Stepper +/- compact
-struct StepperCard: View {
+/// Segmented pill picker (visibilité, durée mode)
+struct SegmentedToggle: View {
+    struct Option: Identifiable {
+        let id: String
+        let icon: String
+        let title: String
+    }
+    let options: [Option]
+    let selectedId: String
+    let onSelect: (String) -> Void
+    @Namespace private var ns
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options) { opt in
+                let isSelected = selectedId == opt.id
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onSelect(opt.id)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: opt.icon)
+                            .font(.system(size: 11, weight: .bold))
+                        Text(opt.title)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(isSelected ? .black : .white.opacity(0.65))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        ZStack {
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 9)
+                                    .fill(Color.white)
+                                    .matchedGeometryEffect(id: "segbg", in: ns)
+                            }
+                        }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.06))
+        )
+    }
+}
+
+/// Stepper inline compact (une ligne)
+struct InlineStepper: View {
     let label: String
     @Binding var value: Int
     let range: ClosedRange<Int>
     var step: Int = 1
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 10) {
             Text(label)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.6))
-            HStack {
-                Button { value = max(range.lowerBound, value - step) } label: {
-                    Image(systemName: "minus.circle.fill").font(.system(size: 24))
-                }
-                Text("\(value)")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(minWidth: 40)
-                Button {
-                    let next = value + step
-                    if next > range.upperBound {
-                        value = range.lowerBound
-                    } else {
-                        value = next
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 24))
-                }
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+
+            Spacer()
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                value = max(range.lowerBound, value - step)
+            } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
             }
-            .foregroundStyle(.white.opacity(0.5))
+
+            Text("\(value)")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .monospacedDigit()
+                .frame(minWidth: 28)
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                let next = value + step
+                value = next > range.upperBound ? range.lowerBound : next
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.cardFill))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
     }
 }
 
-/// Ligne de DatePicker pour les sessions programmées
-struct ScheduleDateRow: View {
-    let icon: String
-    let color: Color
+/// DatePicker inline compact (une ligne)
+struct InlineDateRow: View {
     let label: String
     @Binding var date: Date
     var minDate: Date
     var onChange: ((Date) -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 14)).foregroundStyle(color)
-                Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white.opacity(0.8))
-            }
+        HStack(spacing: 12) {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(width: 50, alignment: .leading)
+
+            Spacer()
+
             DatePicker("", selection: Binding(
                 get: { date },
                 set: { newVal in
@@ -593,27 +561,53 @@ struct ScheduleDateRow: View {
                 .datePickerStyle(.compact)
                 .labelsHidden()
                 .colorScheme(.dark)
-                .padding(12)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.cardFill))
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+    }
+}
+
+/// Ligne d'option (Apps, Background)
+struct OptionRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(isActive ? Color(red: 0.3, green: 0.6, blue: 1) : .white.opacity(0.55))
+                    .frame(width: 22)
+
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Text(value)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(isActive ? Color(red: 0.3, green: 0.6, blue: 1) : .white.opacity(0.4))
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.3))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.04)))
+        }
+        .buttonStyle(.plain)
     }
 }
 
 // MARK: - View Modifiers & Extensions
-
-private struct CardBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.15, green: 0.15, blue: 0.17)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1), lineWidth: 1))
-    }
-}
-
-extension View {
-    func cardBackground() -> some View {
-        modifier(CardBackgroundModifier())
-    }
-}
 
 /// Animation d'entrée en escalier
 private struct StaggerModifier: ViewModifier {
@@ -623,21 +617,14 @@ private struct StaggerModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(show ? 1 : 0)
-            .offset(y: show ? 0 : 20)
-            .animation(.spring(response: 1.0, dampingFraction: 0.8).delay(delay), value: show)
+            .offset(y: show ? 0 : 14)
+            .animation(.spring(response: 0.9, dampingFraction: 0.82).delay(delay), value: show)
     }
 }
 
 extension View {
     func staggerIn(_ show: Bool, delay: Double) -> some View {
         modifier(StaggerModifier(show: show, delay: delay))
-    }
-}
-
-/// ShapeStyle helper pour le fill card
-extension ShapeStyle where Self == Color {
-    static var cardFill: Color {
-        Color(red: 0.15, green: 0.15, blue: 0.17)
     }
 }
 

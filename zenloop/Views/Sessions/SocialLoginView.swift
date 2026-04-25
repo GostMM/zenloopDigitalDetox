@@ -45,11 +45,11 @@ struct SocialLoginView: View {
                     }
 
                     VStack(spacing: 8) {
-                        Text("Sessions Sociales")
+                        Text(String(localized: "social_login_title"))
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(.white)
 
-                        Text("Focus ensemble avec vos amis")
+                        Text(String(localized: "social_login_subtitle"))
                             .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.white.opacity(0.7))
                             .multilineTextAlignment(.center)
@@ -62,20 +62,20 @@ struct SocialLoginView: View {
                 VStack(spacing: 16) {
                     FeatureRow(
                         icon: "person.3.fill",
-                        title: "Sessions de Groupe",
-                        description: "Créez ou rejoignez des sessions"
+                        title: String(localized: "social_login_feature1_title"),
+                        description: String(localized: "social_login_feature1_desc")
                     )
 
                     FeatureRow(
                         icon: "message.fill",
-                        title: "Chat en Direct",
-                        description: "Communiquez avec les participants"
+                        title: String(localized: "social_login_feature2_title"),
+                        description: String(localized: "social_login_feature2_desc")
                     )
 
                     FeatureRow(
                         icon: "chart.line.uptrend.xyaxis",
-                        title: "Accountability",
-                        description: "Restez motivés ensemble"
+                        title: String(localized: "social_login_feature3_title"),
+                        description: String(localized: "social_login_feature3_desc")
                     )
                 }
                 .opacity(showContent ? 1 : 0)
@@ -88,6 +88,7 @@ struct SocialLoginView: View {
                 VStack(spacing: 16) {
                     SignInWithAppleButton(.signIn) { request in
                         request.requestedScopes = [.fullName, .email]
+                        request.nonce = authManager.prepareAppleNonce()
                     } onCompletion: { result in
                         switch result {
                         case .success(let authorization):
@@ -102,7 +103,7 @@ struct SocialLoginView: View {
                     .frame(height: 50)
                     .cornerRadius(12)
 
-                    Text("Connectez-vous pour accéder aux features sociales")
+                    Text(String(localized: "social_login_cta_hint"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white.opacity(0.5))
                         .multilineTextAlignment(.center)
@@ -120,8 +121,8 @@ struct SocialLoginView: View {
                 showContent = true
             }
         }
-        .alert("Erreur d'Authentification", isPresented: .constant(authManager.authenticationError != nil)) {
-            Button("OK") {
+        .alert(String(localized: "social_login_error_title"), isPresented: .constant(authManager.authenticationError != nil)) {
+            Button(String(localized: "social_login_error_ok")) {
                 authManager.authenticationError = nil
             }
         } message: {

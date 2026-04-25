@@ -53,7 +53,7 @@ struct GuiltTripView: View {
                 .animation(.easeInOut(duration: 0.3), value: showContent)
             }
             #else
-            Text("Disponible sur iOS uniquement")
+            Text(String(localized: "guilt_ios_only"))
                 .foregroundColor(.white)
             #endif
         }

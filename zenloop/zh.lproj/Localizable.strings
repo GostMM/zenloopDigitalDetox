@@ -1032,3 +1032,254 @@
 "focus_score_label" = "专注分数";
 "categories_label" = "类别";
 "most_used_label" = "最常用";
+
+// Background Picker
+"background_picker_title" = "背景图片";
+"background_picker_subtitle" = "个性化你的会话";
+"background_none" = "无";
+"background_load_failed" = "加载失败";
+
+// Create Session
+"session_create_title" = "新建会话";
+"session_create_subtitle" = "小组专注";
+"session_create_button" = "创建会话";
+"session_creating" = "创建中…";
+"session_field_title" = "标题";
+"session_field_title_placeholder" = "例：Focus Marathon";
+"session_field_description" = "描述";
+"session_field_description_placeholder" = "描述你的会话…";
+"session_field_max_participants" = "最大参与人数";
+"session_field_optional" = "可选";
+"session_visibility" = "可见性";
+"session_visibility_public" = "公开";
+"session_visibility_private" = "私密";
+"session_duration" = "时长";
+"session_duration_manual" = "手动";
+"session_duration_timed" = "定时";
+"session_duration_scheduled" = "预定";
+"session_duration_manual_sub" = "手动管理";
+"session_duration_timed_sub" = "自动结束";
+"session_duration_scheduled_sub" = "自动开始和结束";
+"session_hours" = "小时";
+"session_minutes" = "分钟";
+"session_start" = "开始";
+"session_end" = "结束";
+"session_apps_to_block" = "要阻止的应用";
+"session_apps_count" = "已选择 %d 个";
+"session_background_image" = "背景图片";
+
+// Join Session
+"join_title" = "加入";
+"join_subtitle" = "输入邀请码";
+"join_enter_code" = "输入邀请码";
+"join_code_length" = "6 个字符";
+"join_search_button" = "查找会话";
+"join_searching" = "搜索中…";
+"join_session_button" = "加入会话";
+"join_connecting" = "连接中…";
+"join_session_closed" = "此会话不再接受新成员";
+"join_members_count" = "%d 位成员";
+"join_by_leader" = "由 %@ 创建";
+"join_error_format" = "错误：%@";
+"join_request_sent_format" = "已向组长发送请求！\n\n你已经在一个活动会话中。「%@」的组长将收到你的请求，可以接受你。";
+"session_status_lobby" = "等待中";
+"session_status_active" = "进行中";
+"session_status_paused" = "已暂停";
+"session_status_completed" = "已完成";
+"session_status_dissolved" = "已解散";
+
+// Notifications
+"notifications_title" = "通知";
+"notifications_mark_all_read" = "全部标为已读";
+"notifications_empty_title" = "暂无通知";
+"notifications_empty_subtitle" = "你的社交通知将显示在此";
+"notifications_time_now" = "刚刚";
+"notifications_time_minutes" = "%d 分钟前";
+"notifications_time_hours" = "%d 小时前";
+"notifications_time_days" = "%d 天前";
+
+// Session Detail
+"session_detail_leave_title" = "退出会话";
+"session_detail_cancel" = "取消";
+"session_detail_leave_confirm" = "退出";
+"session_detail_leave_message" = "您的拦截将被解除。";
+"session_detail_dissolve_title" = "解散会话";
+"session_detail_dissolve_confirm" = "解散";
+"session_detail_dissolve_message" = "这将结束所有成员的会话。";
+"session_detail_stop_title" = "停止会话";
+"session_detail_stop_confirm" = "停止";
+"session_detail_stop_message" = "会话将标记为所有人已完成。";
+"session_detail_cancel_schedule_title" = "取消预定会话";
+"session_detail_keep" = "保留";
+"session_detail_yes_cancel" = "是的，取消";
+"session_detail_cancel_schedule_message" = "自动启动将被取消。之后您可以解散会话。";
+"session_detail_status_scheduled" = "已预定";
+"session_detail_status_waiting" = "等待中";
+"session_detail_status_active" = "进行中";
+"session_detail_status_paused" = "已暂停";
+"session_detail_status_completed" = "已完成";
+"session_detail_status_dissolved" = "已解散";
+"session_detail_leader_badge" = "队长";
+"session_detail_members_in_focus" = "%d人专注";
+"session_detail_members_section" = "成员";
+"session_detail_member_joined" = "已加入";
+"session_detail_member_ready" = "已准备";
+"session_detail_member_active" = "活跃";
+"session_detail_member_paused" = "已暂停";
+"session_detail_member_left" = "已离开";
+"session_detail_invite_code_label" = "邀请码";
+"session_detail_copied" = "已复制到剪贴板";
+"session_detail_apps_to_block" = "要拦截的应用";
+"session_detail_choose_apps" = "选择应用";
+"session_detail_choose_apps_subtitle" = "选择会话期间要拦截的应用";
+"session_detail_edit_apps" = "编辑";
+"session_detail_i_am_ready" = "我准备好了";
+"session_detail_blocked_label" = "已拦截";
+"session_detail_session_ongoing" = "会话进行中";
+"session_detail_select_apps_to_block" = "选择应用以激活拦截";
+"session_detail_select_apps_button" = "选择要拦截的应用";
+"session_detail_paused_title" = "会话已暂停";
+"session_detail_leader" = "队长";
+"session_detail_paused_by" = "由 %@ 暂停";
+"session_detail_pause_requests" = "暂停请求";
+"session_detail_ready_count" = "%d/%d已准备";
+"session_detail_auto_start" = "自动启动";
+"session_detail_start_button" = "开始";
+"session_detail_pause_button" = "暂停";
+"session_detail_stop_button" = "停止";
+"session_detail_leave_button" = "离开";
+"session_detail_resume_button" = "继续";
+"session_detail_leave_session_button" = "退出会话";
+"session_detail_chat_label" = "聊天";
+"session_detail_no_messages" = "暂无消息 — 开始对话吧！";
+"session_detail_scheduled_session_label" = "预定会话";
+"session_detail_starting" = "正在启动...";
+"session_detail_starting_subtitle" = "等待同步";
+"session_detail_starts_in" = "开始倒计时";
+"session_detail_start_time" = "开始：%@";
+"session_detail_end_time" = "结束：%@";
+"session_detail_completed_title" = "会话已完成";
+"session_detail_completed_subtitle" = "恭喜大家";
+"session_detail_members_label" = "成员";
+"session_detail_duration_label" = "时长";
+"session_detail_dissolved_title" = "会话已解散";
+"session_detail_dissolved_subtitle" = "由队长关闭";
+"session_detail_request_pause_title" = "申请暂停";
+"session_detail_request_pause_subtitle" = "需要队长同意";
+"session_detail_pause_reason_label" = "原因（可选）";
+"session_detail_pause_reason_placeholder" = "例：需要休息一下";
+"session_detail_send_button" = "发送";
+"session_detail_finished" = "已结束";
+
+// Session Preview
+"session_preview_status_lobby" = "等待开始";
+"session_preview_status_active" = "进行中";
+"session_preview_status_paused" = "已暂停";
+"session_preview_status_completed" = "已完成";
+"session_preview_status_dissolved" = "已解散";
+"session_preview_back" = "返回";
+"session_preview_public_label" = "公开会话";
+"session_preview_description_label" = "描述";
+"session_preview_participants" = "参与者";
+"session_preview_leader" = "队长";
+"session_preview_invite_code" = "邀请码";
+"session_preview_duration" = "时长";
+"session_preview_full" = "会话已满";
+"session_preview_joining" = "加入中...";
+"session_preview_join_button" = "加入会话";
+
+// Social Login
+"social_login_title" = "社交会话";
+"social_login_subtitle" = "和朋友一起专注";
+"social_login_feature1_title" = "群组会话";
+"social_login_feature1_desc" = "创建或加入会话";
+"social_login_feature2_title" = "实时聊天";
+"social_login_feature2_desc" = "与参与者交流";
+"social_login_feature3_title" = "相互督促";
+"social_login_feature3_desc" = "共同保持动力";
+"social_login_cta_hint" = "登录以使用社交功能";
+"social_login_error_title" = "认证错误";
+"social_login_error_ok" = "好的";
+
+// Social Tab
+"social_status_idle" = "准备一起专注";
+"social_status_lobby" = "等待开始";
+"social_status_active" = "会话进行中";
+"social_status_paused" = "会话已暂停";
+"social_feed_mine" = "我的会话";
+"social_feed_discover" = "发现";
+"social_feed_empty_mine" = "你还没有任何会话。";
+"social_feed_empty_discover" = "创建第一个公开会话！";
+"social_hero_empty_title" = "准备一起专注";
+"social_hero_empty_subtitle" = "创建或加入一个会话\n开始你的共同专注。";
+"social_cta_create" = "创建";
+"social_cta_join" = "加入";
+"social_online_count" = "%d人在线";
+"social_nobody_focusing" = "没有人在专注";
+"social_invitations_title" = "邀请";
+"social_invites_you" = "邀请你";
+"social_card_status_active" = "进行中";
+"social_card_status_paused" = "已暂停";
+"social_card_status_lobby" = "大厅";
+"social_card_status_session" = "会话";
+"social_member_count" = "%d位成员";
+"social_pause_requests_title" = "暂停请求";
+"social_join_requests_title" = "加入请求";
+"social_wants_to_join" = "想加入「%@」";
+"social_currently_in" = "当前在「%@」";
+"social_time_just_now" = "刚刚";
+"social_time_minutes_ago" = "%d分钟前";
+"social_time_hours_ago" = "%d小时前";
+
+// System Messages (chat)
+"sys_member_joined" = "%@加入了会话";
+"sys_member_left" = "%@离开了会话";
+"sys_session_started" = "会话开始！专注时间到！";
+"sys_session_paused" = "%@暂停了会话";
+"sys_session_paused_reason" = "%@暂停了会话 — %@";
+"sys_session_paused_accepted" = "%@接受了%@的暂停请求";
+"sys_session_resumed" = "会话恢复！继续加油！";
+"sys_session_completed" = "会话完成！大家辛苦了！";
+"sys_pause_requested" = "%@正在请求暂停";
+"sys_pause_requested_reason" = "%@正在请求暂停 — \"%@\"";
+"sys_pause_declined" = "%@的暂停请求被拒绝";
+
+"tap_to_select" = "选择";
+
+// GuiltTripView
+"guilt_ios_only" = "仅适用于iOS";
+
+// Difficulty modal + session goals + durations
+"difficulty_modal_title" = "限制级别";
+"difficulty_modal_subtitle" = "选择应用封锁强度";
+"difficulty_easy_mode" = "盾牌模式";
+"difficulty_medium_mode" = "增强盾牌";
+"difficulty_hard_mode" = "隐藏模式";
+"read_20_pages" = "阅读20页";
+"finish_report" = "完成我的报告";
+"meditate_10_min" = "冥想10分钟";
+"complete_workout" = "完成锻炼";
+"quick_durations" = "快速时长";
+"custom_duration" = "自定义时长";
+"write_1000_words" = "写1000字";
+"study_chapter" = "学习一章";
+
+// ActiveChallengeSection
+"active_challenge_focus_session" = "专注会话";
+"active_challenge_remaining" = "剩余";
+"active_challenge_pause_label" = "暂停";
+"active_challenge_blocked" = "已封锁";
+"active_challenge_done" = "已完成";
+"active_challenge_attempts" = "次尝试";
+"active_challenge_attempt" = "次尝试";
+"active_challenge_blocked_apps" = "已封锁应用";
+"active_challenge_session_goals" = "会话目标";
+"active_challenge_tag_done" = "完成";
+"active_challenge_tag_todo" = "待完成";
+"active_challenge_blocked_attempts" = "%d次封锁尝试";
+"active_challenge_blocked_attempt_single" = "1次封锁尝试";
+"difficulty_easy_desc" = "应用保持可见但被遮罩层封锁";
+"difficulty_medium_desc" = "严格封锁并附带提醒通知";
+"difficulty_hard_desc" = "应用从主屏幕完全隐藏";
+"finish_setup" = "完成设置";
+"optional_can_skip" = "可选 – 你可以跳过此步骤";

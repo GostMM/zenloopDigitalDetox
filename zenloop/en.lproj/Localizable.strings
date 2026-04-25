@@ -1280,3 +1280,232 @@
 "focus_score_label" = "FOCUS SCORE";
 "categories_label" = "CATEGORIES";
 "most_used_label" = "MOST USED";
+
+// Background Picker
+"background_picker_title" = "Background image";
+"background_picker_subtitle" = "Personalize your session";
+"background_none" = "None";
+"background_load_failed" = "Load failed";
+
+// Create Session
+"session_create_title" = "New session";
+"session_create_subtitle" = "Group focus";
+"session_create_button" = "Create session";
+"session_creating" = "Creating…";
+"session_field_title" = "Title";
+"session_field_title_placeholder" = "Ex: Focus Marathon";
+"session_field_description" = "Description";
+"session_field_description_placeholder" = "Describe your session…";
+"session_field_max_participants" = "Max. participants";
+"session_field_optional" = "Optional";
+"session_visibility" = "Visibility";
+"session_visibility_public" = "Public";
+"session_visibility_private" = "Private";
+"session_duration" = "Duration";
+"session_duration_manual" = "Manual";
+"session_duration_timed" = "Timed";
+"session_duration_scheduled" = "Scheduled";
+"session_duration_manual_sub" = "Manage manually";
+"session_duration_timed_sub" = "Auto end";
+"session_duration_scheduled_sub" = "Auto start & end";
+"session_hours" = "Hours";
+"session_minutes" = "Minutes";
+"session_start" = "Start";
+"session_end" = "End";
+"session_apps_to_block" = "Apps to block";
+"session_apps_count" = "%d selected";
+"session_background_image" = "Background image";
+
+// Join Session
+"join_title" = "Join";
+"join_subtitle" = "Enter the invitation code";
+"join_enter_code" = "Enter the Invitation Code";
+"join_code_length" = "6 characters";
+"join_search_button" = "Find Session";
+"join_searching" = "Searching…";
+"join_session_button" = "Join Session";
+"join_connecting" = "Connecting…";
+"join_session_closed" = "This session no longer accepts new members";
+"join_members_count" = "%d members";
+"join_by_leader" = "by %@";
+"join_error_format" = "Error: %@";
+"join_request_sent_format" = "Request sent to the leader!\n\nYou are already in an active session. The leader of \"%@\" will receive your request and can accept you.";
+"session_status_lobby" = "Waiting";
+"session_status_active" = "Active";
+"session_status_paused" = "Paused";
+"session_status_completed" = "Completed";
+"session_status_dissolved" = "Dissolved";
+
+// Notifications
+"notifications_title" = "Notifications";
+"notifications_mark_all_read" = "Mark all read";
+"notifications_empty_title" = "No notifications";
+"notifications_empty_subtitle" = "Your social notifications will appear here";
+"notifications_time_now" = "Just now";
+"notifications_time_minutes" = "%d min ago";
+"notifications_time_hours" = "%dh ago";
+"notifications_time_days" = "%dd ago";
+
+// Session Detail
+"session_detail_leave_title" = "Leave Session";
+"session_detail_cancel" = "Cancel";
+"session_detail_leave_confirm" = "Leave";
+"session_detail_leave_message" = "Your blocks will be removed.";
+"session_detail_dissolve_title" = "Dissolve Session";
+"session_detail_dissolve_confirm" = "Dissolve";
+"session_detail_dissolve_message" = "This will end the session for all members.";
+"session_detail_stop_title" = "Stop Session";
+"session_detail_stop_confirm" = "Stop";
+"session_detail_stop_message" = "The session will be marked as completed for everyone.";
+"session_detail_cancel_schedule_title" = "Cancel Scheduled Session";
+"session_detail_keep" = "Keep it";
+"session_detail_yes_cancel" = "Yes, cancel";
+"session_detail_cancel_schedule_message" = "Auto-start will be cancelled. You can dissolve the session afterwards.";
+"session_detail_status_scheduled" = "Scheduled";
+"session_detail_status_waiting" = "Waiting";
+"session_detail_status_active" = "Active";
+"session_detail_status_paused" = "Paused";
+"session_detail_status_completed" = "Completed";
+"session_detail_status_dissolved" = "Dissolved";
+"session_detail_leader_badge" = "LEADER";
+"session_detail_members_in_focus" = "%d in focus";
+"session_detail_members_section" = "MEMBERS";
+"session_detail_member_joined" = "Joined";
+"session_detail_member_ready" = "Ready";
+"session_detail_member_active" = "Active";
+"session_detail_member_paused" = "Paused";
+"session_detail_member_left" = "Left";
+"session_detail_invite_code_label" = "INVITE CODE";
+"session_detail_copied" = "Copied to clipboard";
+"session_detail_apps_to_block" = "APPS TO BLOCK";
+"session_detail_choose_apps" = "Choose apps";
+"session_detail_choose_apps_subtitle" = "Select the apps to block during the session";
+"session_detail_edit_apps" = "Edit";
+"session_detail_i_am_ready" = "I'm Ready";
+"session_detail_blocked_label" = "BLOCKED";
+"session_detail_session_ongoing" = "Session in Progress";
+"session_detail_select_apps_to_block" = "Select your apps to activate blocking";
+"session_detail_select_apps_button" = "Select apps to block";
+"session_detail_paused_title" = "Session Paused";
+"session_detail_leader" = "Leader";
+"session_detail_paused_by" = "by %@";
+"session_detail_pause_requests" = "PAUSE REQUESTS";
+"session_detail_ready_count" = "%d/%d ready";
+"session_detail_auto_start" = "Auto-start";
+"session_detail_start_button" = "Start";
+"session_detail_pause_button" = "Pause";
+"session_detail_stop_button" = "Stop";
+"session_detail_leave_button" = "Leave";
+"session_detail_resume_button" = "Resume";
+"session_detail_leave_session_button" = "Leave Session";
+"session_detail_chat_label" = "CHAT";
+"session_detail_no_messages" = "No messages — start the conversation!";
+"session_detail_scheduled_session_label" = "SCHEDULED SESSION";
+"session_detail_starting" = "Starting...";
+"session_detail_starting_subtitle" = "Waiting for sync";
+"session_detail_starts_in" = "Starts in";
+"session_detail_start_time" = "Start: %@";
+"session_detail_end_time" = "End: %@";
+"session_detail_completed_title" = "Session Completed";
+"session_detail_completed_subtitle" = "Congratulations everyone";
+"session_detail_members_label" = "members";
+"session_detail_duration_label" = "duration";
+"session_detail_dissolved_title" = "Session Dissolved";
+"session_detail_dissolved_subtitle" = "Closed by the leader";
+"session_detail_request_pause_title" = "Request a Pause";
+"session_detail_request_pause_subtitle" = "The leader must accept";
+"session_detail_pause_reason_label" = "REASON (OPTIONAL)";
+"session_detail_pause_reason_placeholder" = "E.g. Need a break";
+"session_detail_send_button" = "Send";
+"session_detail_finished" = "Finished";
+
+// Session Preview
+"session_preview_status_lobby" = "Waiting to start";
+"session_preview_status_active" = "In progress";
+"session_preview_status_paused" = "Paused";
+"session_preview_status_completed" = "Completed";
+"session_preview_status_dissolved" = "Dissolved";
+"session_preview_back" = "Back";
+"session_preview_public_label" = "PUBLIC SESSION";
+"session_preview_description_label" = "DESCRIPTION";
+"session_preview_participants" = "Participants";
+"session_preview_leader" = "Leader";
+"session_preview_invite_code" = "Invite code";
+"session_preview_duration" = "Duration";
+"session_preview_full" = "Session full";
+"session_preview_joining" = "Joining...";
+"session_preview_join_button" = "Join Session";
+
+// Social Login
+"social_login_title" = "Social Sessions";
+"social_login_subtitle" = "Focus together with your friends";
+"social_login_feature1_title" = "Group Sessions";
+"social_login_feature1_desc" = "Create or join sessions";
+"social_login_feature2_title" = "Live Chat";
+"social_login_feature2_desc" = "Communicate with participants";
+"social_login_feature3_title" = "Accountability";
+"social_login_feature3_desc" = "Stay motivated together";
+"social_login_cta_hint" = "Sign in to access social features";
+"social_login_error_title" = "Authentication Error";
+"social_login_error_ok" = "OK";
+
+// Social Tab
+"social_status_idle" = "Ready to focus together";
+"social_status_lobby" = "Session waiting";
+"social_status_active" = "Session active";
+"social_status_paused" = "Session paused";
+"social_feed_mine" = "My Sessions";
+"social_feed_discover" = "Discover";
+"social_feed_empty_mine" = "You don't have any sessions yet.";
+"social_feed_empty_discover" = "Create the first public session!";
+"social_hero_empty_title" = "Ready to focus together";
+"social_hero_empty_subtitle" = "Create a session or join one\nto start your shared focus.";
+"social_cta_create" = "Create";
+"social_cta_join" = "Join";
+"social_online_count" = "%d online";
+"social_nobody_focusing" = "Nobody focusing";
+"social_invitations_title" = "Invitations";
+"social_invites_you" = "invites you";
+"social_card_status_active" = "ACTIVE";
+"social_card_status_paused" = "PAUSED";
+"social_card_status_lobby" = "LOBBY";
+"social_card_status_session" = "SESSION";
+"social_member_count" = "%d member(s)";
+"social_pause_requests_title" = "Pause Requests";
+"social_join_requests_title" = "Join Requests";
+"social_wants_to_join" = "Wants to join \"%@\"";
+"social_currently_in" = "Currently in \"%@\"";
+"social_time_just_now" = "Just now";
+"social_time_minutes_ago" = "%d min ago";
+"social_time_hours_ago" = "%dh ago";
+
+// System Messages (chat)
+"sys_member_joined" = "%@ joined the session";
+"sys_member_left" = "%@ left the session";
+"sys_session_started" = "Session started! Focus time!";
+"sys_session_paused" = "%@ paused the session";
+"sys_session_paused_reason" = "%@ paused the session — %@";
+"sys_session_paused_accepted" = "%@ accepted %@'s pause request";
+"sys_session_resumed" = "Session resumed! Let's go!";
+"sys_session_completed" = "Session completed! Great work everyone!";
+"sys_pause_requested" = "%@ is requesting a pause";
+"sys_pause_requested_reason" = "%@ is requesting a pause — \"%@\"";
+"sys_pause_declined" = "%@'s pause request was declined";
+
+// GuiltTripView
+"guilt_ios_only" = "Available on iOS only";
+
+// ActiveChallengeSection
+"active_challenge_focus_session" = "Focus session";
+"active_challenge_remaining" = "remaining";
+"active_challenge_pause_label" = "PAUSE";
+"active_challenge_blocked" = "blocked";
+"active_challenge_done" = "done";
+"active_challenge_attempts" = "attempts";
+"active_challenge_attempt" = "attempt";
+"active_challenge_blocked_apps" = "Blocked apps";
+"active_challenge_session_goals" = "Session goals";
+"active_challenge_tag_done" = "Done";
+"active_challenge_tag_todo" = "To do";
+"active_challenge_blocked_attempts" = "%d blocked attempts";
+"active_challenge_blocked_attempt_single" = "1 blocked attempt";

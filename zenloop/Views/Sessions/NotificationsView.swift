@@ -24,7 +24,7 @@ struct NotificationsView: View {
                 VStack(spacing: 0) {
                     // Header
                     HStack {
-                        Text("Notifications")
+                        Text(String(localized: "notifications_title"))
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.white)
 
@@ -32,7 +32,7 @@ struct NotificationsView: View {
 
                         if !notificationManager.notifications.isEmpty {
                             Button(action: markAllAsRead) {
-                                Text("Tout marquer lu")
+                                Text(String(localized: "notifications_mark_all_read"))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.blue)
                             }
@@ -157,16 +157,16 @@ struct NotificationRow: View {
         let interval = now.timeIntervalSince(timestamp)
 
         if interval < 60 {
-            return "À l'instant"
+            return String(localized: "notifications_time_now")
         } else if interval < 3600 {
             let minutes = Int(interval / 60)
-            return "Il y a \(minutes) min"
+            return String(format: String(localized: "notifications_time_minutes"), minutes)
         } else if interval < 86400 {
             let hours = Int(interval / 3600)
-            return "Il y a \(hours)h"
+            return String(format: String(localized: "notifications_time_hours"), hours)
         } else {
             let days = Int(interval / 86400)
-            return "Il y a \(days)j"
+            return String(format: String(localized: "notifications_time_days"), days)
         }
     }
 
@@ -236,11 +236,11 @@ struct EmptyNotificationsView: View {
                 .font(.system(size: 64, weight: .light))
                 .foregroundColor(.white.opacity(0.3))
 
-            Text("Aucune notification")
+            Text(String(localized: "notifications_empty_title"))
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white.opacity(0.7))
 
-            Text("Vos notifications sociales apparaîtront ici")
+            Text(String(localized: "notifications_empty_subtitle"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.white.opacity(0.5))
                 .multilineTextAlignment(.center)

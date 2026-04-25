@@ -1032,3 +1032,254 @@
 "focus_score_label" = "PUNTEGGIO FOCUS";
 "categories_label" = "CATEGORIE";
 "most_used_label" = "PIÙ USATE";
+
+// Background Picker
+"background_picker_title" = "Immagine di sfondo";
+"background_picker_subtitle" = "Personalizza la sessione";
+"background_none" = "Nessuna";
+"background_load_failed" = "Errore";
+
+// Create Session
+"session_create_title" = "Nuova sessione";
+"session_create_subtitle" = "Focus di gruppo";
+"session_create_button" = "Crea sessione";
+"session_creating" = "Creazione…";
+"session_field_title" = "Titolo";
+"session_field_title_placeholder" = "Es: Focus Marathon";
+"session_field_description" = "Descrizione";
+"session_field_description_placeholder" = "Descrivi la tua sessione…";
+"session_field_max_participants" = "Max. partecipanti";
+"session_field_optional" = "Opzionale";
+"session_visibility" = "Visibilità";
+"session_visibility_public" = "Pubblica";
+"session_visibility_private" = "Privata";
+"session_duration" = "Durata";
+"session_duration_manual" = "Manuale";
+"session_duration_timed" = "A tempo";
+"session_duration_scheduled" = "Programmata";
+"session_duration_manual_sub" = "Gestisci manualmente";
+"session_duration_timed_sub" = "Fine automatica";
+"session_duration_scheduled_sub" = "Inizio e fine auto";
+"session_hours" = "Ore";
+"session_minutes" = "Minuti";
+"session_start" = "Inizio";
+"session_end" = "Fine";
+"session_apps_to_block" = "App da bloccare";
+"session_apps_count" = "%d selezionata/e";
+"session_background_image" = "Immagine di sfondo";
+
+// Join Session
+"join_title" = "Unisciti";
+"join_subtitle" = "Inserisci il codice di invito";
+"join_enter_code" = "Inserisci il codice di invito";
+"join_code_length" = "6 caratteri";
+"join_search_button" = "Cerca sessione";
+"join_searching" = "Ricerca…";
+"join_session_button" = "Unisciti alla sessione";
+"join_connecting" = "Connessione…";
+"join_session_closed" = "Questa sessione non accetta più nuovi membri";
+"join_members_count" = "%d membri";
+"join_by_leader" = "di %@";
+"join_error_format" = "Errore: %@";
+"join_request_sent_format" = "Richiesta inviata al leader!\n\nSei già in una sessione attiva. Il leader di \"%@\" riceverà la tua richiesta e potrà accettarti.";
+"session_status_lobby" = "In attesa";
+"session_status_active" = "Attiva";
+"session_status_paused" = "In pausa";
+"session_status_completed" = "Completata";
+"session_status_dissolved" = "Dissolta";
+
+// Notifications
+"notifications_title" = "Notifiche";
+"notifications_mark_all_read" = "Segna tutto letto";
+"notifications_empty_title" = "Nessuna notifica";
+"notifications_empty_subtitle" = "Le tue notifiche social appariranno qui";
+"notifications_time_now" = "Proprio ora";
+"notifications_time_minutes" = "%d min fa";
+"notifications_time_hours" = "%d h fa";
+"notifications_time_days" = "%d g fa";
+
+// Session Detail
+"session_detail_leave_title" = "Lascia la Sessione";
+"session_detail_cancel" = "Annulla";
+"session_detail_leave_confirm" = "Lascia";
+"session_detail_leave_message" = "I tuoi blocchi verranno rimossi.";
+"session_detail_dissolve_title" = "Dissolvi la Sessione";
+"session_detail_dissolve_confirm" = "Dissolvi";
+"session_detail_dissolve_message" = "La sessione terminerà per tutti i membri.";
+"session_detail_stop_title" = "Ferma la Sessione";
+"session_detail_stop_confirm" = "Ferma";
+"session_detail_stop_message" = "La sessione verrà contrassegnata come completata per tutti.";
+"session_detail_cancel_schedule_title" = "Annulla Sessione Programmata";
+"session_detail_keep" = "Mantieni";
+"session_detail_yes_cancel" = "Sì, annulla";
+"session_detail_cancel_schedule_message" = "L'avvio automatico verrà annullato. Puoi dissolvere la sessione in seguito.";
+"session_detail_status_scheduled" = "Programmata";
+"session_detail_status_waiting" = "In attesa";
+"session_detail_status_active" = "Attiva";
+"session_detail_status_paused" = "In pausa";
+"session_detail_status_completed" = "Completata";
+"session_detail_status_dissolved" = "Disciolta";
+"session_detail_leader_badge" = "LEADER";
+"session_detail_members_in_focus" = "%d in focus";
+"session_detail_members_section" = "MEMBRI";
+"session_detail_member_joined" = "Unito";
+"session_detail_member_ready" = "Pronto";
+"session_detail_member_active" = "Attivo";
+"session_detail_member_paused" = "In pausa";
+"session_detail_member_left" = "Uscito";
+"session_detail_invite_code_label" = "CODICE INVITO";
+"session_detail_copied" = "Copiato negli appunti";
+"session_detail_apps_to_block" = "APP DA BLOCCARE";
+"session_detail_choose_apps" = "Scegli le app";
+"session_detail_choose_apps_subtitle" = "Seleziona le app da bloccare durante la sessione";
+"session_detail_edit_apps" = "Modifica";
+"session_detail_i_am_ready" = "Sono Pronto";
+"session_detail_blocked_label" = "BLOCCATE";
+"session_detail_session_ongoing" = "Sessione in corso";
+"session_detail_select_apps_to_block" = "Seleziona le app per attivare il blocco";
+"session_detail_select_apps_button" = "Seleziona app da bloccare";
+"session_detail_paused_title" = "Sessione in pausa";
+"session_detail_leader" = "Leader";
+"session_detail_paused_by" = "da %@";
+"session_detail_pause_requests" = "RICHIESTE DI PAUSA";
+"session_detail_ready_count" = "%d/%d pronti";
+"session_detail_auto_start" = "Avvio automatico";
+"session_detail_start_button" = "Avvia";
+"session_detail_pause_button" = "Pausa";
+"session_detail_stop_button" = "Ferma";
+"session_detail_leave_button" = "Lascia";
+"session_detail_resume_button" = "Riprendi";
+"session_detail_leave_session_button" = "Lascia la Sessione";
+"session_detail_chat_label" = "CHAT";
+"session_detail_no_messages" = "Nessun messaggio — inizia la conversazione!";
+"session_detail_scheduled_session_label" = "SESSIONE PROGRAMMATA";
+"session_detail_starting" = "Avvio in corso...";
+"session_detail_starting_subtitle" = "In attesa di sincronizzazione";
+"session_detail_starts_in" = "Inizia tra";
+"session_detail_start_time" = "Inizio: %@";
+"session_detail_end_time" = "Fine: %@";
+"session_detail_completed_title" = "Sessione Completata";
+"session_detail_completed_subtitle" = "Congratulazioni a tutti";
+"session_detail_members_label" = "membri";
+"session_detail_duration_label" = "durata";
+"session_detail_dissolved_title" = "Sessione Disciolta";
+"session_detail_dissolved_subtitle" = "Chiusa dal leader";
+"session_detail_request_pause_title" = "Richiedi una Pausa";
+"session_detail_request_pause_subtitle" = "Il leader deve accettare";
+"session_detail_pause_reason_label" = "MOTIVO (OPZIONALE)";
+"session_detail_pause_reason_placeholder" = "Es: Ho bisogno di una pausa";
+"session_detail_send_button" = "Invia";
+"session_detail_finished" = "Terminato";
+
+// Session Preview
+"session_preview_status_lobby" = "In attesa di avvio";
+"session_preview_status_active" = "In corso";
+"session_preview_status_paused" = "In pausa";
+"session_preview_status_completed" = "Completata";
+"session_preview_status_dissolved" = "Disciolta";
+"session_preview_back" = "Indietro";
+"session_preview_public_label" = "SESSIONE PUBBLICA";
+"session_preview_description_label" = "DESCRIZIONE";
+"session_preview_participants" = "Partecipanti";
+"session_preview_leader" = "Leader";
+"session_preview_invite_code" = "Codice invito";
+"session_preview_duration" = "Durata";
+"session_preview_full" = "Sessione piena";
+"session_preview_joining" = "Unione in corso...";
+"session_preview_join_button" = "Entra nella Sessione";
+
+// Social Login
+"social_login_title" = "Sessioni Social";
+"social_login_subtitle" = "Concentrati insieme ai tuoi amici";
+"social_login_feature1_title" = "Sessioni di Gruppo";
+"social_login_feature1_desc" = "Crea o unisciti alle sessioni";
+"social_login_feature2_title" = "Chat dal Vivo";
+"social_login_feature2_desc" = "Comunica con i partecipanti";
+"social_login_feature3_title" = "Accountability";
+"social_login_feature3_desc" = "Rimanete motivati insieme";
+"social_login_cta_hint" = "Accedi per usare le funzioni social";
+"social_login_error_title" = "Errore di Autenticazione";
+"social_login_error_ok" = "OK";
+
+// Social Tab
+"social_status_idle" = "Pronto a concentrarsi insieme";
+"social_status_lobby" = "Sessione in attesa";
+"social_status_active" = "Sessione attiva";
+"social_status_paused" = "Sessione in pausa";
+"social_feed_mine" = "Le mie Sessioni";
+"social_feed_discover" = "Scopri";
+"social_feed_empty_mine" = "Non hai ancora nessuna sessione.";
+"social_feed_empty_discover" = "Crea la prima sessione pubblica!";
+"social_hero_empty_title" = "Pronto a concentrarsi insieme";
+"social_hero_empty_subtitle" = "Crea una sessione o unisciti a una\nper avviare il tuo focus condiviso.";
+"social_cta_create" = "Crea";
+"social_cta_join" = "Entra";
+"social_online_count" = "%d online";
+"social_nobody_focusing" = "Nessuno in focus";
+"social_invitations_title" = "Inviti";
+"social_invites_you" = "ti invita";
+"social_card_status_active" = "IN CORSO";
+"social_card_status_paused" = "IN PAUSA";
+"social_card_status_lobby" = "LOBBY";
+"social_card_status_session" = "SESSIONE";
+"social_member_count" = "%d membro/i";
+"social_pause_requests_title" = "Richieste di Pausa";
+"social_join_requests_title" = "Richieste di Accesso";
+"social_wants_to_join" = "Vuole unirsi a \"%@\"";
+"social_currently_in" = "Attualmente in \"%@\"";
+"social_time_just_now" = "Adesso";
+"social_time_minutes_ago" = "%d min fa";
+"social_time_hours_ago" = "%dh fa";
+
+// System Messages (chat)
+"sys_member_joined" = "%@ si è unito alla sessione";
+"sys_member_left" = "%@ ha lasciato la sessione";
+"sys_session_started" = "Sessione avviata! È ora di concentrarsi!";
+"sys_session_paused" = "%@ ha messo in pausa la sessione";
+"sys_session_paused_reason" = "%@ ha messo in pausa la sessione — %@";
+"sys_session_paused_accepted" = "%@ ha accettato la richiesta di pausa di %@";
+"sys_session_resumed" = "Sessione ripresa! Si riparte!";
+"sys_session_completed" = "Sessione completata! Bravo a tutti!";
+"sys_pause_requested" = "%@ richiede una pausa";
+"sys_pause_requested_reason" = "%@ richiede una pausa — \"%@\"";
+"sys_pause_declined" = "La richiesta di pausa di %@ è stata rifiutata";
+
+"tap_to_select" = "Seleziona";
+
+// GuiltTripView
+"guilt_ios_only" = "Disponibile solo su iOS";
+
+// Difficulty modal + session goals + durations
+"difficulty_modal_title" = "Livello di restrizione";
+"difficulty_modal_subtitle" = "Scegli l'intensità del blocco app";
+"difficulty_easy_mode" = "Modalità Shield";
+"difficulty_medium_mode" = "Shield potenziato";
+"difficulty_hard_mode" = "Modalità Hide";
+"read_20_pages" = "Leggere 20 pagine";
+"finish_report" = "Finire il mio rapporto";
+"meditate_10_min" = "Meditare 10 min";
+"complete_workout" = "Completare l'allenamento";
+"quick_durations" = "Durate rapide";
+"custom_duration" = "Durata personalizzata";
+"write_1000_words" = "Scrivere 1000 parole";
+"study_chapter" = "Studiare un capitolo";
+
+// ActiveChallengeSection
+"active_challenge_focus_session" = "Sessione focus";
+"active_challenge_remaining" = "rimanente";
+"active_challenge_pause_label" = "PAUSA";
+"active_challenge_blocked" = "bloccate";
+"active_challenge_done" = "fatto";
+"active_challenge_attempts" = "tentativi";
+"active_challenge_attempt" = "tentativo";
+"active_challenge_blocked_apps" = "App bloccate";
+"active_challenge_session_goals" = "Obiettivi";
+"active_challenge_tag_done" = "Fatto";
+"active_challenge_tag_todo" = "Da fare";
+"active_challenge_blocked_attempts" = "%d tentativi bloccati";
+"active_challenge_blocked_attempt_single" = "1 tentativo bloccato";
+"difficulty_easy_desc" = "Le app restano visibili ma bloccate da una sovrapposizione";
+"difficulty_medium_desc" = "Blocco rigido con notifiche di promemoria";
+"difficulty_hard_desc" = "App completamente nascoste dalla schermata home";
+"finish_setup" = "Completa configurazione";
+"optional_can_skip" = "Facoltativo – Puoi saltare questo passaggio";

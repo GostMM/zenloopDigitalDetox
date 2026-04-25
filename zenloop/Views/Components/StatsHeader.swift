@@ -60,14 +60,13 @@ struct StatsHeader: View {
     }
 }
 
-// MARK: - Period Selector (segmented pill)
+// MARK: - Period Selector (dropdown menu)
 
 struct PeriodSelector: View {
     @Binding var selected: StatsPeriod
-    @Namespace private var ns
 
     var body: some View {
-        HStack(spacing: 4) {
+        Menu {
             ForEach(StatsPeriod.allCases) { period in
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -75,32 +74,36 @@ struct PeriodSelector: View {
                         selected = period
                     }
                 } label: {
-                    Text(period.localizedLabel)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(selected == period ? .black : .white.opacity(0.7))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            ZStack {
-                                if selected == period {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.white)
-                                        .matchedGeometryEffect(id: "period_bg", in: ns)
-                                }
-                            }
-                        )
+                    if selected == period {
+                        Label(period.localizedLabel, systemImage: "checkmark")
+                    } else {
+                        Text(period.localizedLabel)
+                    }
                 }
-                .buttonStyle(PlainButtonStyle())
             }
+        } label: {
+            HStack(spacing: 6) {
+                Text(selected.localizedLabel)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.65))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(Color.white.opacity(0.1))
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                    )
+            )
         }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                )
-        )
+        .menuStyle(.borderlessButton)
     }
 }

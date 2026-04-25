@@ -39,6 +39,42 @@ struct FullStatsPageView: View {
     @State private var activeBlocks: [ActiveBlock] = []
     @State private var isContentReady = false
     @State private var blockRefreshTimer: Timer?
+    @State private var chartAnimatedBars: Set<Int> = []
+    @State private var pulsePhase: CGFloat = 0
+    @State private var chartSegment: ChartSegment = .all
+    @State private var introPhase: IntroPhase = .blackout
+    @State private var introDisplayedSeconds: Double = 0
+    @State private var introCounterTimer: Timer?
+    @State private var introHapticCounter: Int = 0
+
+    enum IntroPhase: Int, Comparable {
+        case blackout = 0
+        case counting = 1
+        case counterDone = 2
+        case revealed = 3
+        static func < (lhs: IntroPhase, rhs: IntroPhase) -> Bool { lhs.rawValue < rhs.rawValue }
+    }
+
+    enum ChartSegment: String, CaseIterable, Identifiable {
+        case all, morning, afternoon, evening
+        var id: String { rawValue }
+        var range: ClosedRange<Int> {
+            switch self {
+            case .all:       return 0...23
+            case .morning:   return 0...11
+            case .afternoon: return 12...17
+            case .evening:   return 18...23
+            }
+        }
+        var localizedLabel: String {
+            switch self {
+            case .all:       return String(localized: "chart_segment_all", defaultValue: "All day")
+            case .morning:   return String(localized: "chart_morning")
+            case .afternoon: return String(localized: "chart_afternoon")
+            case .evening:   return String(localized: "chart_evening")
+            }
+        }
+    }
     @AppStorage("isBlockCardExpanded", store: UserDefaults(suiteName: "group.com.app.zenloop"))
     private var isBlockCardExpanded = false
 
@@ -52,55 +88,68 @@ struct FullStatsPageView: View {
 
     var body: some View {
         ZStack {
-            // Background animé comme HomeView
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.05, green: 0.05, blue: 0.15),
-                            Color(red: 0.1, green: 0.1, blue: 0.2),
-                            Color.black
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Fond noir pur pendant l'intro, background coloré après reveal
+            if introPhase < .revealed {
+                Color.black.ignoresSafeArea()
+            } else {
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.05, green: 0.05, blue: 0.15),
+                                Color(red: 0.1, green: 0.1, blue: 0.2),
+                                Color.black
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .ignoresSafeArea()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
 
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.2), Color.clear],
-                        startPoint: .topTrailing,
-                        endPoint: .bottomLeading
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.2), Color.clear],
+                            startPoint: .topTrailing,
+                            endPoint: .bottomLeading
+                        )
                     )
-                )
-                .opacity(0.3)
-                .blendMode(.overlay)
-                .ignoresSafeArea()
+                    .opacity(0.3)
+                    .blendMode(.overlay)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
 
-            if isContentReady {
+            // INTRO COUNTER — fond noir, compteur qui grimpe
+            if introPhase < .revealed {
+                introCounterView
+                    .transition(.opacity)
+            }
+
+            // CONTENT — reveal après intro
+            if introPhase == .revealed && isContentReady {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         heroHeader
 
                         metricsRow
-                            .padding(.top, 8)
+                            .padding(.top, 4)
 
                         if !activeBlocks.isEmpty {
                             blockedAppsSection
-                                .padding(.top, 24)
+                                .padding(.top, 18)
                         }
 
                         hourlyChart
-                            .padding(.top, 32)
+                            .padding(.top, 22)
 
                         timeOfflineSection
-                            .padding(.top, 20)
+                            .padding(.top, 14)
 
                         appsListSectionHeader
-                            .padding(.top, 36)
-                            .padding(.bottom, 8)
+                            .padding(.top, 24)
+                            .padding(.bottom, 4)
 
                         appsList
                             .padding(.bottom, 60)
@@ -109,18 +158,121 @@ struct FullStatsPageView: View {
                     .padding(.top, 110)
                 }
                 .transition(.opacity)
-            } else {
-                // ✅ FIX: Skeleton défini localement pour l'extension (pas de dépendance croisée)
-                ExtensionSkeletonView()
-                    .transition(.opacity)
             }
         }
         .onAppear {
             prepareContent()
             startBlockRefreshTimer()
+            startIntroSequence()
         }
         .onDisappear {
             stopBlockRefreshTimer()
+            introCounterTimer?.invalidate()
+        }
+    }
+
+    // MARK: - Intro counter (style GuiltTrip)
+
+    private var introCounterView: some View {
+        VStack(spacing: 18) {
+            Text(String(localized: "screen_time_today").uppercased())
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .tracking(3)
+                .foregroundColor(.white.opacity(introPhase >= .counting ? 0.35 : 0))
+                .animation(.easeIn(duration: 0.4), value: introPhase)
+
+            ZStack {
+                // Halo derrière le chiffre
+                if introPhase >= .counterDone {
+                    Text(introFormattedTime)
+                        .font(.system(size: 84, weight: .black, design: .rounded))
+                        .foregroundColor(.white.opacity(0.25))
+                        .blur(radius: 22)
+                }
+
+                Text(introFormattedTime)
+                    .font(.system(size: 84, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+                    .scaleEffect(introPhase == .counterDone ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.38), value: introPhase)
+            }
+            .opacity(introPhase >= .counting ? 1 : 0)
+            .frame(height: 100)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var introFormattedTime: String {
+        let total = Int(introDisplayedSeconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        if h > 0 { return "\(h)h \(String(format: "%02d", m))" }
+        if m > 0 { return "\(m)m" }
+        return "0m"
+    }
+
+    private func startIntroSequence() {
+        // Soft tap initial dès que l'écran apparaît
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(.easeOut(duration: 0.3)) { introPhase = .counting }
+            startIntroCounter()
+        }
+    }
+
+    private func startIntroCounter() {
+        let target = reportData.todayScreenSeconds
+        let totalDuration: Double = 2.2
+        let fps: Double = 60
+        let totalFrames = Int(totalDuration * fps)
+        var currentFrame = 0
+        introDisplayedSeconds = 0
+        introHapticCounter = 0
+
+        let tickGen = UIImpactFeedbackGenerator(style: .light)
+        tickGen.prepare()
+
+        introCounterTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / fps, repeats: true) { timer in
+            currentFrame += 1
+            let progress = Double(currentFrame) / Double(totalFrames)
+
+            if progress >= 1.0 {
+                timer.invalidate()
+                introDisplayedSeconds = target
+                onIntroCounterFinished()
+                return
+            }
+
+            let eased = 1.0 - pow(2.0, -10.0 * progress)
+            introDisplayedSeconds = target * eased
+
+            // Haptic tick tous les 7 frames (~8.5 ticks/s) pendant la montée rapide,
+            // plus espacé sur la fin (easeOutExpo ralentit naturellement).
+            introHapticCounter += 1
+            if introHapticCounter >= 7 && progress < 0.9 {
+                tickGen.impactOccurred(intensity: 0.55)
+                introHapticCounter = 0
+            }
+        }
+    }
+
+    private func onIntroCounterFinished() {
+        // Impact fort à l'arrivée sur la vraie valeur
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+            introPhase = .counterDone
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            withAnimation(.easeInOut(duration: 0.55)) {
+                introPhase = .revealed
+            }
         }
     }
 
@@ -149,14 +301,14 @@ struct FullStatsPageView: View {
     // MARK: - Hero Header (redesigned)
 
     private var heroHeader: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             Text(String(localized: "screen_time_today"))
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
                 .foregroundColor(.white.opacity(0.45))
-                .tracking(2)
+                .tracking(1.8)
 
             Text(formattedTotalTime)
-                .font(.system(size: 64, weight: .heavy, design: .rounded))
+                .font(.system(size: 54, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -164,7 +316,7 @@ struct FullStatsPageView: View {
             avgComparisonPill
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 14)
     }
 
     /// Pill de comparaison avec la moyenne (affichée quand la moyenne existe et diffère du jour)
@@ -199,178 +351,313 @@ struct FullStatsPageView: View {
     // MARK: - Metrics Row (3 cards)
 
     private var metricsRow: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 0) {
             // Most used
-            FSStatCard {
-                VStack(spacing: 10) {
-                    Text(String(localized: "most_used_label"))
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .tracking(1.2)
+            VStack(spacing: 12) {
+                Text(String(localized: "most_used_label"))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+                    .tracking(1.2)
 
-                    HStack(spacing: -8) {
-                        if !reportData.topThreeMostUsed.isEmpty {
-                            ForEach(Array(reportData.topThreeMostUsed.prefix(3).enumerated()), id: \.offset) { index, app in
-                                AppIconBadge(app: app, size: 32)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.black.opacity(0.35), lineWidth: 1.5)
-                                    )
-                                    .zIndex(Double(3 - index))
-                            }
-                        } else {
-                            Text("—")
-                                .foregroundColor(.white.opacity(0.35))
+                HStack(spacing: -8) {
+                    if !reportData.topThreeMostUsed.isEmpty {
+                        ForEach(Array(reportData.topThreeMostUsed.prefix(3).enumerated()), id: \.offset) { index, app in
+                            AppIconBadge(app: app, size: 34)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.black.opacity(0.35), lineWidth: 1.5)
+                                )
+                                .zIndex(Double(3 - index))
                         }
+                    } else {
+                        Text("—")
+                            .foregroundColor(.white.opacity(0.35))
                     }
-                    .frame(height: 32)
                 }
+                .frame(height: 34)
             }
+            .frame(maxWidth: .infinity)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 1, height: 44)
 
             // Focus score with ring
-            FSStatCard {
-                VStack(spacing: 6) {
-                    Text(String(localized: "focus_score_label"))
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .tracking(1.2)
+            VStack(spacing: 8) {
+                Text(String(localized: "focus_score_label"))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+                    .tracking(1.2)
 
-                    FocusScoreRing(score: reportData.focusScore, size: 46)
-                }
+                FocusScoreRing(score: reportData.focusScore, size: 46)
             }
+            .frame(maxWidth: .infinity)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 1, height: 44)
 
             // Categories
-            FSStatCard {
-                VStack(spacing: 10) {
-                    Text(String(localized: "categories_label"))
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .tracking(1.2)
+            VStack(spacing: 10) {
+                Text(String(localized: "categories_label"))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+                    .tracking(1.2)
 
-                    Text("\(reportData.categoriesCount)")
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
-                }
+                Text("\(reportData.categoriesCount)")
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
             }
+            .frame(maxWidth: .infinity)
         }
+        .padding(.vertical, 8)
     }
 
-    // MARK: - Legend Row
-
-    private var legendRow: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color(red: 0.4, green: 0.6, blue: 0.3))
-                    .frame(width: 8, height: 8)
-
-                Text(String(localized: "productive_label"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
-                    .tracking(0.5)
-            }
-
-            Circle()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 3, height: 3)
-
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color(red: 1.0, green: 0.3, blue: 0.3))
-                    .frame(width: 8, height: 8)
-
-                Text(String(localized: "distracting_label"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
-                    .tracking(0.5)
-            }
-
-            Spacer()
-        }
-    }
-
-    // MARK: - Hourly Chart (redesigned)
+    // MARK: - Hourly Chart (compact — Apple Screen Time style)
 
     private var hourlyChart: some View {
-        let chartHeight: CGFloat = 96
-        let maxPossibleMinutesPerHour: Double = 60
-        let scale = chartHeight / maxPossibleMinutesPerHour
+        let chartHeight: CGFloat = 130
         let currentHour = Calendar.current.component(.hour, from: Date())
+        let visibleData = hourlyChartData.filter { chartSegment.range.contains($0.hour) }
+        let maxMinutes = max(30.0, (visibleData.map { $0.totalMinutes }.max() ?? 0).rounded(.up))
+        let yAxisMax = maxMinutes <= 30 ? 30.0 : (maxMinutes <= 60 ? 60.0 : ((maxMinutes / 30).rounded(.up) * 30))
+        let scale = chartHeight / yAxisMax
 
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center) {
+        return VStack(alignment: .leading, spacing: 10) {
+            // Ligne compacte : label + segment dropdown
+            HStack(alignment: .center, spacing: 8) {
                 Text(String(localized: "today_activity_label"))
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
                     .tracking(1.2)
 
                 Spacer()
 
-                legendRow
+                segmentMenu
             }
 
-            VStack(spacing: 10) {
-                GeometryReader { geometry in
-                    let barCount = CGFloat(hourlyChartData.count)
-                    let totalSpacing = CGFloat(max(0, hourlyChartData.count - 1)) * 2
-                    let availableWidth = geometry.size.width - totalSpacing
-                    let barWidth = barCount > 0 ? availableWidth / barCount : 0
+            // Chart avec Y-axis intégrée (flottante)
+            chartCanvas(
+                data: visibleData,
+                chartHeight: chartHeight,
+                yAxisMax: yAxisMax,
+                scale: scale,
+                currentHour: currentHour
+            )
 
-                    HStack(alignment: .bottom, spacing: 2) {
-                        ForEach(hourlyChartData, id: \.hour) { data in
-                            let isCurrent = data.hour == currentHour
-                            ZStack(alignment: .bottom) {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.white.opacity(isCurrent ? 0.14 : 0.06))
-                                    .frame(width: barWidth, height: chartHeight)
-
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(barGradient(for: data))
-                                    .frame(
-                                        width: barWidth,
-                                        height: max(3, CGFloat(data.totalMinutes) * scale)
-                                    )
-                                    .shadow(color: isCurrent ? Color.white.opacity(0.35) : .clear, radius: 6)
-                                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: data.totalMinutes)
-                            }
-                        }
-                    }
-                }
-                .frame(height: chartHeight)
-
-                // Section labels (Morning / Afternoon / Evening)
-                HStack(spacing: 0) {
-                    Text(String(localized: "chart_morning"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String(localized: "chart_afternoon"))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text(String(localized: "chart_evening"))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white.opacity(0.35))
-                .tracking(0.5)
-            }
+            // Category totals compact — 1 ligne scrollable
+            categoryTotalsRow
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
+        .onAppear {
+            animateBarsInCascade()
+            startPulse()
+        }
+        .onChange(of: chartSegment) { _, _ in
+            animateBarsInCascade()
+        }
     }
 
-    private func barGradient(for data: HourData) -> LinearGradient {
-        let baseColor = data.isProductive
-            ? Color(red: 0.4, green: 0.75, blue: 0.45)
-            : Color(red: 1.0, green: 0.35, blue: 0.4)
-        return LinearGradient(
-            colors: [baseColor, baseColor.opacity(0.6)],
-            startPoint: .top, endPoint: .bottom
-        )
+    private var segmentMenu: some View {
+        Menu {
+            ForEach(ChartSegment.allCases) { segment in
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        chartSegment = segment
+                    }
+                } label: {
+                    if chartSegment == segment {
+                        Label(segment.localizedLabel, systemImage: "checkmark")
+                    } else {
+                        Text(segment.localizedLabel)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(chartSegment.localizedLabel)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.white.opacity(0.07)))
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    @ViewBuilder
+    private func chartCanvas(data: [HourData], chartHeight: CGFloat, yAxisMax: Double, scale: CGFloat, currentHour: Int) -> some View {
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let hourCount = chartSegment.range.count
+            let slotWidth = totalW / CGFloat(hourCount)
+            let barWidth = max(2.5, slotWidth * 0.5)
+            let gridHours = gridHoursForSegment(chartSegment)
+
+            ZStack(alignment: .topLeading) {
+                // Horizontal grid lines + Y-axis labels flottants (inline au-dessus des lignes)
+                ForEach([yAxisMax, yAxisMax / 2, 0.0], id: \.self) { level in
+                    let y = chartHeight - CGFloat(level) * scale
+                    ZStack(alignment: .topTrailing) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.07))
+                            .frame(width: totalW, height: 0.5)
+                            .offset(y: y)
+
+                        if level > 0 {
+                            Text("\(Int(level))m")
+                                .font(.system(size: 9, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.35))
+                                .offset(x: -2, y: y - 12)
+                        }
+                    }
+                    .frame(width: totalW, alignment: .topTrailing)
+                }
+
+                // Vertical dashed grid lines
+                ForEach(gridHours, id: \.self) { hour in
+                    let x = xPositionForHour(hour, slotWidth: slotWidth)
+                    DashedVerticalLine()
+                        .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 0.8, dash: [2, 3]))
+                        .frame(width: 1, height: chartHeight)
+                        .offset(x: x, y: 0)
+                }
+
+                // Bars
+                ForEach(data, id: \.hour) { hourData in
+                    let slotIndex = hourData.hour - chartSegment.range.lowerBound
+                    let isCurrent = hourData.hour == currentHour
+                    let isAnimated = chartAnimatedBars.contains(hourData.hour)
+                    let rawHeight = CGFloat(hourData.totalMinutes) * scale
+                    let animatedHeight = isAnimated ? rawHeight : 0
+                    let xCenter = (CGFloat(slotIndex) + 0.5) * slotWidth
+
+                    stackedBar(segments: hourData.segments, width: barWidth, height: animatedHeight, isCurrent: isCurrent)
+                        .shadow(
+                            color: isCurrent
+                                ? Color(red: 1.0, green: 0.78, blue: 0.3).opacity(0.4 + 0.2 * pulsePhase)
+                                : .clear,
+                            radius: isCurrent ? 5 + 2 * pulsePhase : 0
+                        )
+                        .position(x: xCenter, y: chartHeight - animatedHeight / 2)
+                }
+
+                // X-axis hour labels inline sous la ligne 0
+                ForEach(gridHours, id: \.self) { hour in
+                    Text(String(format: "%02dh", hour))
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.38))
+                        .fixedSize()
+                        .offset(x: xPositionForHour(hour, slotWidth: slotWidth) + 3, y: chartHeight + 3)
+                }
+            }
+            .frame(width: totalW, height: chartHeight + 16)
+        }
+        .frame(height: chartHeight + 16)
+    }
+
+    private func xPositionForHour(_ hour: Int, slotWidth: CGFloat) -> CGFloat {
+        CGFloat(hour - chartSegment.range.lowerBound) * slotWidth
+    }
+
+    private func gridHoursForSegment(_ segment: ChartSegment) -> [Int] {
+        switch segment {
+        case .all:       return [0, 6, 12, 18]
+        case .morning:   return [0, 4, 8]
+        case .afternoon: return [12, 15]
+        case .evening:   return [18, 21]
+        }
+    }
+
+    @ViewBuilder
+    private func stackedBar(segments: [HourSegment], width: CGFloat, height: CGFloat, isCurrent: Bool) -> some View {
+        let totalMin = Swift.max(0.0001, segments.reduce(0) { $0 + $1.minutes })
+
+        VStack(spacing: 0) {
+            ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                let segHeight = height * CGFloat(segment.minutes / totalMin)
+                Rectangle()
+                    .fill(segment.color.opacity(isCurrent ? 1.0 : 0.9))
+                    .frame(width: width, height: segHeight)
+            }
+        }
+        .frame(width: width, height: height, alignment: .bottom)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .animation(.spring(response: 0.55, dampingFraction: 0.78), value: height)
+    }
+
+    // MARK: - Category totals (style Apple)
+
+    private var categoryTotalsRow: some View {
+        let totals = Array(categoryTotals.prefix(5))
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(totals, id: \.name) { entry in
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(entry.color)
+                            .frame(width: 6, height: 6)
+                        Text(entry.name)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.75))
+                            .lineLimit(1)
+                        Text(formatCategoryTotal(entry.minutes))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .monospacedDigit()
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color.white.opacity(0.05)))
+                }
+            }
+        }
+    }
+
+    private var categoryTotals: [(name: String, color: Color, minutes: Double)] {
+        var acc: [String: (color: Color, minutes: Double)] = [:]
+        for hour in hourlyChartData where chartSegment.range.contains(hour.hour) {
+            for seg in hour.segments {
+                let prev = acc[seg.name]?.minutes ?? 0
+                acc[seg.name] = (color: seg.color, minutes: prev + seg.minutes)
+            }
+        }
+        return acc
+            .map { (name: $0.key, color: $0.value.color, minutes: $0.value.minutes) }
+            .sorted { $0.minutes > $1.minutes }
+    }
+
+    private func formatCategoryTotal(_ minutes: Double) -> String {
+        let total = Int(minutes)
+        let h = total / 60
+        let m = total % 60
+        if h > 0 && m > 0 { return "\(h)h \(m)min" }
+        if h > 0 { return "\(h)h" }
+        return "\(m)min"
+    }
+
+    private func animateBarsInCascade() {
+        chartAnimatedBars.removeAll()
+        let visible = hourlyChartData.filter { chartSegment.range.contains($0.hour) }
+        for (index, data) in visible.enumerated() {
+            let delay = Double(index) * 0.02
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
+                    _ = chartAnimatedBars.insert(data.hour)
+                }
+            }
+        }
+    }
+
+    private func startPulse() {
+        withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+            pulsePhase = 1
+        }
     }
 
     // MARK: - Apps list section header
@@ -391,41 +678,36 @@ struct FullStatsPageView: View {
     }
 
     private var timeOfflineSection: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color(red: 0.6, green: 0.7, blue: 0.95).opacity(0.15))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(red: 0.65, green: 0.75, blue: 0.95))
-            }
+        HStack(spacing: 10) {
+            Image(systemName: "moon.stars.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color(red: 0.65, green: 0.75, blue: 0.95))
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(String(localized: "time_offline"))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+            Text(String(localized: "time_offline"))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(.white.opacity(0.85))
 
-                Text(formattedOfflinePercentage)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-            }
+            Text("·")
+                .foregroundColor(.white.opacity(0.25))
+
+            Text(formattedOfflinePercentage)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(0.45))
 
             Spacer()
 
             Text(formattedOfflineTime)
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
+                .monospacedDigit()
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
+        .padding(.vertical, 10)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.white.opacity(0.05)).frame(height: 1)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.white.opacity(0.05)).frame(height: 1)
+        }
     }
 
     private func getSmartHourLabels() -> [Int] {
@@ -517,39 +799,50 @@ struct FullStatsPageView: View {
 
         hourlyChartData = (0...currentHour).map { hour in
             if let hourData = hourDataMap[hour] {
-                let isProductive = isHourProductive(hourData: hourData)
+                let segments = hourData.categories
+                    .filter { $0.value > 0 }
+                    .sorted { $0.value > $1.value }
+                    .map { HourSegment(name: Self.shortCategoryName($0.key), minutes: $0.value, color: Self.colorForCategory($0.key)) }
                 return HourData(
                     hour: hour,
                     totalMinutes: hourData.totalMinutes,
-                    isProductive: isProductive
+                    segments: segments
                 )
             } else {
-                return HourData(hour: hour, totalMinutes: 0, isProductive: true)
+                return HourData(hour: hour, totalMinutes: 0, segments: [])
             }
         }
 
         logger.critical("🚀🚀🚀 [HOURLY_CHART] Generated \(hourlyChartData.count) hour bars")
     }
 
-    private func isHourProductive(hourData: ExtensionHourData) -> Bool {
-        let distractingKeywords = ["Social", "Entertainment", "Games", "Photo", "Video"]
-        let totalMinutes = hourData.totalMinutes
-        guard totalMinutes > 0 else { return true }
-
-        var distractingMinutes: Double = 0
-        for (categoryName, minutes) in hourData.categories {
-            if distractingKeywords.contains(where: { categoryName.contains($0) }) {
-                distractingMinutes += minutes
-            }
+    static func colorForCategory(_ name: String) -> Color {
+        let lower = name.lowercased()
+        if lower.contains("social") { return Color(red: 0.78, green: 0.42, blue: 0.95) }      // purple
+        if lower.contains("entertainment") { return Color(red: 1.00, green: 0.42, blue: 0.55) } // pink
+        if lower.contains("game") { return Color(red: 1.00, green: 0.60, blue: 0.25) }         // orange
+        if lower.contains("photo") || lower.contains("video") { return Color(red: 0.95, green: 0.35, blue: 0.75) } // magenta
+        if lower.contains("productivity") || lower.contains("finance") || lower.contains("business") {
+            return Color(red: 0.35, green: 0.85, blue: 0.55)                                   // green
         }
-
-        return (distractingMinutes / totalMinutes) < 0.5
+        if lower.contains("creativity") { return Color(red: 0.30, green: 0.80, blue: 0.80) }   // teal
+        if lower.contains("education") || lower.contains("reading") || lower.contains("reference") {
+            return Color(red: 0.40, green: 0.65, blue: 1.00)                                   // blue
+        }
+        if lower.contains("information") || lower.contains("news") { return Color(red: 0.35, green: 0.80, blue: 0.95) } // cyan
+        if lower.contains("health") || lower.contains("fitness") { return Color(red: 0.55, green: 0.90, blue: 0.45) }   // lime
+        if lower.contains("shopping") || lower.contains("food") { return Color(red: 1.00, green: 0.75, blue: 0.35) }    // amber
+        if lower.contains("travel") { return Color(red: 0.45, green: 0.75, blue: 1.00) }       // sky
+        if lower.contains("music") { return Color(red: 0.75, green: 0.55, blue: 1.00) }        // violet
+        return Color(red: 0.60, green: 0.65, blue: 0.75) // neutral grey-blue
     }
 
-    private func barColor(for data: HourData) -> Color {
-        data.isProductive
-            ? Color(red: 0.4, green: 0.6, blue: 0.3)
-            : Color(red: 1.0, green: 0.3, blue: 0.3)
+    static func shortCategoryName(_ name: String) -> String {
+        let trimmed = name.replacingOccurrences(of: " and ", with: " & ")
+        if trimmed.count > 18 {
+            return String(trimmed.prefix(16)) + "…"
+        }
+        return trimmed
     }
 
     // MARK: - Blocked Apps Section
@@ -584,11 +877,7 @@ struct FullStatsPageView: View {
                         .foregroundColor(.white.opacity(0.5))
                         .rotationEffect(.degrees(isBlockCardExpanded ? 180 : 0))
                 }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white.opacity(0.06))
-                )
+                .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
 
@@ -702,28 +991,13 @@ struct FullStatsPageView: View {
     struct HourData {
         let hour: Int
         let totalMinutes: Double
-        let isProductive: Bool
+        let segments: [HourSegment]
     }
-}
 
-// MARK: - Stat Card (conteneur générique pour metrics)
-
-struct FSStatCard<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        content()
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.horizontal, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.white.opacity(0.09), lineWidth: 1)
-                    )
-            )
+    struct HourSegment {
+        let name: String
+        let minutes: Double
+        let color: Color
     }
 }
 
@@ -1516,5 +1790,61 @@ struct ExtensionSkeletonView: View {
                     }
                 }
             }
+    }
+}
+
+// MARK: - Dashed vertical line shape
+
+struct DashedVerticalLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        return path
+    }
+}
+
+// MARK: - FlowLayout (wrap des badges de légende)
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var currentRowWidth: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentRowWidth + size.width > maxWidth && currentRowWidth > 0 {
+                totalHeight += rowHeight + spacing
+                currentRowWidth = size.width + spacing
+                rowHeight = size.height
+            } else {
+                currentRowWidth += size.width + spacing
+                rowHeight = max(rowHeight, size.height)
+            }
+        }
+        totalHeight += rowHeight
+        return CGSize(width: maxWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > bounds.maxX && x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }

@@ -537,3 +537,36 @@
 "chart_afternoon" = "بعد الظهر";
 "chart_evening" = "المساء";
 "apps_section_title" = "التطبيقات";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "وقت الشاشة اليوم";
+"guilt_verdict_addictive" = "إدمان";
+"guilt_verdict_excessive" = "مفرط";
+"guilt_verdict_watch" = "تحت المراقبة";
+"guilt_verdict_healthy" = "صحي";
+"guilt_headline_addictive" = "أنت في المنطقة الحمراء.";
+"guilt_headline_excessive" = "هذا كثير جداً.";
+"guilt_headline_watch" = "لا يزال بإمكانك التحسن.";
+"guilt_headline_healthy" = "أحسنت، الأمر تحت سيطرتك.";
+"guilt_subtitle_addictive" = "دماغك لم يعد يفرق بين الاستراحة والوسواس. انتباهك يتهاوى.";
+"guilt_subtitle_excessive" = "أنت تضيع ساعات لن تستعيدها أبداً. كل يوم.";
+"guilt_subtitle_watch" = "أنت فوق المعدل الموصى به. ليس مشكلة — بعد.";
+"guilt_subtitle_healthy" = "استمر هكذا. قلة من يستطيعون ذلك.";
+"guilt_shock_addictive" = "لقد قضيت اليوم وقتاً أطول على هاتفك مما قضيته في التحدث إلى إنسان.";
+"guilt_shock_excessive" = "هذا يكاد يعادل وظيفة بدوام جزئي.\nكل يوم. فقط للتمرير.";
+"guilt_shock_watch" = "%d ساعة في الأسبوع.\nهذا فيلم كامل. كل مساء.";
+"guilt_shock_healthy" = "أنت تستخدم هاتفك كأداة، لا كمخدر.\nنادر.";
+"guilt_lifetime_title" = "إذا واصلت هكذا…";
+"guilt_years" = "سنة";
+"guilt_months" = "شهر";
+"guilt_lifetime_subtitle" = "على هاتفك حتى نهاية حياتك،\nbبوتيرتك الحالية.";
+"guilt_equiv_title" = "ما كان بإمكانك فعله";
+"guilt_thieves_label" = "سارقو وقتك";
+"guilt_equiv_days_headline" = "%d أيام كاملة في السنة";
+"guilt_equiv_days_body" = "بهذه الوتيرة، %d يوماً كاملاً تُمحى من حياتك هذا العام.";
+"guilt_equiv_books_headline" = "%d كتاباً في السنة";
+"guilt_equiv_books_body" = "كان بإمكانك قراءة %d كتاباً هذا العام بهذا الوقت.";
+"guilt_equiv_workout_headline" = "%d ساعة رياضة";
+"guilt_equiv_workout_body" = "يكفي لتحويل جسدك كلياً خلال عام.";
+"guilt_equiv_sleep_headline" = "%d ساعة نوم مسروقة";
+"guilt_equiv_sleep_body" = "تخيّل إنتاجيتك مع %d ساعة نوم إضافية في السنة.";

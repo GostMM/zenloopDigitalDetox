@@ -412,9 +412,11 @@ class SessionManager: ObservableObject {
 
         if session.status != .lobby {
             let sysMsg = SessionMessage(
-                id: nil, userId: "system", username: "Systeme",
-                content: "\(currentUser.username) a rejoint la session en cours",
-                messageType: .systemAlert, timestamp: Timestamp(date: Date())
+                id: nil, userId: "system", username: "system",
+                content: "\(currentUser.username) joined",
+                messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+                systemKey: "sys_member_joined",
+                systemParams: ["username": currentUser.username]
             )
             let msgRef = sessionRef.collection("messages").document()
             try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -683,9 +685,11 @@ class SessionManager: ObservableObject {
         try batch.setData(from: event, forDocument: eventRef)
 
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "\(currentUser?.username ?? "Quelqu'un") a quitte la session",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "\(currentUser?.username ?? "") left",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: "sys_member_left",
+            systemParams: ["username": currentUser?.username ?? ""]
         )
         let msgRef = sessionRef.collection("messages").document()
         try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -769,9 +773,11 @@ class SessionManager: ObservableObject {
         try batch.setData(from: event, forDocument: eventRef)
 
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "La session a demarre ! Focus time !",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "session_started",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: "sys_session_started",
+            systemParams: [:]
         )
         let msgRef = sessionRef.collection("messages").document()
         try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -826,7 +832,7 @@ class SessionManager: ObservableObject {
 
     // MARK: - Leader: Pause
 
-    func pauseSession(sessionId: String, reason: String? = nil) async throws {
+    func pauseSession(sessionId: String, reason: String? = nil, acceptedFrom: String? = nil) async throws {
         guard let uid = currentUser?.id else { throw SessionError.notAuthenticated }
 
         let sessionRef = db.collection("sessions").document(sessionId)
@@ -867,11 +873,23 @@ class SessionManager: ObservableObject {
         let eventRef = sessionRef.collection("events").document()
         try batch.setData(from: event, forDocument: eventRef)
 
-        let reasonText = reason != nil ? " - Raison : \(reason!)" : ""
+        var pauseParams: [String: String] = ["username": currentUser?.username ?? ""]
+        if let reason = reason { pauseParams["reason"] = reason }
+        if let requester = acceptedFrom { pauseParams["requester"] = requester }
+        let pauseKey: String
+        if acceptedFrom != nil {
+            pauseKey = "sys_session_paused_accepted"
+        } else if reason != nil {
+            pauseKey = "sys_session_paused_reason"
+        } else {
+            pauseKey = "sys_session_paused"
+        }
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "Session mise en pause par \(currentUser?.username ?? "le leader")\(reasonText)",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "session_paused",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: pauseKey,
+            systemParams: pauseParams
         )
         let msgRef = sessionRef.collection("messages").document()
         try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -936,9 +954,11 @@ class SessionManager: ObservableObject {
         try batch.setData(from: event, forDocument: eventRef)
 
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "Session reprise ! C'est reparti !",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "session_resumed",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: "sys_session_resumed",
+            systemParams: [:]
         )
         let msgRef = sessionRef.collection("messages").document()
         try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -1024,9 +1044,11 @@ class SessionManager: ObservableObject {
         try batch.setData(from: event, forDocument: eventRef)
 
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "Session terminee ! Bravo a tous !",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "session_completed",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: "sys_session_completed",
+            systemParams: [:]
         )
         let msgRef = sessionRef.collection("messages").document()
         try batch.setData(from: sysMsg, forDocument: msgRef)
@@ -1068,11 +1090,14 @@ class SessionManager: ObservableObject {
         )
         try sessionRef.collection("events").addDocument(from: event)
 
-        let reasonText = reason != nil ? " : \"\(reason!)\"" : ""
+        var reqParams: [String: String] = ["username": currentUser.username]
+        if let reason = reason { reqParams["reason"] = reason }
         let sysMsg = SessionMessage(
-            id: nil, userId: "system", username: "Systeme",
-            content: "\(currentUser.username) demande une pause\(reasonText)",
-            messageType: .systemAlert, timestamp: Timestamp(date: Date())
+            id: nil, userId: "system", username: "system",
+            content: "pause_requested",
+            messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+            systemKey: reason != nil ? "sys_pause_requested_reason" : "sys_pause_requested",
+            systemParams: reqParams
         )
         try sessionRef.collection("messages").addDocument(from: sysMsg)
 
@@ -1130,12 +1155,14 @@ class SessionManager: ObservableObject {
         }
 
         if accept {
-            try await pauseSession(sessionId: sessionId, reason: "Demande de \(pauseReq.requesterUsername)")
+            try await pauseSession(sessionId: sessionId, reason: nil, acceptedFrom: pauseReq.requesterUsername)
         } else {
             let sysMsg = SessionMessage(
-                id: nil, userId: "system", username: "Systeme",
-                content: "Demande de pause de \(pauseReq.requesterUsername) refusee",
-                messageType: .systemAlert, timestamp: Timestamp(date: Date())
+                id: nil, userId: "system", username: "system",
+                content: "pause_declined",
+                messageType: .systemAlert, timestamp: Timestamp(date: Date()),
+                systemKey: "sys_pause_declined",
+                systemParams: ["username": pauseReq.requesterUsername]
             )
             try sessionRef.collection("messages").addDocument(from: sysMsg)
         }

@@ -537,3 +537,36 @@
 "chart_afternoon" = "NACHMITTAG";
 "chart_evening" = "ABEND";
 "apps_section_title" = "Apps";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "BILDSCHIRMZEIT HEUTE";
+"guilt_verdict_addictive" = "Suchtgefährdet";
+"guilt_verdict_excessive" = "Übermäßig";
+"guilt_verdict_watch" = "Aufpassen";
+"guilt_verdict_healthy" = "Gesund";
+"guilt_headline_addictive" = "Du bist in der roten Zone.";
+"guilt_headline_excessive" = "Das ist viel zu viel.";
+"guilt_headline_watch" = "Du kannst es noch umkehren.";
+"guilt_headline_healthy" = "Gut gemacht, du hast es im Griff.";
+"guilt_subtitle_addictive" = "Dein Gehirn unterscheidet keine Pause mehr von einem Zwang. Deine Aufmerksamkeit bricht ein.";
+"guilt_subtitle_excessive" = "Du verlierst Stunden, die du nie zurückbekommen wirst. Jeden Tag.";
+"guilt_subtitle_watch" = "Du liegst über dem empfohlenen Durchschnitt. Noch kein Problem – noch nicht.";
+"guilt_subtitle_healthy" = "Weiter so. Nur wenige schaffen das.";
+"guilt_shock_addictive" = "Du hast heute mehr Zeit mit deinem Handy verbracht als mit einem anderen Menschen zu reden.";
+"guilt_shock_excessive" = "Das ist fast ein Teilzeitjob.\nJeden Tag. Nur zum Scrollen.";
+"guilt_shock_watch" = "%d Stunden pro Woche.\nDas ist ein Film. Jeden Abend.";
+"guilt_shock_healthy" = "Du nutzt dein Handy als Werkzeug, nicht als Droge.\nSelten.";
+"guilt_lifetime_title" = "Wenn du so weitermachst…";
+"guilt_years" = "J";
+"guilt_months" = "MO";
+"guilt_lifetime_subtitle" = "auf deinem Handy bis ans Ende deines Lebens,\nbei deinem aktuellen Tempo.";
+"guilt_equiv_title" = "Was du stattdessen hättest tun können";
+"guilt_thieves_label" = "DIE ZEITDIEBE";
+"guilt_equiv_days_headline" = "%d ganze Tage pro Jahr";
+"guilt_equiv_days_body" = "In diesem Tempo sind das %d vollständige Tage, die dieses Jahr aus deinem Leben verschwinden.";
+"guilt_equiv_books_headline" = "%d Bücher pro Jahr";
+"guilt_equiv_books_body" = "Du hättest in dieser Zeit %d Bücher lesen können.";
+"guilt_equiv_workout_headline" = "%d Stunden Sport";
+"guilt_equiv_workout_body" = "Genug, um deinen Körper in einem Jahr komplett zu verändern.";
+"guilt_equiv_sleep_headline" = "%dh gestohlener Schlaf";
+"guilt_equiv_sleep_body" = "Stell dir vor, wie produktiv du mit %dh mehr Schlaf pro Jahr wärst.";

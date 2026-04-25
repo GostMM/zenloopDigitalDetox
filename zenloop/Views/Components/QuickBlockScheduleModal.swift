@@ -213,7 +213,7 @@ struct QuickBlockScheduleModal: View {
                     VStack(spacing: 5) {
                         Image(systemName: difficulty.icon)
                             .font(.system(size: 16, weight: .bold))
-                        Text(difficulty.rawValue)
+                        Text(difficulty.localizedName)
                             .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundColor(isSelected ? .white : .white.opacity(0.4))

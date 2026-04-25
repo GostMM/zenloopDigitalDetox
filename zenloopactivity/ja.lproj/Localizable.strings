@@ -537,3 +537,36 @@
 "chart_afternoon" = "午後";
 "chart_evening" = "夜";
 "apps_section_title" = "アプリ";
+
+// GuiltTripExtensionView
+"guilt_hero_label" = "今日のスクリーンタイム";
+"guilt_verdict_addictive" = "依存的";
+"guilt_verdict_excessive" = "過剰";
+"guilt_verdict_watch" = "要注意";
+"guilt_verdict_healthy" = "健全";
+"guilt_headline_addictive" = "あなたは危険ゾーンにいます。";
+"guilt_headline_excessive" = "使いすぎです。";
+"guilt_headline_watch" = "まだ改善できます。";
+"guilt_headline_healthy" = "素晴らしい、よくコントロールできています。";
+"guilt_subtitle_addictive" = "脳が休憩と衝動を区別できなくなっています。集中力が崩壊しています。";
+"guilt_subtitle_excessive" = "取り戻せない時間を毎日失っています。";
+"guilt_subtitle_watch" = "推奨平均を超えています。まだ大丈夫ですが…";
+"guilt_subtitle_healthy" = "このまま続けましょう。できる人はほとんどいません。";
+"guilt_shock_addictive" = "今日は人と会話するより長い時間を、スマホで過ごしました。";
+"guilt_shock_excessive" = "ほぼパートタイムの仕事相当です。\n毎日。スクロールするだけのために。";
+"guilt_shock_watch" = "週%d時間。\n毎晩、映画1本分です。";
+"guilt_shock_healthy" = "スマホをツールとして使い、依存していません。\n稀なことです。";
+"guilt_lifetime_title" = "このまま続けると…";
+"guilt_years" = "年";
+"guilt_months" = "ヶ月";
+"guilt_lifetime_subtitle" = "現在のペースで、残りの人生でスマホに費やす時間。";
+"guilt_equiv_title" = "代わりにできたこと";
+"guilt_thieves_label" = "あなたの時間を盗むもの";
+"guilt_equiv_days_headline" = "年間%d日まるごと";
+"guilt_equiv_days_body" = "このペースだと、今年%d日が人生から消えます。";
+"guilt_equiv_books_headline" = "年間%d冊の本";
+"guilt_equiv_books_body" = "その時間で今年%d冊の本を読めていました。";
+"guilt_equiv_workout_headline" = "%d時間の運動";
+"guilt_equiv_workout_body" = "1年で体を完全に変えるのに十分な時間です。";
+"guilt_equiv_sleep_headline" = "%d時間の睡眠が奪われた";
+"guilt_equiv_sleep_body" = "年間%d時間多く眠れたらどれほど生産的になれるか想像してみて。";

@@ -47,11 +47,11 @@ struct JoinSessionView: View {
                                 .font(.system(size: 48, weight: .light))
                                 .foregroundColor(.white.opacity(0.8))
 
-                            Text("Entrez le Code d'Invitation")
+                            Text(String(localized: "join_enter_code"))
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
 
-                            Text("6 caractères")
+                            Text(String(localized: "join_code_length"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white.opacity(0.5))
                         }
@@ -179,7 +179,7 @@ struct JoinSessionView: View {
             } catch {
                 await MainActor.run {
                     isSearching = false
-                    errorMessage = "Erreur: \(error.localizedDescription)"
+                    errorMessage = String(format: String(localized: "join_error_format"), error.localizedDescription)
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
             }
@@ -209,7 +209,7 @@ struct JoinSessionView: View {
                 await MainActor.run {
                     isJoining = false
                     withAnimation {
-                        successMessage = "Demande envoyée au leader !\n\nTu es déjà dans une session active. Le leader de \"\(session.title)\" recevra ta demande et pourra t'accepter."
+                        successMessage = String(format: String(localized: "join_request_sent_format"), session.title)
                         errorMessage = nil
                         foundSession = nil  // Masquer la card
                     }
@@ -223,7 +223,7 @@ struct JoinSessionView: View {
                 await MainActor.run {
                     isJoining = false
                     withAnimation {
-                        errorMessage = "Erreur: \(error.localizedDescription)"
+                        errorMessage = String(format: String(localized: "join_error_format"), error.localizedDescription)
                     }
                     UINotificationFeedbackGenerator().notificationOccurred(.error)
                 }
@@ -241,11 +241,11 @@ struct JoinSessionHeader: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Rejoindre")
+                Text(String(localized: "join_title"))
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
 
-                Text("Entrez le code d'invitation")
+                Text(String(localized: "join_subtitle"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
             }
@@ -353,11 +353,11 @@ struct SessionFoundCard: View {
 
     private var statusText: String {
         switch session.status {
-        case .lobby: return "En attente"
-        case .active: return "En cours"
-        case .paused: return "En pause"
-        case .completed: return "Terminée"
-        case .dissolved: return "Dissoute"
+        case .lobby: return String(localized: "session_status_lobby")
+        case .active: return String(localized: "session_status_active")
+        case .paused: return String(localized: "session_status_paused")
+        case .completed: return String(localized: "session_status_completed")
+        case .dissolved: return String(localized: "session_status_dissolved")
         }
     }
 
@@ -418,7 +418,7 @@ struct SessionFoundCard: View {
                         .foregroundColor(statusColor)
 
                     // ✅ FIX: safe accessor
-                    Label("\(session.safeMemberIds.count) membres", systemImage: "person.2.fill")
+                    Label(String(format: String(localized: "join_members_count"), session.safeMemberIds.count), systemImage: "person.2.fill")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -429,7 +429,7 @@ struct SessionFoundCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(.yellow)
 
-                    Text("par \(session.leaderUsername)")
+                    Text(String(format: String(localized: "join_by_leader"), session.leaderUsername))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -448,7 +448,7 @@ struct SessionFoundCard: View {
                                 .foregroundColor(.white)
                         }
 
-                        Text(isJoining ? "Connexion..." : "Rejoindre la Session")
+                        Text(isJoining ? String(localized: "join_connecting") : String(localized: "join_session_button"))
                             .font(.system(size: 17, weight: .bold))
                             .foregroundColor(.white)
                     }
@@ -472,7 +472,7 @@ struct SessionFoundCard: View {
                 .buttonStyle(ScaleButtonStyle())
             } else {
                 // Session non-joignable
-                Text("Cette session n'accepte plus de nouveaux membres")
+                Text(String(localized: "join_session_closed"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.5))
                     .multilineTextAlignment(.center)
@@ -527,7 +527,7 @@ struct SearchButton: View {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
 
-                    Text("Recherche...")
+                    Text(String(localized: "join_searching"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.white)
                 } else {
@@ -535,7 +535,7 @@ struct SearchButton: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text("Chercher la Session")
+                    Text(String(localized: "join_search_button"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.white)
                 }
